@@ -24,6 +24,11 @@ echo 'export PATH="$ECLIPSE_HOME:$PATH"'   >> ~/.bash_path
 wget 'http://downloads.sourceforge.net/project/eclim/eclim/2.5.0/eclim_2.5.0.jar?r=&ts=1453915367&use_mirror=vorboss' -O eclim_2.5.0.jar
 JAVA_HOME="$HOME/jdk1.8.0_$JAVA_VERSION" PATH="$JAVA_HOME/bin:$PATH" jdk1.8.0_$JAVA_VERSION/bin/java -Dvim.files=/home/vagrant/.vim -Declipse.home=/home/vagrant/eclipse -jar eclim_2.5.0.jar install
 
+# ghp-import (used for publishing javadoc)
+wget https://bootstrap.pypa.io/get-pip.py
+sudo python get-pip.py
+sudo pip install ghp-import
+
 # # maven
 # wget 'http://mirrors.advancedhosters.com/apache/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.tar.gz'
 # tar -xzvf apache-maven-3.3.3-bin.tar.gz

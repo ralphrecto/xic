@@ -44,7 +44,8 @@ vagrant ssh
 ```
 
 Once you've ssh'ed into the virtual machine, run the following command to
-install Java 8, [Eclipse Mars][eclipse_mars], and [eclim][].
+install Java 8, [Eclipse Mars][eclipse_mars], [eclim][], and
+[ghp-import](https://github.com/davisp/ghp-import).
 
 ```bash
 # make sure to run this in the virtual machine
@@ -72,8 +73,9 @@ Java(TM) SE Runtime Environment (build 1.8.0_71-b15)
 Java HotSpot(TM) 64-Bit Server VM (build 25.71-b15, mixed mode)
 ```
 
-One last thing, if you don't want to install Eclipse or eclim, just comment out
-the appropriate lines in the `install_java8.sh` script before you run it.
+One last thing, if you don't want to install Eclipse or eclim or ghp-import,
+just comment out the appropriate lines in the `install_java8.sh` script before
+you run it.
 
 ## Resources ##
 - [CS 4120 Website](http://www.cs.cornell.edu/courses/cs4120/2016sp/)

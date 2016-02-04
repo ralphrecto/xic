@@ -80,6 +80,7 @@ the appropriate lines in the `install_java8.sh` script before you run it.
 - [Xi Language Specification](http://www.cs.cornell.edu/courses/cs4120/2016sp/project/language.pdf)
 - [Overview Documentation Requirements](http://www.cs.cornell.edu/courses/cs4120/2016sp/hw/overview-requirements.html)
 - [Programming Assignment 1](http://www.cs.cornell.edu/courses/cs4120/2016sp/pa/pa1/pa1.pdf)
+- [Online Javadoc Documentation][github_javadoc]
 
 [eclim]:          http://eclim.org/
 [eclipse_mars]:   https://eclipse.org/mars/

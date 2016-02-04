@@ -42,8 +42,15 @@ publish: doc
 	@echo "********************************************************************"
 	@echo "* make publish                                                     *"
 	@echo "********************************************************************"
-	ghp-import -n doc
-	git push -f origin gh-pages
+	# http://stackoverflow.com/a/677212/3187068
+	if command -v ghp-import >/dev/null 2>&1; then \
+		ghp-import -n doc; \
+		git push -f origin gh-pages; \
+	else \
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"; \
+		echo "! ghp-import not installed; docs will not be published             !"; \
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"; \
+	fi
 	@echo
 
 .PHONY: clean

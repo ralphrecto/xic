@@ -39,6 +39,7 @@ hs_err_pid*
 .metadata
 bin/
 tmp/
+doc/
 *.tmp
 *.bak
 *.swp

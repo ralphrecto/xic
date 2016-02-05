@@ -1,4 +1,18 @@
-SRCS  = $(shell find src -name '*.java') $(shell find test -name '*.java')
+SRCDIR = src/mjw297
+PKG = mjw297
+PARSER_CLASS = Parser
+SYMBOL_CLASS = Sym
+LEXER_CLASS = Lexer
+PARSER = $(SRCDIR)/$(PARSER_CLASS)
+SYMBOL = $(SRCDIR)/$(SYMBOL_CLASS)
+LEXER  = $(SRCDIR)/$(LEXER_CLASS)
+CUPJAR = lib/java-cup-11b.jar
+FLEXJAR = lib/jflex-1.6.1.jar
+SRCS  = $(shell find src -name '*.java') \
+        $(shell find test -name '*.java') \
+	    $(LEXER).java \
+	    $(PARSER).java \
+	    $(SYMBOL).java
 TESTS = $(shell find test -name '*.java' \
             | sed 's/.java//' \
 		    | sed 's_test/__' \
@@ -8,10 +22,21 @@ CP    = $(LIBS):$$CLASSPATH
 BIN   = bin
 DOC   = doc
 
-JAVAC_FLAGS = -Xlint -Werror
+JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
 default: clean src test doc publish
+
+$(LEXER).java: $(LEXER).jflex
+	java -jar $(FLEXJAR) $<
+
+$(PARSER).java $(SYMBOL).java: $(PARSER).cup
+	java -jar $(CUPJAR) -destdir $(SRCDIR) \
+		                -package $(PKG) \
+						-parser $(PARSER_CLASS) \
+						-symbols $(SYMBOL_CLASS) \
+						-nowarn \
+						-dump_grammar $<
 
 .PHONY: src
 src: $(SRCS)
@@ -60,6 +85,9 @@ clean:
 	@echo "********************************************************************"
 	rm -rf $(BIN)
 	rm -rf $(DOC)
+	rm -rf $(PARSER).java
+	rm -rf $(SYMBOL).java
+	rm -rf $(LEXER).java
 	@echo
 
 print-%:

@@ -1,0 +1,60 @@
+import java_cup.runtime.*;
+
+////////////////////////////////////////////////////////////////////////////////
+// Terminals
+////////////////////////////////////////////////////////////////////////////////
+// Symbols
+terminal MINUS,      // -
+         BANG,       // !
+         STAR,       // *
+         HIGHMULT,   // *>>
+         DIV,        // /
+         MOD,        // %
+         PLUS,       // +
+         EQ,         // =
+         LT,         // <
+         LTE,        // <=
+         GTE,        // >=
+         GT,         // >
+         EQEQ,       // ==
+         NEQ,        // !=
+         AMP,        // &
+         BAR,        // |
+         SEMICOLON,  // ;
+         LPAREN,     // (
+         RPAREN,     // )
+         LBRACKET,   // [
+         RBRACKET,   // ]
+         LBRACE,     // {
+         RBRACE,     // }
+         UNDERSCORE, // _
+         COMMA,      // ,
+         COLON;      // :
+
+// Keywords
+terminal WHILE,  // while
+         IF,     // if
+         ELSE,   // else
+         RETURN, // return
+         INT,    // int
+         BOOL,   // bool
+         USE,    // use
+         LENGTH, // length
+         TRUE,   // true
+         FALSE;  // false
+
+// Valued Terminals
+terminal String    STRING; // "foo", "bar", ...,
+terminal Character CHAR;   // 'a', 'b', ...
+terminal String    ID;     // foo, foo_bar, t'is_2_cold_4_me
+terminal Integer   NUM;    // ..., -1, 0, 1, ...
+
+////////////////////////////////////////////////////////////////////////////////
+// Grammar
+////////////////////////////////////////////////////////////////////////////////
+// Currently, this parser specification is used solely for its terminal
+// symbols, which are used by the lexer. CUP demands a grammar appear here, so
+// we put one here, though it is a meaningless dummy grammar that will later be
+// replaced with Xi's real grammar.
+non terminal dummy;
+dummy ::= LPAREN RPAREN;

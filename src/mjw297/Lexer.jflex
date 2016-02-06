@@ -1,5 +1,6 @@
+package mjw297;
+
 import java_cup.runtime.*;
-import mjw297.Sym;
 
 %%
 

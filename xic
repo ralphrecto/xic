@@ -1,2 +1,2 @@
 #! /bin/bash
-java -cp "bin:$CLASSPATH" mjw297.Main "$@"
+java -cp "bin:$CLASSPATH:`ls lib/*.jar | tr '\n' ':' | sed 's/:$$//'`" mjw297.Main "$@"

@@ -17,7 +17,7 @@ TESTS = $(shell find test -name '*.java' \
             | sed 's/.java//' \
 		    | sed 's_test/__' \
 			| tr '/' '.')
-LIBS  = $(shell ls lib/*.jar | paste -d: -s)
+LIBS  = $(shell ls lib/*.jar | tr '\n' ':' | sed 's/:$$//')
 CP    = $(LIBS):$$CLASSPATH
 BIN   = bin
 DOC   = doc

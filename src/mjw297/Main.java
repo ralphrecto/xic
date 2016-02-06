@@ -4,43 +4,71 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
+
     @Option(name="--help",usage="Print a synopsis of options.")
-    public boolean helpMode = false;
+    private boolean helpMode = false;
 
     @Option(name="--lex",usage="Generate output from lexical analysis")
-    public boolean lexMode = false;
+    private boolean lexMode = false;
 
-    /* other non optional arguments (i.e. filenames) */
-    @Argument
+    @Argument(usage="Other non-optional arguments.", hidden=true)
     private static List<String> arguments = new ArrayList<String>();
 
-    public void doMain(String[] args) {
-        CmdLineParser parser = new CmdLineParser(this);
+    private CmdLineParser parser;
 
-        Runnable printUsage = () -> {
-            System.err.println("xic [options] <source files>");
-            parser.printUsage(System.err);
-        };
+    public Main() {
+        this.parser = new CmdLineParser(this);
+    }
+
+    private void printUsage() {
+        System.err.println("xic [options] <source files>");
+        parser.printUsage(System.err);
+    }
+
+    private void doLex() {
+        if (arguments.isEmpty()) {
+            System.out.println("No filenames provided.");
+            printUsage();
+        }
+
+        List<FileReader> files = new ArrayList<>();
+        for (String filename : arguments) {
+            try {
+                files.add(new FileReader(filename));
+            } catch (FileNotFoundException e) {
+                System.out.println("File " + filename + " does not exist.");
+                return;
+            }
+        }
+
+        for (FileReader file : files) {
+            System.out.println("lexing file...");
+        }
+    }
+
+    public void doMain(String[] args) {
 
         try {
             parser.parseArgument(args);
-
             if (helpMode) {
-                printUsage.run();
+                printUsage();
             } else if (lexMode) {
-                System.out.println("fLEXing");
-            } else if(arguments.isEmpty()) {
-                System.out.println("no arguments given.");
-                printUsage.run();
+                doLex();
+            } else {
+                if (arguments.isEmpty()) {
+                    printUsage();
+                }
             }
-
-        } catch( CmdLineException e ) {
+        } catch(CmdLineException e) {
             System.err.println(e.getMessage());
-            printUsage.run();
+            printUsage();
         }
 
         return;

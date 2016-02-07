@@ -11,6 +11,7 @@ package mjw297;
  */
 @SuppressWarnings("serial")
 public class LexerException extends Exception {
+    public final ErrorCode code;
     public final int row;
     public final int column;
 
@@ -19,8 +20,9 @@ public class LexerException extends Exception {
      * occurred at row {@code r} and column {@code c} with detailed error
      * message {@code message}.
      */
-    public LexerException(int row, int column, String message) {
+    public LexerException(ErrorCode code, int row, int column, String message) {
         super(message);
+        this.code = code;
         this.row = row;
         this.column = column;
     }

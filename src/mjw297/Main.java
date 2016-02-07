@@ -35,7 +35,7 @@ public class Main {
         parser.printUsage(System.err);
     }
 
-    private void doLex() {
+    private void doLex() throws LexerException {
         if (arguments.isEmpty()) {
             System.out.println("No filenames provided.");
             printUsage();
@@ -69,46 +69,25 @@ public class Main {
         /* lex each file and output the generated tokens */
         for (SourceFile sf : files) {
             Lexer lexer = new Lexer(sf.reader);
-            List<Symbol> symbols = new ArrayList<>();
+            StringBuilder outputBuilder = new StringBuilder();
 
-            Symbol currentSymbol;
+            Symbol curSym;
             try {
-                currentSymbol = lexer.next_token();
-                while (currentSymbol.sym != Sym.EOF) {
-                    symbols.add(currentSymbol);
-                    currentSymbol = lexer.next_token();
+                curSym = lexer.next_token();
+                while (curSym.sym != Sym.EOF) {
+                    outputBuilder.append(
+                            String.format(
+                                    "%d:%d %s\n",
+                                    curSym.left,
+                                    curSym.right,
+                                    SymUtil.symToLiteral(curSym)
+                            )
+                    );
+                    curSym = lexer.next_token();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
-            }
-
-            Function<Symbol, String> symbolToString = (sym) -> {
-                switch (Sym.terminalNames[sym.sym]) {
-                    case "ID":
-                        return "id " + (String) sym.value;
-                    case "INT":
-                        return "integer " + (Integer) sym.value;
-                    case "CHAR":
-                        return "character" + (Character) sym.value;
-                    case "STRING":
-                        return "string " + (String) sym.value;
-                    default:
-                        /* TODO(rjr): change this to actual tokens */
-                        return Sym.terminalNames[sym.sym];
-                }
-            };
-
-            StringBuilder outputBuilder = new StringBuilder();
-            for (Symbol symbol : symbols) {
-                outputBuilder.append(
-                        String.format(
-                                "%d:%d %s",
-                                symbol.left,
-                                symbol.right,
-                                symbolToString.apply(symbol)
-                        )
-                );
             }
 
             String outputFilename = String.format(
@@ -127,7 +106,7 @@ public class Main {
         }
     }
 
-    public void doMain(String[] args) {
+    public void doMain(String[] args) throws LexerException {
 
         try {
             parser.parseArgument(args);
@@ -148,7 +127,7 @@ public class Main {
         return;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws LexerException {
         new Main().doMain(args);
     }
 }

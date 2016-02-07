@@ -12,12 +12,14 @@ import java_cup.runtime.*;
 %line
 %column
 
+%yylexthrow LexerException
+
 %state STRING CHARACTER
 
 %{
     // strings are lexed into sb
     StringBuffer sb = new StringBuffer();
-	int stringStart = 0;
+    int stringStart = 0;
 
 	/* chop returns the substring from the ith character to the
 	   jth last character */
@@ -25,13 +27,13 @@ import java_cup.runtime.*;
 		return yytext().substring(i, yylength()-j);
 	}
 
-	private String chop(int j) {
-		return chop(0, j);
-	}
+    private String chop(int j) {
+        return chop(0, j);
+    }
 
-	private String chop() {
-		return chop(0, 1);
-	}
+    private String chop() {
+        return chop(0, 1);
+    }
 
     // If not -1, the row and column of the start of a char or string
     int startRow = -1;
@@ -53,6 +55,10 @@ import java_cup.runtime.*;
         return new Symbol(type, row(), column(), value);
     }
 
+    private LexerException lexerException(ErrorCode c, String message) {
+        return new LexerException(c, row(), column(), message);
+    }
+
     /**
      * {@code longLiteral(s)} parses {@code s} into a Xi number literal. It is
      * a precondition that {@code s} must only contain digits; it may not
@@ -63,9 +69,10 @@ import java_cup.runtime.*;
      *      is returned
      *   2. If {@code s == "9223372036854775808"}, then a {@code BIG_NUM}
      *      symbol is returned
-     *   3. TODO: specify third case.
+     *   3. If {@code s} is outside the range of a valid integer, then a
+     *      LexerException is raised.
      */
-    private Symbol longLiteral(String s) {
+    private Symbol longLiteral(String s) throws LexerException {
         try {
             if (s.equals("9223372036854775808")) {
                 return symbol(Sym.BIG_NUM);
@@ -74,7 +81,10 @@ import java_cup.runtime.*;
             }
         } catch (NumberFormatException e) {
             // TODO: handle out of bounds
-            return symbol(Sym.NUM, -1);
+            String m = String.format(
+                "error:Integer literal %s out of bounds [0, 9223372036854775807]",
+                s);
+            throw lexerException(ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, m);
         }
     }
 %}
@@ -104,48 +114,48 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
 <YYINITIAL> {
 
-	/* Keywords */
-	"while"		{ return symbol(Sym.WHILE);  }
-	"if"		{ return symbol(Sym.IF);     }
-	"else"		{ return symbol(Sym.ELSE);   }
-    "return"	{ return symbol(Sym.RETURN); }
-	"int"		{ return symbol(Sym.INT);    }
-	"bool"		{ return symbol(Sym.BOOL);	 }
-	"use"		{ return symbol(Sym.USE);	 }
-	"length"	{ return symbol(Sym.LENGTH); }
-	"true"		{ return symbol(Sym.TRUE);	 }
-	"false"		{ return symbol(Sym.FALSE);	 }
+    /* Keywords */
+    "while"     { return symbol(Sym.WHILE);  }
+    "if"        { return symbol(Sym.IF);     }
+    "else"      { return symbol(Sym.ELSE);   }
+    "return"    { return symbol(Sym.RETURN); }
+    "int"       { return symbol(Sym.INT);    }
+    "bool"      { return symbol(Sym.BOOL);   }
+    "use"       { return symbol(Sym.USE);    }
+    "length"    { return symbol(Sym.LENGTH); }
+    "true"      { return symbol(Sym.TRUE);   }
+    "false"     { return symbol(Sym.FALSE);  }
 
-	/* Symbols */
-    "-"			{ return symbol(Sym.MINUS);      }
-    "!"			{ return symbol(Sym.BANG);       }
-    "*"			{ return symbol(Sym.STAR);       }
-    "*>>"		{ return symbol(Sym.HIGHMULT);   }
-    "/"			{ return symbol(Sym.DIV);        }
-    "%"			{ return symbol(Sym.MOD);        }
-    "+"			{ return symbol(Sym.PLUS);       }
-    "="			{ return symbol(Sym.EQ);         }
-    "<"			{ return symbol(Sym.LT);         }
-    "<="		{ return symbol(Sym.LTE);        }
-    ">="		{ return symbol(Sym.GTE);        }
-    ">"			{ return symbol(Sym.GT);         }
-    "=="		{ return symbol(Sym.EQEQ);       }
-    "!="		{ return symbol(Sym.NEQ);        }
-    "&"			{ return symbol(Sym.AMP);        }
-    "|"			{ return symbol(Sym.BAR);        }
-    ";"			{ return symbol(Sym.SEMICOLON);  }
-    "("			{ return symbol(Sym.LPAREN);     }
-    ")"			{ return symbol(Sym.RPAREN);     }
-    "["			{ return symbol(Sym.LBRACKET);   }
-    "]"			{ return symbol(Sym.RBRACKET);   }
-    "{"			{ return symbol(Sym.LBRACE);     }
-    "}"			{ return symbol(Sym.RBRACE);     }
-    "_"			{ return symbol(Sym.UNDERSCORE); }
-    ","			{ return symbol(Sym.COMMA);      }
-    ":"			{ return symbol(Sym.COLON);      }
+    /* Symbols */
+    "-"         { return symbol(Sym.MINUS);      }
+    "!"         { return symbol(Sym.BANG);       }
+    "*"         { return symbol(Sym.STAR);       }
+    "*>>"       { return symbol(Sym.HIGHMULT);   }
+    "/"         { return symbol(Sym.DIV);        }
+    "%"         { return symbol(Sym.MOD);        }
+    "+"         { return symbol(Sym.PLUS);       }
+    "="         { return symbol(Sym.EQ);         }
+    "<"         { return symbol(Sym.LT);         }
+    "<="        { return symbol(Sym.LTE);        }
+    ">="        { return symbol(Sym.GTE);        }
+    ">"         { return symbol(Sym.GT);         }
+    "=="        { return symbol(Sym.EQEQ);       }
+    "!="        { return symbol(Sym.NEQ);        }
+    "&"         { return symbol(Sym.AMP);        }
+    "|"         { return symbol(Sym.BAR);        }
+    ";"         { return symbol(Sym.SEMICOLON);  }
+    "("         { return symbol(Sym.LPAREN);     }
+    ")"         { return symbol(Sym.RPAREN);     }
+    "["         { return symbol(Sym.LBRACKET);   }
+    "]"         { return symbol(Sym.RBRACKET);   }
+    "{"         { return symbol(Sym.LBRACE);     }
+    "}"         { return symbol(Sym.RBRACE);     }
+    "_"         { return symbol(Sym.UNDERSCORE); }
+    ","         { return symbol(Sym.COMMA);      }
+    ":"         { return symbol(Sym.COLON);      }
 
-	/* String */
-	\"			{ sb.setLength(0);
+    /* String */
+    \"          { sb.setLength(0);
                   startRow = row();
                   startColumn = column();
                   yybegin(STRING); }
@@ -170,8 +180,8 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 }
 
 <STRING> {
-	/* End of string */
-	\"			 { yybegin(YYINITIAL);
+    /* End of string */
+    \"           { yybegin(YYINITIAL);
                    int r = startRow;
                    int c = startColumn;
                    startRow = -1;
@@ -265,7 +275,6 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 	
 	/* anything else */
 	[^\n\r\'\\]+ { sb.append( yytext() ); }
-
 }
 
 

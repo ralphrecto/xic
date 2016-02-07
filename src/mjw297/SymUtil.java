@@ -1,0 +1,73 @@
+package mjw297;
+
+import java_cup.runtime.Symbol;
+
+import java.util.function.Function;
+
+/* Lexing helper class */
+public class SymUtil {
+    /* Get string literals for Symbols. Common unprintable characters
+    (e.g.  * newline, tab, etc.) are escaped for pretty printng. */
+    public static String symToLiteral(Symbol sym) {
+        Function<String, String> prettyPrint = (s) -> {
+            return s.replaceAll("\t", "\\t")
+                    .replaceAll("\b", "\\b")
+                    .replaceAll("\n", "\\b")
+                    .replaceAll("\r", "\\r")
+                    .replaceAll("\f", "\\f")
+                    .replaceAll("\'", "\\'")
+                    .replaceAll("\"", "\\\"")
+                    .replaceAll("\\", "\\\\");
+        };
+
+        String terminalName = Sym.terminalNames[sym.sym];
+        switch (terminalName) {
+            case ("EOF"): return "EOF";
+            case ("error"): return "error";
+            case ("MINUS"): return "-";
+            case ("BANG"): return "!";
+            case ("STAR"): return "*";
+            case ("HIGHMULT"): return "*>>";
+            case ("DIV"): return "/";
+            case ("MOD"): return "%";
+            case ("PLUS"): return "+";
+            case ("EQ"): return "=";
+            case ("LT"): return "<";
+            case ("LTE"): return "<=";
+            case ("GTE"): return ">=";
+            case ("GT"): return ">";
+            case ("EQEQ"): return "==";
+            case ("NEQ"): return "!=";
+            case ("AMP"): return "&";
+            case ("BAR"): return "|";
+            case ("SEMICOLON"): return ";";
+            case ("LPAREN"): return "(";
+            case ("RPAREN"): return ")";
+            case ("LBRACKET"): return "[";
+            case ("RBRACKET"): return "]";
+            case ("LBRACE"): return "{";
+            case ("RBRACE"): return "}";
+            case ("UNDERSCORE"): return "_";
+            case ("COMMA"): return ",";
+            case ("COLON"): return ":";
+            case ("STRING"): return "string " +
+                    prettyPrint.apply((String) sym.value);
+            case ("CHAR"): return "character " +
+                    prettyPrint.apply(sym.value.toString());
+            case ("ID"): return "id " + sym.value;
+            case ("NUM"): return "integer " + sym.value;
+            case ("BIG_NUM"): return "integer " + sym.value;
+            case ("WHILE"):
+            case ("INT"):
+            case ("BOOL"):
+            case ("IF"):
+            case ("ELSE"):
+            case ("RETURN"):
+            case ("USE"):
+            case ("LENGTH"):
+            case ("TRUE"):
+            case ("FALSE"): return terminalName.toLowerCase();
+            default: return terminalName.toLowerCase();
+        }
+    }
+}

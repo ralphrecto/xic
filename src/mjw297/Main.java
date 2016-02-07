@@ -1,46 +1,148 @@
 package mjw297;
+import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import com.google.common.io.Files;
 
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class Main {
+
     @Option(name="--help",usage="Print a synopsis of options.")
-    public boolean helpMode = false;
+    private boolean helpMode = false;
 
     @Option(name="--lex",usage="Generate output from lexical analysis")
-    public boolean lexMode = false;
+    private boolean lexMode = false;
 
-    /* other non optional arguments (i.e. filenames) */
-    @Argument
+    @Argument(usage="Other non-optional arguments.", hidden=true)
     private static List<String> arguments = new ArrayList<String>();
 
-    public void doMain(String[] args) {
-        CmdLineParser parser = new CmdLineParser(this);
+    private CmdLineParser parser;
 
-        Runnable printUsage = () -> {
-            System.err.println("xic [options] <source files>");
-            parser.printUsage(System.err);
-        };
+    public Main() {
+        this.parser = new CmdLineParser(this);
+    }
+
+    private void printUsage() {
+        System.err.println("xic [options] <source files>");
+        parser.printUsage(System.err);
+    }
+
+    private void doLex() {
+        if (arguments.isEmpty()) {
+            System.out.println("No filenames provided.");
+            printUsage();
+        }
+
+        class SourceFile {
+            String filename;
+            FileReader reader;
+
+            SourceFile(String filename, FileReader reader) {
+                this.filename = filename;
+                this.reader = reader;
+            }
+        }
+
+        List<SourceFile> files = new ArrayList<>();
+        for (String filename : arguments) {
+            if (!Files.getFileExtension(filename).equals("xi")) {
+                System.out.println("Valid Xi files must have a .xi extension.");
+                return;
+            }
+
+            try {
+                files.add(new SourceFile(filename, new FileReader(filename)));
+            } catch (FileNotFoundException e) {
+                System.out.println("File " + filename + " does not exist.");
+                return;
+            }
+        }
+
+        /* lex each file and output the generated tokens */
+        for (SourceFile sf : files) {
+            Lexer lexer = new Lexer(sf.reader);
+            List<Symbol> symbols = new ArrayList<>();
+
+            Symbol currentSymbol;
+            try {
+                currentSymbol = lexer.next_token();
+                while (currentSymbol.sym != Sym.EOF) {
+                    symbols.add(currentSymbol);
+                    currentSymbol = lexer.next_token();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            Function<Symbol, String> symbolToString = (sym) -> {
+                switch (Sym.terminalNames[sym.sym]) {
+                    case "ID":
+                        return "id " + (String) sym.value;
+                    case "INT":
+                        return "integer " + (Integer) sym.value;
+                    case "CHAR":
+                        return "character" + (Character) sym.value;
+                    case "STRING":
+                        return "string " + (String) sym.value;
+                    default:
+                        /* TODO(rjr): change this to actual tokens */
+                        return Sym.terminalNames[sym.sym];
+                }
+            };
+
+            StringBuilder outputBuilder = new StringBuilder();
+            for (Symbol symbol : symbols) {
+                outputBuilder.append(
+                        String.format(
+                                "%d:%d %s",
+                                symbol.left,
+                                symbol.right,
+                                symbolToString.apply(symbol)
+                        )
+                );
+            }
+
+            String outputFilename = String.format(
+                    "%s.lexed",
+                    Files.getNameWithoutExtension(sf.filename)
+            );
+            File outputFile = Paths.get(outputFilename).toFile();
+
+            try {
+                Files.write(outputBuilder.toString().getBytes(), outputFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Could not write to file " + outputFilename);
+                return;
+            }
+        }
+    }
+
+    public void doMain(String[] args) {
 
         try {
             parser.parseArgument(args);
-
             if (helpMode) {
-                printUsage.run();
+                printUsage();
             } else if (lexMode) {
-                System.out.println("fLEXing");
-            } else if(arguments.isEmpty()) {
-                System.out.println("no arguments given.");
-                printUsage.run();
+                doLex();
+            } else {
+                if (arguments.isEmpty()) {
+                    printUsage();
+                }
             }
-
-        } catch( CmdLineException e ) {
+        } catch(CmdLineException e) {
             System.err.println(e.getMessage());
-            printUsage.run();
+            printUsage();
         }
 
         return;

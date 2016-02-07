@@ -12,6 +12,8 @@ import java_cup.runtime.*;
 %line
 %column
 
+%yylexthrow LexerException
+
 %state STRING CHARACTER
 
 %{

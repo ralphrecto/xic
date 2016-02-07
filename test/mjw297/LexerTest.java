@@ -5,12 +5,28 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java_cup.runtime.*;
 import org.junit.Test;
 import org.junit.Ignore;
 import static org.junit.Assert.assertEquals;
 
 public class LexerTest {
+    /**
+     * A {@code Lexed} instance represents the result of lexing a stream of
+     * characters. Lexing results in a list of symbols and optionally an
+     * exception.
+     */
+    private static class Lexed {
+        public final List<Symbol> symbols;
+        public final Optional<LexerException> exception;
+
+        public Lexed(List<Symbol> symbols, Optional<LexerException> exception) {
+            this.symbols = symbols;
+            this.exception = exception;
+        }
+    }
+
 	private Symbol eof = new Symbol(Sym.EOF, -1, -1);
 
     /**
@@ -18,19 +34,22 @@ public class LexerTest {
      * from {@code s} until the EOF token is reached. The EOF token <i>is</i>
      * included in the returned list.
      */
-	private List<Symbol> lex(String s) throws IOException {
+	private Lexed lex(String s) throws IOException {
 		List<Symbol> result = new ArrayList<>();
 		Lexer l = new Lexer(new StringReader(s));
-		Symbol sym = l.next_token();
 
-		// Collect all tokens until EOF
-		while (sym.sym != Sym.EOF) {
-			result.add(sym);
-			sym = l.next_token();
-		}
-
-		result.add(sym);
-		return result;
+        try {
+            // Collect all tokens until EOF
+            Symbol sym = l.next_token();
+            while (sym.sym != Sym.EOF) {
+                result.add(sym);
+                sym = l.next_token();
+            }
+            result.add(sym);
+            return new Lexed(result, Optional.empty());
+        } catch (LexerException e) {
+            return new Lexed(result, Optional.of(e));
+        }
 	}
 
     /**
@@ -38,7 +57,8 @@ public class LexerTest {
      * line and column number of {@code e} and {@code a} are equal.
      */
 	private void assertSymEquals(Symbol expected, Symbol actual) {
-		assertSymEquals(Arrays.asList(expected), Arrays.asList(actual));
+		assertSymEquals(new Lexed(Arrays.asList(expected), Optional.empty()),
+                        new Lexed(Arrays.asList(actual), Optional.empty()));
 	}
 
     /**
@@ -46,16 +66,22 @@ public class LexerTest {
      * and that for all {@code i} in {@code 1..n}, {@code assertSymEquals(ei,
      * ai)}.
      */
-    private void assertSymEquals(List<Symbol> expecteds, List<Symbol> actuals) {
-        assertEquals("Error: number of tokens not equal.", expecteds.size(), actuals.size());
-        for (int i = 0; i < expecteds.size(); ++i) {
-            Symbol expected = expecteds.get(i);
-            Symbol actual = actuals.get(i);
-            assertEquals("Error: symbol codes not equal.", expected.sym, actual.sym);
-            assertEquals("Error: symbol values not equal.", expected.value, actual.value);
-			assertEquals("Error: symbol row not equal.", expected.left, actual.left);
-			assertEquals("Error: symbol column not equal.", expected.right, actual.right);
+    private void assertSymEquals(List<Symbol> expecteds, Lexed actual) {
+        assertSymEquals(new Lexed(expecteds, Optional.empty()), actual);
+    }
+
+    private void assertSymEquals(Lexed expected, Lexed actual) {
+        assertEquals("Error: number of tokens not equal.",
+                expected.symbols.size(), actual.symbols.size());
+        for (int i = 0; i < expected.symbols.size(); ++i) {
+            Symbol e = actual.symbols.get(i);
+            Symbol a = actual.symbols.get(i);
+            assertEquals("Error: symbol codes not equal.", e.sym, a.sym);
+            assertEquals("Error: symbol values not equal.", e.value, a.value);
+            assertEquals("Error: symbol row not equal.", e.left, a.left);
+            assertEquals("Error: symbol column not equal.", e.right, a.right);
         }
+        assertEquals("Error: exception not equal.", expected.exception, actual.exception);
     }
 
     /**
@@ -79,7 +105,7 @@ public class LexerTest {
     }
 
 	@Test
-	public void keywordTest() throws IOException {
+	public void keywordTest() throws IOException, LexerException {
 		Lexer  l = new Lexer(new StringReader("while"));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.WHILE, 1, 1);
@@ -87,7 +113,7 @@ public class LexerTest {
 	}
 
 	@Test
-	public void eofTest() throws IOException {
+	public void eofTest() throws IOException, LexerException {
 		Lexer  l = new Lexer(new StringReader(""));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.EOF, -1, -1);

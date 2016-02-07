@@ -1,12 +1,14 @@
 package mjw297;
+import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import com.google.common.io.Files;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,18 +40,73 @@ public class Main {
             printUsage();
         }
 
-        List<FileReader> files = new ArrayList<>();
+        class SourceFile {
+            String filename;
+            FileReader reader;
+
+            SourceFile(String filename, FileReader reader) {
+                this.filename = filename;
+                this.reader = reader;
+            }
+        }
+
+        List<SourceFile> files = new ArrayList<>();
         for (String filename : arguments) {
+            if (!Files.getFileExtension(filename).equals("xi")) {
+                System.out.println("Valid Xi files must have a .xi extension.");
+                return;
+            }
+
             try {
-                files.add(new FileReader(filename));
+                files.add(new SourceFile(filename, new FileReader(filename)));
             } catch (FileNotFoundException e) {
                 System.out.println("File " + filename + " does not exist.");
                 return;
             }
         }
 
-        for (FileReader file : files) {
-            System.out.println("lexing file...");
+        /* lex each file and output the generated tokens */
+        for (SourceFile sf : files) {
+            Lexer lexer = new Lexer(sf.reader);
+            List<Symbol> symbols = new ArrayList<>();
+
+            Symbol currentSymbol;
+            try {
+                currentSymbol = lexer.next_token();
+                while (currentSymbol.sym != Sym.EOF) {
+                    symbols.add(currentSymbol);
+                    currentSymbol = lexer.next_token();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            StringBuilder outputBuilder = new StringBuilder();
+            for (Symbol symbol : symbols) {
+                outputBuilder.append(
+                        String.format(
+                                "%d:%d %s",
+                                symbol.left,
+                                symbol.right,
+                                Sym.terminalNames[symbol.sym]
+                        )
+                );
+            }
+
+            String outputFilename = String.format(
+                    "%s.lexed",
+                    Files.getNameWithoutExtension(sf.filename)
+            );
+            File outputFile = Paths.get(outputFilename).toFile();
+
+            try {
+                Files.write(outputBuilder.toString().getBytes(), outputFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Could not write to file " + outputFilename);
+                return;
+            }
         }
     }
 

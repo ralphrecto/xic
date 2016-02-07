@@ -17,7 +17,8 @@ import java_cup.runtime.*;
 %{
     // strings are lexed into sb
     StringBuffer sb = new StringBuffer();
-    // If not -1, the column of the start of a char or string
+    // If not -1, the row and column of the start of a char or string
+    int startRow = -1;
     int startColumn = -1;
 
     private int row() {
@@ -83,6 +84,7 @@ import java_cup.runtime.*;
 
 	/* String */
 	\"			{ sb.setLength(0);
+                  startRow = row();
                   startColumn = column();
                   yybegin(STRING); }
 
@@ -95,9 +97,11 @@ import java_cup.runtime.*;
 <STRING> {
 	/* End of string */
 	\"			 { yybegin(YYINITIAL);
+                   int r = startRow;
                    int c = startColumn;
+                   startRow = -1;
                    startColumn = -1;
-				   return new Symbol(Sym.STRING, row(), c, sb.toString()); }
+				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
 	[^\n\r\"\\]+ { sb.append(yytext()); }
 
 	/* escape characters */

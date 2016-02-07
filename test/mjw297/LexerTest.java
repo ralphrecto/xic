@@ -52,8 +52,8 @@ public class LexerTest {
             Symbol actual = actuals.get(i);
             assertEquals("Error: symbol codes not equal.", expected.sym, actual.sym);
             assertEquals("Error: symbol values not equal.", expected.value, actual.value);
-			assertEquals("Error: symbol left index not equal.", expected.left, actual.left);
-			assertEquals("Error: symbol right index not equal.", expected.right, actual.right);
+			assertEquals("Error: symbol row not equal.", expected.left, actual.left);
+			assertEquals("Error: symbol column not equal.", expected.right, actual.right);
         }
     }
 
@@ -270,6 +270,7 @@ public class LexerTest {
             "\"use io main(args: int[][]) { print(12); c3p0: int = 12; }\"");
 
         /* escape characters */
+        // single Xi escape character
 	    assertLexedStringEquals("\t", "\"\\t\"");
 	    assertLexedStringEquals("\b", "\"\\b\"");
 	    assertLexedStringEquals("\n", "\"\\n\"");
@@ -278,5 +279,11 @@ public class LexerTest {
 	    assertLexedStringEquals("\'", "\"\\\'\"");
 	    assertLexedStringEquals("\"", "\"\\\"\"");
 	    assertLexedStringEquals("\\", "\"\\\\\"");
+
+        // single Java escape character
+        assertLexedStringEquals("\t", "\"\t\"");
+	    assertLexedStringEquals("\b", "\"\b\"");
+	    assertLexedStringEquals("\f", "\"\f\"");
+	    assertLexedStringEquals("\'", "\"\'\"");
 	}
 }

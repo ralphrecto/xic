@@ -37,7 +37,7 @@ public class SymUtil {
                         case ('\''): out.append("\\'"); break;
                         case ('\"'): out.append("\\\""); break;
                         case ('\\'): out.append("\\\\"); break;
-                        default: out.append("\\x" + codePoint);
+                        default: out.append("\\x" + Integer.toHexString(codePoint));
                     }
                 }
             }

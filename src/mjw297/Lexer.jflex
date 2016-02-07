@@ -19,7 +19,7 @@ import java_cup.runtime.*;
     StringBuffer sb = new StringBuffer();
 	int stringStart = 0;
 
-	/* chop takes the substring from the ith character to the
+	/* chop returns the substring from the ith character to the
 	   jth last character */
 	private String chop(int i, int j) {
 		return yytext().substring(i, yylength()-j);
@@ -79,8 +79,12 @@ import java_cup.runtime.*;
     }
 %}
 
+/* Hex Escape */
 HexEscape = \\ x [0-9a-fA-F] [0-9a-fA-F]
   
+/* Unicode Escape */
+UnicodeEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] 
+
 /* Integer Literals */
 DecIntLiteral = 0 | [1-9][0-9]*
 
@@ -147,7 +151,10 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                   yybegin(STRING); }
 
 	/* Character */
-	\'			{ sb.setLength(0); yybegin(CHARACTER); }
+	\'			{ sb.setLength(0); 
+				  startRow = row();
+				  startColumn = column();
+				  yybegin(CHARACTER); }
 
     /* Numeric Literals */
     {DecIntLiteral} { return longLiteral(yytext());    }
@@ -170,7 +177,6 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                    startRow = -1;
                    startColumn = -1;
 				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
-	[^\n\r\"\\]+ { sb.append(yytext()); }
 
 	/* escape characters */
 	\\t			 { sb.append('\t');		  }
@@ -184,17 +190,25 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
 	{HexEscape}	 { try {
 					 int x = Integer.parseInt(chop(2,0), 16);
-					 sb.append(Integer.toString(x));
+					 sb.append((char) x);
 				   } catch (NumberFormatException e) {
 				   	   /* TODO: error handling */	
 				   }
 				 } 
 
+	{UnicodeEscape} { try {
+						int x = Integer.parseInt(chop(2,0), 16);
+						sb.append((char) x);
+					  } catch (NumberFormatException e) {
+					  	/* TODO: error handling */
+					  }
+					} 	
+
 	/* other unhandled escape characters */
 	\\.			 { sb.append("hi"); /* TODO: error handling */ }
 
 	/* unclosed string */
-	/* TODO: need to put regex here and error handling */
+	{LineTerminator} {yybegin(YYINITIAL); /* TODO: error handling */} 	
 	
 	/* anything else */
 	[^\n\r\"\\]+ { sb.append( yytext() ); }
@@ -204,9 +218,68 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 <CHARACTER> {
 	/* end of character */
 	\'			{ yybegin(YYINITIAL);
-				  return symbol(Sym.CHAR,
-				  sb.toString());}
+				  String str = sb.toString();
+				  if (str.length() == 1) {
+				  	char x = str.charAt(0);
+					int r = startRow;
+					int c = startColumn;
+					startRow = -1;
+					startColumn = -1;
+					return new Symbol(Sym.CHAR, r, c, x);
+				  } else {
+				  	/* TODO: error handling */
+				  } 
+				}
+
+	/* escape characters */
+	\\t			 { sb.append('\t');		  }
+	\\b			 { sb.append('\b');		  }
+	\\n			 { sb.append('\n');		  }
+	\\r			 { sb.append('\r');		  }
+	\\f			 { sb.append('\f');		  }
+	//\\\'		 { sb.append('\'');		  }
+	\\\"		 { sb.append('\"');		  }
+	\\\\		 { sb.append('\\');		  }
+
+	{HexEscape}	 { try {
+					 int x = Integer.parseInt(chop(2,0), 16);
+					 sb.append((char) x);
+				   } catch (NumberFormatException e) {
+				   	   /* TODO: error handling */	
+				   }
+				 } 
+
+	{UnicodeEscape} { try {
+						int x = Integer.parseInt(chop(2,0), 16);
+						sb.append((char) x);
+					  } catch (NumberFormatException e) {
+					  	/* TODO: error handling */
+					  }
+					} 	
+
+	/* other unhandled escape characters */
+	\\.			 { /* TODO: error handling */ }
+
+	/* unclosed string */
+	{LineTerminator} {yybegin(YYINITIAL); /* TODO: error handling */} 	
+	
+	/* anything else */
+	[^\n\r\'\\]+ { sb.append( yytext() ); }
+
 }
 
 
 [^] { throw new Error("Illegal character <"+ yytext()+">"); }
+
+
+
+
+
+
+
+
+
+
+
+
+

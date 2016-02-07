@@ -176,11 +176,38 @@ public class LexerTest {
 
 	@Test
 	public void stringHexTest() throws IOException {
-		Lexer  l = new Lexer(new StringReader("\"\\x0F\""));
+		Lexer  l = new Lexer(new StringReader("\"\\x23\""));
 		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.STRING, 1, 1, "15");
+		Symbol expected = new Symbol(Sym.STRING, 1, 1, "#");
     
 	    assertSymEquals(expected, s);
+	}
+
+	@Test
+	public void stringUnicodeTest() throws IOException {
+		Lexer l = new Lexer(new StringReader("\"\\u2013\""));
+		Symbol s = l.next_token();
+		Symbol expected = new Symbol(Sym.STRING, 1, 1, "–");
+		
+		assertSymEquals(expected, s);
+	}
+
+	@Test
+	public void stringUnicodesTest() throws IOException {
+		Lexer l = new Lexer(new StringReader("\"\\u0048\\u0065\\u006C\\u006C\\u006F World\""));
+		Symbol s = l.next_token();
+		Symbol expected = new Symbol(Sym.STRING, 1, 1, "Hello World");
+
+		assertSymEquals(expected, s);
+	}
+
+	@Test
+	public void charTest() throws IOException {
+		Lexer l = new Lexer(new StringReader("'a'"));
+		Symbol s = l.next_token();
+		Symbol expected = new Symbol(Sym.CHAR, 1, 1, 'a');
+
+		assertSymEquals(expected, s); 
 	}
 
 	public void singleStringTest() throws IOException {

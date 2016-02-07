@@ -103,7 +103,7 @@ public class LexerTest {
 			new Symbol(Sym.IF    , 1, 7),
 			new Symbol(Sym.ELSE  , 1, 10),
 			new Symbol(Sym.RETURN, 1, 15),
-			new Symbol(Sym.INT   , 1, 22), 
+			new Symbol(Sym.INT   , 1, 22),
 			new Symbol(Sym.BOOL  , 1, 26),
 			new Symbol(Sym.USE   , 1, 31),
 			new Symbol(Sym.LENGTH, 1, 35),
@@ -289,32 +289,40 @@ public class LexerTest {
 
     @Test
     public void numbersTest() throws IOException {
-        //           0000000001111111111
-        //           1234567890123456789
+        //           00000000011111111112222222222
+        //           12345678901234567890123456789
         String s1 = "0 3 2 5 4 7 6 9 8 1";
         String s2 = " 100000000 17 8932 ";
+        String s3 = "-9223372036854775808 9223372036854775807";
         List<Symbol> expecteds1 = Arrays.asList(
-            new Symbol(Sym.NUM, 1, 1, 0),
-            new Symbol(Sym.NUM, 1, 3, 3),
-            new Symbol(Sym.NUM, 1, 5, 2),
-            new Symbol(Sym.NUM, 1, 7, 5),
-            new Symbol(Sym.NUM, 1, 9, 4),
-            new Symbol(Sym.NUM, 1, 11, 7),
-            new Symbol(Sym.NUM, 1, 13, 6),
-            new Symbol(Sym.NUM, 1, 15, 9),
-            new Symbol(Sym.NUM, 1, 17, 8),
-            new Symbol(Sym.NUM, 1, 19, 1),
+            new Symbol(Sym.NUM, 1, 1, 0l),
+            new Symbol(Sym.NUM, 1, 3, 3l),
+            new Symbol(Sym.NUM, 1, 5, 2l),
+            new Symbol(Sym.NUM, 1, 7, 5l),
+            new Symbol(Sym.NUM, 1, 9, 4l),
+            new Symbol(Sym.NUM, 1, 11, 7l),
+            new Symbol(Sym.NUM, 1, 13, 6l),
+            new Symbol(Sym.NUM, 1, 15, 9l),
+            new Symbol(Sym.NUM, 1, 17, 8l),
+            new Symbol(Sym.NUM, 1, 19, 1l),
             eof
         );
         List<Symbol> expecteds2 = Arrays.asList(
-            new Symbol(Sym.NUM, 1, 2, 100000000),
-            new Symbol(Sym.NUM, 1, 12, 17),
-            new Symbol(Sym.NUM, 1, 15, 8932),
+            new Symbol(Sym.NUM, 1, 2, 100000000l),
+            new Symbol(Sym.NUM, 1, 12, 17l),
+            new Symbol(Sym.NUM, 1, 15, 8932l),
+            eof
+        );
+        List<Symbol> expecteds3 = Arrays.asList(
+            new Symbol(Sym.MINUS, 1, 1),
+            new Symbol(Sym.BIG_NUM, 1, 2),
+            new Symbol(Sym.NUM, 1, 22, 9223372036854775807l),
             eof
         );
 
         assertSymEquals(expecteds1, lex(s1));
         assertSymEquals(expecteds2, lex(s2));
+        assertSymEquals(expecteds3, lex(s3));
     }
 
     @Test
@@ -344,5 +352,5 @@ public class LexerTest {
         );
 
         assertSymEquals(expecteds, lex(s));
-    } 
+    }
 }

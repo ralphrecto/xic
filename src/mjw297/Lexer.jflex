@@ -36,6 +36,31 @@ import java_cup.runtime.*;
     private Symbol symbol(int type, Object value) {
         return new Symbol(type, row(), column(), value);
     }
+
+    /**
+     * {@code longLiteral(s)} parses {@code s} into a Xi number literal. It is
+     * a precondition that {@code s} must only contain digits; it may not
+     * include letters or even a leading + or -. This function returns one of
+     * three things depending on the value of {@code s}.
+     *
+     *   1. If {@code 0 <= s <= 9223372036854775807}, then a {@code NUM} symbol
+     *      is returned
+     *   2. If {@code s == "9223372036854775808"}, then a {@code BIG_NUM}
+     *      symbol is returned
+     *   3. TODO: specify third case.
+     */
+    private Symbol longLiteral(String s) {
+        try {
+            if (s.equals("9223372036854775808")) {
+                return symbol(Sym.BIG_NUM);
+            } else {
+                return symbol(Sym.NUM, new Long(s));
+            }
+        } catch (NumberFormatException e) {
+            // TODO: handle out of bounds
+            return symbol(Sym.NUM, -1);
+        }
+    }
 %}
 
 /* Integer Literals */
@@ -96,7 +121,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     "}"			{ return symbol(Sym.RBRACE);     }
     "_"			{ return symbol(Sym.UNDERSCORE); }
     ","			{ return symbol(Sym.COMMA);      }
-    ":"			{ return symbol(Sym.COLON);      }           
+    ":"			{ return symbol(Sym.COLON);      }
 
 	/* String */
 	\"			{ sb.setLength(0);
@@ -108,7 +133,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 	\'			{ sb.setLength(0); yybegin(CHARACTER); }
 
     /* Numeric Literals */
-    {DecIntLiteral} { return symbol(Sym.NUM, new Integer(yytext()));    }
+    {DecIntLiteral} { return longLiteral(yytext());    }
 
     /* Comments */
     {Comment}       { /* ignore */               }

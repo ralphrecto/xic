@@ -70,20 +70,20 @@ public class LexerTest {
 
 	@Test
 	public void keywordsTest() throws IOException {
-		//          000000000111111111122222222223333333333444
-		//          123456789012345678901234567890123456789012
-		String s = "whileifelsereturnintbooluselengthtruefalse";
+		//          000000000111111111122222222223333333333444444444455
+		//          123456789012345678901234567890123456789012345678901
+		String s = "while if else return int bool use length true false";
 		List<Symbol> expecteds = Arrays.asList(
 			new Symbol(Sym.WHILE , 1, 1),
-			new Symbol(Sym.IF    , 1, 6),
-			new Symbol(Sym.ELSE  , 1, 8),
-			new Symbol(Sym.RETURN, 1, 12),
-			new Symbol(Sym.INT   , 1, 18), 
-			new Symbol(Sym.BOOL  , 1, 21),
-			new Symbol(Sym.USE   , 1, 25),
-			new Symbol(Sym.LENGTH, 1, 28),
-			new Symbol(Sym.TRUE  , 1, 34),
-			new Symbol(Sym.FALSE , 1, 38),
+			new Symbol(Sym.IF    , 1, 7),
+			new Symbol(Sym.ELSE  , 1, 10),
+			new Symbol(Sym.RETURN, 1, 15),
+			new Symbol(Sym.INT   , 1, 22), 
+			new Symbol(Sym.BOOL  , 1, 26),
+			new Symbol(Sym.USE   , 1, 31),
+			new Symbol(Sym.LENGTH, 1, 35),
+			new Symbol(Sym.TRUE  , 1, 42),
+			new Symbol(Sym.FALSE , 1, 47),
 			eof
 		);
 
@@ -138,4 +138,25 @@ public class LexerTest {
 		
 		assertSymEquals(expecteds, lex("+while"));
 	}
+
+    @Test
+    public void numberTest() throws IOException {
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.NUM
+    }
+
+    @Test
+    public void commentTest() throws IOException {
+
+    }
+
+    @Test
+    public void whitespaceTest() throws IOException {
+
+    }
+
+    @Test
+    public void identifierTest() throws IOException {
+
+    } 
 }

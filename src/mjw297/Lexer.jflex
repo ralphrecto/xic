@@ -22,8 +22,21 @@ import java_cup.runtime.*;
     }
 %}
 
+/* Integer Literals */
+DecIntLiteral = 0 | [1-9][0-9]*
 
+/* Main Character Classes */
+LineTerminator = \r|\n|\r\n
+InputCharacter = [^\r\n]
 
+/* Whitespace */
+Whitespace = {LineTerminator} | [ \t\f]
+
+/* Comments */
+Comment = "//".*\n
+
+/* Identifiers */
+Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
 %%
 
@@ -68,7 +81,19 @@ import java_cup.runtime.*;
     "_"			{ return symbol(Sym.UNDERSCORE); }   
     ","			{ return symbol(Sym.COMMA);      }
     ":"			{ return symbol(Sym.COLON);      }           
-}               
+
+    /* Numeric Literals */
+    {DecIntLiteral} { return symbol(Sym.NUM, new Integer(yytext());    }
+
+    /* Comments */
+    {Comment}       { /* ignore */               }
+
+    /* Whitespace */
+    {Whitespace}    { /* ignore */               }
+
+    /* Identifiers */
+    {Identifier}    { return symbol(Sym.ID, yytext());     }
+}
                 
                 
                 

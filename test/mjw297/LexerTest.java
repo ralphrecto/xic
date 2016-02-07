@@ -27,16 +27,16 @@ public class LexerTest {
         }
     }
 
-	private Symbol eof = new Symbol(Sym.EOF, -1, -1);
+    private Symbol eof = new Symbol(Sym.EOF, -1, -1);
 
     /**
      * {@code lex(s)} uses the {@code Lexer} class to repeatedly lex tokens
      * from {@code s} until the EOF token is reached. The EOF token <i>is</i>
      * included in the returned list.
      */
-	private Lexed lex(String s) throws IOException {
-		List<Symbol> result = new ArrayList<>();
-		Lexer l = new Lexer(new StringReader(s));
+    private Lexed lex(String s) throws IOException {
+        List<Symbol> result = new ArrayList<>();
+        Lexer l = new Lexer(new StringReader(s));
 
         try {
             // Collect all tokens until EOF
@@ -50,16 +50,16 @@ public class LexerTest {
         } catch (LexerException e) {
             return new Lexed(result, Optional.of(e));
         }
-	}
+    }
 
     /**
      * {@code assertSymEquals(e, a)} asserts that the symbol codes, values,
      * line and column number of {@code e} and {@code a} are equal.
      */
-	private void assertSymEquals(Symbol expected, Symbol actual) {
-		assertSymEquals(new Lexed(Arrays.asList(expected), Optional.empty()),
+    private void assertSymEquals(Symbol expected, Symbol actual) {
+        assertSymEquals(new Lexed(Arrays.asList(expected), Optional.empty()),
                         new Lexed(Arrays.asList(actual), Optional.empty()));
-	}
+    }
 
     /**
      * {@code assertSymEquals(e1..en, a1..am)} asserts that the {@code n == m}
@@ -104,114 +104,114 @@ public class LexerTest {
         assertSymEquals(a, b);
     }
 
-	@Test
-	public void keywordTest() throws IOException, LexerException {
-		Lexer  l = new Lexer(new StringReader("while"));
-		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.WHILE, 1, 1);
+    @Test
+    public void keywordTest() throws IOException, LexerException {
+        Lexer  l = new Lexer(new StringReader("while"));
+        Symbol s = l.next_token();
+        Symbol expected = new Symbol(Sym.WHILE, 1, 1);
         assertSymEquals(expected, s);
-	}
+    }
 
-	@Test
-	public void eofTest() throws IOException, LexerException {
-		Lexer  l = new Lexer(new StringReader(""));
-		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.EOF, -1, -1);
+    @Test
+    public void eofTest() throws IOException, LexerException {
+        Lexer  l = new Lexer(new StringReader(""));
+        Symbol s = l.next_token();
+        Symbol expected = new Symbol(Sym.EOF, -1, -1);
         assertSymEquals(expected, s);
-	}
+    }
 
-	@Test
-	public void keywordsTest() throws IOException {
-		//          000000000111111111122222222223333333333444444444455
-		//          123456789012345678901234567890123456789012345678901
-		String s = "while if else return int bool use length true false";
-		List<Symbol> expecteds = Arrays.asList(
-			new Symbol(Sym.WHILE , 1, 1),
-			new Symbol(Sym.IF    , 1, 7),
-			new Symbol(Sym.ELSE  , 1, 10),
-			new Symbol(Sym.RETURN, 1, 15),
-			new Symbol(Sym.INT   , 1, 22),
-			new Symbol(Sym.BOOL  , 1, 26),
-			new Symbol(Sym.USE   , 1, 31),
-			new Symbol(Sym.LENGTH, 1, 35),
-			new Symbol(Sym.TRUE  , 1, 42),
-			new Symbol(Sym.FALSE , 1, 47),
-			eof
-		);
+    @Test
+    public void keywordsTest() throws IOException {
+        //          000000000111111111122222222223333333333444444444455
+        //          123456789012345678901234567890123456789012345678901
+        String s = "while if else return int bool use length true false";
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.WHILE , 1, 1),
+            new Symbol(Sym.IF    , 1, 7),
+            new Symbol(Sym.ELSE  , 1, 10),
+            new Symbol(Sym.RETURN, 1, 15),
+            new Symbol(Sym.INT   , 1, 22),
+            new Symbol(Sym.BOOL  , 1, 26),
+            new Symbol(Sym.USE   , 1, 31),
+            new Symbol(Sym.LENGTH, 1, 35),
+            new Symbol(Sym.TRUE  , 1, 42),
+            new Symbol(Sym.FALSE , 1, 47),
+            eof
+        );
 
-		assertSymEquals(expecteds, lex(s));
-	}
+        assertSymEquals(expecteds, lex(s));
+    }
 
-	@Test
-	public void symbolsTest() throws IOException {
-		//          00000000011111111112222222222333
-		//          12345678901234567890123456789012
-		String s = "-!**>>/%+=<<=>=>!===&|;()[]{}_,:";
-		List<Symbol> expecteds = Arrays.asList(
-			new Symbol(Sym.MINUS,     1, 1),
-			new Symbol(Sym.BANG,      1, 2),
-         	new Symbol(Sym.STAR,      1, 3),
-         	new Symbol(Sym.HIGHMULT,  1, 4),
-         	new Symbol(Sym.DIV,       1, 7),
-         	new Symbol(Sym.MOD,       1, 8),
-         	new Symbol(Sym.PLUS,      1, 9),
-         	new Symbol(Sym.EQ,        1, 10),
-         	new Symbol(Sym.LT,        1, 11),
-         	new Symbol(Sym.LTE,       1, 12),
-         	new Symbol(Sym.GTE,       1, 14),
-         	new Symbol(Sym.GT,        1, 16),
-         	new Symbol(Sym.NEQ,       1, 17),
-         	new Symbol(Sym.EQEQ,      1, 19),
-         	new Symbol(Sym.AMP,       1, 21),
-         	new Symbol(Sym.BAR,       1, 22),
-         	new Symbol(Sym.SEMICOLON, 1, 23),
-         	new Symbol(Sym.LPAREN,    1, 24),
-         	new Symbol(Sym.RPAREN,    1, 25),
-         	new Symbol(Sym.LBRACKET,  1, 26),
-         	new Symbol(Sym.RBRACKET,  1, 27),
-         	new Symbol(Sym.LBRACE,    1, 28),
-         	new Symbol(Sym.RBRACE,    1, 29),
-         	new Symbol(Sym.UNDERSCORE,1, 30),
-         	new Symbol(Sym.COMMA,     1, 31),
-         	new Symbol(Sym.COLON,     1, 32),
-			eof
-		);
+    @Test
+    public void symbolsTest() throws IOException {
+        //          00000000011111111112222222222333
+        //          12345678901234567890123456789012
+        String s = "-!**>>/%+=<<=>=>!===&|;()[]{}_,:";
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.MINUS,     1, 1),
+            new Symbol(Sym.BANG,      1, 2),
+            new Symbol(Sym.STAR,      1, 3),
+            new Symbol(Sym.HIGHMULT,  1, 4),
+            new Symbol(Sym.DIV,       1, 7),
+            new Symbol(Sym.MOD,       1, 8),
+            new Symbol(Sym.PLUS,      1, 9),
+            new Symbol(Sym.EQ,        1, 10),
+            new Symbol(Sym.LT,        1, 11),
+            new Symbol(Sym.LTE,       1, 12),
+            new Symbol(Sym.GTE,       1, 14),
+            new Symbol(Sym.GT,        1, 16),
+            new Symbol(Sym.NEQ,       1, 17),
+            new Symbol(Sym.EQEQ,      1, 19),
+            new Symbol(Sym.AMP,       1, 21),
+            new Symbol(Sym.BAR,       1, 22),
+            new Symbol(Sym.SEMICOLON, 1, 23),
+            new Symbol(Sym.LPAREN,    1, 24),
+            new Symbol(Sym.RPAREN,    1, 25),
+            new Symbol(Sym.LBRACKET,  1, 26),
+            new Symbol(Sym.RBRACKET,  1, 27),
+            new Symbol(Sym.LBRACE,    1, 28),
+            new Symbol(Sym.RBRACE,    1, 29),
+            new Symbol(Sym.UNDERSCORE,1, 30),
+            new Symbol(Sym.COMMA,     1, 31),
+            new Symbol(Sym.COLON,     1, 32),
+            eof
+        );
 
-		assertSymEquals(expecteds, lex(s));
-	}
+        assertSymEquals(expecteds, lex(s));
+    }
 
-	@Test
-	public void tokenSymbolTest() throws IOException {
-		List<Symbol> expecteds = Arrays.asList(
-			new Symbol(Sym.PLUS , 1, 1),
-			new Symbol(Sym.WHILE, 1, 2),
-			eof
-		);
+    @Test
+    public void tokenSymbolTest() throws IOException {
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.PLUS , 1, 1),
+            new Symbol(Sym.WHILE, 1, 2),
+            eof
+        );
 
-		assertSymEquals(expecteds, lex("+while"));
-	}
+        assertSymEquals(expecteds, lex("+while"));
+    }
 
-	@Ignore
-	@Test
-	public void stringTest() throws IOException {
-		Lexer  l = new Lexer(new StringReader("\"hello\t\""));
-		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
-    
-	    assertSymEquals(expected, s);
-	}
+    @Ignore
+    @Test
+    public void stringTest() throws IOException {
+        Lexer  l = new Lexer(new StringReader("\"hello\t\""));
+        Symbol s = l.next_token();
+        Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
 
-	@Ignore
-	@Test
-	public void stringHexTest() throws IOException {
-		Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
-		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
-    
-	    assertSymEquals(expected, s);
-	}
+        assertSymEquals(expected, s);
+    }
 
-	public void singleStringTest() throws IOException {
+    @Ignore
+    @Test
+    public void stringHexTest() throws IOException {
+        Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
+        Symbol s = l.next_token();
+        Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
+
+        assertSymEquals(expected, s);
+    }
+
+    public void singleStringTest() throws IOException {
         /* simple strings with spaces */
         assertLexedStringEquals("", "\"\"");
         assertLexedStringEquals("a", "\"a\"");
@@ -317,21 +317,21 @@ public class LexerTest {
 
         /* escape characters */
         // single Xi escape character
-	    assertLexedStringEquals("\t", "\"\\t\"");
-	    assertLexedStringEquals("\b", "\"\\b\"");
-	    assertLexedStringEquals("\n", "\"\\n\"");
-	    assertLexedStringEquals("\r", "\"\\r\"");
-	    assertLexedStringEquals("\f", "\"\\f\"");
-	    assertLexedStringEquals("\'", "\"\\\'\"");
-	    assertLexedStringEquals("\"", "\"\\\"\"");
-	    assertLexedStringEquals("\\", "\"\\\\\"");
+        assertLexedStringEquals("\t", "\"\\t\"");
+        assertLexedStringEquals("\b", "\"\\b\"");
+        assertLexedStringEquals("\n", "\"\\n\"");
+        assertLexedStringEquals("\r", "\"\\r\"");
+        assertLexedStringEquals("\f", "\"\\f\"");
+        assertLexedStringEquals("\'", "\"\\\'\"");
+        assertLexedStringEquals("\"", "\"\\\"\"");
+        assertLexedStringEquals("\\", "\"\\\\\"");
 
         // single Java escape character
         assertLexedStringEquals("\t", "\"\t\"");
-	    assertLexedStringEquals("\b", "\"\b\"");
-	    assertLexedStringEquals("\f", "\"\f\"");
-	    assertLexedStringEquals("\'", "\"\'\"");
-	}
+        assertLexedStringEquals("\b", "\"\b\"");
+        assertLexedStringEquals("\f", "\"\f\"");
+        assertLexedStringEquals("\'", "\"\'\"");
+    }
 
     @Test
     public void numbersTest() throws IOException {

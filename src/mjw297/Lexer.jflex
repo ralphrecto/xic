@@ -19,21 +19,21 @@ import java_cup.runtime.*;
 %{
     // strings are lexed into sb
     StringBuffer sb = new StringBuffer();
-	int stringStart = 0;
+    int stringStart = 0;
 
-	/* chop takes the substring from the ith character to the
-	   jth last character */
-	private String chop(int i, int j) {
-		return yytext().substring(i, yylength()-j);
-	}
+    /* chop takes the substring from the ith character to the
+       jth last character */
+    private String chop(int i, int j) {
+        return yytext().substring(i, yylength()-j);
+    }
 
-	private String chop(int j) {
-		return chop(0, j);
-	}
+    private String chop(int j) {
+        return chop(0, j);
+    }
 
-	private String chop() {
-		return chop(0, 1);
-	}
+    private String chop() {
+        return chop(0, 1);
+    }
 
     // If not -1, the row and column of the start of a char or string
     int startRow = -1;
@@ -82,7 +82,7 @@ import java_cup.runtime.*;
 %}
 
 HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
-  
+
 /* Integer Literals */
 DecIntLiteral = 0 | [1-9][0-9]*
 
@@ -102,54 +102,54 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
 <YYINITIAL> {
 
-	/* Keywords */
-	"while"		{ return symbol(Sym.WHILE);  }
-	"if"		{ return symbol(Sym.IF);     }
-	"else"		{ return symbol(Sym.ELSE);   }
-    "return"	{ return symbol(Sym.RETURN); }
-	"int"		{ return symbol(Sym.INT);    }
-	"bool"		{ return symbol(Sym.BOOL);	 }
-	"use"		{ return symbol(Sym.USE);	 }
-	"length"	{ return symbol(Sym.LENGTH); }
-	"true"		{ return symbol(Sym.TRUE);	 }
-	"false"		{ return symbol(Sym.FALSE);	 }
+    /* Keywords */
+    "while"     { return symbol(Sym.WHILE);  }
+    "if"        { return symbol(Sym.IF);     }
+    "else"      { return symbol(Sym.ELSE);   }
+    "return"    { return symbol(Sym.RETURN); }
+    "int"       { return symbol(Sym.INT);    }
+    "bool"      { return symbol(Sym.BOOL);   }
+    "use"       { return symbol(Sym.USE);    }
+    "length"    { return symbol(Sym.LENGTH); }
+    "true"      { return symbol(Sym.TRUE);   }
+    "false"     { return symbol(Sym.FALSE);  }
 
-	/* Symbols */
-    "-"			{ return symbol(Sym.MINUS);      }
-    "!"			{ return symbol(Sym.BANG);       }
-    "*"			{ return symbol(Sym.STAR);       }
-    "*>>"		{ return symbol(Sym.HIGHMULT);   }
-    "/"			{ return symbol(Sym.DIV);        }
-    "%"			{ return symbol(Sym.MOD);        }
-    "+"			{ return symbol(Sym.PLUS);       }
-    "="			{ return symbol(Sym.EQ);         }
-    "<"			{ return symbol(Sym.LT);         }
-    "<="		{ return symbol(Sym.LTE);        }
-    ">="		{ return symbol(Sym.GTE);        }
-    ">"			{ return symbol(Sym.GT);         }
-    "=="		{ return symbol(Sym.EQEQ);       }
-    "!="		{ return symbol(Sym.NEQ);        }
-    "&"			{ return symbol(Sym.AMP);        }
-    "|"			{ return symbol(Sym.BAR);        }
-    ";"			{ return symbol(Sym.SEMICOLON);  }
-    "("			{ return symbol(Sym.LPAREN);     }
-    ")"			{ return symbol(Sym.RPAREN);     }
-    "["			{ return symbol(Sym.LBRACKET);   }
-    "]"			{ return symbol(Sym.RBRACKET);   }
-    "{"			{ return symbol(Sym.LBRACE);     }
-    "}"			{ return symbol(Sym.RBRACE);     }
-    "_"			{ return symbol(Sym.UNDERSCORE); }
-    ","			{ return symbol(Sym.COMMA);      }
-    ":"			{ return symbol(Sym.COLON);      }
+    /* Symbols */
+    "-"         { return symbol(Sym.MINUS);      }
+    "!"         { return symbol(Sym.BANG);       }
+    "*"         { return symbol(Sym.STAR);       }
+    "*>>"       { return symbol(Sym.HIGHMULT);   }
+    "/"         { return symbol(Sym.DIV);        }
+    "%"         { return symbol(Sym.MOD);        }
+    "+"         { return symbol(Sym.PLUS);       }
+    "="         { return symbol(Sym.EQ);         }
+    "<"         { return symbol(Sym.LT);         }
+    "<="        { return symbol(Sym.LTE);        }
+    ">="        { return symbol(Sym.GTE);        }
+    ">"         { return symbol(Sym.GT);         }
+    "=="        { return symbol(Sym.EQEQ);       }
+    "!="        { return symbol(Sym.NEQ);        }
+    "&"         { return symbol(Sym.AMP);        }
+    "|"         { return symbol(Sym.BAR);        }
+    ";"         { return symbol(Sym.SEMICOLON);  }
+    "("         { return symbol(Sym.LPAREN);     }
+    ")"         { return symbol(Sym.RPAREN);     }
+    "["         { return symbol(Sym.LBRACKET);   }
+    "]"         { return symbol(Sym.RBRACKET);   }
+    "{"         { return symbol(Sym.LBRACE);     }
+    "}"         { return symbol(Sym.RBRACE);     }
+    "_"         { return symbol(Sym.UNDERSCORE); }
+    ","         { return symbol(Sym.COMMA);      }
+    ":"         { return symbol(Sym.COLON);      }
 
-	/* String */
-	\"			{ sb.setLength(0);
+    /* String */
+    \"          { sb.setLength(0);
                   startRow = row();
                   startColumn = column();
                   yybegin(STRING); }
 
-	/* Character */
-	\'			{ sb.setLength(0); yybegin(CHARACTER); }
+    /* Character */
+    \'          { sb.setLength(0); yybegin(CHARACTER); }
 
     /* Numeric Literals */
     {DecIntLiteral} { return longLiteral(yytext());    }
@@ -165,49 +165,49 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 }
 
 <STRING> {
-	/* End of string */
-	\"			 { yybegin(YYINITIAL);
+    /* End of string */
+    \"           { yybegin(YYINITIAL);
                    int r = startRow;
                    int c = startColumn;
                    startRow = -1;
                    startColumn = -1;
-				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
-	[^\n\r\"\\]+ { sb.append(yytext()); }
+                   return new Symbol(Sym.STRING, r, c, sb.toString()); }
+    [^\n\r\"\\]+ { sb.append(yytext()); }
 
-	/* escape characters */
-	\\t			 { sb.append('\t');		  }
-	\\b			 { sb.append('\b');		  }
-	\\n			 { sb.append('\n');		  }
-	\\r			 { sb.append('\r');		  }
-	\\f			 { sb.append('\f');		  }
-	\\\'		 { sb.append('\'');		  }
-	\\\"		 { sb.append('\"');		  }
-	\\\\		 { sb.append('\\');		  }
+    /* escape characters */
+    \\t          { sb.append('\t');       }
+    \\b          { sb.append('\b');       }
+    \\n          { sb.append('\n');       }
+    \\r          { sb.append('\r');       }
+    \\f          { sb.append('\f');       }
+    \\\'         { sb.append('\'');       }
+    \\\"         { sb.append('\"');       }
+    \\\\         { sb.append('\\');       }
 
-	{HexEscape}	 { try {
-					 int x = Integer.parseInt(chop(4,0), 16);
-					 sb.append(chop(2,0));
-				   } catch (NumberFormatException e) {
-				   	   /* TODO: error handling */	
-				   }
-				 } 
+    {HexEscape}  { try {
+                     int x = Integer.parseInt(chop(4,0), 16);
+                     sb.append(chop(2,0));
+                   } catch (NumberFormatException e) {
+                       /* TODO: error handling */
+                   }
+                 }
 
-	/* other unhandled escape characters */
-	\\.			 { sb.append("hi"); /* TODO: error handling */ }
+    /* other unhandled escape characters */
+    \\.          { sb.append("hi"); /* TODO: error handling */ }
 
-	/* unclosed string */
-	/* TODO: need to put regex here and error handling */
-	
-	/* anything else */
-	[^\n\r\"\\]+ { sb.append( yytext() ); }
+    /* unclosed string */
+    /* TODO: need to put regex here and error handling */
 
-} 
+    /* anything else */
+    [^\n\r\"\\]+ { sb.append( yytext() ); }
+
+}
 
 <CHARACTER> {
-	/* end of character */
-	\'			{ yybegin(YYINITIAL);
-				  return symbol(Sym.CHAR,
-				  sb.toString());}
+    /* end of character */
+    \'          { yybegin(YYINITIAL);
+                  return symbol(Sym.CHAR,
+                  sb.toString());}
 }
 
 

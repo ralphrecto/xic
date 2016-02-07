@@ -342,8 +342,6 @@ public class LexerTest {
         //           00000000011111111112222222222
         //           12345678901234567890123456789
         String s1 = "0 3 2 5 4 7 6 9 8 1";
-        String s2 = " 100000000 17 8932 ";
-        String s3 = "-9223372036854775808 9223372036854775807";
         List<Symbol> expecteds1 = Arrays.asList(
             new Symbol(Sym.NUM, 1, 1, 0l),
             new Symbol(Sym.NUM, 1, 3, 3l),
@@ -357,12 +355,16 @@ public class LexerTest {
             new Symbol(Sym.NUM, 1, 19, 1l),
             eof
         );
+
+        String s2 = " 100000000 17 8932 ";
         List<Symbol> expecteds2 = Arrays.asList(
             new Symbol(Sym.NUM, 1, 2, 100000000l),
             new Symbol(Sym.NUM, 1, 12, 17l),
             new Symbol(Sym.NUM, 1, 15, 8932l),
             eof
         );
+
+        String s3 = "-9223372036854775808 9223372036854775807";
         List<Symbol> expecteds3 = Arrays.asList(
             new Symbol(Sym.MINUS, 1, 1),
             new Symbol(Sym.BIG_NUM, 1, 2),

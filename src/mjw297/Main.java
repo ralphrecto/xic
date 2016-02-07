@@ -69,30 +69,25 @@ public class Main {
         /* lex each file and output the generated tokens */
         for (SourceFile sf : files) {
             Lexer lexer = new Lexer(sf.reader);
-            List<Symbol> symbols = new ArrayList<>();
+            StringBuilder outputBuilder = new StringBuilder();
 
-            Symbol currentSymbol;
+            Symbol curSym;
             try {
-                currentSymbol = lexer.next_token();
-                while (currentSymbol.sym != Sym.EOF) {
-                    symbols.add(currentSymbol);
-                    currentSymbol = lexer.next_token();
+                curSym = lexer.next_token();
+                while (curSym.sym != Sym.EOF) {
+                    outputBuilder.append(
+                            String.format(
+                                    "%d:%d %s\n",
+                                    curSym.left,
+                                    curSym.right,
+                                    SymUtil.symToLiteral(curSym)
+                            )
+                    );
+                    curSym = lexer.next_token();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
-            }
-
-            StringBuilder outputBuilder = new StringBuilder();
-            for (Symbol symbol : symbols) {
-                outputBuilder.append(
-                        String.format(
-                                "%d:%d %s\n",
-                                symbol.left,
-                                symbol.right,
-                                SymUtil.symToLiteral(symbol)
-                        )
-                );
             }
 
             String outputFilename = String.format(

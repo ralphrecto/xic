@@ -100,7 +100,6 @@ public class LexerTest {
 		String s = "while if else return int bool use length true false";
 		List<Symbol> expecteds = Arrays.asList(
 			new Symbol(Sym.WHILE , 1, 1),
-<<<<<<< HEAD
 			new Symbol(Sym.IF    , 1, 7),
 			new Symbol(Sym.ELSE  , 1, 10),
 			new Symbol(Sym.RETURN, 1, 15),
@@ -110,17 +109,6 @@ public class LexerTest {
 			new Symbol(Sym.LENGTH, 1, 35),
 			new Symbol(Sym.TRUE  , 1, 42),
 			new Symbol(Sym.FALSE , 1, 47),
-=======
-			new Symbol(Sym.IF    , 1, 6),
-			new Symbol(Sym.ELSE  , 1, 8),
-			new Symbol(Sym.RETURN, 1, 12),
-			new Symbol(Sym.INT   , 1, 18),
-			new Symbol(Sym.BOOL  , 1, 21),
-			new Symbol(Sym.USE   , 1, 25),
-			new Symbol(Sym.LENGTH, 1, 28),
-			new Symbol(Sym.TRUE  , 1, 34),
-			new Symbol(Sym.FALSE , 1, 38),
->>>>>>> 4e10336162a9334752634bb640f22319c22ba587
 			eof
 		);
 
@@ -321,7 +309,6 @@ public class LexerTest {
         assertSymEquals(expecteds, lex(s));
     }
 
-
     @Test
     public void commentTest() throws IOException {
         
@@ -329,7 +316,7 @@ public class LexerTest {
 
     @Test
     public void whitespaceTest() throws IOException {
-
+        String s = "    \t\f";
     }
 
     @Test

@@ -38,7 +38,6 @@ import java_cup.runtime.*;
     }
 %}
 
-<<<<<<< HEAD
 /* Integer Literals */
 DecIntLiteral = 0 | [1-9][0-9]*
 
@@ -55,8 +54,6 @@ Comment = "//".*\n
 /* Identifiers */
 Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
-=======
->>>>>>> 4e10336162a9334752634bb640f22319c22ba587
 %%
 
 <YYINITIAL> {

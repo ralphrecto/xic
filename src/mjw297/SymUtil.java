@@ -50,11 +50,13 @@ public class SymUtil {
             case ("UNDERSCORE"): return "_";
             case ("COMMA"): return ",";
             case ("COLON"): return ":";
-            case ("STRING"): return "string " + (String) sym.value;
-            case ("CHAR"): return "character " + (Character) sym.value;
-            case ("ID"): return "id " + (String) sym.value;
-            case ("NUM"): return "integer " + (Long) sym.value;
-            case ("BIG_NUM"): return "integer " + (Long) sym.value;
+            case ("STRING"): return "string " +
+                    prettyPrint.apply((String) sym.value);
+            case ("CHAR"): return "character " +
+                    prettyPrint.apply(sym.value.toString());
+            case ("ID"): return "id " + sym.value;
+            case ("NUM"): return "integer " + sym.value;
+            case ("BIG_NUM"): return "integer " + sym.value;
             case ("WHILE"):
             case ("INT"):
             case ("BOOL"):

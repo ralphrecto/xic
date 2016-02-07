@@ -53,8 +53,8 @@ public class LexerTest {
     }
 
     /**
-     * {@code assertSymEquals(e, a)} asserts that the symbol codes, values,
-     * line and column number of {@code e} and {@code a} are equal.
+     * {@code assertSymEquals(e, a)} is shorthand for {@code
+     * assertSymEquals(Lexed([e], None), Lexed([a], None))}
      */
     private void assertSymEquals(Symbol expected, Symbol actual) {
         assertSymEquals(new Lexed(Arrays.asList(expected), Optional.empty()),
@@ -62,14 +62,18 @@ public class LexerTest {
     }
 
     /**
-     * {@code assertSymEquals(e1..en, a1..am)} asserts that the {@code n == m}
-     * and that for all {@code i} in {@code 1..n}, {@code assertSymEquals(ei,
-     * ai)}.
+     * {@code assertSymEquals(e, a)} is shorthand for {@code
+     * assertSymEquals(Lexed(e, None), Lexed(a, None))}
      */
     private void assertSymEquals(List<Symbol> expecteds, Lexed actual) {
         assertSymEquals(new Lexed(expecteds, Optional.empty()), actual);
     }
 
+    /**
+     * {@code assertSymEquals(Lexed(e1..en, ee), Lexed(a1..am, ae)} asserts
+     * that the {@code n == m}, {@code ee == ae}, and that for all {@code i} in
+     * {@code 1..n}, {@code assertSymEquals(ei, ai)}.
+     */
     private void assertSymEquals(Lexed expected, Lexed actual) {
         assertEquals("Error: number of tokens not equal.",
                 expected.symbols.size(), actual.symbols.size());
@@ -193,7 +197,7 @@ public class LexerTest {
 
     @Ignore
     @Test
-    public void stringTest() throws IOException {
+    public void stringTest() throws IOException, LexerException {
         Lexer  l = new Lexer(new StringReader("\"hello\t\""));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
@@ -203,7 +207,7 @@ public class LexerTest {
 
     @Ignore
     @Test
-    public void stringHexTest() throws IOException {
+    public void stringHexTest() throws IOException, LexerException {
         Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");

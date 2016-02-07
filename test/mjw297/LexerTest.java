@@ -216,16 +216,16 @@ public class LexerTest {
     public void stringTest() throws IOException, XicException {
         Lexer  l = new Lexer(new StringReader("\"hello\t\""));
         Symbol s = l.next_token();
-        Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
+        Symbol expected = new Symbol(Sym.STRING, 1, 1, "hello\t");
 
         assertSymEquals(expected, s);
     }
 
     @Test
     public void stringHexTest() throws IOException, XicException {
-        Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
+        Lexer  l = new Lexer(new StringReader("\"\\x23\""));
         Symbol s = l.next_token();
-        Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
+        Symbol expected = new Symbol(Sym.STRING, 1, 1, "#");
 
         assertSymEquals(expected, s);
 	}

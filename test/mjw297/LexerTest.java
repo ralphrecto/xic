@@ -392,10 +392,21 @@ public class LexerTest {
         LexerException expected4 = new LexerException(
                 ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 1, "");
 
+        String s5 = "-9223372036854775809";
+        List<Symbol> expecteds5 = Arrays.asList(new Symbol(Sym.MINUS, 1, 1));
+        LexerException expected5 = new LexerException(
+                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 2, "");
+
+        String s6 = "13419223372036854775809";
+        LexerException expected6 = new LexerException(
+                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 1, "");
+
         assertSymEquals(expecteds1, lex(s1));
         assertSymEquals(expecteds2, lex(s2));
         assertSymEquals(expecteds3, lex(s3));
         assertSymEquals(expected4,  lex(s4));
+        assertSymEquals(new Lexed(expecteds5, Optional.of(expected5)),  lex(s5));
+        assertSymEquals(expected6,  lex(s6));
     }
 
     @Test

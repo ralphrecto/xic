@@ -6,18 +6,42 @@ import java.util.function.Function;
 
 /* Lexing helper class */
 public class SymUtil {
-    /* Get string literals for Symbols. Common unprintable characters
-    (e.g.  * newline, tab, etc.) are escaped for pretty printng. */
+    /**
+     * Get string literals for Symbols.
+     * <p>
+     * For String and Char literals, chars in
+     * the range [0x20,0x7E] are printed; all other characters are escaped.
+     * Commonly escaped characters (e.g. newline, tab, etc.) are pretty printed
+     * when escaped to helpful values (e.g. newline as '\n'), and all other
+     * characters outside of the printable range will be escaped with its
+     * code point.
+     * </p>
+     *
+     * @param sym A Symbol object
+     * @return String escaped/pretty printed string for the Symbol
+     */
     public static String symToLiteral(Symbol sym) {
         Function<String, String> prettyPrint = (s) -> {
-            return s.replaceAll("\t", "\\t")
-                    .replaceAll("\b", "\\b")
-                    .replaceAll("\n", "\\b")
-                    .replaceAll("\r", "\\r")
-                    .replaceAll("\f", "\\f")
-                    .replaceAll("\'", "\\'")
-                    .replaceAll("\"", "\\\"")
-                    .replaceAll("\\", "\\\\");
+            StringBuilder out = new StringBuilder();
+            for (int i = 0; i < s.length(); i++) {
+                int codePoint = s.codePointAt(i);
+                if (0x20 <= codePoint && codePoint <= 0x7E) {
+                    out.append(s.charAt(i));
+                } else {
+                    switch (s.charAt(i)) {
+                        case ('\t'): out.append("\\t"); break;
+                        case ('\b'): out.append("\\b"); break;
+                        case ('\n'): out.append("\\n"); break;
+                        case ('\r'): out.append("\\r"); break;
+                        case ('\f'): out.append("\\f"); break;
+                        case ('\''): out.append("\\'"); break;
+                        case ('\"'): out.append("\\\""); break;
+                        case ('\\'): out.append("\\\\"); break;
+                        default: out.append("\\x" + Integer.toHexString(codePoint));
+                    }
+                }
+            }
+            return out.toString();
         };
 
         String terminalName = Sym.terminalNames[sym.sym];

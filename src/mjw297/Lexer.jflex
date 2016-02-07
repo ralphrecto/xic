@@ -84,7 +84,7 @@ import java_cup.runtime.*;
             String m = String.format(
                 "error:Integer literal %s out of bounds [0, 9223372036854775807]",
                 s);
-            throw lexerException(ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS,n m);
+            throw lexerException(ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, m);
         }
     }
 %}

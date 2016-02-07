@@ -18,6 +18,7 @@ public class LexerTest {
 	}
 
 	// TODO: check rows and cols
+	
     private void assertSymEquals(List<Symbol> expecteds, List<Symbol> actuals) {
         assertEquals("Error: number of tokens not equal.", expecteds.size(), actuals.size());
         for (int i = 0; i < expecteds.size(); ++i) {
@@ -29,7 +30,7 @@ public class LexerTest {
 			assertEquals("Error: symbol right index not equal.", expected.right, actual.right);
         }
     }
-
+	
 	private List<Symbol> lex(String s) throws IOException {
 		List<Symbol> result = new ArrayList<>();
 		Lexer l = new Lexer(new StringReader(s));
@@ -137,5 +138,14 @@ public class LexerTest {
 		);
 		
 		assertSymEquals(expecteds, lex("+while"));
+	}
+
+	@Test
+	public void stringTest() throws IOException {
+		Lexer  l = new Lexer(new StringReader("\"hello\t\""));
+		Symbol s = l.next_token();
+		Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
+        assertSymEquals(expected, s);
+		
 	}
 }

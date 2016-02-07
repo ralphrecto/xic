@@ -6,7 +6,7 @@ import java_cup.runtime.Symbol;
 public class SymUtil {
     /* Get string literals for Symbols. Common unprintable characters
     (e.g.  * newline, tab, etc.) are escaped for pretty printng. */
-    public static String symToLiteral(Symbol sym) {     
+    public static String symToLiteral(Symbol sym) { 
         Function<String, String> prettyPrint = (s) -> { 
             return s.replaceAll("\t", "\\n") 
                     .replaceAll("\b", "\\t") 

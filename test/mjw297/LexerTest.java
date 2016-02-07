@@ -74,7 +74,7 @@ public class LexerTest {
     public void symbolEqualsTest() throws IOException {
         Symbol a = new Symbol(Sym.EQEQ);
         Symbol b = new Symbol(Sym.EQEQ);
-        assertSymEquals(Arrays.asList(a), Arrays.asList(b));
+        assertSymEquals(a, b);
     }
 
 	@Test
@@ -82,7 +82,7 @@ public class LexerTest {
 		Lexer  l = new Lexer(new StringReader("while"));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.WHILE, 1, 1);
-        assertSymEquals(Arrays.asList(expected), Arrays.asList(s));
+        assertSymEquals(expected, s);
 	}
 
 	@Test
@@ -90,7 +90,7 @@ public class LexerTest {
 		Lexer  l = new Lexer(new StringReader(""));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.EOF, -1, -1);
-        assertSymEquals(Arrays.asList(expected), Arrays.asList(s));
+        assertSymEquals(expected, s);
 	}
 
 	@Test

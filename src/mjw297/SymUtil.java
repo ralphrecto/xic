@@ -2,24 +2,24 @@ package mjw297;
 
 import java_cup.runtime.Symbol;
 
+import java.util.function.Function;
+
 /* Lexing helper class */
 public class SymUtil {
     /* Get string literals for Symbols. Common unprintable characters
     (e.g.  * newline, tab, etc.) are escaped for pretty printng. */
-    public static String symToLiteral(Symbol sym) {     
-        Function<String, String> prettyPrint = (s) -> { 
-            return s.replaceAll("\t", "\\n") 
-                    .replaceAll("\b", "\\t") 
-                    .replaceAll("\n", "\\r") 
-                    .replaceAll("\r", "\\r") 
-                    .replaceAll("\'", "\\\'") 
-                    .replaceAll("\"", "\\\"") 
-                    .replaceAll("\\", "\\\\"); 
-        };
-    }
-
-    /* get string literals for Symbols */
     public static String symToLiteral(Symbol sym) {
+        Function<String, String> prettyPrint = (s) -> {
+            return s.replaceAll("\t", "\\t")
+                    .replaceAll("\b", "\\b")
+                    .replaceAll("\n", "\\b")
+                    .replaceAll("\r", "\\r")
+                    .replaceAll("\f", "\\f")
+                    .replaceAll("\'", "\\'")
+                    .replaceAll("\"", "\\\"")
+                    .replaceAll("\\", "\\\\");
+        };
+
         String terminalName = Sym.terminalNames[sym.sym];
         switch (terminalName) {
             case ("EOF"): return "EOF";

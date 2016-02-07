@@ -1,6 +1,7 @@
 package mjw297;
 
 import java_cup.runtime.*;
+import mjw297.XicException.*;
 
 %%
 
@@ -12,7 +13,7 @@ import java_cup.runtime.*;
 %line
 %column
 
-%yylexthrow LexerException
+%yylexthrow XicException
 
 %state STRING CHARACTER
 
@@ -55,10 +56,6 @@ import java_cup.runtime.*;
         return new Symbol(type, row(), column(), value);
     }
 
-    private LexerException lexerException(ErrorCode c, String message) {
-        return new LexerException(c, row(), column(), message);
-    }
-
     /**
      * {@code longLiteral(s)} parses {@code s} into a Xi number literal. It is
      * a precondition that {@code s} must only contain digits; it may not
@@ -70,9 +67,9 @@ import java_cup.runtime.*;
      *   2. If {@code s == "9223372036854775808"}, then a {@code BIG_NUM}
      *      symbol is returned
      *   3. If {@code s} is outside the range of a valid integer, then a
-     *      LexerException is raised.
+     *      IntegerLiteralOutOfBoundsException is raised.
      */
-    private Symbol longLiteral(String s) throws LexerException {
+    private Symbol longLiteral(String s) throws XicException {
         try {
             if (s.equals("9223372036854775808")) {
                 return symbol(Sym.BIG_NUM);
@@ -80,11 +77,7 @@ import java_cup.runtime.*;
                 return symbol(Sym.NUM, new Long(s));
             }
         } catch (NumberFormatException e) {
-            // TODO: handle out of bounds
-            String m = String.format(
-                "error:Integer literal %s out of bounds [0, 9223372036854775807]",
-                s);
-            throw lexerException(ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, m);
+            throw new IntegerLiteralOutOfBoundsException(row(), column(), s);
         }
     }
 %}

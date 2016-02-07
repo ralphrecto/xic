@@ -7,8 +7,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java_cup.runtime.*;
-import org.junit.Test;
+import mjw297.XicException.*;
 import org.junit.Ignore;
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class LexerTest {
@@ -19,9 +20,9 @@ public class LexerTest {
      */
     private static class Lexed {
         public final List<Symbol> symbols;
-        public final Optional<LexerException> exception;
+        public final Optional<XicException> exception;
 
-        public Lexed(List<Symbol> symbols, Optional<LexerException> exception) {
+        public Lexed(List<Symbol> symbols, Optional<XicException> exception) {
             this.symbols = symbols;
             this.exception = exception;
         }
@@ -47,7 +48,7 @@ public class LexerTest {
             }
             result.add(sym);
             return new Lexed(result, Optional.empty());
-        } catch (LexerException e) {
+        } catch (XicException e) {
             return new Lexed(result, Optional.of(e));
         }
     }
@@ -73,7 +74,7 @@ public class LexerTest {
      * {@code assertSymEquals(e, a)} is shorthand for {@code
      * assertSymEquals(Lexed([], e), Lexed(a, None))}
      */
-    private void assertSymEquals(LexerException expected, Lexed actual) {
+    private void assertSymEquals(XicException expected, Lexed actual) {
         assertSymEquals(new Lexed(Arrays.asList(), Optional.of(expected)), actual);
     }
 
@@ -86,7 +87,7 @@ public class LexerTest {
         assertEquals("Error: number of tokens not equal.",
                 expected.symbols.size(), actual.symbols.size());
         for (int i = 0; i < expected.symbols.size(); ++i) {
-            Symbol e = actual.symbols.get(i);
+            Symbol e = expected.symbols.get(i);
             Symbol a = actual.symbols.get(i);
             assertEquals("Error: symbol codes not equal.", e.sym, a.sym);
             assertEquals("Error: symbol values not equal.", e.value, a.value);
@@ -125,7 +126,7 @@ public class LexerTest {
     }
 
     @Test
-    public void keywordTest() throws IOException, LexerException {
+    public void keywordTest() throws IOException, XicException {
         Lexer  l = new Lexer(new StringReader("while"));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.WHILE, 1, 1);
@@ -133,7 +134,7 @@ public class LexerTest {
     }
 
     @Test
-    public void eofTest() throws IOException, LexerException {
+    public void eofTest() throws IOException, XicException {
         Lexer  l = new Lexer(new StringReader(""));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.EOF, -1, -1);
@@ -212,7 +213,7 @@ public class LexerTest {
     }
 
     @Test
-    public void stringTest() throws IOException, LexerException {
+    public void stringTest() throws IOException, XicException {
         Lexer  l = new Lexer(new StringReader("\"hello\t\""));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
@@ -221,7 +222,7 @@ public class LexerTest {
     }
 
     @Test
-    public void stringHexTest() throws IOException, LexerException {
+    public void stringHexTest() throws IOException, XicException {
         Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
         Symbol s = l.next_token();
         Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
@@ -414,17 +415,14 @@ public class LexerTest {
         );
 
         String s4 = "9223372036854775809";
-        LexerException expected4 = new LexerException(
-                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 1, "");
+        XicException expected4 = new IntegerLiteralOutOfBoundsException(1, 1, "");
 
         String s5 = "-9223372036854775809";
         List<Symbol> expecteds5 = Arrays.asList(new Symbol(Sym.MINUS, 1, 1));
-        LexerException expected5 = new LexerException(
-                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 2, "");
+        XicException expected5 = new IntegerLiteralOutOfBoundsException(1, 2, "");
 
         String s6 = "13419223372036854775809";
-        LexerException expected6 = new LexerException(
-                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 1, "");
+        XicException expected6 = new IntegerLiteralOutOfBoundsException(1, 1, "");
 
         assertSymEquals(expecteds1, lex(s1));
         assertSymEquals(expecteds2, lex(s2));

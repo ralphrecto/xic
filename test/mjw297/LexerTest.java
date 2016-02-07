@@ -268,5 +268,15 @@ public class LexerTest {
         assertLexedStringEquals(
               "use io main(args: int[][]) { print(12); c3p0: int = 12; }",
             "\"use io main(args: int[][]) { print(12); c3p0: int = 12; }\"");
+
+        /* escape characters */
+	    assertLexedStringEquals("\t", "\"\\t\"");
+	    assertLexedStringEquals("\b", "\"\\b\"");
+	    assertLexedStringEquals("\n", "\"\\n\"");
+	    assertLexedStringEquals("\r", "\"\\r\"");
+	    assertLexedStringEquals("\f", "\"\\f\"");
+	    assertLexedStringEquals("\'", "\"\\\'\"");
+	    assertLexedStringEquals("\"", "\"\\\"\"");
+	    assertLexedStringEquals("\\", "\"\\\\\"");
 	}
 }

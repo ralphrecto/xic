@@ -102,10 +102,13 @@ import java_cup.runtime.*;
 
 	/* escape characters */
 	\\t			 { sb.append('\t');		  }
+	\\b			 { sb.append('\b');		  }
 	\\n			 { sb.append('\n');		  }
 	\\r			 { sb.append('\r');		  }
+	\\f			 { sb.append('\f');		  }
+	\\\'		 { sb.append('\'');		  }
 	\\\"		 { sb.append('\"');		  }
-	\\			 { sb.append('\\');		  }
+	\\\\		 { sb.append('\\');		  }
 
 }
 

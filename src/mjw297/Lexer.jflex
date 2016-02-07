@@ -12,7 +12,11 @@ import java_cup.runtime.*;
 %line
 %column
 
+%state STRING CHARACTER
+
 %{
+    StringBuffer sb = new StringBuffer();
+
     private Symbol symbol(int type) {
         return new Symbol(type, yyline + 1, yycolumn + 1);
     }
@@ -68,8 +72,38 @@ import java_cup.runtime.*;
     "_"			{ return symbol(Sym.UNDERSCORE); }   
     ","			{ return symbol(Sym.COMMA);      }
     ":"			{ return symbol(Sym.COLON);      }           
+                
+	/* String */
+	\"			{ sb.setLength(0); yybegin(STRING); }         
+
+	/* Character */
+	\'			{ sb.setLength(0); yybegin(CHARACTER); }
+
+	/* whitespace */
 }               
-                
-                
+               
+<STRING> {
+	/* End of string */
+	\"			 { yybegin(YYINITIAL);
+				   return symbol(Sym.STRING,
+				   sb.toString());}
+	[^\n\r\"\\]+ { sb.append( yytext() ); }
+
+	/* escape characters */	
+	\\t			 { sb.append('\t');		  }
+	\\n			 { sb.append('\n');		  }
+	\\r			 { sb.append('\r');		  }
+	\\\"		 { sb.append('\"');		  }
+	\\			 { sb.append('\\');		  }
+
+} 
+
+<CHARACTER> {
+	/* end of character */
+	\'			{ yybegin(YYINITIAL);
+				  return symbol(Sym.CHAR,
+				  sb.toString());}
+}
+
                 
 [^] { throw new Error("Illegal character <"+ yytext()+">"); }

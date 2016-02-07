@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class Main {
 
@@ -82,6 +83,22 @@ public class Main {
                 return;
             }
 
+            Function<Symbol, String> symbolToString = (sym) -> {
+                switch (Sym.terminalNames[sym.sym]) {
+                    case "ID":
+                        return "id " + (String) sym.value;
+                    case "INT":
+                        return "integer " + (Integer) sym.value;
+                    case "CHAR":
+                        return "character" + (Character) sym.value;
+                    case "STRING":
+                        return "string " + (String) sym.value;
+                    default:
+                        /* TODO(rjr): change this to actual tokens */
+                        return Sym.terminalNames[sym.sym];
+                }
+            };
+
             StringBuilder outputBuilder = new StringBuilder();
             for (Symbol symbol : symbols) {
                 outputBuilder.append(
@@ -89,7 +106,7 @@ public class Main {
                                 "%d:%d %s",
                                 symbol.left,
                                 symbol.right,
-                                Sym.terminalNames[symbol.sym]
+                                symbolToString.apply(symbol)
                         )
                 );
             }

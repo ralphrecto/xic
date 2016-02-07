@@ -319,7 +319,7 @@ public class LexerTest {
 
     @Test
     public void commentTest() throws IOException {
-        String s1 = "// :) ***I can put'_w/e_'I want h3r3.... */\n";
+        String s1 = "// :) ***I can put'_w/e_'I want h3r3....\\f\\r */\n";
         String s2 = "//\n";
         assertSymEquals(Arrays.asList(eof), lex(s1));
         assertSymEquals(Arrays.asList(eof), lex(s2));

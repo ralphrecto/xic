@@ -165,22 +165,20 @@ public class LexerTest {
 		assertSymEquals(expecteds, lex("+while"));
 	}
 
-	@Ignore
 	@Test
 	public void stringTest() throws IOException {
 		Lexer  l = new Lexer(new StringReader("\"hello\t\""));
 		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
+		Symbol expected = new Symbol(Sym.STRING, 1, 1, "hello\t");
     
 	    assertSymEquals(expected, s);
 	}
 
-	@Ignore
 	@Test
 	public void stringHexTest() throws IOException {
-		Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
+		Lexer  l = new Lexer(new StringReader("\"\\x0F\""));
 		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
+		Symbol expected = new Symbol(Sym.STRING, 1, 1, "15");
     
 	    assertSymEquals(expected, s);
 	}

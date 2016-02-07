@@ -79,7 +79,7 @@ import java_cup.runtime.*;
     }
 %}
 
-HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+HexEscape = \\ x [0-9a-fA-F] [0-9a-fA-F]
   
 /* Integer Literals */
 DecIntLiteral = 0 | [1-9][0-9]*
@@ -183,8 +183,8 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 	\\\\		 { sb.append('\\');		  }
 
 	{HexEscape}	 { try {
-					 int x = Integer.parseInt(chop(4,0), 16);
-					 sb.append(chop(2,0));
+					 int x = Integer.parseInt(chop(2,0), 16);
+					 sb.append(Integer.toString(x));
 				   } catch (NumberFormatException e) {
 				   	   /* TODO: error handling */	
 				   }

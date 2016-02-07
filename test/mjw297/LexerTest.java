@@ -140,14 +140,31 @@ public class LexerTest {
 	}
 
     @Test
-    public void numberTest() throws IOException {
+    public void singleDigitTest() throws IOException {
+        //          0000000001111111111
+        //          1234567890123456789
+        String s = "0 3 2 5 4 7 6 9 8 1";
         List<Symbol> expecteds = Arrays.asList(
-            new Symbol(Sym.NUM
+            new Symbol(Sym.NUM, 1, 1, 0),
+            new Symbol(Sym.NUM, 1, 3, 3),
+            new Symbol(Sym.NUM, 1, 5, 2),
+            new Symbol(Sym.NUM, 1, 7, 5),
+            new Symbol(Sym.NUM, 1, 9, 4),
+            new Symbol(Sym.NUM, 1, 11, 7),
+            new Symbol(Sym.NUM, 1, 13, 6),
+            new Symbol(Sym.NUM, 1, 15, 9),
+            new Symbol(Sym.NUM, 1, 17, 8),
+            new Symbol(Sym.NUM, 1, 19, 1),
+            eof
+        );
+
+        assertSymEquals(expecteds, lex(s));
     }
+
 
     @Test
     public void commentTest() throws IOException {
-
+        
     }
 
     @Test

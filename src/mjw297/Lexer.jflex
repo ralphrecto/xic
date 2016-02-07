@@ -83,7 +83,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     ":"			{ return symbol(Sym.COLON);      }           
 
     /* Numeric Literals */
-    {DecIntLiteral} { return symbol(Sym.NUM, new Integer(yytext());    }
+    {DecIntLiteral} { return symbol(Sym.NUM, new Integer(yytext()));    }
 
     /* Comments */
     {Comment}       { /* ignore */               }

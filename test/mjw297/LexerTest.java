@@ -288,11 +288,12 @@ public class LexerTest {
 	}
 
     @Test
-    public void singleDigitTest() throws IOException {
-        //          0000000001111111111
-        //          1234567890123456789
-        String s = "0 3 2 5 4 7 6 9 8 1";
-        List<Symbol> expecteds = Arrays.asList(
+    public void numbersTest() throws IOException {
+        //           0000000001111111111
+        //           1234567890123456789
+        String s1 = "0 3 2 5 4 7 6 9 8 1";
+        String s2 = " 100000000 17 8932 ";
+        List<Symbol> expecteds1 = Arrays.asList(
             new Symbol(Sym.NUM, 1, 1, 0),
             new Symbol(Sym.NUM, 1, 3, 3),
             new Symbol(Sym.NUM, 1, 5, 2),
@@ -305,22 +306,43 @@ public class LexerTest {
             new Symbol(Sym.NUM, 1, 19, 1),
             eof
         );
+        List<Symbol> expecteds2 = Arrays.asList(
+            new Symbol(Sym.NUM, 1, 2, 100000000),
+            new Symbol(Sym.NUM, 1, 12, 17),
+            new Symbol(Sym.NUM, 1, 15, 8932),
+            eof
+        );
 
-        assertSymEquals(expecteds, lex(s));
+        assertSymEquals(expecteds1, lex(s1));
+        assertSymEquals(expecteds2, lex(s2));
     }
 
     @Test
     public void commentTest() throws IOException {
-        
+        String s1 = "// :) ***I can put'_w/e_'I want h3r3.... */\n";
+        String s2 = "//\n";
+        assertSymEquals(Arrays.asList(eof), lex(s1));
+        assertSymEquals(Arrays.asList(eof), lex(s2));
     }
 
     @Test
     public void whitespaceTest() throws IOException {
-        String s = "    \t\f";
+        String s = "    \t\f     \t";
+        assertSymEquals(Arrays.asList(eof), lex(s));
     }
 
     @Test
     public void identifierTest() throws IOException {
+        //          00000000011111111112222222
+        //          12345678901234567890123456
+        String s = "these_are all identifiers'";
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.ID, 1, 1, "these_are"),
+            new Symbol(Sym.ID, 1, 11, "all"),
+            new Symbol(Sym.ID, 1, 15, "identifiers'"),
+            eof
+        );
 
+        assertSymEquals(expecteds, lex(s));
     } 
 }

@@ -70,6 +70,14 @@ public class LexerTest {
     }
 
     /**
+     * {@code assertSymEquals(e, a)} is shorthand for {@code
+     * assertSymEquals(Lexed([], e), Lexed(a, None))}
+     */
+    private void assertSymEquals(LexerException expected, Lexed actual) {
+        assertSymEquals(new Lexed(Arrays.asList(), Optional.of(expected)), actual);
+    }
+
+    /**
      * {@code assertSymEquals(Lexed(e1..en, ee), Lexed(a1..am, ae)} asserts
      * that the {@code n == m}, {@code ee == ae}, and that for all {@code i} in
      * {@code 1..n}, {@code assertSymEquals(ei, ai)}.
@@ -85,7 +93,15 @@ public class LexerTest {
             assertEquals("Error: symbol row not equal.", e.left, a.left);
             assertEquals("Error: symbol column not equal.", e.right, a.right);
         }
-        assertEquals("Error: exception not equal.", expected.exception, actual.exception);
+        assertEquals("Error: exceptions not both present or absent.",
+                expected.exception.isPresent(), actual.exception.isPresent());
+        expected.exception.ifPresent((e) -> {
+            actual.exception.ifPresent((a) -> {
+                assertEquals("Error: error code not equal.", e.code, a.code);
+                assertEquals("Error: exception row not equal.", e.row, a.row);
+                assertEquals("Error: exception column not equal.", e.column, a.column);
+            });
+        });
     }
 
     /**
@@ -372,9 +388,14 @@ public class LexerTest {
             eof
         );
 
+        String s4 = "9223372036854775809";
+        LexerException expected4 = new LexerException(
+                ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, 1, 1, "");
+
         assertSymEquals(expecteds1, lex(s1));
         assertSymEquals(expecteds2, lex(s2));
         assertSymEquals(expecteds3, lex(s3));
+        assertSymEquals(expected4,  lex(s4));
     }
 
     @Test

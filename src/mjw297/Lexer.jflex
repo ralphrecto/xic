@@ -15,6 +15,7 @@ import java_cup.runtime.*;
 %state STRING CHARACTER
 
 %{
+    // strings are lexed into sb
     StringBuffer sb = new StringBuffer();
 	int stringStart = 0;
 
@@ -32,21 +33,73 @@ import java_cup.runtime.*;
 		return chop(0, 1);
 	}
 
+    // If not -1, the row and column of the start of a char or string
+    int startRow = -1;
+    int startColumn = -1;
+
+    private int row() {
+        return yyline + 1;
+    }
+
+    private int column() {
+        return yycolumn + 1;
+    }
+
     private Symbol symbol(int type) {
-        return new Symbol(type, yyline + 1, yycolumn + 1);
+        return new Symbol(type, row(), column());
     }
 
     private Symbol symbol(int type, Object value) {
-        return new Symbol(type, yyline + 1, yycolumn + 1, value);
+        return new Symbol(type, row(), column(), value);
+    }
+
+    /**
+     * {@code longLiteral(s)} parses {@code s} into a Xi number literal. It is
+     * a precondition that {@code s} must only contain digits; it may not
+     * include letters or even a leading + or -. This function returns one of
+     * three things depending on the value of {@code s}.
+     *
+     *   1. If {@code 0 <= s <= 9223372036854775807}, then a {@code NUM} symbol
+     *      is returned
+     *   2. If {@code s == "9223372036854775808"}, then a {@code BIG_NUM}
+     *      symbol is returned
+     *   3. TODO: specify third case.
+     */
+    private Symbol longLiteral(String s) {
+        try {
+            if (s.equals("9223372036854775808")) {
+                return symbol(Sym.BIG_NUM);
+            } else {
+                return symbol(Sym.NUM, new Long(s));
+            }
+        } catch (NumberFormatException e) {
+            // TODO: handle out of bounds
+            return symbol(Sym.NUM, -1);
+        }
     }
 %}
 
 HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
   
+/* Integer Literals */
+DecIntLiteral = 0 | [1-9][0-9]*
+
+/* Main Character Classes */
+LineTerminator = \r|\n|\r\n
+
+/* Whitespace */
+Whitespace = {LineTerminator} | [ \t\f]
+
+/* Comments */
+Comment = "//".*({LineTerminator}|\Z)
+
+/* Identifiers */
+Identifier = [a-zA-Z][a-zA-Z_0-9\']*
+
 %%
 
 <YYINITIAL> {
-	
+
 	/* Keywords */
 	"while"		{ return symbol(Sym.WHILE);  }
 	"if"		{ return symbol(Sym.IF);     }
@@ -57,57 +110,77 @@ HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
 	"use"		{ return symbol(Sym.USE);	 }
 	"length"	{ return symbol(Sym.LENGTH); }
 	"true"		{ return symbol(Sym.TRUE);	 }
-	"false"		{ return symbol(Sym.FALSE);	 } 
+	"false"		{ return symbol(Sym.FALSE);	 }
 
 	/* Symbols */
-    "-"			{ return symbol(Sym.MINUS);      } 
-    "!"			{ return symbol(Sym.BANG);       } 
+    "-"			{ return symbol(Sym.MINUS);      }
+    "!"			{ return symbol(Sym.BANG);       }
     "*"			{ return symbol(Sym.STAR);       }
-    "*>>"		{ return symbol(Sym.HIGHMULT);   }           
-    "/"			{ return symbol(Sym.DIV);        }           
-    "%"			{ return symbol(Sym.MOD);        }           
-    "+"			{ return symbol(Sym.PLUS);       }           
-    "="			{ return symbol(Sym.EQ);         }           
-    "<"			{ return symbol(Sym.LT);         }           
-    "<="		{ return symbol(Sym.LTE);        }           
-    ">="		{ return symbol(Sym.GTE);        }           
-    ">"			{ return symbol(Sym.GT);         }           
-    "=="		{ return symbol(Sym.EQEQ);       }           
-    "!="		{ return symbol(Sym.NEQ);        }           
-    "&"			{ return symbol(Sym.AMP);        }           
-    "|"			{ return symbol(Sym.BAR);        }           
-    ";"			{ return symbol(Sym.SEMICOLON);  }           
-    "("			{ return symbol(Sym.LPAREN);     }           
-    ")"			{ return symbol(Sym.RPAREN);     }           
-    "["			{ return symbol(Sym.LBRACKET);   }           
-    "]"			{ return symbol(Sym.RBRACKET);   }           
-    "{"			{ return symbol(Sym.LBRACE);     }           
-    "}"			{ return symbol(Sym.RBRACE);     }           
-    "_"			{ return symbol(Sym.UNDERSCORE); }   
+    "*>>"		{ return symbol(Sym.HIGHMULT);   }
+    "/"			{ return symbol(Sym.DIV);        }
+    "%"			{ return symbol(Sym.MOD);        }
+    "+"			{ return symbol(Sym.PLUS);       }
+    "="			{ return symbol(Sym.EQ);         }
+    "<"			{ return symbol(Sym.LT);         }
+    "<="		{ return symbol(Sym.LTE);        }
+    ">="		{ return symbol(Sym.GTE);        }
+    ">"			{ return symbol(Sym.GT);         }
+    "=="		{ return symbol(Sym.EQEQ);       }
+    "!="		{ return symbol(Sym.NEQ);        }
+    "&"			{ return symbol(Sym.AMP);        }
+    "|"			{ return symbol(Sym.BAR);        }
+    ";"			{ return symbol(Sym.SEMICOLON);  }
+    "("			{ return symbol(Sym.LPAREN);     }
+    ")"			{ return symbol(Sym.RPAREN);     }
+    "["			{ return symbol(Sym.LBRACKET);   }
+    "]"			{ return symbol(Sym.RBRACKET);   }
+    "{"			{ return symbol(Sym.LBRACE);     }
+    "}"			{ return symbol(Sym.RBRACE);     }
+    "_"			{ return symbol(Sym.UNDERSCORE); }
     ","			{ return symbol(Sym.COMMA);      }
-    ":"			{ return symbol(Sym.COLON);      }           
-                
+    ":"			{ return symbol(Sym.COLON);      }
+
 	/* String */
-	\"			{ sb.setLength(0); stringStart = yycolumn + 1; 
-				  yybegin(STRING); }         
+	\"			{ sb.setLength(0);
+                  startRow = row();
+                  startColumn = column();
+                  yybegin(STRING); }
 
 	/* Character */
 	\'			{ sb.setLength(0); yybegin(CHARACTER); }
 
-}               
-               
+    /* Numeric Literals */
+    {DecIntLiteral} { return longLiteral(yytext());    }
+
+    /* Comments */
+    {Comment}       { /* ignore */               }
+
+    /* Whitespace */
+    {Whitespace}    { /* ignore */               }
+
+    /* Identifiers */
+    {Identifier}    { return symbol(Sym.ID, yytext());     }
+}
+
 <STRING> {
 	/* End of string */
 	\"			 { yybegin(YYINITIAL);
-				   return symbol(Sym.STRING,
-				   sb.toString());}
+                   int r = startRow;
+                   int c = startColumn;
+                   startRow = -1;
+                   startColumn = -1;
+				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
+	[^\n\r\"\\]+ { sb.append(yytext()); }
 
-	/* escape characters */	
+	/* escape characters */
 	\\t			 { sb.append('\t');		  }
+	\\b			 { sb.append('\b');		  }
 	\\n			 { sb.append('\n');		  }
 	\\r			 { sb.append('\r');		  }
+	\\f			 { sb.append('\f');		  }
+	\\\'		 { sb.append('\'');		  }
 	\\\"		 { sb.append('\"');		  }
-	\\			 { sb.append('\\');		  }
+	\\\\		 { sb.append('\\');		  }
 
 	{HexEscape}	 { try {
 					 int x = Integer.parseInt(chop(4,0), 16);
@@ -135,5 +208,5 @@ HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
 				  sb.toString());}
 }
 
-                
+
 [^] { throw new Error("Illegal character <"+ yytext()+">"); }

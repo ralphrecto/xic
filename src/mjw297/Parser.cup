@@ -44,10 +44,44 @@ terminal WHILE,  // while
          FALSE;  // false
 
 // Valued Terminals
-terminal String    STRING; // "foo", "bar", ...,
-terminal Character CHAR;   // 'a', 'b', ...
-terminal String    ID;     // foo, foo_bar, t'is_2_cold_4_me
-terminal Integer   NUM;    // ..., -1, 0, 1, ...
+terminal String    STRING;  // "foo", "bar", ...,
+terminal Character CHAR;    // 'a', 'b', ...
+terminal String    ID;      // foo, foo_bar, t'is_2_cold_4_me
+
+// Lexing integer literals is trickier than it seems. The Xi language
+// specification says that integer literals can range from -9223372036854775808
+// (-2^63) to 9223372036854775807 (2^63 - 1). Imagine we try to lex the string
+// "-9223372036854775808". What should our lexer do?
+//
+//   (1) We could lex the string as two tokens: a MINUS token, and
+//       a NUM token. The catch is that 9223372036854775808 doesn't fit inside
+//       of a Java long, so we can't stick 9223372036854775808 in a NUM token!
+//   (2) We could have a regular expression, "-9223372036854775808", that lexes
+//       the string as a single NUM token with the value -9223372036854775808.
+//       But then, our lexer wouldn't lex "-9223372036854775808"!
+//   (3) We could beef up our regular expression from attempt (2) and disregard
+//       whitespace between the "-" and the "9223372036854775808". For example,
+//       our regular expression could be `- {Whitespace}* 9223372036854775808`.
+//       This is also insufficient. Consider the following Xi snippet:
+//
+//           x: int = -
+//                    // random comment
+//                    9223372036854775808
+//
+//       Our regular expression wouldn't lex this correctly.
+//   (4) We could beef up our regular expression again accounting for any
+//       possible tokens that could occur between '-' and
+//       '9223372036854775808'!  Right now that only includes whitespace and
+//       single line comments.
+//   (5) We could introduce a new token BIG_NUM that is created whenever we lex
+//       9223372036854775808 and defer responsibility to the parser.
+//
+// Solutions (1) - (3) are insufficient. Solutions (4) and (5) have their
+// tradeoffs. It's not clear whether (4) is even correct, but (5) complicates
+// things quite a bit. We have opted for option (5) because it seems the
+// hardest to get wrong.
+terminal Long NUM;     // -9223372036854775808, ..., 0, ..., 9223372036854775807
+terminal      BIG_NUM; // 9223372036854775808
 
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar

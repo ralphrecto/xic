@@ -145,7 +145,17 @@ public class LexerTest {
 		Lexer  l = new Lexer(new StringReader("\"hello\t\""));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.STRING, 1, 8, "hello\t");
-        assertSymEquals(expected, s);
-		
+    
+	    assertSymEquals(expected, s);
 	}
+
+	@Test
+	public void stringHexTest() throws IOException {
+		Lexer  l = new Lexer(new StringReader("\"\\u000F\""));
+		Symbol s = l.next_token();
+		Symbol expected = new Symbol(Sym.STRING, 1, 2, "15");
+    
+	    assertSymEquals(expected, s);
+	}
+
 }

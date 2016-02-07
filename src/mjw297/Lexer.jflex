@@ -16,6 +16,21 @@ import java_cup.runtime.*;
 
 %{
     StringBuffer sb = new StringBuffer();
+	int stringStart = 0;
+
+	/* chop takes the substring from the ith character to the
+	   jth last character */
+	private String chop(int i, int j) {
+		return yytext().substring(i, yylength()-j);
+	}
+
+	private String chop(int j) {
+		return chop(0, j);
+	}
+
+	private String chop() {
+		return chop(0, 1);
+	}
 
     private Symbol symbol(int type) {
         return new Symbol(type, yyline + 1, yycolumn + 1);
@@ -26,9 +41,8 @@ import java_cup.runtime.*;
     }
 %}
 
-
-
-
+HexEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+  
 %%
 
 <YYINITIAL> {
@@ -74,12 +88,12 @@ import java_cup.runtime.*;
     ":"			{ return symbol(Sym.COLON);      }           
                 
 	/* String */
-	\"			{ sb.setLength(0); yybegin(STRING); }         
+	\"			{ sb.setLength(0); stringStart = yycolumn + 1; 
+				  yybegin(STRING); }         
 
 	/* Character */
 	\'			{ sb.setLength(0); yybegin(CHARACTER); }
 
-	/* whitespace */
 }               
                
 <STRING> {
@@ -87,7 +101,6 @@ import java_cup.runtime.*;
 	\"			 { yybegin(YYINITIAL);
 				   return symbol(Sym.STRING,
 				   sb.toString());}
-	[^\n\r\"\\]+ { sb.append( yytext() ); }
 
 	/* escape characters */	
 	\\t			 { sb.append('\t');		  }
@@ -95,6 +108,23 @@ import java_cup.runtime.*;
 	\\r			 { sb.append('\r');		  }
 	\\\"		 { sb.append('\"');		  }
 	\\			 { sb.append('\\');		  }
+
+	{HexEscape}	 { try {
+					 int x = Integer.parseInt(chop(4,0), 16);
+					 sb.append(chop(2,0));
+				   } catch (NumberFormatException e) {
+				   	   /* TODO: error handling */	
+				   }
+				 } 
+
+	/* other unhandled escape characters */
+	\\.			 { sb.append("hi"); /* TODO: error handling */ }
+
+	/* unclosed string */
+	/* TODO: need to put regex here and error handling */
+	
+	/* anything else */
+	[^\n\r\"\\]+ { sb.append( yytext() ); }
 
 } 
 

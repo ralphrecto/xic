@@ -83,30 +83,14 @@ public class Main {
                 return;
             }
 
-            Function<Symbol, String> symbolToString = (sym) -> {
-                switch (Sym.terminalNames[sym.sym]) {
-                    case "ID":
-                        return "id " + (String) sym.value;
-                    case "INT":
-                        return "integer " + (Integer) sym.value;
-                    case "CHAR":
-                        return "character" + (Character) sym.value;
-                    case "STRING":
-                        return "string " + (String) sym.value;
-                    default:
-                        /* TODO(rjr): change this to actual tokens */
-                        return Sym.terminalNames[sym.sym];
-                }
-            };
-
             StringBuilder outputBuilder = new StringBuilder();
             for (Symbol symbol : symbols) {
                 outputBuilder.append(
                         String.format(
-                                "%d:%d %s",
+                                "%d:%d %s\n",
                                 symbol.left,
                                 symbol.right,
-                                symbolToString.apply(symbol)
+                                SymUtil.symToLiteral(symbol)
                         )
                 );
             }

@@ -35,7 +35,7 @@ public class Main {
         parser.printUsage(System.err);
     }
 
-    private void doLex() throws LexerException {
+    private void doLex() throws XicException {
         if (arguments.isEmpty()) {
             System.out.println("No filenames provided.");
             printUsage();
@@ -106,7 +106,7 @@ public class Main {
         }
     }
 
-    public void doMain(String[] args) throws LexerException {
+    public void doMain(String[] args) throws XicException {
 
         try {
             parser.parseArgument(args);
@@ -127,7 +127,7 @@ public class Main {
         return;
     }
 
-    public static void main(String[] args) throws LexerException {
+    public static void main(String[] args) throws XicException {
         new Main().doMain(args);
     }
 }

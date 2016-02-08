@@ -1,15 +1,89 @@
 \documentclass{hw}
 \title{Programming Assignment 1:\\ Implementing Lexical Analysis}
+\usepackage{fancyvrb}
 
 \begin{document}
 \maketitle
 
-\section*{Metadata}\label{sec:metadata}
-\section*{Summary}\label{sec:summary}
-\section*{Specification}\label{sec:specification}
-\section*{Design and Implementation}\label{sec:design}
-\section*{Testing}\label{sec:testing}
-\section*{Work Plan}\label{sec:workplan}
-\section*{Known Problems}\label{sec:problems}
-\section*{Comments}\label{sec:comments}
+\section{Metadata}\label{sec:metadata}
+% The fully qualified class name of your main program and any other
+% instructions needed to run the program.
+\begin{center}
+\begin{BVerbatim}
+make src
+./xic --lex <xi_file.xi>...
+\end{BVerbatim}
+\end{center}
+
+Our main executable is implemented in \texttt{mjw297.Main.java} which is found
+in the \texttt{src/mjw297} directory. To build our executable, simply run
+\texttt{make src}. Our Makefile depends only on \texttt{javac}; all our
+dependencies are packaged in the \texttt{lib} directory, and we don't depend on
+any external dependencies. Invoking \texttt{mjw297.Main} can be tricky because
+you have to include the JARs inside of \texttt{lib} in your classpath. To run
+our lexer, we recommend you use the \texttt{xic} script which invokes
+\texttt{mjw297.Main} with everything configured properly.
+
+\section{Summary}\label{sec:summary}
+In this programming assignment, we implemented a lexer in Java for the Xi
+programming language using the JFlex lexer generator and CUP parser generator.
+Our major design decisions involve the design of symbol and exception classes,
+the choice of language and libraries, and the lexing of a few nefarious Xi
+programs. The most challenging aspect of the assignment was the handling of
+non-printable characters inside of comments, strings, and characters. For
+example, the form feed character `\verb$\f$' is a non-printable character that
+is difficult to lex correctly in various contexts. There are no known problems
+with our implementation.
+
+\section{Specification}\label{sec:specification}
+In this section we make explicit our interpretation of the Xi language
+specification and discuss various extensions to it which we have implemented.
+
+\subsection{Line Endings and Whitespace}
+The Xi language specification is ambiguous about the definition of a newline
+referring to it only informally as a ``newline''. We define a line terminator
+to be a carriage return `\verb$\r$', a newline `\verb$\n$', or both
+`\verb$\r\n$'. If a `\verb$\r\n$' is present, it is counted as a single
+newline. This definition of line terminators is consistent with the Java
+Language
+Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.4}}.
+Similarly we define whitespace to be any of `\verb$\r$', `\verb$\n$',
+`\verb$\r\n$', `\verb$ $', `\verb$\t$', `\verb$\f$'. This also consistent with
+the Java Language
+Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.6}}.
+
+\subsection{Comments}
+The Xi language specification states that a comment is \texttt{//} followed by
+any sequence of characters until a newline character. We interpret a newline
+character to be any line terminator as defined above. We have also made a small
+revision and allow comments to be terminated by the end of a file in addition
+to a line terminator. This rule avoids the rather counter-intuitive scenario
+where a file ends in a comment and leads to a lexing error.
+
+\subsection{Characters in Comments, Strings, and Characters}
+Xi input files are UTF-8 encoded, though keywords and identifiers are made up
+of only ASCII characters. This leads to the question of what characters are
+allowed inside of comments, strings, and character literals. We allow any
+character that is not a line terminator, including exotic unicode characters,
+to appear in a comment, string, or character literal. Allowing exotic
+characters simplifies the lexer and is also flexible.
+
+\subsection{Unicode Escape Sequences}
+The programming assignment mandates that we support hex escape sequences inside
+of string and character literals. For example, the string \verb$"\x64"$ is
+lexed into the string \texttt{"d"}. In addition to hex escape sequences, we
+have also added unicode escape sequences of the form
+\verb$\u[a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9]$. For example, the string
+\verb$"\u0064"$ lexes to \texttt{"d"}.
+
+\subsection{Escape Characters}
+The Xi language specification says to support a ``reasonable'' set of character
+escapes. We have elected to support \verb$\t$, \verb$\b$, \verb$\n$, \verb$\r$,
+\verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$.
+
+\section{Design and Implementation}\label{sec:design}
+\section{Testing}\label{sec:testing}
+\section{Work Plan}\label{sec:workplan}
+\section{Known Problems}\label{sec:problems}
+\section{Comments}\label{sec:comments}
 \end{document}

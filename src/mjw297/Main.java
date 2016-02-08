@@ -109,7 +109,7 @@ public class Main {
 
             String outputFilename = String.format(
                     "%s.lexed",
-                    Files.getNameWithoutExtension(sf.filename)
+                    sf.filename.substring(0, sf.filename.length() - 3)
             );
             File outputFile = Paths.get(outputFilename).toFile();
 

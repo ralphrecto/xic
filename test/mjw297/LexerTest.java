@@ -460,9 +460,30 @@ public class LexerTest {
                 eof
         );
         String s2 = "//\f if else\f\n";
+        /* Should lex as EOF is inserted by StringReader */
+        String s3 = "//";
         assertSymEquals(expecteds1, lex(s1));
         assertSymEquals(Arrays.asList(eof), lex(s2));
+        assertSymEquals(Arrays.asList(eof), lex(s3));
     }
+
+    @Test
+    public void stringCommentTest() throws IOException {
+        String s1 = "//\"hello\"\n";
+        String s2 = "//\'c\'\n";
+        String s3 = "//\'multichar chars!!!!!\'\n";
+        String s4 = "//\" messed up string\n";
+        String s5 = "//\" 9223372036854775808293\n";
+        /* Random whitespace characters!! */
+        String s6 = "//\u2028\u2029  \u0085white \n";
+        assertSymEquals(Arrays.asList(eof), lex(s1));
+        assertSymEquals(Arrays.asList(eof), lex(s2));
+        assertSymEquals(Arrays.asList(eof), lex(s3));
+        assertSymEquals(Arrays.asList(eof), lex(s4));
+        assertSymEquals(Arrays.asList(eof), lex(s5));
+        assertSymEquals(Arrays.asList(eof), lex(s6));
+    }
+
 
     @Test
     public void whitespaceTest() throws IOException {

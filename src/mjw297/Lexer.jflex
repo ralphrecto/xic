@@ -98,7 +98,7 @@ LineTerminator = \r|\n|\r\n
 Whitespace = {LineTerminator} | [ \t\f]
 
 /* Comments */
-Comment = "//".*({LineTerminator}|\Z)
+Comment = "//"[^\r\n]*({LineTerminator}|\Z)
 
 /* Identifiers */
 Identifier = [a-zA-Z][a-zA-Z_0-9\']*

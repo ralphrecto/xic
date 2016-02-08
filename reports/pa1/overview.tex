@@ -47,19 +47,19 @@ is difficult to lex correctly in various contexts. There are no known problems
 with our implementation.
 
 \section{Specification}\label{sec:specification}
-In this section we make explicit our interpretation of the Xi language
-specification and discuss various extensions to it which we have implemented.
+In this section, we make explicit our interpretation of the Xi language
+specification and discuss various language extensions we have implemented.
 
 \subsection{Line Endings and Whitespace}
-The Xi language specification is ambiguous about the definition of a newline
-referring to it only informally as a ``newline''. We define a line terminator
-to be a carriage return `\verb$\r$', a newline `\verb$\n$', or both
+The Xi language specification is ambiguous about the definition of a line
+terminator, referring to it only informally as a ``newline''. We define a line
+terminator to be a carriage return `\verb$\r$', a newline `\verb$\n$', or both
 `\verb$\r\n$'. If a `\verb$\r\n$' is present, it is counted as a single
 newline. This definition of line terminators is consistent with the Java
 Language
 Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.4}}.
 Similarly we define whitespace to be any of `\verb$\r$', `\verb$\n$',
-`\verb$\r\n$', `\verb$ $', `\verb$\t$', `\verb$\f$'. This also consistent with
+`\verb$\r\n$', `\verb$ $', `\verb$\t$', `\verb$\f$'. This is also consistent with
 the Java Language
 Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.6}}.
 
@@ -77,7 +77,8 @@ of only ASCII characters. This leads to the question of what characters are
 allowed inside of comments, strings, and character literals. We allow any
 character that is not a line terminator, including exotic Unicode characters,
 to appear in a comment, string, or character literal. Allowing exotic
-characters simplifies the lexer and is also flexible.
+characters simplifies the lexer and provides a bit of flexibility to
+Xi programmers.
 
 \subsection{Hex and Unicode Escape Sequences}
 The programming assignment mandates that we support hex escape sequences inside
@@ -97,9 +98,10 @@ For example, the string \verb$"\u0064"$ lexes to \texttt{"d"}.
 The Xi language specification says to support a ``reasonable'' set of character
 escapes. We have elected to support \verb$\t$, \verb$\b$, \verb$\n$, \verb$\r$,
 \verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$. These are also the set of
-non-printable characters that our lexer pretty prints. For example the Xi
-string \verb$"\n"$ is printed as \verb$\n$. All other non-printable
-characters are printed as hex escaped sequences.
+non-printable characters that our compiler pretty prints when run with the
+\texttt{--lex} flag. For example the Xi string \verb$"\n"$ is printed as
+\verb$\n$ rather than a literal newline. All other non-printable characters are
+printed as hex escaped sequences.
 
 \subsection{Non-Line Terminating Whitespace}
 Certain whitespace character are not Xi line terminators but are often

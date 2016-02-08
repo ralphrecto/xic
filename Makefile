@@ -91,7 +91,7 @@ clean:
 	rm -f  p1.zip
 	@echo
 
-p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant
+p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
 print-%:

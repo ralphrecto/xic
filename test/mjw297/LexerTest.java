@@ -317,7 +317,7 @@ public class LexerTest {
             new Symbol(Sym.CHAR, 1, 1, 'a'),
             eof
         );
-        XicException expected2 = new InvalidCharacterConstantException(1, 1); 
+        XicException expected2 = new EmptyCharacterLiteralException(1, 1); 
         XicException expected3 = new InvalidCharacterConstantException(1, 1);
         List<Symbol> expected4 = Arrays.asList(
             new Symbol(Sym.CHAR, 1, 1, '\f'),

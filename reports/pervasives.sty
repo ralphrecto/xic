@@ -1,0 +1,43 @@
+%% Packages
+\RequirePackage[english]{babel}
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{amsthm}
+\RequirePackage{enumerate}
+\RequirePackage{etoolbox}
+\RequirePackage{graphicx}
+\RequirePackage{mathtools}
+\RequirePackage{xparse}
+
+%% References
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\lemref}[1]{Lemma~\ref{lem:#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
+
+%% Lemmas and Claims and Theorems, oh my!
+\newtheorem{lemma}{Lemma}
+\newtheorem*{lemma*}{Lemma}
+\newtheorem{sublemma}{Lemma}[lemma]
+\newtheorem{claim}{Claim}
+\newtheorem*{claim*}{Claim}
+\newtheorem{theorem}{Theorem}
+\newtheorem*{theorem*}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem*{definition*}{Definition}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+%% Miscellaneous Math
+% http://tex.stackexchange.com/a/74132
+\newcommand
+  {\defeq}
+  {\stackrel{\mathclap{\normalfont\mbox{\normalfont\tiny\sffamily def}}}{=}}
+\newcommand{\paren}[1]{\left(#1\right)}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\setst}[2]{\left\{#1\>\middle|\>#2\right\}}
+\newcommand{\nats}{\mathbb{N}}
+
+%% Finite State Machines
+\newcommand{\dhat}{\hat{\delta}} % multi-step transition function
+\newcommand{\eps}{\varepsilon} % empty string
+\newcommand{\DFA}{(Q, \Sigma, \delta, s, F)}
+\newcommand{\NFA}{(Q, \Sigma, \Delta, S, F)}

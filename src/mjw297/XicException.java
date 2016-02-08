@@ -66,9 +66,9 @@ public abstract class XicException extends Exception {
 	}
 	
 	public static class InvalidCharacterConstantException extends XicException {
-		public InvalidCharacterConstantException(int row, int column, String s) {
-			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column, String.format(
-				  "error:Invalid char literal %s", s));
+		public InvalidCharacterConstantException(int row, int column) {
+			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column,
+            	  "error:Invalid character constant");
 		}
 	}
 

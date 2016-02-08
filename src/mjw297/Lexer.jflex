@@ -15,7 +15,7 @@ import mjw297.XicException.*;
 
 %yylexthrow XicException
 
-%state STRING CHARACTER
+%state STRING CHARACTER COMMENT
 
 %{
     // strings are lexed into sb
@@ -97,9 +97,6 @@ LineTerminator = \r|\n|\r\n
 /* Whitespace */
 Whitespace = {LineTerminator} | [ \t\f]
 
-/* Comments */
-Comment = "//"[^\r\n]*({LineTerminator}|\Z)
-
 /* Identifiers */
 Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
@@ -163,7 +160,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     {DecIntLiteral} { return longLiteral(yytext());    }
 
     /* Comments */
-    {Comment}       { /* ignore */               }
+    "//"            { yybegin(COMMENT);             }
 
     /* Whitespace */
     {Whitespace}    { /* ignore */               }
@@ -172,15 +169,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     {Identifier}    { return symbol(Sym.ID, yytext());     }
 }
 
-<STRING> {
-    /* End of string */
-    \"           { yybegin(YYINITIAL);
-                   int r = startRow;
-                   int c = startColumn;
-                   startRow = -1;
-                   startColumn = -1;
-				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
-
+<CHARACTER, STRING> {
 	/* escape characters */
 	\\t			 { sb.append('\t');		  }
 	\\b			 { sb.append('\b');		  }
@@ -195,7 +184,11 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 					 int x = Integer.parseInt(chop(2,0), 16);
 					 sb.append((char) x);
 				   } catch (NumberFormatException e) {
-				     throw new InvalidHexEscapeException(row(), column(), yytext());
+				     int r = startRow;
+                     int c = startColumn;
+                     startRow = -1;
+                     startColumn = -1;
+                     throw new InvalidHexEscapeException(r, c, yytext());
 				   }
 				 } 
 
@@ -203,15 +196,43 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 						int x = Integer.parseInt(chop(2,0), 16);
 						sb.append((char) x);
 					  } catch (NumberFormatException e) {
-						throw new InvalidUnicodeEscapeException(row(), column(), yytext());
+				        int r = startRow;
+                        int c = startColumn;
+                        startRow = -1;
+                        startColumn = -1;
+                		throw new InvalidUnicodeEscapeException(r, c, yytext());
 					  }
 					} 	
 
 	/* other unhandled escape characters */
-	\\.			 { throw new InvalidEscapeException(row(), column(), yytext()); }
+	\\.			 { int r = startRow;
+                   int c = startColumn;
+                   startRow = -1;
+                   startColumn = -1;
+                   throw new InvalidEscapeException(r, c, yytext()); }
+}
+
+<STRING> {
+    /* End of string */
+    \"           { yybegin(YYINITIAL);
+                   int r = startRow;
+                   int c = startColumn;
+                   startRow = -1;
+                   startColumn = -1;
+				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
 
 	/* unclosed string */
-	{LineTerminator} { throw new UnclosedStringLiteralException(row(), column(), yytext()); } 	
+	{LineTerminator} { int r = startRow;
+                       int c = startColumn;
+                       startRow = -1;
+                       startColumn = -1;
+                       throw new UnclosedStringLiteralException(r, c, yytext()); } 	
+
+    <<EOF>>          { int r = startRow;
+                       int c = startColumn;
+                       startRow = -1;
+                       startColumn = -1;
+                       throw new UnclosedStringLiteralException(r, c, yytext()); } 	
 	
 	/* anything else */
 	[^\n\r\"\\]+ { sb.append( yytext() ); }
@@ -222,66 +243,45 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 	/* end of character */
 	\'			{ yybegin(YYINITIAL);
 				  String str = sb.toString();
+                  int r = startRow;
+			      int c = startColumn;
+			      startRow = -1;
+				  startColumn = -1;
 				  if (str.length() == 1) {
 				  	char x = str.charAt(0);
-					int r = startRow;
-					int c = startColumn;
-					startRow = -1;
-					startColumn = -1;
-					return new Symbol(Sym.CHAR, r, c, x);
+                    return new Symbol(Sym.CHAR, r, c, x);
 				  } else {
-				  	throw new InvalidCharacterConstantException(row(), column(), str);
+				  	throw new InvalidCharacterConstantException(r, c);
 				  } 
 				}
 
-	/* escape characters */
-	\\t			 { sb.append('\t');		  }
-	\\b			 { sb.append('\b');		  }
-	\\n			 { sb.append('\n');		  }
-	\\r			 { sb.append('\r');		  }
-	\\f			 { sb.append('\f');		  }
-	//\\\'		 { sb.append('\'');		  }
-	\\\"		 { sb.append('\"');		  }
-	\\\\		 { sb.append('\\');		  }
-
-	{HexEscape}	 { try {
-					 int x = Integer.parseInt(chop(2,0), 16);
-					 sb.append((char) x);
-				   } catch (NumberFormatException e) {
-				   	 throw new InvalidHexEscapeException(row(), column(), yytext());	
-				   }
-				 } 
-
-	{UnicodeEscape} { try {
-						int x = Integer.parseInt(chop(2,0), 16);
-						sb.append((char) x);
-					  } catch (NumberFormatException e) {
-						throw new InvalidUnicodeEscapeException(row(), column(), yytext());
-					  }
-					} 	
-
-	/* other unhandled escape characters */
-	\\.			 { throw new InvalidEscapeException(row(), column(), yytext()); }
-
 	/* unclosed character */
-	{LineTerminator} { throw new UnclosedStringLiteralException(row(), column(), yytext()); } 	
+	{LineTerminator} {  int r = startRow;
+                        int c = startColumn;
+                        startRow = -1;
+                        startColumn = -1;
+                        throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
+
+	<<EOF>>         {  int r = startRow;
+                       int c = startColumn;
+                       startRow = -1;
+                       startColumn = -1;
+                       throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
 	
 	/* anything else */
 	[^\n\r\'\\]+ { sb.append( yytext() ); }
 }
 
+<COMMENT> {
+    /* Input character */
+    [^\r\n]     { /* ignore */ }
+
+    /* Line terminator */
+    {LineTerminator}    { yybegin(YYINITIAL); }
+
+    /* EOF */
+    <<EOF>>             { yybegin(YYINITIAL); }
+}
+
 
 [^] { throw new Error("Illegal character <"+ yytext()+">"); }
-
-
-
-
-
-
-
-
-
-
-
-
-

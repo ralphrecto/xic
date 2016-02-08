@@ -105,6 +105,27 @@ We had four main classes in our lexer:
   \item{XicException:} We subclass this abstract class to throw lexing errors (e.g.
   empty characters) which we then handle internally.
 \end{enumerate}
+\begin{center}
+\begin{tikzpicture}[scale=0.2]
+\tikzstyle{every node}+=[inner sep=0pt]
+\draw [black] (36.8,-14.9) square (3);
+\draw (36.8,-14.9) node {$Lexer$};
+\draw [black] (37.2,-37.4) square (3);
+\draw (37.2,-37.4) node {$XicExep$};
+\draw [black] (55.7,-27.3) square (3);
+\draw (55.7,-27.3) node {$Sym$};
+\draw [black] (18.9,-26.9) square (3);
+\draw (18.9,-26.9) node {$Main$};
+\draw [black] (34.31,-16.57) -- (21.39,-25.23);
+\fill [black] (21.39,-25.23) -- (22.33,-25.2) -- (21.78,-24.37);
+\draw [black] (37.15,-34.4) -- (36.85,-17.9);
+\fill [black] (36.85,-17.9) -- (36.37,-18.71) -- (37.37,-18.69);
+\draw [black] (53.19,-25.65) -- (39.31,-16.55);
+\fill [black] (39.31,-16.55) -- (39.7,-17.4) -- (40.25,-16.57);
+\draw [black] (34.6,-35.91) -- (21.5,-28.39);
+\fill [black] (21.5,-28.39) -- (21.95,-29.22) -- (22.44,-28.36);
+\end{tikzpicture}
+\end{center}
 \subsection{Code Design}
 One of the main extensions we implemented was in comments. The project spec specified that
 comments were only to be terminated by a newline, but we allowed comments that were

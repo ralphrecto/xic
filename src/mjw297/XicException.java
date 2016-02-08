@@ -12,7 +12,8 @@ package mjw297;
 @SuppressWarnings("serial")
 public abstract class XicException extends Exception {
     public enum ErrorCode {
-        INTEGER_LITERAL_OUT_OF_BOUNDS
+        INTEGER_LITERAL_OUT_OF_BOUNDS,
+        INVALID_CHARACTER_CONSTANT
     }
 
     public final ErrorCode code;
@@ -35,6 +36,13 @@ public abstract class XicException extends Exception {
         public IntegerLiteralOutOfBoundsException(int row, int column, String s) {
             super(ErrorCode.INTEGER_LITERAL_OUT_OF_BOUNDS, row, column, String.format(
                   "error:Integer literal %s out of bounds [0, 9223372036854775807]", s));
+        }
+    }
+
+    public static class InvalidCharacterConstantException extends XicException {
+        public InvalidCharacterConstantException(int row, int column) {
+            super(ErrorCode.INVALID_CHARACTER_CONSTANT, row, column,
+                "error:Invalid character constant");
         }
     }
 }

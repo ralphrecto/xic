@@ -250,11 +250,25 @@ public class LexerTest {
 
 	@Test
 	public void charTest() throws IOException, XicException {
-		Lexer l = new Lexer(new StringReader("'a'"));
-		Symbol s = l.next_token();
-		Symbol expected = new Symbol(Sym.CHAR, 1, 1, 'a');
+        // LEXER INPUTS
+        // Correct: single character
+        String s1 = "'a'";
+        // Invalid: empty character
+        String s2 = "''";
+        // Invalid: too many characters
+        String s3 = "'char2long4me'";
 
-		assertSymEquals(expected, s); 
+        // Expected symbols and exceptions
+		List<Symbol> expected1 = Arrays.asList(
+            new Symbol(Sym.CHAR, 1, 1, 'a'),
+            eof
+        );
+        XicException expected2 = new InvalidCharacterConstantException(1, 1); 
+        XicException expected3 = new InvalidCharacterConstantException(1, 1);
+
+		assertSymEquals(expected1, lex(s1)); 
+        assertSymEquals(expected2, lex(s2));
+        assertSymEquals(expected3, lex(s3));
 	}
 
     public void singleStringTest() throws IOException {

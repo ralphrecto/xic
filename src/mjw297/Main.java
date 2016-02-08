@@ -43,9 +43,8 @@ public class Main {
 
     /**
      * Actions for the --lex option
-     * @throws XicException
      */
-    private void doLex() throws XicException {
+    private void doLex() {
         if (arguments.isEmpty()) {
             System.out.println("No filenames provided.");
             printUsage();
@@ -98,6 +97,14 @@ public class Main {
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
+            } catch (XicException e) {
+                outputBuilder.append(
+                        String.format("%d:%d %s\n",
+                                e.row,
+                                e.column,
+                                e.getMessage()
+                        )
+                );
             }
 
             String outputFilename = String.format(
@@ -119,7 +126,6 @@ public class Main {
     /**
      * Main entry point. Handles actions for the different CLI options.
      * @param args The command line arguments
-     * @throws XicException
      */
     private void doMain(String[] args) {
         try {
@@ -127,15 +133,10 @@ public class Main {
             if (helpMode) {
                 printUsage();
             } else if (lexMode) {
-                try {
-                    doLex();
-                } catch (XicException e) {
-                    System.err.println(e.getMessage());
-                }
+                doLex();
             } else {
-                if (arguments.isEmpty()) {
-                    printUsage();
-                }
+                System.out.println("No options passed.");
+                printUsage();
             }
         } catch(CmdLineException e) {
             System.err.println(e.getMessage());
@@ -143,7 +144,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws XicException {
+    public static void main(String[] args) {
         new Main().doMain(args);
     }
 }

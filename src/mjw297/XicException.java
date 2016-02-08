@@ -18,6 +18,7 @@ public abstract class XicException extends Exception {
 		INVALID_ESCAPE,
 		EMPTY_CHAR_LITERAL,
 		INVALID_CHAR_CONSTANT,
+		INVALID_TOKEN,
 		UNCLOSED_STRING_LITERAL,
 		UNCLOSED_CHAR_LITERAL
     }
@@ -77,6 +78,13 @@ public abstract class XicException extends Exception {
 		public InvalidCharacterConstantException(int row, int column) {
 			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column,
             	  "error:Invalid character constant");
+		}
+	}
+
+	public static class InvalidTokenException extends XicException {
+		public InvalidTokenException(int row, int column, String s) {
+			super(ErrorCode.INVALID_TOKEN, row, column, String.format(
+					"error:Cannot recognize token %s", s));
 		}
 	}
 

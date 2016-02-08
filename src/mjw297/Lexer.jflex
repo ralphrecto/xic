@@ -286,4 +286,4 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 }
 
 
-[^] { throw new Error("Illegal character <"+ yytext()+">"); }
+[^] { throw new InvalidTokenException(row(), column(), yytext()); }

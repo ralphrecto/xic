@@ -66,26 +66,41 @@ where a file ends in a comment and leads to a lexing error.
 Xi input files are UTF-8 encoded, though keywords and identifiers are made up
 of only ASCII characters. This leads to the question of what characters are
 allowed inside of comments, strings, and character literals. We allow any
-character that is not a line terminator, including exotic unicode characters,
+character that is not a line terminator, including exotic Unicode characters,
 to appear in a comment, string, or character literal. Allowing exotic
 characters simplifies the lexer and is also flexible.
 
-\subsection{Unicode Escape Sequences}
+\subsection{Hex and Unicode Escape Sequences}
 The programming assignment mandates that we support hex escape sequences inside
 of string and character literals. For example, the string \verb$"\x64"$ is
-lexed into the string \texttt{"d"}. In addition to hex escape sequences, we
-have also added unicode escape sequences of the form
-\verb$\u[a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9]$. For example, the string
-\verb$"\u0064"$ lexes to \texttt{"d"}.
+lexed into the string \texttt{"d"}. The programming assignment is ambiguous
+about the format of the hex escape sequences. We support only fixed width
+two-digit hex escape sequences.
+%
+In addition to hex escape sequences, we have also added Unicode escape
+sequences of the form:
+\begin{center}
+  \verb$\u[a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9]$
+\end{center}
+For example, the string \verb$"\u0064"$ lexes to \texttt{"d"}.
 
 \subsection{Escape Characters}
 The Xi language specification says to support a ``reasonable'' set of character
 escapes. We have elected to support \verb$\t$, \verb$\b$, \verb$\n$, \verb$\r$,
-\verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$.
+\verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$. These are also the set of
+non-printable characters that our lexer pretty prints. For example the Xi
+string \verb$"\n"$ is printed as \verb$\n$. All other non-printable
+characters are printed as hex escaped sequences.
 
-%% TODO: which characters do we pretty print
-%% TODO: form feed and other stuff row numbers
-%% TODO: hex literal fixed width
+\subsection{Non-Line Terminating Whitespace}
+Certain whitespace character are not Xi line terminators but are often
+considered in other contexts to be line terminators. For example, \verb$\f$,
+\verb$\u2028$, and \verb$\u2029$ are considered by JFlex to be line
+terminators.  This leads to an inconsistency in the row numbers our lexer
+reports. The number of lines reported by JFlex is not consistent with the
+number of lines terminated by a Xi line terminator. Since these whitespace
+characters are rare to see in source code and since the inconsistency is
+unimportant, we avoid the complexity of correcting this inconsistency.
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}
@@ -178,22 +193,22 @@ then everything that's not in \verb${\r, \n, \r\n}$. This set includes
 The distribution of work is described in detail in \secref{workplan}.
 
 \section{Testing}\label{sec:testing}
-We wrote JUnit tests to test our lexer. We started with very basic tests that 
-would test one token at a time. Then we moved on to more complex tests where 
-we would mix up different tokens or add random white spaces before, after or between the 
+We wrote JUnit tests to test our lexer. We started with very basic tests that
+would test one token at a time. Then we moved on to more complex tests where
+we would mix up different tokens or add random white spaces before, after or between the
 tokens. After that we created more test cases with escape characters, line terminators
 and EOF. Lastly, we created invalid tests to make sure that we are throwing the correct
 exceptions.
 
 Our test plan worked out very well. First testing on very basic tokens helped us solidify
-the majority of our code. Then, testing with escape characters and line terminators helped 
+the majority of our code. Then, testing with escape characters and line terminators helped
 us find a lot of bugs in our code and made sure that we were dealing with white spaces correctly.
 Finally, testing that exceptions were thrown properly again made sure we covered all the corner
-cases in our lexer. 
+cases in our lexer.
 \section{Work Plan}\label{sec:workplan}
-Before we started coding one person set up the skeleton code and modularization. Then another 
-member took care of the frontend such as command line interfaces. Then other people 
-wrote the rules for lexing while the other members wrote test cases.  
+Before we started coding one person set up the skeleton code and modularization. Then another
+member took care of the frontend such as command line interfaces. Then other people
+wrote the rules for lexing while the other members wrote test cases.
 \section{Known Problems}\label{sec:problems}
 None.
 \section{Comments}\label{sec:comments}

@@ -36,7 +36,7 @@
 \renewcommand{\date}[1]{\renewcommand{\DATE}{#1}}
 
 % Author
-\newcommand{\AUTHOR}{Sueng Hee Han (sh969), Alice Meng (aym27), \\
+\newcommand{\AUTHOR}{Seung Hee Han (sh969), Alice Meng (aym27), \\
                      Ralph Recto (rjr288), Michael Whittaker (mjw297)}
 \renewcommand{\author}[1]{\renewcommand{\AUTHOR}{#1}}
 

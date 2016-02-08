@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * The main compiler frontend/CLI interface to the compiler.
+ */
 public class Main {
 
     @Option(name="--help",usage="Print a synopsis of options.")
@@ -30,11 +33,18 @@ public class Main {
         this.parser = new CmdLineParser(this);
     }
 
+    /**
+     * Helper function to print binary usage info
+     */
     private void printUsage() {
         System.err.println("xic [options] <source files>");
         parser.printUsage(System.err);
     }
 
+    /**
+     * Actions for the --lex option
+     * @throws XicException
+     */
     private void doLex() throws XicException {
         if (arguments.isEmpty()) {
             System.out.println("No filenames provided.");
@@ -106,14 +116,22 @@ public class Main {
         }
     }
 
-    public void doMain(String[] args) throws XicException {
-
+    /**
+     * Main entry point. Handles actions for the different CLI options.
+     * @param args The command line arguments
+     * @throws XicException
+     */
+    private void doMain(String[] args) {
         try {
             parser.parseArgument(args);
             if (helpMode) {
                 printUsage();
             } else if (lexMode) {
-                doLex();
+                try {
+                    doLex();
+                } catch (XicException e) {
+                    System.err.println(e.getMessage());
+                }
             } else {
                 if (arguments.isEmpty()) {
                     printUsage();
@@ -123,8 +141,6 @@ public class Main {
             System.err.println(e.getMessage());
             printUsage();
         }
-
-        return;
     }
 
     public static void main(String[] args) throws XicException {

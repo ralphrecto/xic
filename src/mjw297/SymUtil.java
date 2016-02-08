@@ -4,7 +4,9 @@ import java_cup.runtime.Symbol;
 
 import java.util.function.Function;
 
-/* Lexing helper class */
+/**
+ * Lexing helper class. A catch-all for any helper functions used for lexing.
+ */
 public class SymUtil {
     /**
      * Get string literals for Symbols.

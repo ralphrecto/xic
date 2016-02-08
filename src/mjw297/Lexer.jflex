@@ -15,7 +15,7 @@ import mjw297.XicException.*;
 
 %yylexthrow XicException
 
-%state STRING CHARACTER
+%state STRING CHARACTER COMMENT
 
 %{
     // strings are lexed into sb
@@ -97,9 +97,6 @@ LineTerminator = \r|\n|\r\n
 /* Whitespace */
 Whitespace = {LineTerminator} | [ \t\f]
 
-/* Comments */
-Comment = "//".*({LineTerminator})
-
 /* Identifiers */
 Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 
@@ -163,7 +160,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     {DecIntLiteral} { return longLiteral(yytext());    }
 
     /* Comments */
-    {Comment}       { /* ignore */               }
+    "//"            { yybegin(COMMENT);             }
 
     /* Whitespace */
     {Whitespace}    { /* ignore */               }
@@ -299,34 +296,32 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                    throw new InvalidEscapeException(r, c, yytext()); }
 
 	/* unclosed character */
-	{LineTerminator} { int r = startRow;
+	{LineTerminator} {  int r = startRow;
+                        int c = startColumn;
+                        startRow = -1;
+                        startColumn = -1;
+                        throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
+
+	<<EOF>>         {  int r = startRow;
                        int c = startColumn;
                        startRow = -1;
                        startColumn = -1;
                        throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
-
-    <<EOF>>      { int r = startRow;
-                   int c = startColumn;
-                   startRow = -1;
-                   startColumn = -1;
-                   throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
 	
 	/* anything else */
 	[^\n\r\'\\]+ { sb.append( yytext() ); }
 }
 
+<COMMENT> {
+    /* Input character */
+    [^\r\n]     { /* ignore */ }
+
+    /* Line terminator */
+    {LineTerminator}    { yybegin(YYINITIAL); }
+
+    /* EOF */
+    <<EOF>>             { yybegin(YYINITIAL); }
+}
+
 
 [^] { throw new Error("Illegal character <"+ yytext()+">"); }
-
-
-
-
-
-
-
-
-
-
-
-
-

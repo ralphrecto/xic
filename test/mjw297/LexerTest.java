@@ -2,6 +2,7 @@ package mjw297;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -114,8 +115,8 @@ public class LexerTest {
      */
     private void assertLexedStringEquals(String expected, String s) throws IOException {
         assertSymEquals(
-            Arrays.asList(new Symbol(Sym.STRING, 1, 1, expected), eof),
-            lex(s));
+                Arrays.asList(new Symbol(Sym.STRING, 1, 1, expected), eof),
+                lex(s));
     }
 
     @Test
@@ -463,12 +464,55 @@ public class LexerTest {
     }
 
     @Test
-    public void commentTest() throws IOException {
-        String s1 = "// :) ***I can put'_w/e_'I want h3r3....\\f\\r */\n";
+    public void generalCommentTest() throws IOException {
+        String s1 = "// :) ***I can put'_w/e_'I want h3r3*/....\n";
         String s2 = "//\n";
+        String s3 = "////////nested comments? i am ron burgundy?\n";
+        String s4 = "//carriage return test\r\nif\n";
+        String s5 = "//carriage return test\rif\n";
+        List<Symbol> expecteds45 = Arrays.asList(
+                new Symbol(Sym.IF,2,1),
+                eof
+        );
         assertSymEquals(Arrays.asList(eof), lex(s1));
         assertSymEquals(Arrays.asList(eof), lex(s2));
+        assertSymEquals(Arrays.asList(eof), lex(s3));
+        assertSymEquals(expecteds45, lex(s4));
+        assertSymEquals(expecteds45, lex(s5));
     }
+
+    @Test
+    public void tokensAndWhitespaceCommentTest() throws IOException {
+        String s1 = "if// /div else while !-==\n";
+        List<Symbol>  expecteds1 = Arrays.asList(
+                new Symbol(Sym.IF, 1, 1),
+                eof
+        );
+        String s2 = "//\f if else\f\n";
+        /* Should lex as EOF is inserted by StringReader */
+        String s3 = "//";
+        assertSymEquals(expecteds1, lex(s1));
+        assertSymEquals(Arrays.asList(eof), lex(s2));
+        assertSymEquals(Arrays.asList(eof), lex(s3));
+    }
+
+    @Test
+    public void stringCommentTest() throws IOException {
+        String s1 = "//\"hello\"\n";
+        String s2 = "//\'c\'\n";
+        String s3 = "//\'multichar chars!!!!!\'\n";
+        String s4 = "//\" messed up string\n";
+        String s5 = "//\" 9223372036854775808293\n";
+        /* Random whitespace characters!! */
+        String s6 = "//\u2028\u2029  \u0085white \n";
+        assertSymEquals(Arrays.asList(eof), lex(s1));
+        assertSymEquals(Arrays.asList(eof), lex(s2));
+        assertSymEquals(Arrays.asList(eof), lex(s3));
+        assertSymEquals(Arrays.asList(eof), lex(s4));
+        assertSymEquals(Arrays.asList(eof), lex(s5));
+        assertSymEquals(Arrays.asList(eof), lex(s6));
+    }
+
 
     @Test
     public void whitespaceTest() throws IOException {

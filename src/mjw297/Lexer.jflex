@@ -169,15 +169,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     {Identifier}    { return symbol(Sym.ID, yytext());     }
 }
 
-<STRING> {
-    /* End of string */
-    \"           { yybegin(YYINITIAL);
-                   int r = startRow;
-                   int c = startColumn;
-                   startRow = -1;
-                   startColumn = -1;
-				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
-
+<CHARACTER, STRING> {
 	/* escape characters */
 	\\t			 { sb.append('\t');		  }
 	\\b			 { sb.append('\b');		  }
@@ -218,6 +210,16 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                    startRow = -1;
                    startColumn = -1;
                    throw new InvalidEscapeException(r, c, yytext()); }
+}
+
+<STRING> {
+    /* End of string */
+    \"           { yybegin(YYINITIAL);
+                   int r = startRow;
+                   int c = startColumn;
+                   startRow = -1;
+                   startColumn = -1;
+				   return new Symbol(Sym.STRING, r, c, sb.toString()); }
 
 	/* unclosed string */
 	{LineTerminator} { int r = startRow;
@@ -252,48 +254,6 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 				  	throw new InvalidCharacterConstantException(r, c);
 				  } 
 				}
-
-	/* escape characters */
-	\\t			 { sb.append('\t');		  }
-	\\b			 { sb.append('\b');		  }
-	\\n			 { sb.append('\n');		  }
-	\\r			 { sb.append('\r');		  }
-	\\f			 { sb.append('\f');		  }
-	//\\\'		 { sb.append('\'');		  }
-	\\\"		 { sb.append('\"');		  }
-	\\\\		 { sb.append('\\');		  }
-
-	{HexEscape}	 { try {
-					 int x = Integer.parseInt(chop(2,0), 16);
-					 sb.append((char) x);
-				   } catch (NumberFormatException e) {
-                     int r = startRow;
-                     int c = startColumn;
-                     startRow = -1;
-                     startColumn = -1;
-				   	 throw new InvalidHexEscapeException(r, c, yytext());	
-
-				   }
-				 } 
-
-	{UnicodeEscape} { try {
-						int x = Integer.parseInt(chop(2,0), 16);
-						sb.append((char) x);
-					  } catch (NumberFormatException e) {
-						int r = startRow;
-                        int c = startColumn;
-                        startRow = -1;
-                        startColumn = -1;
-                        throw new InvalidUnicodeEscapeException(r, c, yytext());
-					  }
-					} 	
-
-	/* other unhandled escape characters */
-	\\.			 { int r = startRow;
-                   int c = startColumn;
-                   startRow = -1;
-                   startColumn = -1;
-                   throw new InvalidEscapeException(r, c, yytext()); }
 
 	/* unclosed character */
 	{LineTerminator} {  int r = startRow;

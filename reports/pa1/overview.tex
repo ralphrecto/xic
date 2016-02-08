@@ -1,6 +1,8 @@
 \documentclass{hw}
 \title{Programming Assignment 1:\\ Implementing Lexical Analysis}
+
 \usepackage{fancyvrb}
+\usepackage{pervasives}
 
 \begin{document}
 \maketitle
@@ -81,10 +83,49 @@ The Xi language specification says to support a ``reasonable'' set of character
 escapes. We have elected to support \verb$\t$, \verb$\b$, \verb$\n$, \verb$\r$,
 \verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$.
 
+%% TODO: which characters do we pretty print
+%% TODO: form feed and other stuff row numbers
+%% TODO: hex literal fixed width
+
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}
 \subsection{Code Design}
+
 \subsection{Programming}
+We implemented our lexer using both a bottom-up and a top-down approach. Some
+members of our team used a bottom-up approach to implement our
+\texttt{XicException} exception class and \texttt{Symbol} symbol class---both
+of which do not depend on any other class---without knowing exactly how they
+would be used by other classes. Conversely, other members implemented our
+\texttt{Main} class without yet knowing the specific implementation of the
+underlying lexer implementation. We also followed the designed principle of
+test driven development, implementing tests cases as we implemented our lexer
+to catch bugs often and early. This is described in detail in \secref{testing}.
+
+We encountered various issues while implementing our lexer, most of which
+revolved around the subtle interactions between whitespace characters and
+regular expressions that are more complicated than they seem. The most
+obnoxious issue revolved around the following regular expression we initially
+used to match comments.
+
+\begin{center}
+\begin{BVerbatim}
+LineTerminator = \n | \r | \r\n
+Comment = "//" (!{LineTerminator})* {LineTerminator}
+\end{BVerbatim}
+\end{center}
+
+Intuitively, the \texttt{Comment} regular expression matches \texttt{//}, any
+number of characters that aren't \verb$\r$, \verb$\n$, or \verb$\r\n$, and
+finally a line terminator. Surprisingly though, the string \verb$//a\r\na\n$ is
+lexed as a single comment, not as a comment and then an identifier \verb$a$!
+Inspecting the regular expression deeper, we see the language of
+\verb${Comment}$ is \verb${\r, \n, \r\n}$. The language of \verb$!{Comment}$ is
+then everything that's not in \verb${\r, \n, \r\n}$. This set includes
+\verb$a\r$ and \verb$\na$! Thus, \verb$a\r\na$ is matched by
+\verb$(!{LineTerminator})*$.
+
+The distribution of work is described in detail in \secref{workplan}.
 
 \section{Testing}\label{sec:testing}
 We wrote JUnit tests to test our lexer. We started with very basic tests that 

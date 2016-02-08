@@ -130,7 +130,14 @@ public class Main {
                 try {
                     doLex();
                 } catch (XicException e) {
-                    System.err.println(e.getMessage());
+                    System.err.println(
+                            String.format(
+                                "line %d, col %d: %s",
+                                e.row,
+                                e.column,
+                                e.getMessage()
+                        )
+                    );
                 }
             } else {
                 System.out.println("No options passed.");

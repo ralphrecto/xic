@@ -119,6 +119,16 @@ public class LexerTest {
                 lex(s));
     }
 
+    /**
+     * {@code assertLexedStringEquals(e, s)} is shorthand for {@code
+     * assertSymEquals(Lexed([], e), Lexed(a, None))}
+     */
+    private void assertLexedStringEquals(XicException e, String s) throws IOException {
+        assertSymEquals(
+                new Lexed(Arrays.asList(), Optional.of(e)),
+                lex(s));
+    }
+
     @Test
     public void symbolEqualsTest() throws IOException {
         Symbol a = new Symbol(Sym.EQEQ);
@@ -215,11 +225,42 @@ public class LexerTest {
 
     @Test
     public void stringTest() throws IOException, XicException {
-        Lexer  l = new Lexer(new StringReader("\"hello\t\""));
-        Symbol s = l.next_token();
-        Symbol expected = new Symbol(Sym.STRING, 1, 1, "hello\t");
+        //Lexer  l = new Lexer(new StringReader("\"hello\t\""));
+        //Symbol s = l.next_token();
+        //Symbol expected = new Symbol(Sym.STRING, 1, 1, "hello\t");
 
-        assertSymEquals(expected, s);
+        // LEXER INPUTS
+        // Correct: single string
+        String s1 = "\"hello\t\"";
+        // Correct: empty string
+        String s2 = "\"\"";
+        // Correct: many strings
+        String s3 = "\" hi, I really dislike form feeds >:(\"";
+        // Correct: crazy unicode
+        String s4 = "\"\u1008  \\u2028\ufeed\"";
+        // Invalid: invalid escaped string
+        String s5 = "\"\\a\"";
+        // Invalid: unclosed character
+        String s6 = "\"I'm unclosed!";
+        // Correct: single quote inside a string
+        String s7 = "\"I'm won't can't\"";
+
+        // Expected symbols and exceptions
+        String e1 = "hello\t";
+        String e2 = "";
+        String e3 = " hi, I really dislike form feeds >:(";
+        String e4 = "\u1008  \u2028\ufeed";
+        XicException e5 = new InvalidEscapeException(1, 1, "\\a");
+        XicException e6 = new UnclosedStringLiteralException(1, 1, "\"I'm unclosed!");
+        String e7 = "I'm won't can't";
+
+        assertLexedStringEquals(e1, s1);
+        assertLexedStringEquals(e2, s2);
+        assertLexedStringEquals(e3, s3);
+        assertLexedStringEquals(e4, s4);
+        assertLexedStringEquals(e5, s5);
+        assertLexedStringEquals(e6, s6);
+        assertLexedStringEquals(e7, s7);
     }
 
     @Test
@@ -264,6 +305,8 @@ public class LexerTest {
         String s5 = "'\\a'";
         // Invalid: unclosed character 
         String s6 = "'\\t";
+        // TODO Correct: double quote
+        // TODO Invalid: valid chars followed by invalid chars
 
         // Expected symbols and exceptions
 		List<Symbol> expected1 = Arrays.asList(

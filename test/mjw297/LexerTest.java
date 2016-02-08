@@ -257,6 +257,12 @@ public class LexerTest {
         String s2 = "''";
         // Invalid: too many characters
         String s3 = "'char2long4me'";
+        // Correct: form feed
+        String s4 = "'\\f'";
+        // Invalid: escaped character
+        String s5 = "'\\a'";
+        // Invalid: unclosed character 
+        String s6 = "'\\t";
 
         // Expected symbols and exceptions
 		List<Symbol> expected1 = Arrays.asList(
@@ -265,12 +271,22 @@ public class LexerTest {
         );
         XicException expected2 = new InvalidCharacterConstantException(1, 1); 
         XicException expected3 = new InvalidCharacterConstantException(1, 1);
+        List<Symbol> expected4 = Arrays.asList(
+            new Symbol(Sym.CHAR, 1, 1, '\f'),
+            eof
+        );
+        XicException expected5 = new InvalidEscapeException(1, 1, s5);
+        XicException expected6 = new UnclosedCharacterLiteralException(1, 1, s6);
 
 		assertSymEquals(expected1, lex(s1)); 
         assertSymEquals(expected2, lex(s2));
         assertSymEquals(expected3, lex(s3));
+        assertSymEquals(expected4, lex(s4));
+        assertSymEquals(expected5, lex(s5));
+        assertSymEquals(expected6, lex(s6));
 	}
 
+	@Test
     public void singleStringTest() throws IOException {
         /* simple strings with spaces */
         assertLexedStringEquals("", "\"\"");

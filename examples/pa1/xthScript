@@ -1,0 +1,52 @@
+# xth test script
+#
+# This file is a test script for xth (xic Test Harness).  It
+# conforms to the following grammar:
+#
+#   ScriptFile      ::= Commands+
+#   Command         ::= build
+#                     | CompilerTest
+#   CompilerTest    ::= TestKind ([TestPath])? ("CmdLineArgs")?
+#                           { FileTest (; FileTest)* }
+#   TestKind        ::= test
+#   FileTest        ::= Filenames Description? FailureSet?
+#   Filenames       ::= Filename+
+#   Description     ::= LitString
+#   FailureSet      ::= Failure (, Failure)*
+#   Failure         ::= \( ErrorKind \)
+#                     | \( ErrorKind, LitString \)
+#
+#   TestPath        :   the path to the test files; if ignored, defaults to the
+#                       directory in which xth is run.
+#   CmdLineArgs     :   command-line arguments for xic
+#   Filename        :   the name of a file, interpreted from TestPath.
+#   LitString       :   a literal string, enclosed in quotes.
+#   ErrorKind       :   one of, or a unique prefix of one of the following
+#                       strings: "Lexical Error", "Syntax Error", or
+#                       "Semantic Error".
+#
+# xth runs the commands in order of appearance.
+
+# build compiler first
+build
+
+test "--help" {
+    ex1.xi;
+}
+
+test "--lex" {
+    ex1.xi;
+    ex2.xi (Lexical, "empty character literal");
+    spec1.xi;
+    spec2.xi;
+    spec3.xi;
+    gcd.xi;
+    ratadd.xi;
+    ratadduse.xi;
+    insertionsort.xi;
+    arrayinit.xi;
+    arrayinit2.xi;
+    mdarrays.xi;
+    add.xi;
+    beauty.xi;
+}

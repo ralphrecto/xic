@@ -305,15 +305,19 @@ public class LexerTest {
         String s5 = "'\\a'";
         // Invalid: unclosed character 
         String s6 = "'\\t";
-        // TODO Correct: double quote
-        // TODO Invalid: valid chars followed by invalid chars
+        // Correct: double quote
+        String s7 = "'\"'";
+        // Invalid: valid chars followed by invalid chars
+        //           0000000001111111111222222
+        //           1234567890123456789012345
+        String s8 = "'h''i'' ''u''g''h''asdf'";
 
         // Expected symbols and exceptions
 		List<Symbol> expected1 = Arrays.asList(
             new Symbol(Sym.CHAR, 1, 1, 'a'),
             eof
         );
-        XicException expected2 = new InvalidCharacterConstantException(1, 1); 
+        XicException expected2 = new EmptyCharacterLiteralException(1, 1); 
         XicException expected3 = new InvalidCharacterConstantException(1, 1);
         List<Symbol> expected4 = Arrays.asList(
             new Symbol(Sym.CHAR, 1, 1, '\f'),
@@ -321,6 +325,20 @@ public class LexerTest {
         );
         XicException expected5 = new InvalidEscapeException(1, 1, s5);
         XicException expected6 = new UnclosedCharacterLiteralException(1, 1, s6);
+        List<Symbol> expected7 = Arrays.asList(
+            new Symbol(Sym.CHAR, 1, 1, '"'),
+            eof
+        );
+        Lexed expected8 = new Lexed(Arrays.asList(
+                new Symbol(Sym.CHAR, 1, 1, 'h'),
+                new Symbol(Sym.CHAR, 1, 4, 'i'),
+                new Symbol(Sym.CHAR, 1, 7, ' '),
+                new Symbol(Sym.CHAR, 1, 10, 'u'),
+                new Symbol(Sym.CHAR, 1, 13, 'g'),
+                new Symbol(Sym.CHAR, 1, 16, 'h')
+            ),
+            Optional.of(new InvalidCharacterConstantException(1, 19))
+        );
 
 		assertSymEquals(expected1, lex(s1)); 
         assertSymEquals(expected2, lex(s2));
@@ -328,6 +346,8 @@ public class LexerTest {
         assertSymEquals(expected4, lex(s4));
         assertSymEquals(expected5, lex(s5));
         assertSymEquals(expected6, lex(s6));
+        assertSymEquals(expected7, lex(s7));
+        assertSymEquals(expected8, lex(s8));
 	}
 
 	@Test

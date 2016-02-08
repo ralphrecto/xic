@@ -16,6 +16,7 @@ public abstract class XicException extends Exception {
 		INVALID_HEX_ESCAPE,
 		INVALID_UNICODE_ESCAPE,
 		INVALID_ESCAPE,
+		EMPTY_CHAR_LITERAL,
 		INVALID_CHAR_CONSTANT,
 		INVALID_TOKEN,
 		UNCLOSED_STRING_LITERAL,
@@ -64,6 +65,13 @@ public abstract class XicException extends Exception {
 			super(ErrorCode.INVALID_ESCAPE, row, column, String.format(
 				  "error:Invalid escape %s", s));
 		} 
+	}
+
+	public static class EmptyCharacterLiteralException extends XicException {
+		public EmptyCharacterLiteralException(int row, int column) {
+			super(ErrorCode.EMPTY_CHAR_LITERAL, row, column,
+				  "error:empty character literal");
+		}
 	}
 	
 	public static class InvalidCharacterConstantException extends XicException {

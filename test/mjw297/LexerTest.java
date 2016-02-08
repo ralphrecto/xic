@@ -433,11 +433,26 @@ public class LexerTest {
     }
 
     @Test
-    public void commentTest() throws IOException {
+    public void generalCommentTest() throws IOException {
         String s1 = "// :) ***I can put'_w/e_'I want h3r3....\\f\\r */\n";
         String s2 = "//\n";
         assertSymEquals(Arrays.asList(eof), lex(s1));
         assertSymEquals(Arrays.asList(eof), lex(s2));
+    }
+
+    @Test
+    public void nestedCommentTest() throws IOException {
+        String s1 = "////////nested comments? i am ron burgundy?\n";
+        assertSymEquals(Arrays.asList(eof), lex(s1));
+    }
+
+    @Test
+    public void tokensCommentTest() throws IOException {
+        /* // is longer than / so // should precede */
+        String s1 = "if/   //div else while !-==\n";
+        List<Symbol>  expecteds1 = Arrays.asList(
+                new Symbol(Sym.IF, 1, 1)
+        );
     }
 
     @Test

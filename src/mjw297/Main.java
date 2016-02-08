@@ -99,7 +99,7 @@ public class Main {
                 return;
             } catch (XicException e) {
                 outputBuilder.append(
-                        String.format("%d:%d error: %s\n",
+                        String.format("%d:%d %s\n",
                                 e.row,
                                 e.column,
                                 e.getMessage()

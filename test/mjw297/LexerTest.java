@@ -257,6 +257,7 @@ public class LexerTest {
 		assertSymEquals(expected, s); 
 	}
 
+	@Test
     public void singleStringTest() throws IOException {
         /* simple strings with spaces */
         assertLexedStringEquals("", "\"\"");

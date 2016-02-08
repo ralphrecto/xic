@@ -12,7 +12,13 @@ package mjw297;
 @SuppressWarnings("serial")
 public abstract class XicException extends Exception {
     public enum ErrorCode {
-        INTEGER_LITERAL_OUT_OF_BOUNDS
+        INTEGER_LITERAL_OUT_OF_BOUNDS,
+		INVALID_HEX_ESCAPE,
+		INVALID_UNICODE_ESCAPE,
+		INVALID_ESCAPE,
+		INVALID_CHAR_CONSTANT,
+		UNCLOSED_STRING_LITERAL,
+		UNCLOSED_CHAR_LITERAL
     }
 
     public final ErrorCode code;
@@ -37,4 +43,55 @@ public abstract class XicException extends Exception {
                   "error:Integer literal %s out of bounds [0, 9223372036854775807]", s));
         }
     }
+
+	public static class InvalidHexEscapeException extends XicException {
+		public InvalidHexEscapeException(int row, int column, String s) {
+			super(ErrorCode.INVALID_HEX_ESCAPE, row, column, String.format(
+				  "error:Invalid hex escape %s", s));
+		}
+	}
+
+	public static class InvalidUnicodeEscapeException extends XicException {
+		public InvalidUnicodeEscapeException(int row, int column, String s) {
+			super(ErrorCode.INVALID_UNICODE_ESCAPE, row, column, String.format(
+				  "error.Invalid unicode escape %s", s));
+		}
+	}
+
+	public static class InvalidEscapeException extends XicException {
+		public InvalidEscapeException(int row, int column, String s) {
+			super(ErrorCode.INVALID_ESCAPE, row, column, String.format(
+				  "error:Invalid escape %s", s));
+		} 
+	}
+	
+	public static class InvalidCharacterConstantException extends XicException {
+		public InvalidCharacterConstantException(int row, int column, String s) {
+			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column, String.format(
+				  "error:Invalid char literal %s", s));
+		}
+	}
+
+	public static class UnclosedStringLiteralException extends XicException {
+		public UnclosedStringLiteralException(int row, int column, String s) {
+			super(ErrorCode.UNCLOSED_STRING_LITERAL, row, column, String.format(
+				  "error:Unclosed string literal %s", s));
+		}
+	}
+
+	public static class UnclosedCharacterLiteralException extends XicException {
+		public UnclosedCharacterLiteralException(int row, int column, String s) {
+			super(ErrorCode.UNCLOSED_CHAR_LITERAL, row, column, String.format(
+				  "error:Unclosed char literal %s", s));
+		}
+	}
 }
+
+
+
+
+
+
+
+
+

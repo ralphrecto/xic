@@ -250,6 +250,8 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 				  if (str.length() == 1) {
 				  	char x = str.charAt(0);
                     return new Symbol(Sym.CHAR, r, c, x);
+				  } else if (str.length() == 0) {
+				  	throw new EmptyCharacterLiteralException(r, c);
 				  } else {
 				  	throw new InvalidCharacterConstantException(r, c);
 				  } 
@@ -284,4 +286,4 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 }
 
 
-[^] { throw new Error("Illegal character <"+ yytext()+">"); }
+[^] { throw new InvalidTokenException(row(), column(), yytext()); }

@@ -16,7 +16,9 @@ public abstract class XicException extends Exception {
 		INVALID_HEX_ESCAPE,
 		INVALID_UNICODE_ESCAPE,
 		INVALID_ESCAPE,
+		EMPTY_CHAR_LITERAL,
 		INVALID_CHAR_CONSTANT,
+		INVALID_TOKEN,
 		UNCLOSED_STRING_LITERAL,
 		UNCLOSED_CHAR_LITERAL
     }
@@ -64,11 +66,25 @@ public abstract class XicException extends Exception {
 				  "error:Invalid escape %s", s));
 		} 
 	}
+
+	public static class EmptyCharacterLiteralException extends XicException {
+		public EmptyCharacterLiteralException(int row, int column) {
+			super(ErrorCode.EMPTY_CHAR_LITERAL, row, column,
+				  "error:empty character literal");
+		}
+	}
 	
 	public static class InvalidCharacterConstantException extends XicException {
 		public InvalidCharacterConstantException(int row, int column) {
 			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column,
             	  "error:Invalid character constant");
+		}
+	}
+
+	public static class InvalidTokenException extends XicException {
+		public InvalidTokenException(int row, int column, String s) {
+			super(ErrorCode.INVALID_TOKEN, row, column, String.format(
+					"error:Cannot recognize token %s", s));
 		}
 	}
 

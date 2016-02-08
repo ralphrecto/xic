@@ -133,9 +133,8 @@ public class Main {
                     System.err.println(e.getMessage());
                 }
             } else {
-                if (arguments.isEmpty()) {
-                    printUsage();
-                }
+                System.out.println("No options passed.");
+                printUsage();
             }
         } catch(CmdLineException e) {
             System.err.println(e.getMessage());

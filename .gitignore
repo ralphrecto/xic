@@ -4,6 +4,7 @@
 src/mjw297/Lexer.java
 src/mjw297/Parser.java
 src/mjw297/Sym.java
+*.lexed
 
 ################################################################################
 # vagrant

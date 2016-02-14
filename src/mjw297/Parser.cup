@@ -86,9 +86,226 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar
 ////////////////////////////////////////////////////////////////////////////////
-// Currently, this parser specification is used solely for its terminal
-// symbols, which are used by the lexer. CUP demands a grammar appear here, so
-// we put one here, though it is a meaningless dummy grammar that will later be
-// replaced with Xi's real grammar.
-non terminal dummy;
-dummy ::= LPAREN RPAREN;
+
+// types and variables
+nonterminal type,
+            type_list,
+            avar,
+            var;
+
+// statements
+nonterminal end_stmt,
+            full_stmt,
+            stmt,
+            block,
+            full_decl,
+            decl,
+            var_list,
+            expr_list,
+            asgn,
+            if_body,
+            if_stmt,
+            while_body,
+            while_stmt,
+            args_call,
+            proc_call;
+
+// functions and procedures
+nonterminal args_decl,
+            expr_list, //need to fix based on piazza
+            proc_ret,
+            func_ret,
+            proc_decl,
+            func_decl;
+
+// programs 
+nonterminal use_def,
+            func_def,
+            prog;
+
+// expressions
+nonterminal expr,
+            literal,
+            array_literal,
+            binop,
+            unop;
+
+start with prog;
+
+// actual grammar 
+
+// types and variables
+type ::= INT
+       | BOOL
+       | type LBRACKET RBRACKET
+
+avar ::= ID COLON type
+
+var ::= avar 
+      | UNDERSCORE
+
+// statements 
+
+stmt ::= full_decl
+       | asgn
+       | ...            // TODO
+
+end_stmt ::=            // epsilon
+           | SEMICOLON
+
+full_stmt ::= stmt end_stmt
+
+block ::=               // epsilon
+        | full_stmt block 
+
+full_decl ::= decl 
+            | decl EQ expr
+
+decl ::= var
+       | LPARENS var_list RPARENS
+
+asgn ::= ID EQ expr
+       | ID LBRACKET expr RBRACKET EQ expr
+       | LPARENS var_list RPARENS EQ LPARENS expr_list RPARENS
+
+if_body ::= LBRACE block RBRACE 
+          | stmt
+
+if_stmt ::= IF LPARENS expr RPARENS THEN if_body ELSE if_body
+          | IF LPARENS expr RPARENS THEN if_body 
+          | IF LPARENS expr RPARENS if_body
+
+while_body ::= LBRACE block RBRACE 
+             | stmt
+
+while_stmt ::= WHILE LPARENS expr RPARENS while_body
+
+args_call ::= LPARENS RPARENS 
+            | LPARENS expr_list RPARENS
+
+proc_call ::= ID args_call
+
+// functions and procedures 
+args_decl ::= LPARENS RPARENS 
+            | LPARENS avar_list RPARENS
+
+proc_ret ::=                     // epsilon
+           | RETURN end_stmtm 
+
+func_ret ::= RETURN expr_list end_stmt
+
+proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE
+
+func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
+            | ID args_decl COLON LPARENS type_list RPARENS LBRACE block func_ret RBRACE
+// programs
+use_def ::= USE ID
+
+func_def ::= func_decl 
+           | proc_decl
+
+prog ::= use                  // TODO
+
+// expressions
+expr ::= literal
+         | expr binop expr
+         | unop expr
+         | expr LBRACKET expr RBRACKET 
+         | LENGTH LPARENS expr RPARENS
+         | LPARENS expr RPARENS
+
+literal ::= NUM
+          | BIG_NUM
+          | STRING
+          | CHAR
+          | TRUE
+          | FALSE
+          | array_literal
+
+array_literal ::= LPARENS RPARENS
+                | LPARENS expr COMMA RPARENS 
+                | ...                        // TODO
+
+binop ::= MINUS 
+        | STAR
+        | HIGHMULT
+        | DIV
+        | MOD
+        | PLUS
+        | LT
+        | LTE
+        | GTE
+        | GT
+        | EQEQ
+        | NEQ
+        | AMP
+        | BAR
+
+unop ::= BANG                 // TODO ? what about minus?
+
+// various lists
+expr_list ::= expr 
+            | expr_list COMMA expr
+
+avar_list ::= avar
+            | avar_list COMMA avar
+
+var_list ::= var
+           | var_list COMMA var
+
+type_list ::= type 
+            | type_list COMMA type
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

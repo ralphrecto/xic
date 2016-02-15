@@ -29,7 +29,8 @@ terminal MINUS,      // -
          RBRACE,     // }
          UNDERSCORE, // _
          COMMA,      // ,
-         COLON;      // :
+         COLON,      // :
+		 UMINUS;	 // -
 
 // Keywords
 terminal WHILE,  // while
@@ -141,15 +142,24 @@ nonterminal expr_star,
 // Precedence
 ////////////////////////////////////////////////////////////////////////////////
 
-precedence left PLUS;
-precedence left TIMES;
+precedence nonassoc ELSE;
+precedence nonassoc SEMICOLON;
+precedence nonassoc EQ;
+
+precedence left BAR;
+precedence left AMP;
+precedence left EQEQ, NEQ;
+precedence left GT, GTE, LT, LTE;
+precedence left PLUS, MINUS;
+precedence left STAR, DIV, MOD, HIGHMULT;
+precedence nonassoc BANG, UMINUS;
+precedence left LBRACKET;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar
 ////////////////////////////////////////////////////////////////////////////////
-prog ::= LPAREN RPAREN;
 
- start with prog;
+start with prog;
 
  // types and variables
  type ::= INT
@@ -172,7 +182,6 @@ prog ::= LPAREN RPAREN;
         | if_stmt
         | while_stmt
         | call          //both a procedure and function call
-        | block
         ;
 
  end_stmt ::=            // epsilon
@@ -228,10 +237,10 @@ prog ::= LPAREN RPAREN;
 
  func_ret ::= RETURN LPAREN expr_plus RPAREN end_stmt;
 
- proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE;
+ proc_decl ::= ID args_decl LBRACE stmt_star proc_ret RBRACE;
 
- func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
-             | ID args_decl COLON LPAREN type_plus RPAREN LBRACE block func_ret RBRACE
+ func_decl ::= ID args_decl COLON type LBRACE stmt_star func_ret RBRACE
+             | ID args_decl COLON LPAREN type_plus RPAREN LBRACE stmt_star func_ret RBRACE
              ;
 
  // programs
@@ -258,6 +267,7 @@ prog ::= LPAREN RPAREN;
         | expr LBRACKET expr RBRACKET
         | LENGTH LPAREN expr RPAREN
         | LPAREN expr RPAREN
+		| call
         ;
 
  literal ::= NUM
@@ -266,7 +276,6 @@ prog ::= LPAREN RPAREN;
            | CHAR
            | TRUE
            | FALSE
-           | array_literal
            ;
 
  array_literal ::= LPAREN expr_star RPAREN

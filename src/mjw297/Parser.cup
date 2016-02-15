@@ -112,7 +112,6 @@ nonterminal end_stmt,
 
 // functions and procedures
 nonterminal args_decl,
-            expr_list, //need to fix based on piazza
             proc_ret,
             func_ret,
             proc_decl,
@@ -140,6 +139,7 @@ type ::= INT
        | type LBRACKET RBRACKET
 
 avar ::= ID COLON type
+       | UNDERSCORE COLON type
 
 var ::= avar 
       | UNDERSCORE
@@ -148,7 +148,10 @@ var ::= avar
 
 stmt ::= full_decl
        | asgn
-       | ...            // TODO
+       | if_stmt
+       | while_stmt
+       | proc_call
+       | 
 
 end_stmt ::=            // epsilon
            | SEMICOLON
@@ -171,8 +174,7 @@ asgn ::= ID EQ expr
 if_body ::= LBRACE block RBRACE 
           | stmt
 
-if_stmt ::= IF LPARENS expr RPARENS THEN if_body ELSE if_body
-          | IF LPARENS expr RPARENS THEN if_body 
+if_stmt ::= IF LPARENS expr RPARENS if_body ELSE if_body
           | IF LPARENS expr RPARENS if_body
 
 while_body ::= LBRACE block RBRACE 
@@ -186,18 +188,19 @@ args_call ::= LPARENS RPARENS
 proc_call ::= ID args_call
 
 // functions and procedures 
-args_decl ::= LPARENS RPARENS 
+args_decl ::= LPARENS RPARENS
             | LPARENS avar_list RPARENS
 
 proc_ret ::=                     // epsilon
            | RETURN end_stmtm 
 
-func_ret ::= RETURN expr_list end_stmt
+func_ret ::= RETURN LPARENS expr_list RPARENS end_stmt
 
 proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE
 
 func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
             | ID args_decl COLON LPARENS type_list RPARENS LBRACE block func_ret RBRACE
+
 // programs
 use_def ::= USE ID
 

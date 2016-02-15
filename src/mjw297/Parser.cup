@@ -172,50 +172,50 @@ full_decl ::= decl
             ;
 
 decl ::= var
-       | LPARENS var_plus RPARENS
+       | LPAREN var_plus RPAREN
        ;
 
 asgn ::= ID EQ expr
        | ID LBRACKET expr RBRACKET EQ expr
-       | LPARENS var_plus RPARENS EQ LPARENS expr_plus RPARENS
+       | LPAREN var_plus RPAREN EQ LPAREN expr_plus RPAREN
        ;
 
 if_body ::= block
           | full_stmt
           ;
 
-if_stmt ::= IF LPARENS expr RPARENS if_body ELSE if_body
-          | IF LPARENS expr RPARENS if_body
+if_stmt ::= IF LPAREN expr RPAREN if_body ELSE if_body
+          | IF LPAREN expr RPAREN if_body
           ;
 
 while_body ::= block
              | full_stmt
              ;
 
-while_stmt ::= WHILE LPARENS expr RPARENS while_body;
+while_stmt ::= WHILE LPAREN expr RPAREN while_body;
 
-args_call ::= LPARENS RPARENS
-            | LPARENS expr_plus RPARENS
+args_call ::= LPAREN RPAREN
+            | LPAREN expr_plus RPAREN
             ;
 
 // both for functions and procedures
 call ::= ID args_call;
 
 // functions and procedures
-args_decl ::= LPARENS RPARENS
-            | LPARENS avar_plus RPARENS
+args_decl ::= LPAREN RPAREN
+            | LPAREN avar_plus RPAREN
             ;
 
 proc_ret ::=                     // epsilon
            | RETURN end_stmt
            ;
 
-func_ret ::= RETURN LPARENS expr_plus RPARENS end_stmt;
+func_ret ::= RETURN LPAREN expr_plus RPAREN end_stmt;
 
 proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE;
 
 func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
-            | ID args_decl COLON LPARENS type_plus RPARENS LBRACE block func_ret RBRACE
+            | ID args_decl COLON LPAREN type_plus RPAREN LBRACE block func_ret RBRACE
             ;
 
 // programs
@@ -240,8 +240,8 @@ expr ::= literal
        | expr binop expr
        | unop expr
        | expr LBRACKET expr RBRACKET
-       | LENGTH LPARENS expr RPARENS
-       | LPARENS expr RPARENS
+       | LENGTH LPAREN expr RPAREN
+       | LPAREN expr RPAREN
        ;
 
 literal ::= NUM
@@ -253,8 +253,8 @@ literal ::= NUM
           | array_literal
           ;
 
-array_literal ::= LPARENS expr_star RPARENS
-                | LPARENS expr_plus COMMA RPARENS
+array_literal ::= LPAREN expr_star RPAREN
+                | LPAREN expr_plus COMMA RPAREN
                 ;
 
 binop ::= MINUS

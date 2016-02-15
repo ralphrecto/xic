@@ -101,9 +101,6 @@ nonterminal end_stmt,
             full_decl,
             decl,
             var_plus,
-            expr_star,
-            expr_plus,
-			stmt_star,
             asgn,
             if_body,
             if_stmt,
@@ -130,6 +127,14 @@ nonterminal expr,
             array_literal,
             binop,
             unop;
+
+// various lists
+nonterminal expr_star
+			expr_plus,
+			avar_plus
+			var_plus
+			type_plus
+			stmt_star;
 
 start with prog;
 

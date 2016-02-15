@@ -100,15 +100,16 @@ nonterminal end_stmt,
             block,
             full_decl,
             decl,
-            var_list,
-            expr_list,
+            var_plus,
+            expr_star,
+            expr_plus,
             asgn,
             if_body,
             if_stmt,
             while_body,
             while_stmt,
             args_call,
-            proc_call;
+            call;
 
 // functions and procedures
 nonterminal args_decl,
@@ -150,84 +151,89 @@ stmt ::= full_decl
        | asgn
        | if_stmt
        | while_stmt
-       | proc_call
-       | 
+       | call          //both a procedure and function call
+       | block
 
 end_stmt ::=            // epsilon
            | SEMICOLON
 
 full_stmt ::= stmt end_stmt
 
-block ::=               // epsilon
-        | full_stmt block 
+block ::= LBRACE stmt_star RBRACE
 
 full_decl ::= decl 
             | decl EQ expr
 
 decl ::= var
-       | LPARENS var_list RPARENS
+       | LPARENS var_plus RPARENS
 
 asgn ::= ID EQ expr
        | ID LBRACKET expr RBRACKET EQ expr
-       | LPARENS var_list RPARENS EQ LPARENS expr_list RPARENS
+       | LPARENS var_plus RPARENS EQ LPARENS expr_plus RPARENS
 
-if_body ::= LBRACE block RBRACE 
-          | stmt
+if_body ::= block 
+          | full_stmt
 
 if_stmt ::= IF LPARENS expr RPARENS if_body ELSE if_body
           | IF LPARENS expr RPARENS if_body
 
-while_body ::= LBRACE block RBRACE 
-             | stmt
+while_body ::= block 
+             | full_stmt
 
 while_stmt ::= WHILE LPARENS expr RPARENS while_body
 
 args_call ::= LPARENS RPARENS 
-            | LPARENS expr_list RPARENS
+            | LPARENS expr_plus RPARENS
 
-proc_call ::= ID args_call
+// both for functions and procedures
+call ::= ID args_call
 
 // functions and procedures 
 args_decl ::= LPARENS RPARENS
-            | LPARENS avar_list RPARENS
+            | LPARENS avar_plus RPARENS
 
 proc_ret ::=                     // epsilon
-           | RETURN end_stmtm 
+           | RETURN end_stmt
 
-func_ret ::= RETURN LPARENS expr_list RPARENS end_stmt
+func_ret ::= RETURN LPARENS expr_plus RPARENS end_stmt
 
 proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE
 
 func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
-            | ID args_decl COLON LPARENS type_list RPARENS LBRACE block func_ret RBRACE
+            | ID args_decl COLON LPARENS type_plus RPARENS LBRACE block func_ret RBRACE
 
 // programs
-use_def ::= USE ID
+use_def ::= USE ID end_stmt
 
 func_def ::= func_decl 
            | proc_decl
 
-prog ::= use                  // TODO
+use_def_star ::=                        //epsilon
+               | use_def_star use_def 
+
+func_def_plus ::= func_def
+                | func_def_plus func_def
+
+prog ::= use_def_star func_def_plus
 
 // expressions
 expr ::= literal
-         | expr binop expr
-         | unop expr
-         | expr LBRACKET expr RBRACKET 
-         | LENGTH LPARENS expr RPARENS
-         | LPARENS expr RPARENS
+       | expr binop expr
+       | unop expr
+       | expr LBRACKET expr RBRACKET 
+       | LENGTH LPARENS expr RPARENS
+       | LPARENS expr RPARENS
 
 literal ::= NUM
-          | BIG_NUM
+          | MINUS BIG_NUM   // ??
           | STRING
           | CHAR
           | TRUE
           | FALSE
           | array_literal
 
-array_literal ::= LPARENS RPARENS
-                | LPARENS expr COMMA RPARENS 
-                | ...                        // TODO
+array_literal ::= LPARENS expr_star RPARENS
+                | LPARENS expr_plus COMMA RPARENS
 
 binop ::= MINUS 
         | STAR
@@ -248,17 +254,24 @@ unop ::= BANG
        | MINUS
 
 // various lists
-expr_list ::= expr 
-            | expr_list COMMA expr
 
-avar_list ::= avar
-            | avar_list COMMA avar
+expr_star ::= 
+            | expr_plus
 
-var_list ::= var
-           | var_list COMMA var
+expr_plus ::= expr
+            | expr_plus COMMA expr
 
-type_list ::= type 
-            | type_list COMMA type
+avar_plus ::= avar
+            | avar_plus COMMA avar
+
+var_plus ::= var
+           | var_plus COMMA var
+
+type_plus ::= type 
+            | type_plus COMMA type
+
+stmt_star ::=                       // epsilon
+              | stmt_star full_stmt
 
 
 

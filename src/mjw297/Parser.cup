@@ -140,174 +140,174 @@ nonterminal expr_star,
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar
 ////////////////////////////////////////////////////////////////////////////////
+prog ::= LPAREN RPAREN;
 
-start with prog;
-
-// types and variables
-type ::= INT
-       | BOOL
-       | type LBRACKET RBRACKET
-       ;
-
-avar ::= ID COLON type
-       | UNDERSCORE COLON type
-       ;
-
-var ::= avar
-      | UNDERSCORE
-      ;
-
-// statements
-
-stmt ::= full_decl
-       | asgn
-       | if_stmt
-       | while_stmt
-       | call          //both a procedure and function call
-       | block
-       ;
-
-end_stmt ::=            // epsilon
-           | SEMICOLON
-           ;
-
-full_stmt ::= stmt end_stmt;
-
-block ::= LBRACE stmt_star RBRACE;
-
-full_decl ::= decl
-            | decl EQ expr
-            ;
-
-decl ::= var
-       | LPAREN var_plus RPAREN
-       ;
-
-asgn ::= ID EQ expr
-       | ID LBRACKET expr RBRACKET EQ expr
-       | LPAREN var_plus RPAREN EQ LPAREN expr_plus RPAREN
-       ;
-
-if_body ::= block
-          | full_stmt
-          ;
-
-if_stmt ::= IF LPAREN expr RPAREN if_body ELSE if_body
-          | IF LPAREN expr RPAREN if_body
-          ;
-
-while_body ::= block
-             | full_stmt
-             ;
-
-while_stmt ::= WHILE LPAREN expr RPAREN while_body;
-
-args_call ::= LPAREN RPAREN
-            | LPAREN expr_plus RPAREN
-            ;
-
-// both for functions and procedures
-call ::= ID args_call;
-
-// functions and procedures
-args_decl ::= LPAREN RPAREN
-            | LPAREN avar_plus RPAREN
-            ;
-
-proc_ret ::=                     // epsilon
-           | RETURN end_stmt
-           ;
-
-func_ret ::= RETURN LPAREN expr_plus RPAREN end_stmt;
-
-proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE;
-
-func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
-            | ID args_decl COLON LPAREN type_plus RPAREN LBRACE block func_ret RBRACE
-            ;
-
-// programs
-use_def ::= USE ID end_stmt;
-
-func_def ::= func_decl
-           | proc_decl
-           ;
-
-use_def_star ::=                        //epsilon
-               | use_def_star use_def
-               ;
-
-func_def_plus ::= func_def
-                | func_def_plus func_def
-                ;
-
-prog ::= use_def_star func_def_plus;
-
-// expressions
-expr ::= literal
-       | expr binop expr
-       | unop expr
-       | expr LBRACKET expr RBRACKET
-       | LENGTH LPAREN expr RPAREN
-       | LPAREN expr RPAREN
-       ;
-
-literal ::= NUM
-          | MINUS BIG_NUM   // ??
-          | STRING
-          | CHAR
-          | TRUE
-          | FALSE
-          | array_literal
-          ;
-
-array_literal ::= LPAREN expr_star RPAREN
-                | LPAREN expr_plus COMMA RPAREN
-                ;
-
-binop ::= MINUS
-        | STAR
-        | HIGHMULT
-        | DIV
-        | MOD
-        | PLUS
-        | LT
-        | LTE
-        | GTE
-        | GT
-        | EQEQ
-        | NEQ
-        | AMP
-        | BAR
-        ;
-
-unop ::= BANG
-       | MINUS
-       ;
-
-// various lists
-
-expr_star ::=
-            | expr_plus
-            ;
-
-expr_plus ::= expr
-            | expr_plus COMMA expr
-            ;
-
-avar_plus ::= avar
-            | avar_plus COMMA avar
-            ;
-
-var_plus ::= var
-           | var_plus COMMA var
-           ;
-
-type_plus ::= type
-            | type_plus COMMA type
-            ;
-
-stmt_star ::=                       // epsilon
-              | stmt_star full_stmt
-              ;
-
+// start with prog;
+//
+// // types and variables
+// type ::= INT
+//        | BOOL
+//        | type LBRACKET RBRACKET
+//        ;
+//
+// avar ::= ID COLON type
+//        | UNDERSCORE COLON type
+//        ;
+//
+// var ::= avar
+//       | UNDERSCORE
+//       ;
+//
+// // statements
+//
+// stmt ::= full_decl
+//        | asgn
+//        | if_stmt
+//        | while_stmt
+//        | call          //both a procedure and function call
+//        | block
+//        ;
+//
+// end_stmt ::=            // epsilon
+//            | SEMICOLON
+//            ;
+//
+// full_stmt ::= stmt end_stmt;
+//
+// block ::= LBRACE stmt_star RBRACE;
+//
+// full_decl ::= decl
+//             | decl EQ expr
+//             ;
+//
+// decl ::= var
+//        | LPAREN var_plus RPAREN
+//        ;
+//
+// asgn ::= ID EQ expr
+//        | ID LBRACKET expr RBRACKET EQ expr
+//        | LPAREN var_plus RPAREN EQ LPAREN expr_plus RPAREN
+//        ;
+//
+// if_body ::= block
+//           | full_stmt
+//           ;
+//
+// if_stmt ::= IF LPAREN expr RPAREN if_body ELSE if_body
+//           | IF LPAREN expr RPAREN if_body
+//           ;
+//
+// while_body ::= block
+//              | full_stmt
+//              ;
+//
+// while_stmt ::= WHILE LPAREN expr RPAREN while_body;
+//
+// args_call ::= LPAREN RPAREN
+//             | LPAREN expr_plus RPAREN
+//             ;
+//
+// // both for functions and procedures
+// call ::= ID args_call;
+//
+// // functions and procedures
+// args_decl ::= LPAREN RPAREN
+//             | LPAREN avar_plus RPAREN
+//             ;
+//
+// proc_ret ::=                     // epsilon
+//            | RETURN end_stmt
+//            ;
+//
+// func_ret ::= RETURN LPAREN expr_plus RPAREN end_stmt;
+//
+// proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE;
+//
+// func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
+//             | ID args_decl COLON LPAREN type_plus RPAREN LBRACE block func_ret RBRACE
+//             ;
+//
+// // programs
+// use_def ::= USE ID end_stmt;
+//
+// func_def ::= func_decl
+//            | proc_decl
+//            ;
+//
+// use_def_star ::=                        //epsilon
+//                | use_def_star use_def
+//                ;
+//
+// func_def_plus ::= func_def
+//                 | func_def_plus func_def
+//                 ;
+//
+// prog ::= use_def_star func_def_plus;
+//
+// // expressions
+// expr ::= literal
+//        | expr binop expr
+//        | unop expr
+//        | expr LBRACKET expr RBRACKET
+//        | LENGTH LPAREN expr RPAREN
+//        | LPAREN expr RPAREN
+//        ;
+//
+// literal ::= NUM
+//           | MINUS BIG_NUM   // ??
+//           | STRING
+//           | CHAR
+//           | TRUE
+//           | FALSE
+//           | array_literal
+//           ;
+//
+// array_literal ::= LPAREN expr_star RPAREN
+//                 | LPAREN expr_plus COMMA RPAREN
+//                 ;
+//
+// binop ::= MINUS
+//         | STAR
+//         | HIGHMULT
+//         | DIV
+//         | MOD
+//         | PLUS
+//         | LT
+//         | LTE
+//         | GTE
+//         | GT
+//         | EQEQ
+//         | NEQ
+//         | AMP
+//         | BAR
+//         ;
+//
+// unop ::= BANG
+//        | MINUS
+//        ;
+//
+// // various lists
+//
+// expr_star ::=
+//             | expr_plus
+//             ;
+//
+// expr_plus ::= expr
+//             | expr_plus COMMA expr
+//             ;
+//
+// avar_plus ::= avar
+//             | avar_plus COMMA avar
+//             ;
+//
+// var_plus ::= var
+//            | var_plus COMMA var
+//            ;
+//
+// type_plus ::= type
+//             | type_plus COMMA type
+//             ;
+//
+// stmt_star ::=                       // epsilon
+//               | stmt_star full_stmt
+//               ;

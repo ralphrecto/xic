@@ -241,7 +241,8 @@ binop ::= MINUS
         | AMP
         | BAR
 
-unop ::= BANG                 // TODO ? what about minus?
+unop ::= BANG
+       | MINUS
 
 // various lists
 expr_list ::= expr 

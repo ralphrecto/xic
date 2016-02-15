@@ -6,7 +6,7 @@ LEXER_CLASS = Lexer
 PARSER = $(SRCDIR)/$(PARSER_CLASS)
 SYMBOL = $(SRCDIR)/$(SYMBOL_CLASS)
 LEXER  = $(SRCDIR)/$(LEXER_CLASS)
-CUPJAR = lib/java-cup-11b.jar
+CUPJAR = lib/java_cup.jar
 FLEXJAR = lib/jflex-1.6.1.jar
 SRCS  = $(shell find src -name '*.java') \
         $(shell find test -name '*.java') \
@@ -31,7 +31,8 @@ $(LEXER).java: $(LEXER).jflex
 	java -jar $(FLEXJAR) $<
 
 $(PARSER).java $(SYMBOL).java: $(PARSER).cup
-	java -jar $(CUPJAR) -destdir $(SRCDIR) \
+	java  -cp $(CUPJAR):$(CP) java_cup.Main \
+		                -destdir $(SRCDIR) \
 		                -package $(PKG) \
 						-parser $(PARSER_CLASS) \
 						-symbols $(SYMBOL_CLASS) \

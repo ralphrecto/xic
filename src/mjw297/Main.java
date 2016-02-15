@@ -47,6 +47,7 @@ public class Main {
      */
     static class XiSource {
 
+        @SuppressWarnings("serial")
         static class XiSourceException extends Exception {
             XiSourceException(String msg) { super(msg); }
         }

@@ -3,6 +3,7 @@ package mjw297;
 import java_cup.runtime.*;
 import mjw297.XicException.*;
 
+@SuppressWarnings("fallthrough")
 %%
 
 %cupsym Sym
@@ -84,9 +85,9 @@ import mjw297.XicException.*;
 
 /* Hex Escape */
 HexEscape = \\ x [0-9a-fA-F] [0-9a-fA-F]
-  
+
 /* Unicode Escape */
-UnicodeEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] 
+UnicodeEscape = \\ u [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
 
 /* Integer Literals */
 DecIntLiteral = 0 | [1-9][0-9]*
@@ -151,7 +152,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                   yybegin(STRING); }
 
 	/* Character */
-	\'			{ sb.setLength(0); 
+	\'			{ sb.setLength(0);
 				  startRow = row();
 				  startColumn = column();
 				  yybegin(CHARACTER); }
@@ -190,7 +191,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                      startColumn = -1;
                      throw new InvalidHexEscapeException(r, c, yytext());
 				   }
-				 } 
+				 }
 
 	{UnicodeEscape} { try {
 						int x = Integer.parseInt(chop(2,0), 16);
@@ -202,7 +203,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                         startColumn = -1;
                 		throw new InvalidUnicodeEscapeException(r, c, yytext());
 					  }
-					} 	
+					}
 
 	/* other unhandled escape characters */
 	\\.			 { int r = startRow;
@@ -226,18 +227,18 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                        int c = startColumn;
                        startRow = -1;
                        startColumn = -1;
-                       throw new UnclosedStringLiteralException(r, c, yytext()); } 	
+                       throw new UnclosedStringLiteralException(r, c, yytext()); }
 
     <<EOF>>          { int r = startRow;
                        int c = startColumn;
                        startRow = -1;
                        startColumn = -1;
-                       throw new UnclosedStringLiteralException(r, c, yytext()); } 	
-	
+                       throw new UnclosedStringLiteralException(r, c, yytext()); }
+
 	/* anything else */
 	[^\n\r\"\\]+ { sb.append( yytext() ); }
 
-} 
+}
 
 <CHARACTER> {
 	/* end of character */
@@ -254,7 +255,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 				  	throw new EmptyCharacterLiteralException(r, c);
 				  } else {
 				  	throw new InvalidCharacterConstantException(r, c);
-				  } 
+				  }
 				}
 
 	/* unclosed character */
@@ -262,14 +263,14 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
                         int c = startColumn;
                         startRow = -1;
                         startColumn = -1;
-                        throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
+                        throw new UnclosedCharacterLiteralException(r, c, yytext()); }
 
 	<<EOF>>         {  int r = startRow;
                        int c = startColumn;
                        startRow = -1;
                        startColumn = -1;
-                       throw new UnclosedCharacterLiteralException(r, c, yytext()); } 	
-	
+                       throw new UnclosedCharacterLiteralException(r, c, yytext()); }
+
 	/* anything else */
 	[^\n\r\'\\]+ { sb.append( yytext() ); }
 }

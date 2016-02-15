@@ -118,7 +118,7 @@ nonterminal args_decl,
             proc_decl,
             func_decl;
 
-// programs 
+// programs
 nonterminal use_def,
             func_def,
             prog;
@@ -132,20 +132,23 @@ nonterminal expr,
 
 start with prog;
 
-// actual grammar 
+// actual grammar
 
 // types and variables
 type ::= INT
        | BOOL
        | type LBRACKET RBRACKET
+       ;
 
 avar ::= ID COLON type
        | UNDERSCORE COLON type
+       ;
 
-var ::= avar 
+var ::= avar
       | UNDERSCORE
+      ;
 
-// statements 
+// statements
 
 stmt ::= full_decl
        | asgn
@@ -153,76 +156,92 @@ stmt ::= full_decl
        | while_stmt
        | call          //both a procedure and function call
        | block
+       ;
 
 end_stmt ::=            // epsilon
            | SEMICOLON
+           ;
 
-full_stmt ::= stmt end_stmt
+full_stmt ::= stmt end_stmt;
 
-block ::= LBRACE stmt_star RBRACE
+block ::= LBRACE stmt_star RBRACE;
 
-full_decl ::= decl 
+full_decl ::= decl
             | decl EQ expr
+            ;
 
 decl ::= var
        | LPARENS var_plus RPARENS
+       ;
 
 asgn ::= ID EQ expr
        | ID LBRACKET expr RBRACKET EQ expr
        | LPARENS var_plus RPARENS EQ LPARENS expr_plus RPARENS
+       ;
 
-if_body ::= block 
+if_body ::= block
           | full_stmt
+          ;
 
 if_stmt ::= IF LPARENS expr RPARENS if_body ELSE if_body
           | IF LPARENS expr RPARENS if_body
+          ;
 
-while_body ::= block 
+while_body ::= block
              | full_stmt
+             ;
 
-while_stmt ::= WHILE LPARENS expr RPARENS while_body
+while_stmt ::= WHILE LPARENS expr RPARENS while_body;
 
-args_call ::= LPARENS RPARENS 
+args_call ::= LPARENS RPARENS
             | LPARENS expr_plus RPARENS
+            ;
 
 // both for functions and procedures
-call ::= ID args_call
+call ::= ID args_call;
 
-// functions and procedures 
+// functions and procedures
 args_decl ::= LPARENS RPARENS
             | LPARENS avar_plus RPARENS
+            ;
 
 proc_ret ::=                     // epsilon
            | RETURN end_stmt
+           ;
 
-func_ret ::= RETURN LPARENS expr_plus RPARENS end_stmt
+func_ret ::= RETURN LPARENS expr_plus RPARENS end_stmt;
 
-proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE
+proc_decl ::= ID args_decl LBRACE block proc_ret RBRACE;
 
 func_decl ::= ID args_decl COLON type LBRACE block func_ret RBRACE
             | ID args_decl COLON LPARENS type_plus RPARENS LBRACE block func_ret RBRACE
+            ;
 
 // programs
-use_def ::= USE ID end_stmt
+use_def ::= USE ID end_stmt;
 
-func_def ::= func_decl 
+func_def ::= func_decl
            | proc_decl
+           ;
 
 use_def_star ::=                        //epsilon
-               | use_def_star use_def 
+               | use_def_star use_def
+               ;
 
 func_def_plus ::= func_def
                 | func_def_plus func_def
+                ;
 
-prog ::= use_def_star func_def_plus
+prog ::= use_def_star func_def_plus;
 
 // expressions
 expr ::= literal
        | expr binop expr
        | unop expr
-       | expr LBRACKET expr RBRACKET 
+       | expr LBRACKET expr RBRACKET
        | LENGTH LPARENS expr RPARENS
        | LPARENS expr RPARENS
+       ;
 
 literal ::= NUM
           | MINUS BIG_NUM   // ??
@@ -231,11 +250,13 @@ literal ::= NUM
           | TRUE
           | FALSE
           | array_literal
+          ;
 
 array_literal ::= LPARENS expr_star RPARENS
                 | LPARENS expr_plus COMMA RPARENS
+                ;
 
-binop ::= MINUS 
+binop ::= MINUS
         | STAR
         | HIGHMULT
         | DIV
@@ -249,29 +270,37 @@ binop ::= MINUS
         | NEQ
         | AMP
         | BAR
+        ;
 
 unop ::= BANG
        | MINUS
+       ;
 
 // various lists
 
-expr_star ::= 
+expr_star ::=
             | expr_plus
+            ;
 
 expr_plus ::= expr
             | expr_plus COMMA expr
+            ;
 
 avar_plus ::= avar
             | avar_plus COMMA avar
+            ;
 
 var_plus ::= var
            | var_plus COMMA var
+           ;
 
-type_plus ::= type 
+type_plus ::= type
             | type_plus COMMA type
+            ;
 
 stmt_star ::=                       // epsilon
               | stmt_star full_stmt
+              ;
 
 
 

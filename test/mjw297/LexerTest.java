@@ -2,89 +2,53 @@ package mjw297;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java_cup.runtime.*;
 import mjw297.XicException.*;
-import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class LexerTest {
-    /**
-     * A {@code Lexed} instance represents the result of lexing a stream of
-     * characters. Lexing results in a list of symbols and optionally an
-     * exception.
-     */
-    private static class Lexed {
-        public final List<Symbol> symbols;
-        public final Optional<XicException> exception;
-
-        public Lexed(List<Symbol> symbols, Optional<XicException> exception) {
-            this.symbols = symbols;
-            this.exception = exception;
-        }
-    }
 
     private Symbol eof = new Symbol(Sym.EOF, -1, -1);
 
-    /**
-     * {@code lex(s)} uses the {@code Lexer} class to repeatedly lex tokens
-     * from {@code s} until the EOF token is reached. The EOF token <i>is</i>
-     * included in the returned list.
-     */
-    private Lexed lex(String s) throws IOException {
-        List<Symbol> result = new ArrayList<>();
-        Lexer l = new Lexer(new StringReader(s));
-
-        try {
-            // Collect all tokens until EOF
-            Symbol sym = l.next_token();
-            while (sym.sym != Sym.EOF) {
-                result.add(sym);
-                sym = l.next_token();
-            }
-            result.add(sym);
-            return new Lexed(result, Optional.empty());
-        } catch (XicException e) {
-            return new Lexed(result, Optional.of(e));
-        }
+    private Actions.Lexed lex(String s) throws IOException {
+        return Actions.lex(new StringReader(s));
     }
 
     /**
      * {@code assertSymEquals(e, a)} is shorthand for {@code
-     * assertSymEquals(Lexed([e], None), Lexed([a], None))}
+     * assertSymEquals(Actions.Lexed([e], None), Actions.Lexed([a], None))}
      */
     private void assertSymEquals(Symbol expected, Symbol actual) {
-        assertSymEquals(new Lexed(Arrays.asList(expected), Optional.empty()),
-                        new Lexed(Arrays.asList(actual), Optional.empty()));
+        assertSymEquals(new Actions.Lexed(Arrays.asList(expected), Optional.empty()),
+                        new Actions.Lexed(Arrays.asList(actual), Optional.empty()));
     }
 
     /**
      * {@code assertSymEquals(e, a)} is shorthand for {@code
-     * assertSymEquals(Lexed(e, None), Lexed(a, None))}
+     * assertSymEquals(Actions.Lexed(e, None), Actions.Lexed(a, None))}
      */
-    private void assertSymEquals(List<Symbol> expecteds, Lexed actual) {
-        assertSymEquals(new Lexed(expecteds, Optional.empty()), actual);
+    private void assertSymEquals(List<Symbol> expecteds, Actions.Lexed actual) {
+        assertSymEquals(new Actions.Lexed(expecteds, Optional.empty()), actual);
     }
 
     /**
      * {@code assertSymEquals(e, a)} is shorthand for {@code
-     * assertSymEquals(Lexed([], e), Lexed(a, None))}
+     * assertSymEquals(Actions.Lexed([], e), Actions.Lexed(a, None))}
      */
-    private void assertSymEquals(XicException expected, Lexed actual) {
-        assertSymEquals(new Lexed(Arrays.asList(), Optional.of(expected)), actual);
+    private void assertSymEquals(XicException expected, Actions.Lexed actual) {
+        assertSymEquals(new Actions.Lexed(Arrays.asList(), Optional.of(expected)), actual);
     }
 
     /**
-     * {@code assertSymEquals(Lexed(e1..en, ee), Lexed(a1..am, ae)} asserts
+     * {@code assertSymEquals(Actions.Lexed(e1..en, ee), Actions.Lexed(a1..am, ae)} asserts
      * that the {@code n == m}, {@code ee == ae}, and that for all {@code i} in
      * {@code 1..n}, {@code assertSymEquals(ei, ai)}.
      */
-    private void assertSymEquals(Lexed expected, Lexed actual) {
+    private void assertSymEquals(Actions.Lexed expected, Actions.Lexed actual) {
         assertEquals("Error: number of tokens not equal.",
                 expected.symbols.size(), actual.symbols.size());
         for (int i = 0; i < expected.symbols.size(); ++i) {
@@ -125,7 +89,7 @@ public class LexerTest {
      */
     private void assertLexedStringEquals(XicException e, String s) throws IOException {
         assertSymEquals(
-                new Lexed(Arrays.asList(), Optional.of(e)),
+                new Actions.Lexed(Arrays.asList(), Optional.of(e)),
                 lex(s));
     }
 
@@ -329,7 +293,7 @@ public class LexerTest {
             new Symbol(Sym.CHAR, 1, 1, '"'),
             eof
         );
-        Lexed expected8 = new Lexed(Arrays.asList(
+        Actions.Lexed expected8 = new Actions.Lexed(Arrays.asList(
                 new Symbol(Sym.CHAR, 1, 1, 'h'),
                 new Symbol(Sym.CHAR, 1, 4, 'i'),
                 new Symbol(Sym.CHAR, 1, 7, ' '),
@@ -522,7 +486,7 @@ public class LexerTest {
         assertSymEquals(expecteds2, lex(s2));
         assertSymEquals(expecteds3, lex(s3));
         assertSymEquals(expected4,  lex(s4));
-        assertSymEquals(new Lexed(expecteds5, Optional.of(expected5)),  lex(s5));
+        assertSymEquals(new Actions.Lexed(expecteds5, Optional.of(expected5)),  lex(s5));
         assertSymEquals(expected6,  lex(s6));
     }
 

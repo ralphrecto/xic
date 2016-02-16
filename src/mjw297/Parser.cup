@@ -271,14 +271,18 @@ start with prog;
         | unop expr %prec UMINUS
         | expr LBRACKET expr RBRACKET
         | LENGTH LPAREN expr RPAREN
-        | LPAREN expr RPAREN
+		| LPAREN expr RPAREN
 		| call
         ;
-
- extended_expr ::= array_literal
-                 | expr
-                 ;
-
+ extended_expr ::= literal
+        	  | extended_expr binop extended_expr
+        	  | unop expr %prec UMINUS
+        	  | expr LBRACKET expr RBRACKET
+        	  | LENGTH LPAREN expr RPAREN
+			  | LPAREN extended_expr_star RPAREN
+			  | LPAREN extended_expr_plus COMMA RPAREN
+			  | call
+        	  ;
  literal ::= NUM
            | MINUS BIG_NUM   // ??
            | STRING

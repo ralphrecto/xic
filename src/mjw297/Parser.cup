@@ -169,7 +169,7 @@ precedence left LBRACKET, RBRACKET;
 
 start with prog;
 
-// Types and variables
+// Types and variables --SH
 
 base_type ::= INT
     | BOOL
@@ -189,7 +189,7 @@ var ::= avar
     ;
 
 
-// Statements
+// Statements --RR
 
 stmt ::= full_decl
     | asgn
@@ -240,7 +240,7 @@ args_call ::= LPAREN RPAREN
 call ::= ID args_call;
 
 
-// Functions and procedures
+// Functions and procedures --AM
 
 args_decl ::= LPAREN RPAREN
     | LPAREN avar_plus RPAREN
@@ -259,7 +259,7 @@ func_decl ::= ID args_decl COLON type LBRACE stmt_star func_ret RBRACE
     ;
 
 
-// Programs
+// Programs --AM
 
 use_def ::= USE ID end_stmt;
 
@@ -278,7 +278,7 @@ func_def_plus ::= func_def
 prog ::= use_def_star func_def_plus;
 
 
-// Expressions //
+// Expressions --SH
 
 expr ::= literal
     | expr binop expr
@@ -358,7 +358,7 @@ unop ::= BANG
     ;
 
 
-// Various lists
+// Various lists --SH
 
 expr_star ::=
     | expr_plus

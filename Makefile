@@ -37,7 +37,7 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						-parser $(PARSER_CLASS) \
 						-symbols $(SYMBOL_CLASS) \
 						-nowarn \
-						-dump_grammar $<
+						-dump $<
 
 .PHONY: src
 src: $(SRCS)

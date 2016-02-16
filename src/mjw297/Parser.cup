@@ -89,7 +89,8 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 
 // types and variables
-nonterminal type,
+nonterminal base_type,
+            type,
             type_list,
             avar,
             var;
@@ -127,6 +128,9 @@ nonterminal use_def,
 nonterminal expr,
             array_body,
             array,
+            empty_array_index_star,
+            num_array_index_plus,
+            array_index_plus,
             literal,
             binop,
             unop;
@@ -165,8 +169,11 @@ start with prog;
 
 // Types and variables
 
-type ::= INT
+base_type ::= INT
     | BOOL
+    ;
+
+type ::= base_type
     | type LBRACKET RBRACKET
     ;
 
@@ -176,6 +183,7 @@ avar ::= ID COLON type
 
 var ::= avar
     | UNDERSCORE
+    | ID COLON base_type array_index_plus
     ;
 
 
@@ -206,7 +214,7 @@ decl ::= var
 
 // TODO: make brackets handle multiple dimensions
 asgn ::= ID EQ extended_expr
-    | ID LBRACKET expr RBRACKET EQ extended_expr
+    | ID num_array_index_plus EQ extended_expr
     ;
 
 if_body ::= block
@@ -273,7 +281,7 @@ prog ::= use_def_star func_def_plus;
 expr ::= literal
     | expr binop expr
     | unop expr %prec UMINUS
-    | expr LBRACKET expr RBRACKET
+    | expr num_array_index_plus
     | LENGTH LPAREN expr RPAREN
     | LPAREN expr RPAREN
     | call
@@ -293,6 +301,19 @@ array_body ::= expr COMMA expr
 array ::= LPAREN expr COMMA RPAREN
     | LPAREN array_body RPAREN
     | LPAREN array_body COMMA RPAREN
+    ;
+
+empty_array_index_star ::=
+    | empty_array_index_star LBRACKET RBRACKET
+    ;
+
+// TODO: expr or NUM?
+num_array_index_plus ::= LBRACKET expr RBRACKET
+    | num_array_index_plus LBRACKET expr RBRACKET
+    ;
+
+array_index_plus ::= LBRACKET RBRACKET
+    | num_array_index_plus empty_array_index_star
     ;
 
 literal ::= NUM
@@ -346,6 +367,6 @@ type_plus ::= type
     | type_plus COMMA type
     ;
 
-stmt_star ::=   // epsilon
+stmt_star ::=
     | stmt_star full_stmt
     ;

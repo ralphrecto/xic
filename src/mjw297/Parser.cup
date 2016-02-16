@@ -337,8 +337,8 @@ start with prog;
                | stmt_star full_stmt
                ;
 
- extended_expr_star ::=
-                      | extended_expr_star extended_expr
+ extended_expr_star ::= %prec STAR
+                      | extended_expr_star extended_expr %prec BAR
                       ;
 
  extended_expr_plus ::= extended_expr

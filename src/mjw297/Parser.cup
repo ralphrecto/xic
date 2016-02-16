@@ -137,7 +137,10 @@ nonterminal expr_star,
 			var_plus,
 			type_plus,
 			stmt_star,
-			array_literal_plus;
+			array_literal_plus,
+            extended_expr,
+            extended_expr_star,
+            extended_expr_plus;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
@@ -205,9 +208,6 @@ start with prog;
  // TODO: make brackets handle multiple dimensions
  asgn ::= ID EQ expr
         | ID LBRACKET expr RBRACKET EQ expr
-        | LPAREN var_plus RPAREN EQ LPAREN expr_plus RPAREN
-        | ID EQ array_literal
-        | ID LBRACKET expr RBRACKET EQ array_literal
         ;
 
  if_body ::= block
@@ -275,6 +275,10 @@ start with prog;
 		| call
         ;
 
+ extended_expr ::= array_literal
+                 | expr
+                 ;
+
  literal ::= NUM
            | MINUS BIG_NUM   // ??
            | STRING
@@ -283,10 +287,8 @@ start with prog;
            | FALSE
            ;
 
- array_literal ::= LPAREN expr_star RPAREN
-                 | LPAREN expr_plus COMMA RPAREN
-                 | LPAREN array_literal_plus RPAREN
-                 | LPAREN array_literal_plus COMMA RPAREN
+ array_literal ::= LPAREN extended_expr_star RPAREN
+                 | LPAREN extended_expr_plus COMMA RPAREN
                  ;
 
  binop ::= MINUS
@@ -335,6 +337,10 @@ start with prog;
                | stmt_star full_stmt
                ;
 
- array_literal_plus ::= array_literal
-                      | array_literal_plus COMMA array_literal
+ extended_expr_star ::=
+                      | extended_expr_star extended_expr
+                      ;
+
+ extended_expr_plus ::= extended_expr
+                      | extended_expr_plus COMMA extended_expr
                       ;

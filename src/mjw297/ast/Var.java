@@ -1,3 +1,3 @@
 package mjw297.ast;
 
-public interface Var {}
+public interface Var extends Node {}

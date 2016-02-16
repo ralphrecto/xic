@@ -19,4 +19,7 @@ public final class Func implements Callable {
     public <R> R accept(CallableVisitor<R> v) {
         return v.visit(this);
     }
+    public <R> R accept(NodeVisitor<R> v) {
+        return v.visit(this);
+    }
 }

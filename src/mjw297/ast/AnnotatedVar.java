@@ -1,3 +1,3 @@
 package mjw297.ast;
 
-public interface AnnotatedVar extends Var {}
+public interface AnnotatedVar extends Var, Node {}

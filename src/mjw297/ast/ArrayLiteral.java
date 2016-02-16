@@ -10,4 +10,7 @@ public final class ArrayLiteral implements Literal {
     public <R> R accept(LiteralVisitor<R> v) {
         return v.visit(this);
     }
+    public <R> R accept(NodeVisitor<R> v) {
+        return v.visit(this);
+    }
 }

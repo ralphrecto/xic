@@ -10,4 +10,7 @@ public final class Index implements Expr {
     public <R> R accept(ExprVisitor<R> v) {
         return v.visit(this);
     }
+    public <R> R accept(NodeVisitor<R> v) {
+        return v.visit(this);
+    }
 }

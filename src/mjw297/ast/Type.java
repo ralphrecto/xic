@@ -1,3 +1,3 @@
 package mjw297.ast;
 
-public interface Type {}
+public interface Type extends Node {}

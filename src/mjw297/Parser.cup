@@ -142,12 +142,14 @@ nonterminal expr_star,
 			var_plus,
 			type_plus,
 			stmt_star,
-            extended_expr;
+            extended_expr,
+            paren_expr;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
 ////////////////////////////////////////////////////////////////////////////////
 
+precedence nonassoc ID;
 precedence nonassoc ELSE;
 precedence nonassoc SEMICOLON;
 precedence nonassoc EQ;
@@ -285,20 +287,31 @@ expr ::= literal
     | LENGTH LPAREN expr RPAREN
     | LPAREN expr RPAREN
     | call
+    | ID
     ;
 
-extended_expr ::= expr
+extended_expr ::= paren_expr
     | array
     | extended_expr binop extended_expr
     ;
 
-array_body ::= expr COMMA expr
+paren_expr ::= literal
+    | paren_expr binop paren_expr
+    | unop paren_expr %prec UMINUS
+    | paren_expr num_array_index_plus
+    | LENGTH LPAREN paren_expr RPAREN
+    | LPAREN paren_expr RPAREN
+    | call
+    | ID
+    ;
+
+array_body ::= paren_expr COMMA paren_expr
     | array
-    | array_body COMMA expr
+    | array_body COMMA paren_expr
     | array_body COMMA array
     ;
 
-array ::= LPAREN expr COMMA RPAREN
+array ::= LPAREN paren_expr COMMA RPAREN
     | LPAREN array_body RPAREN
     | LPAREN array_body COMMA RPAREN
     ;

@@ -205,8 +205,8 @@ decl ::= var
     ;
 
 // TODO: make brackets handle multiple dimensions
-asgn ::= ID EQ expr
-    | ID LBRACKET expr RBRACKET EQ expr
+asgn ::= ID EQ extended_expr
+    | ID LBRACKET expr RBRACKET EQ extended_expr
     ;
 
 if_body ::= block

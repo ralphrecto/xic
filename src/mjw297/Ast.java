@@ -2,6 +2,8 @@ package mjw297;
 
 import java.util.List;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
@@ -124,24 +126,20 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // AnnotatedVar
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class AnnotatedId implements AnnotatedVar {
         public final Id x;
         public final Type t;
-        public AnnotatedId(Id x, Type t) {
-            this.x = x;
-            this.t = t;
-        }
         public <R> R accept(AnnotatedVarVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class AnnotatedUnderscore implements AnnotatedVar {
         public final Underscore u;
         public final Type t;
-        public AnnotatedUnderscore(Underscore u, Type t) {
-            this.u = u;
-            this.t = t;
-        }
         public <R> R accept(AnnotatedVarVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -149,33 +147,24 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Callable
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Func implements Callable {
         public final Id name;
         public final List<AnnotatedVar> args;
         public final Type returnType;
         public final List<Stmt> body;
         public final List<Expr> returns;
-        public Func(Id name, List<AnnotatedVar> args, Type returnType,
-                    List<Stmt> body, List<Expr> returns) {
-            this.name = name;
-            this.args = args;
-            this.returnType = returnType;
-            this.body = body;
-            this.returns = returns;
-        }
         public <R> R accept(CallableVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Proc implements Callable {
         public final Id name;
         public final List<AnnotatedVar> args;
         public final List<Stmt> body;
-        public Proc(Id name, List<AnnotatedVar> args, List<Stmt> body) {
-            this.name = name;
-            this.args = args;
-            this.body = body;
-        }
         public <R> R accept(CallableVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -183,11 +172,10 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Expr
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Id implements Expr {
         public final String x;
-        public Id(String x) {
-            this.x = x;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -209,15 +197,12 @@ public interface Ast {
         BAR       // |
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class BinOp implements Expr {
         public final BinOpCode c;
         public final Expr lhs;
         public final Expr rhs;
-        public BinOp(BinOpCode c, Expr lhs, Expr rhs) {
-            this.c = c;
-            this.lhs = lhs;
-            this.rhs = rhs;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -227,43 +212,36 @@ public interface Ast {
         BANG    // !
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class UnOp implements Expr {
         public final UnOpCode c;
         public final Expr e;
-        public UnOp(UnOpCode c, Expr e) {
-            this.c = c;
-            this.e = e;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Index implements Expr {
         public final Expr e;
         public final Expr index;
-        public Index(Expr e, Expr index) {
-            this.e = e;
-            this.index = index;
-        }
-        public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
-        public <R> R accept(NodeVisitor<R> v) { return v.visit(this);
-        }
-    }
-
-    public final class Length implements Expr {
-        public final Expr e;
-        public Length(Expr e) {
-            this.e = e;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    public final class Length implements Expr {
+        public final Expr e;
+        public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class ParenthesizedExpr implements Expr {
         public final Expr e;
-        public ParenthesizedExpr(Expr e) {
-            this.e = e;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -271,47 +249,42 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Literal
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class NumLiteral implements Literal {
         public final long x;
-        public NumLiteral(long x) {
-            this.x = x;
-        }
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class BoolLiteral implements Literal {
         public final boolean b;
-        public BoolLiteral(boolean b) {
-            this.b = b;
-        }
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class StringLiteral implements Literal {
         public final String s;
-        public StringLiteral(String s) {
-            this.s = s;
-        }
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class CharLiteral implements Literal {
         public final char c;
-        public CharLiteral(char c) {
-            this.c = c;
-        }
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class ArrayLiteral implements Literal {
         public final List<Expr> xs;
-        public ArrayLiteral(List<Expr> xs) {
-            this.xs = xs;
-        }
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -319,76 +292,65 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Program
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Program implements Node {
         public final List<Use> uses;
         public final List<Callable> fs;
-        public Program(List<Use> uses, List<Callable> fs) {
-            this.uses = uses;
-            this.fs = fs;
-        }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
     ////////////////////////////////////////////////////////////////////////////
     // Stmt
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Decl implements Stmt {
         public final List<Var> vs;
-        public Decl(List<Var> vs) {
-            this.vs = vs;
-        }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class DeclAsgn implements Stmt {
         public final List<Var> vs;
         public final Expr e;
-        public DeclAsgn(List<Var> vs, Expr e) {
-            this.vs = vs;
-            this.e = e;
-        }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @EqualsAndHashCode
     public final class Asgn implements Stmt {
         // TODO: not sure
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class If implements Stmt {
         public final Expr b;
         public final Stmt body;
-        public If(Expr b, Stmt body) {
-            this.b = b;
-            this.body = body;
-        }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class IfElse implements Stmt {
         public final Expr b;
         public final Stmt thenBody;
         public final Stmt elseBody;
-        public IfElse(Expr b, Stmt thenBody, Stmt elseBody) {
-            this.b = b;
-            this.thenBody = thenBody;
-            this.elseBody = elseBody;
-        }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class While implements Stmt {
         public final Expr b;
         public final Stmt body;
-        public While(Expr b, Stmt body) {
-            this.b = b;
-            this.body = body;
-        }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -396,23 +358,23 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Type
     ////////////////////////////////////////////////////////////////////////////
+    @EqualsAndHashCode
     public final class Int implements Type {
         public <R> R accept(TypeVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @EqualsAndHashCode
     public final class Bool implements Type {
         public <R> R accept(TypeVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Array implements Type {
         public final Type t;
         public final Optional<Expr> size;
-        public Array(Type t, Optional<Expr> size) {
-            this.t = t;
-            this.size = size;
-        }
         public <R> R accept(TypeVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -420,19 +382,18 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Use
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Use implements Node {
         public final Id x;
-        public Use(Id x) {
-            this.x = x;
-        }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
     ////////////////////////////////////////////////////////////////////////////
     // Var
     ////////////////////////////////////////////////////////////////////////////
+    @EqualsAndHashCode
     public final class Underscore implements Var {
-        public Underscore() {}
         public <R> R accept(VarVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -440,13 +401,11 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Expr, Stmt
     ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor
+    @EqualsAndHashCode
     public final class Call implements Expr, Stmt {
         public final Id f;
         public final List<Expr> args;
-        public Call(Id f, List<Expr> args) {
-            this.f = f;
-            this.args = args;
-        }
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
@@ -487,8 +446,11 @@ public interface Ast {
     }
 
     public static void main(String[] args) {
-        Expr e = new StringLiteral("TODO");
+        AnnotatedId i1 = new AnnotatedId(new Id("x"), new Int());
+        AnnotatedId i2 = new AnnotatedId(new Id("x"), new Int());
         UglyPrinter p = new UglyPrinter();
-        System.out.println(e.accept(p));
+        System.out.println(i1.accept(p));
+        System.out.println(i2.accept(p));
+        System.out.println("i1 == i2 is " + i1.equals(i2));
     }
 }

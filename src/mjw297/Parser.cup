@@ -1,4 +1,8 @@
+package mjw297;
+
 import java_cup.runtime.*;
+import java.util.ArrayList;
+import mjw297.Ast.*;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals
@@ -242,40 +246,44 @@ call ::= ID args_call;
 
 // Functions and procedures --AM
 
-args_decl ::= LPAREN RPAREN
-    | LPAREN avar_plus RPAREN
+args_decl ::= LPAREN RPAREN                {: RESULT = new ArrayList<Expr>(); :}
+    | LPAREN avar_plus:a RPAREN            {: RESULT = a; :}
     ;
 
-proc_ret ::=
-    | RETURN end_stmt
+proc_ret ::=                               {: RESULT = null; :}
+    | RETURN end_stmt                      {: RESULT = null; :}
     ;
 
-func_ret ::= RETURN LPAREN expr_plus RPAREN end_stmt;
+func_ret ::= RETURN LPAREN expr_plus:e RPAREN end_stmt
+                                           {: RESULT = e; :};
 
-proc_decl ::= ID args_decl LBRACE stmt_star proc_ret RBRACE;
+proc_decl ::= ID:p args_decl:a LBRACE stmt_star:s proc_ret RBRACE
+                                           {: RESULT = new Proc(new Id(p), a, s); :};
 
-func_decl ::= ID args_decl COLON type LBRACE stmt_star func_ret RBRACE
-    | ID args_decl COLON LPAREN type_plus RPAREN LBRACE stmt_star func_ret RBRACE
+func_decl ::= ID:f args_decl:a COLON type:t LBRACE stmt_star:s func_ret:r RBRACE
+                                           {: RESULT = new Func(new Id(f), a, t, s, r); :}
+    | ID:f args_decl:a COLON LPAREN type_plus:t RPAREN LBRACE stmt_star:s func_ret:r RBRACE
+                                           {: RESULT = new Func(new Id(f), a, t, s, r); :}
     ;
 
 
 // Programs --AM
 
-use_def ::= USE ID end_stmt;
+use_def ::= USE ID:x end_stmt              {: RESULT = new Use(new Id(x)); :};
 
-func_def ::= func_decl
-    | proc_decl
+func_def ::= func_decl:f                   {: RESULT = f; :}
+    | proc_decl:p                          {: RESULT = p; :}
     ;
 
-use_def_star ::=
-    | use_def_star use_def
+use_def_star ::=                           {: RESULT = new ArrayList<Use>(); :}
+    | use_def_star:us use_def:u            {: RESULT = us.add(u); :}
     ;
 
-func_def_plus ::= func_def
-    | func_def_plus func_def
+func_def_plus ::= func_def:f               {: RESULT = (new ArrayList<Callable>()).add(f); :}
+    | func_def_plus:fs func_def:f          {: RESULT = fs.add(f); :}
     ;
 
-prog ::= use_def_star func_def_plus;
+prog ::= use_def_star:us func_def_plus:fs  {: RESULT = new Program(us, fs); :};
 
 
 // Expressions --SH

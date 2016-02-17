@@ -171,21 +171,34 @@ start with prog;
 
 // Types and variables --SH
 
-base_type ::= INT
+base_type ::= INT 
+	{: RESULT = new Int(); :}
     | BOOL
+	{: RESULT = new Bool(); :}
     ;
 
-type ::= base_type
-    | type LBRACKET RBRACKET
+type ::= base_type:bt
+	{: RESULT = bt; :}
+    | type:t LBRACKET RBRACKET
+	{: RESULT = new Array(t); :}
     ;
 
-avar ::= ID COLON type
+avar ::= ID:id COLON type:t
+	{: RESULT = new AnnotatedId(new Id(id), t); :}
     | UNDERSCORE COLON type
+	{: RESULT = new AnnotatedUnderscore(new Underscore(), t); :}
     ;
 
-var ::= avar
+var ::= avar:av
+	{: RESULT = av; :}
     | UNDERSCORE
-    | ID COLON base_type array_index_plus
+	{: RESULT = new Underscore(); :}
+    | ID:id COLON base_type:bt array_index_plus:e_lst
+	{: if (e_lst != null) {
+	       RESULT = new AnnotatedId(new Id(id), new Array(bt, e_lst));
+	   } else {
+		   RESULT = new AnnotatedId(new Id(id), new Array(bt));
+	   } :}
     ;
 
 
@@ -214,7 +227,6 @@ decl ::= var
     | LPAREN var_plus RPAREN
     ;
 
-// TODO: make brackets handle multiple dimensions
 asgn ::= ID EQ extended_expr
     | ID num_array_index_plus EQ extended_expr
     ;
@@ -280,106 +292,193 @@ prog ::= use_def_star func_def_plus;
 
 // Expressions --SH
 
-expr ::= literal
-    | expr binop expr
-    | unop expr %prec UMINUS
-    | expr num_array_index_plus
-    | LENGTH LPAREN expr RPAREN
-    | LPAREN expr RPAREN
-    | call
-    | ID
+expr ::= literal:l
+	{: RESULT = l; :}
+    | expr:e1 binop:op expr:e2
+	{: RESULT = new BinOp(op, e1, e2); :} 
+    | unop:op expr:e
+	{: RESULT = new UnOp(op, e); :} %prec UMINUS
+    | expr:e1 num_array_index_plus:e_lst
+	{: RESULT = new Index(e1, e_lst); :}
+    | LENGTH LPAREN expr:e RPAREN
+	{: RESULT = new Length(e); :}
+    | LPAREN expr:e RPAREN
+	{: RESULT = new ParenthesizedExpr(e); :}
+    | call:c
+	{: RESULT = c; :}
+    | ID:id
+	{: RESULT = new Id(id); :}
     ;
 
-extended_expr ::= paren_expr
-    | array
-    | extended_expr binop extended_expr
+extended_expr ::= paren_expr:e
+	{: RESULT = e; :}
+    | array:a
+	{: RESULT = a; :}
+    | extended_expr:e1 binop:op extended_expr:e2
+	{: RESULT = new BinOp(op, e1, e2); :}
     ;
 
-paren_expr ::= literal
-    | paren_expr binop paren_expr
-    | unop paren_expr %prec UMINUS
-    | paren_expr num_array_index_plus
-    | LENGTH LPAREN paren_expr RPAREN
-    | LPAREN paren_expr RPAREN
-    | call
-    | ID
+paren_expr ::= literal:l
+	{: RESULT = l; :}
+    | paren_expr:e1 binop:op paren_expr:e2
+	{: RESULT = new BinOp(op, e1, e2); :}
+    | unop:op paren_expr:e
+	{: RESULT = new UnOp(op, e); :} %prec UMINUS
+    | paren_expr:e1 num_array_index_plus:e_lst
+	{: RESULT = new Index(e1, e_lst); :}
+    | LENGTH LPAREN paren_expr:e RPAREN
+	{: RESULT = new Length(e); :}
+    | LPAREN paren_expr:e RPAREN
+	{: RESULT = new ParenthesizedExpr(e); :}
+    | call:c
+	{: RESULT = c; :}
+    | ID:id
+	{: RESULT = new Id(id); :}
     ;
 
-array_body ::= paren_expr COMMA paren_expr
-    | array
-    | array_body COMMA paren_expr
-    | array_body COMMA array
+array_body ::= paren_expr:e1 COMMA paren_expr:e2
+	{: ArrayList<Expr> list = new ArrayList();
+	   list.add(e1);
+	   list.add(e2);
+	   RESULT = list; :}  
+    | array:a
+	{: ArrayList<Expr> list = new ArrayList();
+	   RESULT = list.add(a); :}
+    | array_body:ab COMMA paren_expr:e
+	{: RESULT = ab.add(e); :}
+    | array_body:ab COMMA array:a
+	{: RESULT = ab.add(a); :}
     ;
 
-array ::= LPAREN paren_expr COMMA RPAREN
-    | LPAREN array_body RPAREN
-    | LPAREN array_body COMMA RPAREN
+array ::= LPAREN paren_expr:e COMMA RPAREN
+	{: ArrayList<Expr> list = new ArrayList();
+	   list.add(e);
+	   RESULT = new ArrayLiteral(list); :}
+    | LPAREN array_body:ab RPAREN
+	{: RESULT = new ArrayLiteral(ab); :}
+    | LPAREN array_body:ab COMMA RPAREN
+	{: RESULT = new ArrayLiteral(ab); :}
     ;
 
 empty_array_index_star ::=
+	{: RESULT = null; :}
     | empty_array_index_star LBRACKET RBRACKET
+	{: RESULT = null; :}
     ;
 
 // TODO: expr or NUM?
-num_array_index_plus ::= LBRACKET expr RBRACKET
-    | num_array_index_plus LBRACKET expr RBRACKET
+num_array_index_plus ::= LBRACKET expr:e RBRACKET
+	{: ArrayList<Expr> list = new ArrayList<Expr>();
+	   list.add(e);
+	   RESULT = list; :}
+    | num_array_index_plus:e_lst LBRACKET expr:e RBRACKET
+	{: e_lst.add(e);
+	   RESULT = e_lst; :}
     ;
 
-array_index_plus ::= LBRACKET RBRACKET
-    | num_array_index_plus empty_array_index_star
+array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
+	{: RESULT = null; :}
+    | num_array_index_plus:e_lst empty_array_index_star
+	{: RESULT = e_lst; :}
     ;
 
-literal ::= NUM
-    | MINUS BIG_NUM // TODO : ok?
-    | STRING
-    | CHAR
-    | TRUE
-    | FALSE
+literal ::= NUM:n 
+	{: RESULT = new NumLiteral(n); :}
+    | MINUS BIG_NUM:n // TODO : ok?
+	{: RESULT = new NumLiteral(-n); :}
+    | STRING:s
+	{: RESULT = new StringLiteral(s); :}
+    | CHAR:c
+	{: RESULT = new CharLiteral(c); :}
+    | TRUE:b
+	{: RESULT = new BoolLiteral(b); :}	
+    | FALSE:b
+	{: RESULT = new BoolLiteral(b); :}
     ;
 
 binop ::= MINUS
+	{: RESULT = BinOpCode.MINUS; :}
     | STAR
+	{: RESULT = BinOpCode.STAR; :}
     | HIGHMULT
+	{: RESULT = BinOpCode.HIGHMULT; :}
     | DIV
+	{: RESULT = BinOpCode.DIV; :}
     | MOD
+	{: RESULT = BinOpCode.MOD; :}
     | PLUS
+	{: RESULT = BinOpCode.PLUS; :}
     | LT
+	{: RESULT = BinOpCode.LT; :}
     | LTE
+	{: RESULT = BinOpCode.LTE; :}
     | GTE
+	{: RESULT = BinOpCode.GTE; :}
     | GT
+	{: RESULT = BinOpCode.GT; :}
     | EQEQ
+	{: RESULT = BinOpCode.EQEQ; :}
     | NEQ
+	{: RESULT = BinOpCode.NEQ; :}
     | AMP
+	{: RESULT = BinOpCode.AMP; :}
     | BAR
+	{: RESULT = BinOpCode.BAR; :}
     ;
 
 unop ::= BANG
+	{: RESULT = UnOpCode.BANG; :}
     | MINUS
+	{: RESULT = UnOpCode.UMINUS; :}
     ;
 
 
 // Various lists --SH
 
 expr_star ::=
-    | expr_plus
+	{: RESULT = new ArrayList<Expr>(); :}
+    | expr_plus:e_lst
+	{: RESULT = e_lst; :}
     ;
 
-expr_plus ::= expr
-    | expr_plus COMMA expr
+expr_plus ::= expr:e
+	{: ArrayList<Expr> list = new ArrayList<Expr>();
+	   list.add(e);
+	   RESULT = list; :}
+    | expr_plus:e_lst COMMA expr:e
+	{: RESULT = e_list.add(e); :}
     ;
 
-avar_plus ::= avar
-    | avar_plus COMMA avar
+avar_plus ::= avar:av
+	{: ArrayList<AnnotatedVar> list = new ArrayList<AnnotatedVar>();
+	   list.add(av);
+	   RESULT = list; :}
+    | avar_plus:a_lst COMMA avar:av
+	{: a_lst.add(av); 
+	   RESULT = a_lst; :}
     ;
 
-var_plus ::= var
-    | var_plus COMMA var
+var_plus ::= var:v
+	{: ArrayList<Var> list = new ArrayList<Var>();
+	   list.add(v);
+	   RESULT = list; :}
+    | var_plus:v_lst COMMA var:v
+	{: v_lst.add(v);
+	   RESULT = v_lst; :}
     ;
 
-type_plus ::= type
-    | type_plus COMMA type
+type_plus ::= type:t
+	{: ArrayList<Type> list = new ArrayList<Type>();
+	   list.add(t);
+	   RESULT = list; :}
+    | type_plus:t_lst COMMA type:t
+	{: t_lst.add(t);
+	   RESULT = t_lst; :}
     ;
 
 stmt_star ::=
-    | stmt_star full_stmt
+	{: RESULT = new ArrayList<Stmt>(); :}
+    | stmt_star:s_lst full_stmt:s
+	{: s_lst.add(s);
+	   RESULT = s_lst; :}
     ;

@@ -191,53 +191,53 @@ var ::= avar
 
 // Statements --RR
 
-stmt ::= full_decl
-    | asgn
-    | if_stmt
-    | while_stmt
-    | call
+stmt ::= full_decl:f                                             {: RESULT = f; :}
+    | asgn:a                                                     {: RESULT = a; :}
+    | if_stmt:i                                                  {: RESULT = i; :}
+    | while_stmt:w                                               {: RESULT = w; :}
+    | call:c                                                     {: RESULT = c; :}
     ;
 
 end_stmt ::=
     | SEMICOLON
     ;
 
-full_stmt ::= stmt end_stmt;
+full_stmt ::= stmt:s end_stmt;                                   {: RESULT = s; :}
 
-block ::= LBRACE stmt_star RBRACE;
+block ::= LBRACE stmt_star:s RBRACE;                             {: RESULT = s; :}
 
-full_decl ::= decl
-    | decl EQ extended_expr
+full_decl ::= decl:d                                             {: RESULT = d; :}
+    | decl:d EQ extended_expr:e                                  {: RESULT = new DeclAsgn(d.vs, e); :}
     ;
 
-decl ::= var
-    | LPAREN var_plus RPAREN
+decl ::= var:v                                                   {: RESULT = new Ast.Decl(new ArrayList<>(v)); :}
+    | LPAREN var_plus:v RPAREN                                   {: RESULT = new Ast.Decl(v); :}
     ;
 
-// TODO: make brackets handle multiple dimensions
-asgn ::= ID EQ extended_expr
-    | ID num_array_index_plus EQ extended_expr
+asgn ::= ID:i EQ extended_expr:e                                 {: RESULT = new Ast.Asgn(i, e); :}
+    | ID:i num_array_index_plus:b EQ extended_expr:e             {: RESULT = new Ast.AsgnArrayIndex(i, b, e); :}
     ;
 
-if_body ::= block
-   | full_stmt
+if_body ::= block:b                                              {: RESULT = b; :}
+   | full_stmt:s                                                 {: RESULT = s; :}
    ;
 
-if_stmt ::= IF LPAREN expr RPAREN if_body ELSE if_body
-   | IF LPAREN expr RPAREN if_body
+if_stmt ::=
+   IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2            {: RESULT = new Ast.IfElse(e, s1, s2); :}
+   | IF LPAREN expr:e RPAREN if_body:s                           {: RESULT = new Ast.If(e, s); :}
    ;
 
-while_body ::= block
-  | full_stmt
+while_body ::= block:b                                           {: RESULT = b; :}
+  | full_stmt:s                                                  {: RESULT = s; :}
   ;
 
-while_stmt ::= WHILE LPAREN expr RPAREN while_body;
+while_stmt ::= WHILE LPAREN expr:e RPAREN while_body:b;          {: RESULT = new Ast.While(e, b); :}
 
-args_call ::= LPAREN RPAREN
-    | LPAREN expr_plus RPAREN
+args_call ::= LPAREN RPAREN                                      {: RESULT = new ArrayList<>(); :}
+    | LPAREN expr_plus:e RPAREN                                  {: RESULT = e; :}
     ;
 
-call ::= ID args_call;
+call ::= ID:i args_call:a;                                       {: RESULT = new Ast.Call(i, a); :}
 
 
 // Functions and procedures --AM

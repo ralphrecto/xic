@@ -156,7 +156,7 @@ public interface Ast {
     public final class Func implements Callable {
         public final Id name;
         public final List<AnnotatedVar> args;
-        public final Type returnType;
+        public final List<Type> returnType;
         public final List<Stmt> body;
         public final List<Expr> returns;
         public <R> R accept(CallableVisitor<R> v) { return v.visit(this); }
@@ -234,7 +234,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Index implements Expr {
         public final Expr e;
-        public final Expr index;
+        public final List<Expr> index;
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -300,6 +300,7 @@ public interface Ast {
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class ArrayLiteral implements Literal {
+        /* TODO: this doesn't handle multidimensional array literals */
         public final List<Expr> xs;
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
@@ -339,10 +340,22 @@ public interface Ast {
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class Asgn implements Stmt {
-        // TODO: not sure
+        public final Id id;
+        public final Expr expr;
+        public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class AsgnArrayIndex implements Stmt {
+        /* TODO: add num array index */
+        public final Expr expr;
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }

@@ -130,7 +130,6 @@ nonterminal use_def,
 
 // expressions
 nonterminal expr,
-            array_body,
             array,
             empty_array_index_star,
             num_array_index_plus,
@@ -145,9 +144,7 @@ nonterminal expr_star,
 			avar_plus,
 			var_plus,
 			type_plus,
-			stmt_star,
-            extended_expr,
-            paren_expr;
+			stmt_star;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
@@ -232,19 +229,17 @@ block ::= LBRACE stmt_star:s RBRACE
 
 full_decl ::= decl:d                                             
 	{: RESULT = d; :}
-    | decl:d EQ extended_expr:e                                  
+    | decl:d EQ expr:e
 	{: RESULT = new DeclAsgn(d.vs, e); :}
     ;
 
-decl ::= var:v                                                   
-	{: RESULT = new Ast.Decl(new ArrayList<>(v)); :}
-    | LPAREN var_plus:v RPAREN                                   
+decl ::= var_plus:v
 	{: RESULT = new Ast.Decl(v); :}
     ;
 
-asgn ::= ID:i EQ extended_expr:e                                 
+asgn ::= ID:i EQ expr:e
 	{: RESULT = new Ast.Asgn(i, e); :}
-    | ID:i num_array_index_plus:b EQ extended_expr:e             
+    | ID:i num_array_index_plus:b EQ expr:e
 	{: RESULT = new Ast.AsgnArrayIndex(i, b, e); :}
     ;
 
@@ -283,44 +278,54 @@ call ::= ID:i args_call:a
 
 // Functions and procedures --AM
 
-args_decl ::= LPAREN RPAREN                {: RESULT = new ArrayList<Expr>(); :}
-    | LPAREN avar_plus:a RPAREN            {: RESULT = a; :}
+args_decl ::= LPAREN RPAREN
+    {: RESULT = new ArrayList<Expr>(); :}
+    | LPAREN avar_plus:a RPAREN
+    {: RESULT = a; :}
     ;
 
-proc_ret ::=                               {: RESULT = null; :}
-    | RETURN end_stmt                      {: RESULT = null; :}
+proc_ret ::=
+    {: RESULT = null; :}
+    | RETURN end_stmt
+    {: RESULT = null; :}
     ;
 
-func_ret ::= RETURN LPAREN expr_plus:e RPAREN end_stmt
-                                           {: RESULT = e; :};
+func_ret ::= RETURN expr_plus:e end_stmt
+    {: RESULT = e; :};
 
 proc_decl ::= ID:p args_decl:a LBRACE stmt_star:s proc_ret RBRACE
-                                           {: RESULT = new Proc(new Id(p), a, s); :};
+    {: RESULT = new Proc(new Id(p), a, s); :};
 
-func_decl ::= ID:f args_decl:a COLON type:t LBRACE stmt_star:s func_ret:r RBRACE
-                                           {: RESULT = new Func(new Id(f), a, t, s, r); :}
-    | ID:f args_decl:a COLON LPAREN type_plus:t RPAREN LBRACE stmt_star:s func_ret:r RBRACE
-                                           {: RESULT = new Func(new Id(f), a, t, s, r); :}
+func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r RBRACE
+    {: RESULT = new Func(new Id(f), a, t, s, r); :}
     ;
 
 
 // Programs --AM
 
-use_def ::= USE ID:x end_stmt              {: RESULT = new Use(new Id(x)); :};
+use_def ::= USE ID:x end_stmt
+    {: RESULT = new Use(new Id(x)); :};
 
-func_def ::= func_decl:f                   {: RESULT = f; :}
-    | proc_decl:p                          {: RESULT = p; :}
+func_def ::= func_decl:f
+    {: RESULT = f; :}
+    | proc_decl:p
+    {: RESULT = p; :}
     ;
 
-use_def_star ::=                           {: RESULT = new ArrayList<Use>(); :}
-    | use_def_star:us use_def:u            {: RESULT = us.add(u); :}
+use_def_star ::=
+    {: RESULT = new ArrayList<Use>(); :}
+    | use_def_star:us use_def:u
+    {: RESULT = us.add(u); :}
     ;
 
-func_def_plus ::= func_def:f               {: RESULT = (new ArrayList<Callable>()).add(f); :}
-    | func_def_plus:fs func_def:f          {: RESULT = fs.add(f); :}
+func_def_plus ::= func_def:f
+    {: RESULT = (new ArrayList<Callable>()).add(f); :}
+    | func_def_plus:fs func_def:f
+    {: RESULT = fs.add(f); :}
     ;
 
-prog ::= use_def_star:us func_def_plus:fs  {: RESULT = new Program(us, fs); :};
+prog ::= use_def_star:us func_def_plus:fs
+    {: RESULT = new Program(us, fs); :};
 
 
 // Expressions --SH
@@ -341,56 +346,11 @@ expr ::= literal:l
 	{: RESULT = c; :}
     | ID:id
 	{: RESULT = new Id(id); :}
+	| array:a
     ;
 
-extended_expr ::= paren_expr:e
-	{: RESULT = e; :}
-    | array:a
-	{: RESULT = a; :}
-    | extended_expr:e1 binop:op extended_expr:e2
-	{: RESULT = new BinOp(op, e1, e2); :}
-    ;
-
-paren_expr ::= literal:l
-	{: RESULT = l; :}
-    | paren_expr:e1 binop:op paren_expr:e2
-	{: RESULT = new BinOp(op, e1, e2); :}
-    | unop:op paren_expr:e
-	{: RESULT = new UnOp(op, e); :} %prec UMINUS
-    | paren_expr:e1 num_array_index_plus:e_lst
-	{: RESULT = new Index(e1, e_lst); :}
-    | LENGTH LPAREN paren_expr:e RPAREN
-	{: RESULT = new Length(e); :}
-    | LPAREN paren_expr:e RPAREN
-	{: RESULT = new ParenthesizedExpr(e); :}
-    | call:c
-	{: RESULT = c; :}
-    | ID:id
-	{: RESULT = new Id(id); :}
-    ;
-
-array_body ::= paren_expr:e1 COMMA paren_expr:e2
-	{: ArrayList<Expr> list = new ArrayList();
-	   list.add(e1);
-	   list.add(e2);
-	   RESULT = list; :}  
-    | array:a
-	{: ArrayList<Expr> list = new ArrayList();
-	   RESULT = list.add(a); :}
-    | array_body:ab COMMA paren_expr:e
-	{: RESULT = ab.add(e); :}
-    | array_body:ab COMMA array:a
-	{: RESULT = ab.add(a); :}
-    ;
-
-array ::= LPAREN paren_expr:e COMMA RPAREN
-	{: ArrayList<Expr> list = new ArrayList();
-	   list.add(e);
-	   RESULT = new ArrayLiteral(list); :}
-    | LPAREN array_body:ab RPAREN
-	{: RESULT = new ArrayLiteral(ab); :}
-    | LPAREN array_body:ab COMMA RPAREN
-	{: RESULT = new ArrayLiteral(ab); :}
+array ::= LBRACE expr_star:e RBRACE
+    | LBRACE expr_plus:e COMMA RBRACE
     ;
 
 empty_array_index_star ::=

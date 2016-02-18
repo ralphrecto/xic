@@ -29,7 +29,7 @@ public class Actions {
      * from {@code s} until the EOF token is reached. The EOF token <i>is</i>
      * included in the returned list.
      */
-    static Lexed lex(Reader r) throws IOException {
+    public static Lexed lex(Reader r) throws IOException {
         List<Symbol> result = new ArrayList<>();
         Lexer l = new Lexer(r);
 
@@ -46,8 +46,21 @@ public class Actions {
         }
     }
 
-    static class Parsed { }
+    public static class Parsed {
+        public final Symbol prog;
 
-    static Parsed parse(List<Symbol> symbols) { return null; }
+        public Parsed(Symbol prog) {
+            this.prog = prog;
+        }
+    }
+
+    public static Parsed parse(List<Symbol> symbols) {
+        return null;
+    }
+
+    public static Parsed parse(Reader r) throws Exception {
+        Parser parser = new Parser(new Lexer(r));
+        return new Parsed(parser.parse());
+    }
 }
 

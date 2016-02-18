@@ -1,11 +1,15 @@
 package mjw297;
 import com.google.common.collect.Lists;
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.SExpPrinter;
 import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import com.google.common.io.Files;
+import polyglot.util.CodeWriter;
+import polyglot.util.OptimalCodeWriter;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -125,10 +129,16 @@ public class Main {
         }
 
         private List<Actions.Parsed> parseS() {
-            List<Actions.Lexed> lexedList = lexS();
-            return Lists.transform(lexedList, lexed ->
-                Actions.parse(lexed.symbols)
-            );
+            return Lists.transform(sources, xs -> {
+                Actions.Parsed parsed = null;
+                try {
+                    parsed = Actions.parse(xs.reader);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+                return parsed;
+            });
         }
 
         List<Util.Tuple<Actions.Parsed, XiSource>> parse() {
@@ -180,7 +190,301 @@ public class Main {
         }
     }
 
-    void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) { }
+    void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
+
+        class SExpOut implements Ast.NodeVisitor<Void> {
+            SExpPrinter printer;
+            SExpOut(SExpPrinter printer) {
+                this.printer = printer;
+            }
+
+            public Void visit(Ast.AnnotatedId i) {
+                printer.startList();
+                i.x.accept(this);
+                i.t.accept(this);
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.AnnotatedUnderscore u) {
+                printer.startList();
+                u.u.accept(this);
+                u.t.accept(this);
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.Func f) {
+                /* function name */
+                printer.startList();
+                f.name.accept(this);
+
+                /* proc parameters */
+                printer.startList();
+                f.args.forEach(av -> av.accept(this));
+                printer.endList();
+
+                /* return type list is always empty */
+                printer.startList();
+                printer.endList();
+
+                /* block */
+                f.body.forEach(s -> s.accept(this));
+
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.Proc p) {
+                /* function name */
+                printer.startList();
+                p.name.accept(this);
+
+                /* proc parameters */
+                printer.startList();
+                p.args.forEach(av -> av.accept(this));
+                printer.endList();
+
+                /* return type list is always empty */
+                printer.startList();
+                printer.endList();
+
+                /* block */
+                p.body.forEach(s -> s.accept(this));
+
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.Id i) {
+                printer.printAtom(i.x);
+
+                return null;
+            }
+
+            public Void visit(Ast.BinOp o) {
+                printer.startList();
+                printer.printAtom(o.c.toString());
+                o.lhs.accept(this);
+                o.rhs.accept(this);
+                printer.startList();
+
+                return null;
+            }
+
+            public Void visit(Ast.UnOp o) {
+                printer.startList();
+                printer.printAtom(o.c.toString());
+                o.e.accept(this);
+                printer.startList();
+
+                return null;
+            }
+
+            public Void visit(Ast.Index i) {
+                /* TODO */
+                return null;
+            }
+
+            public Void visit(Ast.Length l) {
+                printer.startList();
+                printer.printAtom("length");
+                l.e.accept(this);
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.ParenthesizedExpr e) {
+                /* TODO */
+                return null;
+            }
+
+            public Void visit(Ast.NumLiteral n) {
+                printer.printAtom(((Long) n.x).toString());
+
+                return null;
+            }
+
+            public Void visit(Ast.BoolLiteral b) {
+                printer.printAtom(((Boolean) b.b).toString());
+
+                return null;
+            }
+
+            public Void visit(Ast.StringLiteral s) {
+                printer.printAtom(s.s);
+
+                return null;
+            }
+
+            public Void visit(Ast.CharLiteral c) {
+                printer.printAtom(((Character) c.c).toString());
+                return null;
+            }
+
+            public Void visit(Ast.ArrayLiteral a) {
+                printer.startList();
+                a.xs.forEach(e -> e.accept(this));
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.Program p) {
+                p.uses.forEach((u -> u.accept(this)));
+                p.fs.forEach(f -> f.accept(this));
+                return null;
+            }
+
+            public Void visit(Ast.Decl d) {
+                printer.startList();
+                d.vs.forEach(v -> v.accept(this));
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.DeclAsgn d) {
+                printer.startList();
+                printer.printAtom("=");
+                d.vs.forEach(v -> v.accept(this));
+                d.e.accept(this);
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.Asgn a) {
+                printer.startList();
+                printer.printAtom("=");
+                a.id.accept(this);
+                a.expr.accept(this);
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.AsgnArrayIndex a) {
+                /* TODO */
+                return null;
+            }
+
+            public Void visit(Ast.If i) {
+                printer.startList();
+                printer.printAtom("if");
+
+                /* predicate */
+                printer.startList();
+                i.b.accept(this);
+                printer.endList();
+
+                /* block */
+                printer.startList();
+                i.body.forEach(s -> s.accept(this));
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.IfElse i) {
+                printer.startList();
+                printer.printAtom("if");
+
+                /* predicate */
+                printer.startList();
+                i.b.accept(this);
+                printer.endList();
+
+                /* then block */
+                printer.startList();
+                i.thenBody.forEach(s -> s.accept(this));
+                printer.endList();
+
+                /* else block */
+                printer.startList();
+                i.elseBody.forEach(s -> s.accept(this));
+                printer.endList();
+
+                return null;
+            }
+
+            public Void visit(Ast.While w) {
+                printer.startList();
+                printer.printAtom("while");
+
+                /* predicate */
+                printer.startList();
+                w.b.accept(this);
+                printer.endList();
+
+                /* body */
+                printer.startList();
+                w.body.forEach(s -> s.accept(this));
+                printer.endList();
+
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.Int l) {
+                printer.printAtom("int");
+                return null;
+            }
+
+            public Void visit(Ast.Bool o) {
+                printer.printAtom("bool");
+                return null;
+            }
+
+            public Void visit(Ast.Array o) {
+                /* TODO: incorporate size */
+                printer.startList();
+                printer.printAtom("[]");
+                o.t.accept(this);
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.Use u) {
+                printer.startList();
+                printer.printAtom("use");
+                u.x.accept(this);
+                printer.endList();
+                return null;
+            }
+
+            public Void visit(Ast.Underscore u) {
+                printer.printAtom("_");
+                return null;
+            }
+
+            public Void visit(Ast.Call c) {
+                printer.startList();
+                c.f.accept(this);
+
+                /* function arguments */
+                printer.startList();
+                c.args.forEach(v -> v.accept(this));
+                printer.endList();
+
+                printer.endList();
+                return null;
+            }
+
+            public void flush() {
+                printer.flush();
+            }
+        }
+
+        for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
+            SExpPrinter printer = new CodeWriterSExpPrinter(System.out);
+            SExpOut sExpOut = new SExpOut(printer);
+            ((Ast.Program) p.fst.prog.value).accept(sExpOut);
+            sExpOut.flush();
+            System.out.println("");
+        }
+    }
 
     /**
      * Main entry point. Handles actions for the different CLI options.

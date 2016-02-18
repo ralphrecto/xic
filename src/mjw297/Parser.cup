@@ -3,6 +3,7 @@ package mjw297;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import mjw297.Ast.*;
+import java.util.Optional;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals
@@ -107,25 +108,30 @@ nonterminal Var
 nonterminal
     end_stmt;
 
+nonterminal ArrayList<Stmt>
+	block,
+	if_body,
+	while_body;
+
 nonterminal Stmt
+	full_decl,
     full_stmt,
     stmt,
-    block,
-    full_decl,
-    decl,
     asgn,
-    if_body,
     if_stmt,
-    while_body,
-    while_stmt,
-    call;
+    while_stmt;
 
-nonterminal List<Expr>
+nonterminal 
+	call;
+
+nonterminal ArrayList<Expr>
     args_call;
 
 // functions and procedures
-nonterminal List<Expr>
-    args_decl,
+nonterminal ArrayList<AnnotatedVar>
+	args_decl;
+
+nonterminal ArrayList<Expr>
     func_ret;
 
 nonterminal
@@ -142,42 +148,46 @@ nonterminal Use
 nonterminal Callable
     func_def;
 
-nonterminal List<Use>
+nonterminal ArrayList<Use>
     use_def_star;
 
-nonterminal List<Callable>
+nonterminal ArrayList<Callable>
     func_def_plus;
 
 nonterminal Program
     prog;
 
+nonterminal BinOpCode
+	binop;
+
+nonterminal UnOpCode
+	unop;
+
 // expressions
 nonterminal Expr
     expr,
-    literal,
-    binop,
-    unop;
+    literal;
 
-nonterminal List<Expr>
+nonterminal ArrayList<Expr>
     empty_array_index_star,
     num_array_index_plus,
     array_index_plus;
 
 // various lists
-nonterminal List<Expr>
+nonterminal ArrayList<Expr>
     expr_star,
     expr_plus;
 
-nonterminal List<AnnotatedVar>
+nonterminal ArrayList<AnnotatedVar>
     avar_plus;
 
-nonterminal List<Var>
+nonterminal ArrayList<Var>
     var_plus;
 
-nonterminal List<Type>
+nonterminal ArrayList<Type>
     type_plus;
 
-nonterminal List<Stmt>
+nonterminal ArrayList<Stmt>
     stmt_star;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +225,7 @@ base_type ::= INT
 type ::= base_type:bt
 	{: RESULT = bt; :}
     | type:t LBRACKET RBRACKET
-	{: RESULT = new Ast.Array(t); :}
+	{: RESULT = new Ast.Array(t, Optional.empty()); :}
     ;
 
 avar ::= ID:id COLON type:t
@@ -230,9 +240,9 @@ var ::= avar:av
 	{: RESULT = new Underscore(); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
 	{: if (e_lst != null) {
-	       RESULT = new AnnotatedId(new Id(id), new Array(bt, e_lst));
+	       RESULT = new AnnotatedId(new Id(id), new Array(bt, Optional.of(e_lst)));
 	   } else {
-		   RESULT = new AnnotatedId(new Id(id), new Array(bt));
+		   RESULT = new AnnotatedId(new Id(id), new Array(bt, Optional.empty()));
 	   }
     :}
     ;
@@ -249,7 +259,7 @@ stmt ::= full_decl:f
     | while_stmt:w                                               
 	{: RESULT = w; :}
     | call:c                                                     
-	{: RESULT = c; :}
+	{: RESULT = (Stmt) c; :}
     ;
 
 end_stmt ::=
@@ -262,26 +272,24 @@ full_stmt ::= stmt:s end_stmt
 block ::= LBRACE stmt_star:s RBRACE
 	{: RESULT = s; :};
 
-full_decl ::= decl:d                                             
-	{: RESULT = d; :}
-    | decl:d EQ expr:e
-	{: RESULT = new DeclAsgn(d.vs, e); :}
-    ;
-
-decl ::= var_plus:v
+full_decl ::= var_plus:v
 	{: RESULT = new Ast.Decl(v); :}
+    | var_plus:v EQ expr:e
+	{: RESULT = new DeclAsgn(v, e); :}
     ;
 
 asgn ::= ID:i EQ expr:e
-	{: RESULT = new Ast.Asgn(i, e); :}
+	{: RESULT = new Ast.Asgn(new Id(i), e); :}
     | ID:i num_array_index_plus:b EQ expr:e
-	{: RESULT = new Ast.AsgnArrayIndex(i, b, e); :}
+	{: RESULT = new Ast.AsgnArrayIndex(new Id(i), b, e); :}
     ;
 
 if_body ::= block:b                                              
 	{: RESULT = b; :}
    	| full_stmt:s                                                 
-	{: RESULT = s; :}
+	{: ArrayList<Stmt> list = new ArrayList<Stmt>();
+	   list.add(s);
+	   RESULT = list; :}
    	;
 
 if_stmt ::= IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2            
@@ -293,7 +301,9 @@ if_stmt ::= IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
 while_body ::= block:b                                           
 	{: RESULT = b; :}
   	| full_stmt:s                                                  
-	{: RESULT = s; :}
+	{: ArrayList<Stmt> list = new ArrayList<Stmt>();
+	   list.add(s);
+	   RESULT = list; :}
   	;
 
 while_stmt ::= WHILE LPAREN expr:e RPAREN while_body:b
@@ -307,14 +317,14 @@ args_call ::= LPAREN RPAREN
     ;
 
 call ::= ID:i args_call:a
-	{: RESULT = new Ast.Call(i, a); :}
+	{: RESULT = new Ast.Call(new Id(i), a); :}
 	;
 
 
 // Functions and procedures --AM
 
 args_decl ::= LPAREN RPAREN
-    {: RESULT = new ArrayList<Expr>(); :}
+    {: RESULT = new ArrayList<AnnotatedVar>(); :}
     | LPAREN avar_plus:a RPAREN
     {: RESULT = a; :}
     ;
@@ -350,13 +360,20 @@ func_def ::= func_decl:f
 use_def_star ::=
     {: RESULT = new ArrayList<Use>(); :}
     | use_def_star:us use_def:u
-    {: RESULT = us.add(u); :}
+    {: us.add(u); 
+	   RESULT = us;
+    :}
     ;
 
 func_def_plus ::= func_def:f
-    {: RESULT = (new ArrayList<Callable>()).add(f); :}
+    {: ArrayList<Callable> list = new ArrayList<Callable>();
+	   list.add(f); 
+	   RESULT = list;
+	:}
     | func_def_plus:fs func_def:f
-    {: RESULT = fs.add(f); :}
+    {: fs.add(f); 
+	   RESULT = fs;
+	:}
     ;
 
 prog ::= use_def_star:us func_def_plus:fs
@@ -378,7 +395,7 @@ expr ::= literal:l
     | LPAREN expr:e RPAREN
 	{: RESULT = new ParenthesizedExpr(e); :}
     | call:c
-	{: RESULT = c; :}
+	{: RESULT = (Expr) c; :}
     | ID:id
 	{: RESULT = new Id(id); :}
     ;
@@ -408,15 +425,15 @@ array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
 literal ::= NUM:n 
 	{: RESULT = new NumLiteral(n); :}
     | MINUS BIG_NUM:n // TODO : ok?
-	{: RESULT = new NumLiteral(-n); :}
+	{: RESULT = new NumLiteral(-(Integer) n); :}
     | STRING:s
 	{: RESULT = new StringLiteral(s); :}
     | CHAR:c
 	{: RESULT = new CharLiteral(c); :}
     | TRUE:b
-	{: RESULT = new BoolLiteral(b); :}	
+	{: RESULT = new BoolLiteral(true); :}	
     | FALSE:b
-	{: RESULT = new BoolLiteral(b); :}
+	{: RESULT = new BoolLiteral(false); :}
     | LBRACE expr_star:e RBRACE
 	{: RESULT = new ArrayLiteral(e); :}
     | LBRACE expr_plus:e COMMA RBRACE
@@ -473,7 +490,9 @@ expr_plus ::= expr:e
 	   list.add(e);
 	   RESULT = list; :}
     | expr_plus:e_lst COMMA expr:e
-	{: RESULT = e_list.add(e); :}
+	{: e_lst.add(e); 
+	   RESULT = e_lst;
+	:}
     ;
 
 avar_plus ::= avar:av

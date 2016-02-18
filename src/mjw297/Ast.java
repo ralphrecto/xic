@@ -355,7 +355,8 @@ public interface Ast {
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class AsgnArrayIndex implements Stmt {
-        /* TODO: add num array index */
+		public final Id id;	
+		public final List<Expr> index;
         public final Expr expr;
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
@@ -366,7 +367,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class If implements Stmt {
         public final Expr b;
-        public final Stmt body;
+        public final List<Stmt> body;
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -376,8 +377,8 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class IfElse implements Stmt {
         public final Expr b;
-        public final Stmt thenBody;
-        public final Stmt elseBody;
+        public final List<Stmt> thenBody;
+        public final List<Stmt> elseBody;
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -387,7 +388,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class While implements Stmt {
         public final Expr b;
-        public final Stmt body;
+        public final List<Stmt> body;
         public <R> R accept(StmtVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -414,7 +415,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Array implements Type {
         public final Type t;
-        public final Optional<Expr> size;
+        public final Optional<List<Expr>> size;
         public <R> R accept(TypeVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }

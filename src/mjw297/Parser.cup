@@ -93,58 +93,92 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 
 // types and variables
-nonterminal base_type,
-            type,
-            type_list,
-            avar,
-            var;
+nonterminal Type
+    base_type,
+    type;
+
+nonterminal AnnotatedVar
+    avar;
+
+nonterminal Var
+    var;
 
 // statements
-nonterminal end_stmt,
-            full_stmt,
-            stmt,
-            block,
-            full_decl,
-            decl,
-            asgn,
-            if_body,
-            if_stmt,
-            while_body,
-            while_stmt,
-            args_call,
-            call;
+nonterminal
+    end_stmt;
+
+nonterminal Stmt
+    full_stmt,
+    stmt,
+    block,
+    full_decl,
+    decl,
+    asgn,
+    if_body,
+    if_stmt,
+    while_body,
+    while_stmt,
+    call;
+
+nonterminal List<Expr>
+    args_call;
 
 // functions and procedures
-nonterminal args_decl,
-            proc_ret,
-            func_ret,
-            proc_decl,
-            func_decl;
+nonterminal List<Expr>
+    args_decl,
+    func_ret;
+
+nonterminal
+    proc_ret;
+
+nonterminal Callable
+    proc_decl,
+    func_decl;
 
 // programs
-nonterminal use_def,
-            func_def,
-            use_def_star,
-			func_def_plus,
-			prog;
+nonterminal Use
+    use_def;
+
+nonterminal Callable
+    func_def;
+
+nonterminal List<Use>
+    use_def_star;
+
+nonterminal List<Callable>
+    func_def_plus;
+
+nonterminal Program
+    prog;
 
 // expressions
-nonterminal expr,
-            array,
-            empty_array_index_star,
-            num_array_index_plus,
-            array_index_plus,
-            literal,
-            binop,
-            unop;
+nonterminal Expr
+    expr,
+    literal,
+    binop,
+    unop;
+
+nonterminal List<Expr>
+    empty_array_index_star,
+    num_array_index_plus,
+    array_index_plus;
 
 // various lists
-nonterminal expr_star,
-			expr_plus,
-			avar_plus,
-			var_plus,
-			type_plus,
-			stmt_star;
+nonterminal List<Expr>
+    expr_star,
+    expr_plus;
+
+nonterminal List<AnnotatedVar>
+    avar_plus;
+
+nonterminal List<Var>
+    var_plus;
+
+nonterminal List<Type>
+    type_plus;
+
+nonterminal List<Stmt>
+    stmt_star;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
@@ -173,20 +207,20 @@ start with prog;
 // Types and variables --SH
 
 base_type ::= INT 
-	{: RESULT = new Int(); :}
+	{: RESULT = new Ast.Int(); :}
     | BOOL
-	{: RESULT = new Bool(); :}
+	{: RESULT = new Ast.Bool(); :}
     ;
 
 type ::= base_type:bt
 	{: RESULT = bt; :}
     | type:t LBRACKET RBRACKET
-	{: RESULT = new Array(t); :}
+	{: RESULT = new Ast.Array(t); :}
     ;
 
 avar ::= ID:id COLON type:t
 	{: RESULT = new AnnotatedId(new Id(id), t); :}
-    | UNDERSCORE COLON type
+    | UNDERSCORE COLON type:t
 	{: RESULT = new AnnotatedUnderscore(new Underscore(), t); :}
     ;
 
@@ -199,7 +233,8 @@ var ::= avar:av
 	       RESULT = new AnnotatedId(new Id(id), new Array(bt, e_lst));
 	   } else {
 		   RESULT = new AnnotatedId(new Id(id), new Array(bt));
-	   } :}
+	   }
+    :}
     ;
 
 
@@ -346,14 +381,6 @@ expr ::= literal:l
 	{: RESULT = c; :}
     | ID:id
 	{: RESULT = new Id(id); :}
-	| array:a
-	{: RESULT = a :} 
-    ;
-
-array ::= LBRACE expr_star:e RBRACE
-	{: RESULT = new ArrayLiteral(e); :}
-    | LBRACE expr_plus:e COMMA RBRACE
-	{: RESULT = new ArrayLiteral(e); :} 
     ;
 
 empty_array_index_star ::=
@@ -390,6 +417,10 @@ literal ::= NUM:n
 	{: RESULT = new BoolLiteral(b); :}	
     | FALSE:b
 	{: RESULT = new BoolLiteral(b); :}
+    | LBRACE expr_star:e RBRACE
+	{: RESULT = new ArrayLiteral(e); :}
+    | LBRACE expr_plus:e COMMA RBRACE
+	{: RESULT = new ArrayLiteral(e); :}
     ;
 
 binop ::= MINUS

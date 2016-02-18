@@ -55,6 +55,7 @@ public interface Ast {
         public R visit(Decl d);
         public R visit(DeclAsgn d);
         public R visit(Asgn a);
+        public R visit(AsgnArrayIndex a);
         public R visit(If i);
         public R visit(IfElse i);
         public R visit(While w);
@@ -107,6 +108,7 @@ public interface Ast {
         public R visit(Decl d);
         public R visit(DeclAsgn d);
         public R visit(Asgn a);
+        public R visit(AsgnArrayIndex a);
         public R visit(If i);
         public R visit(IfElse i);
         public R visit(While w);
@@ -300,7 +302,6 @@ public interface Ast {
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class ArrayLiteral implements Literal {
-        /* TODO: this doesn't handle multidimensional array literals */
         public final List<Expr> xs;
         public <R> R accept(LiteralVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
@@ -476,6 +477,7 @@ public interface Ast {
         public String visit(Decl d)                { return "TODO"; }
         public String visit(DeclAsgn d)            { return "TODO"; }
         public String visit(Asgn a)                { return "TODO"; }
+        public String visit(AsgnArrayIndex a)      { return "TODO"; }
         public String visit(If i)                  { return "TODO"; }
         public String visit(IfElse i)              { return "TODO"; }
         public String visit(While w)               { return "TODO"; }

@@ -288,7 +288,7 @@ public class Main {
                 printer.startList();
                 printer.printAtom(o.c.toString());
                 o.e.accept(this);
-                printer.startList();
+                printer.endList();
 
                 return null;
             }

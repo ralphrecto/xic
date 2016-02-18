@@ -227,12 +227,20 @@ public class Main {
                 printer.endList();
 
                 /* return type list is always empty */
+				/* RALPH IS DUMB THE RETURN TYPE IS NOT ALWAYS EMPTY */
                 printer.startList();
+				f.returnType.forEach(t -> t.accept(this));
                 printer.endList();
 
                 /* block */
+				printer.startList();
                 f.body.forEach(s -> s.accept(this));
-
+	
+				/* returns */
+				printer.printAtom("return");
+				f.returns.forEach(e -> e.accept(this));
+				printer.endList();
+	
                 printer.endList();
 
                 return null;
@@ -271,7 +279,7 @@ public class Main {
                 printer.printAtom(o.c.toString());
                 o.lhs.accept(this);
                 o.rhs.accept(this);
-                printer.startList();
+                printer.endList();
 
                 return null;
             }
@@ -299,10 +307,10 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.ParenthesizedExpr e) {
-                /* TODO */
-                return null;
-            }
+			public Void visit(Ast.ParenthesizedExpr e) {
+                 /* TODO */
+                 return null;
+             }
 
             public Void visit(Ast.NumLiteral n) {
                 printer.printAtom(((Long) n.x).toString());
@@ -374,15 +382,17 @@ public class Main {
                 printer.startList();
                 printer.printAtom("if");
 
-                /* predicate */
-                printer.startList();
+                /* predicate 
+                printer.startList();*/
                 i.b.accept(this);
-                printer.endList();
+                //printer.endList();
 
-                /* block */
+                /* block */ 
                 printer.startList();
                 i.body.forEach(s -> s.accept(this));
                 printer.endList();
+				
+				printer.endList();
 
                 return null;
             }
@@ -405,6 +415,8 @@ public class Main {
                 printer.startList();
                 i.elseBody.forEach(s -> s.accept(this));
                 printer.endList();
+				
+				printer.endList();
 
                 return null;
             }

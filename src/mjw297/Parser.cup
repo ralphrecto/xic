@@ -210,7 +210,7 @@ stmt ::= full_decl:f
     | asgn:a                                                     
 	{: RESULT = a; :}
     | if_stmt:i                                                 
-	 {: RESULT = i; :}
+	{: RESULT = i; :}
     | while_stmt:w                                               
 	{: RESULT = w; :}
     | call:c                                                     
@@ -347,10 +347,13 @@ expr ::= literal:l
     | ID:id
 	{: RESULT = new Id(id); :}
 	| array:a
+	{: RESULT = a :} 
     ;
 
 array ::= LBRACE expr_star:e RBRACE
+	{: RESULT = new ArrayLiteral(e); :}
     | LBRACE expr_plus:e COMMA RBRACE
+	{: RESULT = new ArrayLiteral(e); :} 
     ;
 
 empty_array_index_star ::=

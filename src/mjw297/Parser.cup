@@ -5,6 +5,14 @@ import java.util.ArrayList;
 import mjw297.Ast.*;
 import java.util.Optional;
 
+parser code {:
+	public void syntax_error(Symbol sym){
+		report_error(String.format("Syntax error at line %d column %d.\n",
+					 sym.left, sym.right), null);
+	}
+:}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals
 ////////////////////////////////////////////////////////////////////////////////
@@ -349,7 +357,8 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r R
 // Programs --AM
 
 use_def ::= USE ID:x end_stmt
-    {: RESULT = new Use(new Id(x)); :};
+    {: RESULT = new Use(new Id(x)); :}
+	;
 
 func_def ::= func_decl:f
     {: RESULT = f; :}
@@ -377,7 +386,9 @@ func_def_plus ::= func_def:f
     ;
 
 prog ::= use_def_star:us func_def_plus:fs
-    {: RESULT = new Program(us, fs); :};
+    {: RESULT = new Program(us, fs); :}
+	;
+
 
 
 // Expressions --SH

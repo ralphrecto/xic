@@ -227,7 +227,6 @@ public class Main {
                 printer.endList();
 
                 /* return type list is always empty */
-				/* RALPH IS DUMB THE RETURN TYPE IS NOT ALWAYS EMPTY */
                 printer.startList();
 				f.returnType.forEach(t -> t.accept(this));
                 printer.endList();

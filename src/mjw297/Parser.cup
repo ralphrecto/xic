@@ -7,7 +7,7 @@ import java.util.Optional;
 
 parser code {:
 	public void syntax_error(Symbol sym){
-		report_error(String.format("Syntax error at line %d column %d.\n",
+		report_error(String.format("%d:%d error:Invalid syntax\n",
 					 sym.left, sym.right), null);
 	}
 :}

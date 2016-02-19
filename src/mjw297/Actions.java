@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings("deprecation")
 public class Actions {
     /**
      * A {@code Lexed} instance represents the result of lexing a stream of

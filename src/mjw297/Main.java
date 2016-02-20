@@ -30,6 +30,12 @@ public class Main {
     @Option(name="--parse", usage="Generate output from syntactic analysis")
     private static boolean parseMode = false;
 
+    @Option(name="--genprog", usage="Generate a random Xi program!")
+    private static boolean genProg = false;
+
+    @Option(name="--testgen", usage="Generate a random program and test the lexer/parser")
+    private static int testGen = 0;
+
     @Option(name="-sourcepath", usage="Specify where to find input source files")
     private static String sourcePath = "";
 
@@ -506,10 +512,60 @@ public class Main {
         try {
             parser.parseArgument(args);
 
+            if (testGen > 0) {
+                TestGen.AstToProg atp = new TestGen.AstToProg();
+                for (int i = 0; i < testGen; i++) {
+                    Ast.Program prog = TestGen.genProgram();
+                    String source = atp.visit(prog).toString();
+                    Ast.Program parsed = null;
+                    try {
+                        parsed = (Ast.Program) Actions.parse(new StringReader(source)).prog.value;
+                        if (parsed.equals(prog)) {
+                            System.out.println("Test case #" + i + " passes!");
+                        } else {
+                            System.out.println("Bad parse!\n" + source);
+                            System.out.println("------------------");
+                            System.out.println("Printing the ASTs");
+                            System.out.println("Actual:");
+                            System.out.println(prog);
+                            System.out.println("Parsed:");
+                            System.out.println(parsed);
+                            System.exit(1);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        System.out.println("Cannot parse the program:\n" + source);
+                        System.out.println("------------------");
+                        System.out.println("Printing the ASTs");
+                        System.out.println("Actual:");
+                        System.out.println(prog);
+                        System.out.println("Parsed:");
+                        System.out.println(parsed);
+                        System.exit(1);
+                    }
+                }
+                System.exit(0);
+            }
+
             if (arguments.isEmpty()) {
                 System.out.println("No filenames provided.");
                 printUsage();
                 System.exit(1);
+            }
+
+            if (genProg) {
+                TestGen.AstToProg atp = new TestGen.AstToProg();
+                for (String filename : arguments) {
+                    String outputFilename = filename + ".xi";
+                    File outputFile = Paths.get(outputFilename).toFile();
+                    Ast.Program prog = TestGen.genProgram();
+                    try {
+                        Files.write(atp.visit(prog).toString().getBytes(), outputFile);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.exit(0);
             }
 
             if (sourcePath.equals("")) {

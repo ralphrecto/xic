@@ -2,15 +2,14 @@ package mjw297;
 
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import static mjw297.Ast.*;
 
 public class TestGen {
 
     private static final Random rand = new Random();
+
 
     static <T> List<T> repeat(java.util.concurrent.Callable<T> f, int times) {
         List<T> ret = new ArrayList<>();
@@ -22,6 +21,10 @@ public class TestGen {
             }
         }
         return ret;
+    }
+
+    static <T> T choose(List<T> choices) {
+        return choices.get(rand.nextInt(choices.size()));
     }
 
     static StringBuilder sbFlatten(List<StringBuilder> l, String delimiter) {
@@ -36,6 +39,10 @@ public class TestGen {
         return ret;
     }
 
+    private static final int genInt(int limit) {
+        return 1 + rand.nextInt(limit);
+    }
+
     static String genString() {
         StringBuilder sb = new StringBuilder();
         int len = rand.nextInt(15);
@@ -47,10 +54,14 @@ public class TestGen {
         return sb.toString();
     }
 
+    static char genChar() {
+        return (char) (rand.nextInt(26) + (rand.nextBoolean() ? 'a' : 'A'));
+    }
+
     static Program genProgram() {
         return new Program(
-            repeat(TestGen::genUse, 2),
-            repeat(TestGen::genFunc, 2)
+            repeat(TestGen::genUse, genInt(15)),
+            repeat(TestGen::genFunc, genInt(10))
         );
     }
 
@@ -61,15 +72,11 @@ public class TestGen {
     static Callable genFunc() {
         return new Func(
             genId(),
-            repeat(TestGen::genAVar, 2),
-            repeat(TestGen::genType, 2),
-            repeat(TestGen::genStmt, 5),
-            repeat(TestGen::genExpr, 2)
+            repeat(TestGen::genAVar, genInt(10)),
+            repeat(TestGen::genType, genInt(5)),
+            repeat(TestGen::genStmt, genInt(10)),
+            repeat(TestGen::genExpr, genInt(5))
         );
-    }
-
-    static Id genId() {
-        return new Id(genString());
     }
 
     static AnnotatedVar genAVar() {
@@ -79,25 +86,171 @@ public class TestGen {
         );
     }
 
-    static Var genVar() {
-        return rand.nextBoolean() ?
-            genAVar() :
-            new Underscore();
+    static Underscore genUnderscore() {
+        return new Underscore();
     }
 
-    static Type genType() {
+    static Var genDeclVar() {
+        switch (genInt(2)) {
+            case 1: return genAVar();
+            default: return genUnderscore();
+        }
+    }
+
+    static Var genAsgnVar() {
+        switch (genInt(2)) {
+            case 1: return genId();
+            default: return genUnderscore();
+        }
+    }
+
+    static Int genIntType() {
         return new Int();
     }
 
-    static Stmt genStmt() {
+    static Bool genBoolType() {
+        return new Bool();
+    }
+
+    static Array genArrayType() {
+        return new Array(genType(), Optional.empty());
+    }
+
+    static Type genType() {
+        switch (genInt(3)) {
+            case 1: return genIntType();
+            case 2: return genBoolType();
+            default: return genArrayType();
+        }
+    }
+
+    /* Statements */
+
+    static Decl genDecl() {
+        return new Decl(
+            repeat(TestGen::genDeclVar, genInt(6))
+        );
+    }
+
+    static DeclAsgn genDeclAsgn() {
         return new DeclAsgn(
-            repeat(TestGen::genVar, 2),
+            repeat(TestGen::genDeclVar, genInt(6)),
             genExpr()
         );
     }
 
+    static Asgn genAsgn() {
+        return new Asgn(
+            genId(),
+            genExpr()
+        );
+    }
+
+    static If genIf() {
+        return new If(
+            genExpr(),
+            repeat(TestGen::genBaseStmt, genInt(10))
+        );
+    }
+
+    static IfElse genIfElse() {
+        return new IfElse(
+            genExpr(),
+            repeat(TestGen::genBaseStmt, genInt(10)),
+            repeat(TestGen::genBaseStmt, genInt(10))
+        );
+    }
+
+    static While genWhile() {
+        return new While(
+            genExpr(),
+            repeat(TestGen::genBaseStmt, genInt(10))
+        );
+    }
+
+    static Stmt genBaseStmt() {
+        switch (genInt(3)) {
+            case 1: return genDecl();
+            case 2: return genDeclAsgn();
+            default: return genAsgn();
+        }
+    }
+
+    static Stmt genStmt() {
+        if (rand.nextBoolean()) {
+            return genBaseStmt();
+        }
+        switch (genInt(3)) {
+            case 1: return genIf();
+            case 2: return genIfElse();
+            default: return genWhile();
+        }
+    }
+
+    /* Expressions */
+
+    static Id genId() {
+        return new Id(genString());
+    }
+
+    static BinOp genBinOp() {
+        BinOpCode[] binops = BinOpCode.values();
+        return new BinOp(
+            binops[rand.nextInt(binops.length)],
+            genExpr(),
+            genExpr()
+        );
+    }
+
+    static UnOp genUnOp() {
+        UnOpCode[] unops = UnOpCode.values();
+        return new UnOp(
+            unops[rand.nextInt(unops.length)],
+            genExpr()
+        );
+    }
+
+    static Length genLength() {
+        return new Length(genExpr());
+    }
+
+    static NumLiteral genNumLit() {
+        return new NumLiteral((long) rand.nextInt());
+    }
+
+    static CharLiteral genCharLit() {
+        return new CharLiteral(genChar());
+    }
+
+    static ArrayLiteral genArrayLit() {
+        return new ArrayLiteral(repeat(TestGen::genBaseExpr, genInt(5)));
+    }
+
+    static StringLiteral genStringLit() {
+        return new StringLiteral(genString());
+    }
+
+    static Expr genBaseExpr() {
+        switch (genInt(4)) {
+            case 1: return genId();
+            case 2: return genNumLit();
+            case 3: return genStringLit();
+            default: return genCharLit();
+        }
+    }
+
     static Expr genExpr() {
-        return new NumLiteral(100L);
+        /* generate a base expr or a complex expr */
+        if (rand.nextBoolean()) {
+            return genBaseExpr();
+        }
+
+        switch (genInt(4)) {
+            case 1: return genBinOp();
+            case 2: return genUnOp();
+            case 3: return genLength();
+            default: return genArrayLit();
+        }
     }
 
     public static class AstToProg implements NodeVisitor<StringBuilder> {

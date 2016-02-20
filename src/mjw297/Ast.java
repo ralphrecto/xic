@@ -182,7 +182,7 @@ public interface Ast {
     @AllArgsConstructor
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
-    public final class Id implements Expr {
+    public final class Id implements Expr, Var {
         public final String x;
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }

@@ -1,12 +1,89 @@
 package mjw297;
 
 import com.google.common.collect.Lists;
+import java_cup.runtime.Symbol;
 
 import java.util.*;
 
 import static mjw297.Ast.*;
 
 public class TestGen {
+
+    public static String tokenToLiteral(String token) {
+        switch (token) {
+            case ("EOF"):
+                return "EOF";
+            case ("error"):
+                return "error";
+            case ("MINUS"):
+                return "-";
+            case ("BANG"):
+                return "!";
+            case ("UMINUS"):
+                return "-";
+            case ("STAR"):
+                return "*";
+            case ("HIGHMULT"):
+                return "*>>";
+            case ("DIV"):
+                return "/";
+            case ("MOD"):
+                return "%";
+            case ("PLUS"):
+                return "+";
+            case ("EQ"):
+                return "=";
+            case ("LT"):
+                return "<";
+            case ("LTE"):
+                return "<=";
+            case ("GTE"):
+                return ">=";
+            case ("GT"):
+                return ">";
+            case ("EQEQ"):
+                return "==";
+            case ("NEQ"):
+                return "!=";
+            case ("AMP"):
+                return "&";
+            case ("BAR"):
+                return "|";
+            case ("SEMICOLON"):
+                return ";";
+            case ("LPAREN"):
+                return "(";
+            case ("RPAREN"):
+                return ")";
+            case ("LBRACKET"):
+                return "[";
+            case ("RBRACKET"):
+                return "]";
+            case ("LBRACE"):
+                return "{";
+            case ("RBRACE"):
+                return "}";
+            case ("UNDERSCORE"):
+                return "_";
+            case ("COMMA"):
+                return ",";
+            case ("COLON"):
+                return ":";
+            case ("WHILE"):
+            case ("INT"):
+            case ("BOOL"):
+            case ("IF"):
+            case ("ELSE"):
+            case ("RETURN"):
+            case ("USE"):
+            case ("LENGTH"):
+            case ("TRUE"):
+            case ("FALSE"):
+                return token.toLowerCase();
+            default:
+                return token.toLowerCase();
+        }
+    }
 
     private static final Random rand = new Random();
 
@@ -39,7 +116,7 @@ public class TestGen {
         return ret;
     }
 
-    private static final int genInt(int limit) {
+    private static final int genInt(Integer limit) {
         return 1 + rand.nextInt(limit);
     }
 
@@ -51,7 +128,7 @@ public class TestGen {
                 (rand.nextBoolean() ? 'a' : 'A'));
             sb.append(c);
         }
-        return sb.toString();
+        return sb.toString() + genInt(10);
     }
 
     static char genChar() {
@@ -215,7 +292,7 @@ public class TestGen {
     }
 
     static NumLiteral genNumLit() {
-        return new NumLiteral((long) rand.nextInt());
+        return new NumLiteral((long) genInt(Integer.MAX_VALUE));
     }
 
     static CharLiteral genCharLit() {
@@ -317,17 +394,19 @@ public class TestGen {
 
         @Override
         public StringBuilder visit(BinOp o) {
-            return new StringBuilder()
+            return new StringBuilder("(")
                     .append(o.lhs.accept(this))
-                    .append("+")
-                    .append(o.rhs.accept(this));
+                    .append(tokenToLiteral(o.c.name()))
+                    .append(o.rhs.accept(this))
+                    .append(")") ;
         }
 
         @Override
         public StringBuilder visit(UnOp o) {
-            return new StringBuilder()
-                    .append("-")
-                    .append(o.e.accept(this));
+            return new StringBuilder("(")
+                    .append(tokenToLiteral(o.c.name()))
+                    .append(o.e.accept(this))
+                    .append(")");
         }
 
         @Override
@@ -340,11 +419,6 @@ public class TestGen {
             return new StringBuilder("length(")
                     .append(l.e.accept(this))
                     .append(")");
-        }
-
-        @Override
-        public StringBuilder visit(ParenthesizedExpr e) {
-            return new StringBuilder("[[parenexpr]]");
         }
 
         @Override

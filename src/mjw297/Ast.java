@@ -39,7 +39,6 @@ public interface Ast {
         public R visit(UnOp o);
         public R visit(Index i);
         public R visit(Length l);
-        public R visit(ParenthesizedExpr e);
 
         // Literal
         public R visit(NumLiteral n);
@@ -92,7 +91,6 @@ public interface Ast {
         public R visit(UnOp o);
         public R visit(Index i);
         public R visit(Length l);
-        public R visit(ParenthesizedExpr e);
         public R visit(Call c);
     }
 
@@ -245,15 +243,6 @@ public interface Ast {
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class Length implements Expr {
-        public final Expr e;
-        public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
-        public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
-    }
-
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    @ToString(includeFieldNames=false)
-    public final class ParenthesizedExpr implements Expr {
         public final Expr e;
         public <R> R accept(ExprVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
@@ -415,7 +404,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Array implements Type {
         public final Type t;
-        public final Optional<List<Expr>> size;
+        public final Optional<Expr> size;
         public <R> R accept(TypeVisitor<R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<R> v) { return v.visit(this); }
     }
@@ -468,7 +457,6 @@ public interface Ast {
         public String visit(UnOp o)                { return "TODO"; }
         public String visit(Index i)               { return "TODO"; }
         public String visit(Length l)              { return "TODO"; }
-        public String visit(ParenthesizedExpr e)   { return "TODO"; }
         public String visit(NumLiteral n)          { return "TODO"; }
         public String visit(BoolLiteral b)         { return "TODO"; }
         public String visit(StringLiteral s)       { return "TODO"; }

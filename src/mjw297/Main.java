@@ -1,15 +1,11 @@
 package mjw297;
 import com.google.common.collect.Lists;
-import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import edu.cornell.cs.cs4120.util.SExpPrinter;
 import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import com.google.common.io.Files;
-import polyglot.util.CodeWriter;
-import polyglot.util.OptimalCodeWriter;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -29,12 +25,6 @@ public class Main {
 
     @Option(name="--parse", usage="Generate output from syntactic analysis")
     private static boolean parseMode = false;
-
-    @Option(name="--genprog", usage="Generate a random Xi program!")
-    private static boolean genProg = false;
-
-    @Option(name="--testgen", usage="Generate a random program and test the lexer/parser")
-    private static int testGen = 0;
 
     @Option(name="-sourcepath", usage="Specify where to find input source files")
     private static String sourcePath = "";
@@ -214,63 +204,10 @@ public class Main {
         try {
             parser.parseArgument(args);
 
-            if (testGen > 0) {
-                TestGen.AstToProg atp = new TestGen.AstToProg();
-                SExpOut sexpout = new SExpOut(System.out);
-                for (int i = 0; i < testGen; i++) {
-                    Ast.Program prog = TestGen.genProgram();
-                    String source = atp.visit(prog).toString();
-                    Ast.Program parsed = null;
-                    try {
-                        parsed = (Ast.Program) Actions.parse(new StringReader(source)).prog.value;
-                        if (parsed.equals(prog)) {
-                            System.out.println("Test case #" + i + " passes!");
-                        } else {
-                            System.out.println("Bad parse!\n" + source);
-                            System.out.println("------------------");
-                            System.out.println("Printing the Sexps");
-                            System.out.println("Actual:");
-                            sexpout.visit(prog);
-                            sexpout.flush();
-                            System.out.println("Parsed:");
-                            sexpout.visit(parsed);
-                            sexpout.flush();
-                            System.exit(1);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        System.out.println("Bad parse!\n" + source);
-                        System.out.println("------------------");
-                        System.out.println("Printing the Sexps");
-                        System.out.println("Actual:");
-                        sexpout.visit(prog);
-                        System.out.println("Parsed:");
-                        sexpout.visit(parsed);
-                        System.exit(1);
-                    }
-                }
-                System.exit(0);
-            }
-
             if (arguments.isEmpty()) {
                 System.out.println("No filenames provided.");
                 printUsage();
                 System.exit(1);
-            }
-
-            if (genProg) {
-                TestGen.AstToProg atp = new TestGen.AstToProg();
-                for (String filename : arguments) {
-                    String outputFilename = filename + ".xi";
-                    File outputFile = Paths.get(outputFilename).toFile();
-                    Ast.Program prog = TestGen.genProgram();
-                    try {
-                        Files.write(atp.visit(prog).toString().getBytes(), outputFile);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                System.exit(0);
             }
 
             if (sourcePath.equals("")) {

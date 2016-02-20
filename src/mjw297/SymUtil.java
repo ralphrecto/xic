@@ -8,6 +8,16 @@ import java.util.function.Function;
  * Lexing helper class. A catch-all for any helper functions used for lexing.
  */
 public class SymUtil {
+    /** Abbreviation of new {@code Symbol(type, row, col)}. */
+    public static Symbol sym(int type, int row, int col) {
+        return new Symbol(type, row, col);
+    }
+
+    /** Abbreviation of new {@code Symbol(type, row, col, x)}. */
+    public static Symbol sym(int type, int row, int col, Object x) {
+        return new Symbol(type, row, col, x);
+    }
+
     /**
      * Get string literals for Symbols.
      * <p>

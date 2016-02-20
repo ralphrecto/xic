@@ -491,8 +491,8 @@ public class Main {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
             SExpPrinter printer = new CodeWriterSExpPrinter(System.out);
             SExpOut sExpOut = new SExpOut(printer);
-            // TODO: fix this unsafe cast!
-            ((Ast.Program<Position>) p.fst.prog.value).accept(sExpOut);
+            Ast.Program<Position> prog = p.fst.prog.value();
+            prog.accept(sExpOut);
             sExpOut.flush();
             System.out.println("");
         }

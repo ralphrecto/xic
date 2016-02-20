@@ -117,7 +117,7 @@ public class OptimalCodeWriter extends CodeWriter {
      * @param n
      *            the number of characters increased on indentation (relative
      *            to the current position) for all lines in the block.
-     *            Requires: n >= 0.
+     *            Requires: {@code n >= 0}.
      */
     @Override
     public void begin(int n) {
@@ -189,7 +189,6 @@ public class OptimalCodeWriter extends CodeWriter {
      * all breaks broken.
      * @param format whether to pretty-print the output
      * @return whether formatting was completely successful.
-     * @throws IOException
      */
     @Override
     public boolean flush(boolean format) throws IOException {

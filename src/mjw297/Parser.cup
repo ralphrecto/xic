@@ -250,11 +250,14 @@ var ::= avar:av
     | UNDERSCORE
 	{: RESULT = Underscore.of(dummy); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
-	{: if (e_lst != null) {
-	       RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.of(e_lst)));
-	   } else {
-		   RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.empty()));
+	{: Expr first = e_lst.get(0);
+	   Type array_type = new Array(bt, first == null ? Optional.empty() : Optional.of(first));
+	   for (int i = 1; i < e_lst.size(); i++) {
+	       Expr current = e_lst.get(i);
+           array_type = new Array(array_type,
+                                  current == null ? Optional.empty() : Optional.of(current));
 	   }
+	   RESULT = new AnnotatedId(new Id(id), array_type);
     :}
     ;
 
@@ -407,7 +410,7 @@ expr ::= literal:l
     | LENGTH LPAREN expr:e RPAREN
 	{: RESULT = Length.of(dummy, e); :}
     | LPAREN expr:e RPAREN
-	{: RESULT = ParenthesizedExpr.of(dummy, e); :}
+	{: RESULT = e; :}
     | call:c
 	{: RESULT = c; :}
     | ID:id
@@ -415,9 +418,12 @@ expr ::= literal:l
     ;
 
 empty_array_index_star ::=
-	{: RESULT = null; :}
-    | empty_array_index_star LBRACKET RBRACKET
-	{: RESULT = null; :}
+	{: RESULT = new ArrayList<Expr>();
+	 :}
+    | empty_array_index_star:list LBRACKET RBRACKET
+	{: list.add(null);
+	   RESULT = list;
+	:}
     ;
 
 // TODO: expr or NUM?
@@ -430,10 +436,14 @@ num_array_index_plus ::= LBRACKET expr:e RBRACKET
 	   RESULT = e_lst; :}
     ;
 
-array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
-	{: RESULT = null; :}
-    | num_array_index_plus:e_lst empty_array_index_star
-	{: RESULT = e_lst; :}
+array_index_plus ::= LBRACKET RBRACKET empty_array_index_star:emp_lst
+	{: emp_lst.add(null);
+       RESULT = emp_lst;
+	:}
+    | num_array_index_plus:e_lst empty_array_index_star:emp_lst
+	{: e_lst.addAll(emp_lst);
+	   RESULT = e_lst;
+	 :}
     ;
 
 literal ::= NUM:n

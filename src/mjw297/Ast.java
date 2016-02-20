@@ -259,16 +259,6 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
-    @AllArgsConstructor(staticName="of")
-    @EqualsAndHashCode
-    @ToString(includeFieldNames=false)
-    public final class ParenthesizedExpr<A> implements Expr<A> {
-        public final A a;
-        public final Expr<A> e;
-        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
-        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
-    }
-
     ////////////////////////////////////////////////////////////////////////////
     // Literal
     ////////////////////////////////////////////////////////////////////////////

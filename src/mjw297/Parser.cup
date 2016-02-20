@@ -10,6 +10,9 @@ parser code {:
 		report_error(String.format("%d:%d error:Invalid syntax\n",
 					 sym.left, sym.right), null);
 	}
+
+    // TODO: remove dummy positions; they're a temporary placeholder
+    private Position dummy = new Position(-1, -1);
 :}
 
 
@@ -102,26 +105,26 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 
 // types and variables
-nonterminal Type
+nonterminal Type<Position>
     base_type,
     type;
 
-nonterminal AnnotatedVar
+nonterminal AnnotatedVar<Position>
     avar;
 
-nonterminal Var
+nonterminal Var<Position>
     var;
 
 // statements
 nonterminal
     end_stmt;
 
-nonterminal ArrayList<Stmt>
+nonterminal ArrayList<Stmt<Position>>
 	block,
 	if_body,
 	while_body;
 
-nonterminal Stmt
+nonterminal Stmt<Position>
 	full_decl,
     full_stmt,
     stmt,
@@ -129,40 +132,40 @@ nonterminal Stmt
     if_stmt,
     while_stmt;
 
-nonterminal 
+nonterminal Call<Position>
 	call;
 
-nonterminal ArrayList<Expr>
+nonterminal ArrayList<Expr<Position>>
     args_call;
 
 // functions and procedures
-nonterminal ArrayList<AnnotatedVar>
+nonterminal ArrayList<AnnotatedVar<Position>>
 	args_decl;
 
-nonterminal ArrayList<Expr>
+nonterminal ArrayList<Expr<Position>>
     func_ret;
 
 nonterminal
     proc_ret;
 
-nonterminal Callable
+nonterminal Callable<Position>
     proc_decl,
     func_decl;
 
 // programs
-nonterminal Use
+nonterminal Use<Position>
     use_def;
 
-nonterminal Callable
+nonterminal Callable<Position>
     func_def;
 
-nonterminal ArrayList<Use>
+nonterminal ArrayList<Use<Position>>
     use_def_star;
 
-nonterminal ArrayList<Callable>
+nonterminal ArrayList<Callable<Position>>
     func_def_plus;
 
-nonterminal Program
+nonterminal Program<Position>
     prog;
 
 nonterminal BinOpCode
@@ -172,30 +175,30 @@ nonterminal UnOpCode
 	unop;
 
 // expressions
-nonterminal Expr
+nonterminal Expr<Position>
     expr,
     literal;
 
-nonterminal ArrayList<Expr>
+nonterminal ArrayList<Expr<Position>>
     empty_array_index_star,
     num_array_index_plus,
     array_index_plus;
 
 // various lists
-nonterminal ArrayList<Expr>
+nonterminal ArrayList<Expr<Position>>
     expr_star,
     expr_plus;
 
-nonterminal ArrayList<AnnotatedVar>
+nonterminal ArrayList<AnnotatedVar<Position>>
     avar_plus;
 
-nonterminal ArrayList<Var>
+nonterminal ArrayList<Var<Position>>
     var_plus;
 
-nonterminal ArrayList<Type>
+nonterminal ArrayList<Type<Position>>
     type_plus;
 
-nonterminal ArrayList<Stmt>
+nonterminal ArrayList<Stmt<Position>>
     stmt_star;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -224,33 +227,33 @@ start with prog;
 
 // Types and variables --SH
 
-base_type ::= INT 
-	{: RESULT = new Ast.Int(); :}
+base_type ::= INT
+	{: RESULT = Int.of(dummy); :}
     | BOOL
-	{: RESULT = new Ast.Bool(); :}
+	{: RESULT = Bool.of(dummy); :}
     ;
 
 type ::= base_type:bt
 	{: RESULT = bt; :}
     | type:t LBRACKET RBRACKET
-	{: RESULT = new Ast.Array(t, Optional.empty()); :}
+	{: RESULT = Array.of(dummy, t, Optional.empty()); :}
     ;
 
 avar ::= ID:id COLON type:t
-	{: RESULT = new AnnotatedId(new Id(id), t); :}
+	{: RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), t); :}
     | UNDERSCORE COLON type:t
-	{: RESULT = new AnnotatedUnderscore(new Underscore(), t); :}
+	{: RESULT = AnnotatedUnderscore.of(dummy, Underscore.of(dummy), t); :}
     ;
 
 var ::= avar:av
 	{: RESULT = av; :}
     | UNDERSCORE
-	{: RESULT = new Underscore(); :}
+	{: RESULT = Underscore.of(dummy); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
 	{: if (e_lst != null) {
-	       RESULT = new AnnotatedId(new Id(id), new Array(bt, Optional.of(e_lst)));
+	       RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.of(e_lst)));
 	   } else {
-		   RESULT = new AnnotatedId(new Id(id), new Array(bt, Optional.empty()));
+		   RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.empty()));
 	   }
     :}
     ;
@@ -258,81 +261,81 @@ var ::= avar:av
 
 // Statements --RR
 
-stmt ::= full_decl:f                                             
+stmt ::= full_decl:f
 	{: RESULT = f; :}
-    | asgn:a                                                     
+    | asgn:a
 	{: RESULT = a; :}
-    | if_stmt:i                                                 
+    | if_stmt:i
 	{: RESULT = i; :}
-    | while_stmt:w                                               
+    | while_stmt:w
 	{: RESULT = w; :}
-    | call:c                                                     
-	{: RESULT = (Stmt) c; :}
+    | call:c
+	{: RESULT = c; :}
     ;
 
 end_stmt ::=
     | SEMICOLON
     ;
 
-full_stmt ::= stmt:s end_stmt                                   
+full_stmt ::= stmt:s end_stmt
 	{: RESULT = s; :};
 
 block ::= LBRACE stmt_star:s RBRACE
 	{: RESULT = s; :};
 
 full_decl ::= var_plus:v
-	{: RESULT = new Ast.Decl(v); :}
+	{: RESULT = Decl.of(dummy, v); :}
     | var_plus:v EQ expr:e
-	{: RESULT = new DeclAsgn(v, e); :}
+	{: RESULT = DeclAsgn.of(dummy, v, e); :}
     ;
 
 asgn ::= ID:i EQ expr:e
-	{: RESULT = new Ast.Asgn(new Id(i), e); :}
+	{: RESULT = Asgn.of(dummy, Id.of(dummy, i), e); :}
     | ID:i num_array_index_plus:b EQ expr:e
-	{: RESULT = new Ast.AsgnArrayIndex(new Id(i), b, e); :}
+	{: RESULT = AsgnArrayIndex.of(dummy, Id.of(dummy, i), b, e); :}
     ;
 
-if_body ::= block:b                                              
+if_body ::= block:b
 	{: RESULT = b; :}
-   	| full_stmt:s                                                 
-	{: ArrayList<Stmt> list = new ArrayList<Stmt>();
+   	| full_stmt:s
+	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
 	   list.add(s);
 	   RESULT = list; :}
    	;
 
-if_stmt ::= IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2            
-	{: RESULT = new Ast.IfElse(e, s1, s2); :}
-   	| IF LPAREN expr:e RPAREN if_body:s                           
-	{: RESULT = new Ast.If(e, s); :}
+if_stmt ::= IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
+	{: RESULT = IfElse.of(dummy, e, s1, s2); :}
+   	| IF LPAREN expr:e RPAREN if_body:s
+	{: RESULT = If.of(dummy, e, s); :}
    	;
 
-while_body ::= block:b                                           
+while_body ::= block:b
 	{: RESULT = b; :}
-  	| full_stmt:s                                                  
-	{: ArrayList<Stmt> list = new ArrayList<Stmt>();
+  	| full_stmt:s
+	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
 	   list.add(s);
 	   RESULT = list; :}
   	;
 
 while_stmt ::= WHILE LPAREN expr:e RPAREN while_body:b
-	{: RESULT = new Ast.While(e, b); :}
+	{: RESULT = While.of(dummy, e, b); :}
 	;
 
-args_call ::= LPAREN RPAREN                                      
+args_call ::= LPAREN RPAREN
 	{: RESULT = new ArrayList<>(); :}
-    | LPAREN expr_plus:e RPAREN                                  
+    | LPAREN expr_plus:e RPAREN
 	{: RESULT = e; :}
     ;
 
 call ::= ID:i args_call:a
-	{: RESULT = new Ast.Call(new Id(i), a); :}
+	{: RESULT = Call.of(dummy, Id.of(dummy, i), a); :}
 	;
 
 
 // Functions and procedures --AM
 
 args_decl ::= LPAREN RPAREN
-    {: RESULT = new ArrayList<AnnotatedVar>(); :}
+    {: RESULT = new ArrayList<AnnotatedVar<Position>>(); :}
     | LPAREN avar_plus:a RPAREN
     {: RESULT = a; :}
     ;
@@ -347,17 +350,17 @@ func_ret ::= RETURN expr_plus:e end_stmt
     {: RESULT = e; :};
 
 proc_decl ::= ID:p args_decl:a LBRACE stmt_star:s proc_ret RBRACE
-    {: RESULT = new Proc(new Id(p), a, s); :};
+    {: RESULT = Proc.of(dummy, Id.of(dummy, p), a, s); :};
 
 func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r RBRACE
-    {: RESULT = new Func(new Id(f), a, t, s, r); :}
+    {: RESULT = Func.of(dummy, Id.of(dummy, f), a, t, s, r); :}
     ;
 
 
 // Programs --AM
 
 use_def ::= USE ID:x end_stmt
-    {: RESULT = new Use(new Id(x)); :}
+    {: RESULT = Use.of(dummy, Id.of(dummy, x)); :}
 	;
 
 func_def ::= func_decl:f
@@ -367,26 +370,26 @@ func_def ::= func_decl:f
     ;
 
 use_def_star ::=
-    {: RESULT = new ArrayList<Use>(); :}
+    {: RESULT = new ArrayList<Use<Position>>(); :}
     | use_def_star:us use_def:u
-    {: us.add(u); 
+    {: us.add(u);
 	   RESULT = us;
     :}
     ;
 
 func_def_plus ::= func_def:f
-    {: ArrayList<Callable> list = new ArrayList<Callable>();
-	   list.add(f); 
+    {: ArrayList<Callable<Position>> list = new ArrayList<>();
+	   list.add(f);
 	   RESULT = list;
 	:}
     | func_def_plus:fs func_def:f
-    {: fs.add(f); 
+    {: fs.add(f);
 	   RESULT = fs;
 	:}
     ;
 
 prog ::= use_def_star:us func_def_plus:fs
-    {: RESULT = new Program(us, fs); :}
+    {: RESULT = Program.of(dummy, us, fs); :}
 	;
 
 
@@ -396,19 +399,19 @@ prog ::= use_def_star:us func_def_plus:fs
 expr ::= literal:l
 	{: RESULT = l; :}
     | expr:e1 binop:op expr:e2
-	{: RESULT = new BinOp(op, e1, e2); :} 
+	{: RESULT = BinOp.of(dummy, op, e1, e2); :}
     | unop:op expr:e
-	{: RESULT = new UnOp(op, e); :} %prec UMINUS
+	{: RESULT = UnOp.of(dummy, op, e); :} %prec UMINUS
     | expr:e1 num_array_index_plus:e_lst
-	{: RESULT = new Index(e1, e_lst); :}
+	{: RESULT = Index.of(dummy, e1, e_lst); :}
     | LENGTH LPAREN expr:e RPAREN
-	{: RESULT = new Length(e); :}
+	{: RESULT = Length.of(dummy, e); :}
     | LPAREN expr:e RPAREN
-	{: RESULT = new ParenthesizedExpr(e); :}
+	{: RESULT = ParenthesizedExpr.of(dummy, e); :}
     | call:c
-	{: RESULT = (Expr) c; :}
+	{: RESULT = c; :}
     | ID:id
-	{: RESULT = new Id(id); :}
+	{: RESULT = Id.of(dummy, id); :}
     ;
 
 empty_array_index_star ::=
@@ -419,7 +422,7 @@ empty_array_index_star ::=
 
 // TODO: expr or NUM?
 num_array_index_plus ::= LBRACKET expr:e RBRACKET
-	{: ArrayList<Expr> list = new ArrayList<Expr>();
+	{: ArrayList<Expr<Position>> list = new ArrayList<>();
 	   list.add(e);
 	   RESULT = list; :}
     | num_array_index_plus:e_lst LBRACKET expr:e RBRACKET
@@ -433,22 +436,22 @@ array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
 	{: RESULT = e_lst; :}
     ;
 
-literal ::= NUM:n 
-	{: RESULT = new NumLiteral(n); :}
+literal ::= NUM:n
+	{: RESULT = NumLiteral.of(dummy, n); :}
     | MINUS BIG_NUM:n // TODO : ok?
-	{: RESULT = new NumLiteral(-(Integer) n); :}
+	{: RESULT = NumLiteral.of(dummy, -(Integer) n); :}
     | STRING:s
-	{: RESULT = new StringLiteral(s); :}
+	{: RESULT = StringLiteral.of(dummy, s); :}
     | CHAR:c
-	{: RESULT = new CharLiteral(c); :}
+	{: RESULT = CharLiteral.of(dummy, c); :}
     | TRUE:b
-	{: RESULT = new BoolLiteral(true); :}	
+	{: RESULT = BoolLiteral.of(dummy, true); :}
     | FALSE:b
-	{: RESULT = new BoolLiteral(false); :}
+	{: RESULT = BoolLiteral.of(dummy, false); :}
     | LBRACE expr_star:e RBRACE
-	{: RESULT = new ArrayLiteral(e); :}
+	{: RESULT = ArrayLiteral.of(dummy, e); :}
     | LBRACE expr_plus:e COMMA RBRACE
-	{: RESULT = new ArrayLiteral(e); :}
+	{: RESULT = ArrayLiteral.of(dummy, e); :}
     ;
 
 binop ::= MINUS
@@ -491,32 +494,32 @@ unop ::= BANG
 // Various lists --SH
 
 expr_star ::=
-	{: RESULT = new ArrayList<Expr>(); :}
+	{: RESULT = new ArrayList<Expr<Position>>(); :}
     | expr_plus:e_lst
 	{: RESULT = e_lst; :}
     ;
 
 expr_plus ::= expr:e
-	{: ArrayList<Expr> list = new ArrayList<Expr>();
+	{: ArrayList<Expr<Position>> list = new ArrayList<>();
 	   list.add(e);
 	   RESULT = list; :}
     | expr_plus:e_lst COMMA expr:e
-	{: e_lst.add(e); 
+	{: e_lst.add(e);
 	   RESULT = e_lst;
 	:}
     ;
 
 avar_plus ::= avar:av
-	{: ArrayList<AnnotatedVar> list = new ArrayList<AnnotatedVar>();
+	{: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
 	   list.add(av);
 	   RESULT = list; :}
     | avar_plus:a_lst COMMA avar:av
-	{: a_lst.add(av); 
+	{: a_lst.add(av);
 	   RESULT = a_lst; :}
     ;
 
 var_plus ::= var:v
-	{: ArrayList<Var> list = new ArrayList<Var>();
+	{: ArrayList<Var<Position>> list = new ArrayList<>();
 	   list.add(v);
 	   RESULT = list; :}
     | var_plus:v_lst COMMA var:v
@@ -525,7 +528,7 @@ var_plus ::= var:v
     ;
 
 type_plus ::= type:t
-	{: ArrayList<Type> list = new ArrayList<Type>();
+	{: ArrayList<Type<Position>> list = new ArrayList<>();
 	   list.add(t);
 	   RESULT = list; :}
     | type_plus:t_lst COMMA type:t
@@ -534,7 +537,7 @@ type_plus ::= type:t
     ;
 
 stmt_star ::=
-	{: RESULT = new ArrayList<Stmt>(); :}
+	{: RESULT = new ArrayList<Stmt<Position>>(); :}
     | stmt_star:s_lst full_stmt:s
 	{: s_lst.add(s);
 	   RESULT = s_lst; :}

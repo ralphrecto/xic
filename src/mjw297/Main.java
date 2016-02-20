@@ -192,13 +192,13 @@ public class Main {
 
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
 
-        class SExpOut implements Ast.NodeVisitor<Void> {
+        class SExpOut implements Ast.NodeVisitor<Position, Void> {
             SExpPrinter printer;
             SExpOut(SExpPrinter printer) {
                 this.printer = printer;
             }
 
-            public Void visit(Ast.AnnotatedId i) {
+            public Void visit(Ast.AnnotatedId<Position> i) {
                 printer.startList();
                 i.x.accept(this);
                 i.t.accept(this);
@@ -207,7 +207,7 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.AnnotatedUnderscore u) {
+            public Void visit(Ast.AnnotatedUnderscore<Position> u) {
                 printer.startList();
                 u.u.accept(this);
                 u.t.accept(this);
@@ -216,7 +216,7 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Func f) {
+            public Void visit(Ast.Func<Position> f) {
                 /* function name */
                 printer.startList();
                 f.name.accept(this);
@@ -234,18 +234,18 @@ public class Main {
                 /* block */
 				printer.startList();
                 f.body.forEach(s -> s.accept(this));
-	
+
 				/* returns */
 				printer.printAtom("return");
 				f.returns.forEach(e -> e.accept(this));
 				printer.endList();
-	
+
                 printer.endList();
 
                 return null;
             }
 
-            public Void visit(Ast.Proc p) {
+            public Void visit(Ast.Proc<Position> p) {
                 /* function name */
                 printer.startList();
                 p.name.accept(this);
@@ -267,13 +267,13 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Id i) {
+            public Void visit(Ast.Id<Position> i) {
                 printer.printAtom(i.x);
 
                 return null;
             }
 
-            public Void visit(Ast.BinOp o) {
+            public Void visit(Ast.BinOp<Position> o) {
                 printer.startList();
                 printer.printAtom(o.c.toString());
                 o.lhs.accept(this);
@@ -283,7 +283,7 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.UnOp o) {
+            public Void visit(Ast.UnOp<Position> o) {
                 printer.startList();
                 printer.printAtom(o.c.toString());
                 o.e.accept(this);
@@ -292,12 +292,12 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Index i) {
+            public Void visit(Ast.Index<Position> i) {
                 /* TODO */
                 return null;
             }
 
-            public Void visit(Ast.Length l) {
+            public Void visit(Ast.Length<Position> l) {
                 printer.startList();
                 printer.printAtom("length");
                 l.e.accept(this);
@@ -306,55 +306,55 @@ public class Main {
                 return null;
             }
 
-			public Void visit(Ast.ParenthesizedExpr e) {
+			public Void visit(Ast.ParenthesizedExpr<Position> e) {
                  /* TODO */
                  return null;
              }
 
-            public Void visit(Ast.NumLiteral n) {
+            public Void visit(Ast.NumLiteral<Position> n) {
                 printer.printAtom(((Long) n.x).toString());
 
                 return null;
             }
 
-            public Void visit(Ast.BoolLiteral b) {
+            public Void visit(Ast.BoolLiteral<Position> b) {
                 printer.printAtom(((Boolean) b.b).toString());
 
                 return null;
             }
 
-            public Void visit(Ast.StringLiteral s) {
+            public Void visit(Ast.StringLiteral<Position> s) {
                 printer.printAtom(s.s);
 
                 return null;
             }
 
-            public Void visit(Ast.CharLiteral c) {
+            public Void visit(Ast.CharLiteral<Position> c) {
                 printer.printAtom(((Character) c.c).toString());
                 return null;
             }
 
-            public Void visit(Ast.ArrayLiteral a) {
+            public Void visit(Ast.ArrayLiteral<Position> a) {
                 printer.startList();
                 a.xs.forEach(e -> e.accept(this));
                 printer.endList();
                 return null;
             }
 
-            public Void visit(Ast.Program p) {
+            public Void visit(Ast.Program<Position> p) {
                 p.uses.forEach((u -> u.accept(this)));
                 p.fs.forEach(f -> f.accept(this));
                 return null;
             }
 
-            public Void visit(Ast.Decl d) {
+            public Void visit(Ast.Decl<Position> d) {
                 printer.startList();
                 d.vs.forEach(v -> v.accept(this));
                 printer.endList();
                 return null;
             }
 
-            public Void visit(Ast.DeclAsgn d) {
+            public Void visit(Ast.DeclAsgn<Position> d) {
                 printer.startList();
                 printer.printAtom("=");
                 d.vs.forEach(v -> v.accept(this));
@@ -363,7 +363,7 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Asgn a) {
+            public Void visit(Ast.Asgn<Position> a) {
                 printer.startList();
                 printer.printAtom("=");
                 a.id.accept(this);
@@ -372,31 +372,31 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.AsgnArrayIndex a) {
+            public Void visit(Ast.AsgnArrayIndex<Position> a) {
                 /* TODO */
                 return null;
             }
 
-            public Void visit(Ast.If i) {
+            public Void visit(Ast.If<Position> i) {
                 printer.startList();
                 printer.printAtom("if");
 
-                /* predicate 
+                /* predicate
                 printer.startList();*/
                 i.b.accept(this);
                 //printer.endList();
 
-                /* block */ 
+                /* block */
                 printer.startList();
                 i.body.forEach(s -> s.accept(this));
                 printer.endList();
-				
+
 				printer.endList();
 
                 return null;
             }
 
-            public Void visit(Ast.IfElse i) {
+            public Void visit(Ast.IfElse<Position> i) {
                 printer.startList();
                 printer.printAtom("if");
 
@@ -414,13 +414,13 @@ public class Main {
                 printer.startList();
                 i.elseBody.forEach(s -> s.accept(this));
                 printer.endList();
-				
+
 				printer.endList();
 
                 return null;
             }
 
-            public Void visit(Ast.While w) {
+            public Void visit(Ast.While<Position> w) {
                 printer.startList();
                 printer.printAtom("while");
 
@@ -438,17 +438,17 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Int l) {
+            public Void visit(Ast.Int<Position> l) {
                 printer.printAtom("int");
                 return null;
             }
 
-            public Void visit(Ast.Bool o) {
+            public Void visit(Ast.Bool<Position> o) {
                 printer.printAtom("bool");
                 return null;
             }
 
-            public Void visit(Ast.Array o) {
+            public Void visit(Ast.Array<Position> o) {
                 /* TODO: incorporate size */
                 printer.startList();
                 printer.printAtom("[]");
@@ -457,7 +457,7 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Use u) {
+            public Void visit(Ast.Use<Position> u) {
                 printer.startList();
                 printer.printAtom("use");
                 u.x.accept(this);
@@ -465,12 +465,12 @@ public class Main {
                 return null;
             }
 
-            public Void visit(Ast.Underscore u) {
+            public Void visit(Ast.Underscore<Position> u) {
                 printer.printAtom("_");
                 return null;
             }
 
-            public Void visit(Ast.Call c) {
+            public Void visit(Ast.Call<Position> c) {
                 printer.startList();
                 c.f.accept(this);
 
@@ -491,7 +491,8 @@ public class Main {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
             SExpPrinter printer = new CodeWriterSExpPrinter(System.out);
             SExpOut sExpOut = new SExpOut(printer);
-            ((Ast.Program) p.fst.prog.value).accept(sExpOut);
+            // TODO: fix this unsafe cast!
+            ((Ast.Program<Position>) p.fst.prog.value).accept(sExpOut);
             sExpOut.flush();
             System.out.println("");
         }

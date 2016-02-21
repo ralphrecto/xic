@@ -1486,4 +1486,51 @@ public class ParserTest {
             }
         }
     }
+
+    /**
+     * Tests that {@code a op b[1]} == {@code a op (b[1])}
+     */
+    private void indexPrecHelper(BinOpCode c) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"),
+            sym(c.code),
+            sym(ID, "b"),
+            sym(LBRACKET),
+            sym(NUM, 1l),
+            sym(RBRACKET)
+        );
+
+        Expr<Position> e = binOp(c, id("a"), index(id("b"), numLiteral(1l)));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void indexPrecTest() throws Exception {
+        for (BinOpCode b : BinOpCode.values()) {
+            indexPrecHelper(b);
+        }
+    }
+
+    /**
+     * Tests that op {@code a op b()} == {@code a op (b())}
+     */
+    private void callPrecHelper(BinOpCode c) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"),
+            sym(c.code),
+            sym(ID, "b"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+
+        Expr<Position> e = binOp(c, id("a"), call(id("b"), l()));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void callPrecTest() throws Exception {
+        for (BinOpCode b : BinOpCode.values()) {
+            callPrecHelper(b);
+        }
+    }
 }

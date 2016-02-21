@@ -119,8 +119,10 @@ nonterminal Var<Position>
 nonterminal
     end_stmt;
 
-nonterminal ArrayList<Stmt<Position>>
-	block,
+nonterminal Block<Position>
+	block;
+
+nonterminal Stmt<Position>
 	if_body,
 	while_body;
 
@@ -298,8 +300,13 @@ end_stmt ::=
 full_stmt ::= stmt:s end_stmt
 	{: RESULT = s; :};
 
-block ::= LBRACE stmt_star:s RBRACE
-	{: RESULT = s; :};
+block ::= LBRACE:lb stmt_star:s RBRACE
+	{: Position p = new Position(lbleft, lbright); 
+	   RESULT = Block.of(p, s, Optional.empty()); :}
+	| LBRACE:lb stmt_star:s RETURN expr:e RBRACE
+	{: Position p = new Position(lbleft, lbright); 
+	   RESULT = Block.of(p, s, Optional.of(e)); :}
+	;
 
 full_decl ::= var_plus:v
 	{: RESULT = Decl.of(new Position(vleft, vright), v); :}
@@ -309,18 +316,38 @@ full_decl ::= var_plus:v
 
 asgn ::= ID:i EQ expr:e
 	{: Position p = new Position(ileft, iright);
-       RESULT = Asgn.of(p, Id.of(p, i), e); :}
-    | ID:i num_array_index_plus:b EQ expr:e
+	   RESULT = Asgn.of(p, Id.of(p,i), e); 
+	:}
+	| ID:i num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(ileft, iright);
-       RESULT = AsgnArrayIndex.of(p, Id.of(p, i), b, e); :}
-    ;
+	   Expr<Position> exp = Index.of(p, Id.of(p, i), idx.get(0));
+	   for (int j = 1; j < idx.size(); j++) { 
+	       exp = Index.of(p, exp, idx.get(j));
+	   } 
+	   RESULT = Asgn.of(p, exp, e);
+	:}
+	| call:c num_array_index_plus:idx EQ expr:e
+	{: Position p = new Position(cleft, cright);
+	   Expr<Position> exp = Index.of(p, c, idx.get(0));
+	   for (int i = 1; i < idx.size(); i++) {
+	       exp = Index.of(p, exp, idx.get(i));
+	   }
+	   RESULT = Asgn.of(p, exp, e);
+	:} 
+	| STRING:s num_array_index_plus:idx EQ expr:e	
+	{: Position p = new Position(sleft, sright);
+	   Expr<Position> exp = Index.of(p, StringLiteral.of(p, s), idx.get(0));
+	   for (int i = 1; i < idx.size(); i++){
+	       exp = Index.of(p, exp, idx.get(i));
+	   }
+	   RESULT = Asgn.of(p, exp, e);
+	:}
+	;
 
 if_body ::= block:b
 	{: RESULT = b; :}
    	| full_stmt:s
-	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
-	   list.add(s);
-	   RESULT = list; :}
+	{: RESULT = s; :}
    	;
 
 if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
@@ -332,9 +359,7 @@ if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
 while_body ::= block:b
 	{: RESULT = b; :}
   	| full_stmt:s
-	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
-	   list.add(s);
-	   RESULT = list; :}
+	{: RESULT = s; :}
   	;
 
 while_stmt ::= WHILE:w LPAREN expr:e RPAREN while_body:b
@@ -428,7 +453,13 @@ expr ::= literal:l
     | unop:op expr:e
 	{: RESULT = UnOp.of(new Position(opleft, opright), op, e); :} %prec UMINUS
     | expr:e1 num_array_index_plus:e_lst
-	{: RESULT = Index.of(new Position(e1left, e1right), e1, e_lst); :}
+	{: Position p = new Position(e1left, e1right);
+	   Expr<Position> exp = Index.of(p, e1, e_lst.get(0));   
+	   for (int i = 1; i < e_lst.size(); i++) {
+	       exp = Index.of(p, exp, e_lst.get(i));
+	   }
+	   RESULT = exp;
+	:}
     | LENGTH:l LPAREN expr:e RPAREN
 	{: RESULT = Length.of(new Position(lleft, lright), e); :}
     | LPAREN:l expr:e RPAREN

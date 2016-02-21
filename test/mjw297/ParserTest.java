@@ -127,7 +127,7 @@ public class ParserTest {
 
     private static Index<Position> index (
         Expr<Position> e,
-        List<Expr<Position>> index
+        Expr<Position> index
     ) {
         return Index.of(PositionKiller.dummyPosition, e, index);
     }
@@ -195,32 +195,24 @@ public class ParserTest {
         return Asgn.of(PositionKiller.dummyPosition, id, expr);
     }
 
-    private static AsgnArrayIndex<Position> asgnArrayIndex (
-        Id<Position> id,
-        List<Expr<Position>> index,
-        Expr<Position> expr
-    ) {
-        return AsgnArrayIndex.of(PositionKiller.dummyPosition, id, index, expr);
-    }
-
     private static If<Position> if_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return If.of(PositionKiller.dummyPosition, b, body);
     }
 
     private static IfElse<Position> ifElse (
         Expr<Position> b,
-        List<Stmt<Position>> thenBody,
-        List<Stmt<Position>> elseBody
+        Stmt<Position> thenBody,
+        Stmt<Position> elseBody
     ) {
         return IfElse.of(PositionKiller.dummyPosition, b, thenBody, elseBody);
     }
 
     private static While<Position> while_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return While.of(PositionKiller.dummyPosition, b, body);
     }
@@ -316,17 +308,17 @@ public class ParserTest {
             sym(RBRACE, 3, 2)
         );
         Program<Position> expected = Program.of(
-                pos(0, 5),
-                l(Use.of(
-                        pos(1, 1),
-                        Id.of(pos(1, 5), "foo")
-                )),
-                l(Proc.of(
-                        pos(2, 1),
-                        Id.of(pos(2, 1), "main"),
-                        l(),
-                        l()
-                ))
+            pos(0, 5),
+            l(Use.of(
+                pos(1, 1),
+                Id.of(pos(1, 5), "foo")
+             )),
+            l(Proc.of(
+                pos(2, 1),
+                Id.of(pos(2, 1), "main"),
+                l(),
+                l()
+             ))
         );
         assertEquals(expected, parsePos(symbols));
     }
@@ -391,7 +383,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
+        Stmt<Position> stmt = asgn(
             id("a"),
             l(numLiteral(5)),
             numLiteral(5)
@@ -476,7 +468,7 @@ public class ParserTest {
                 id("a"),
                 l(binOp(
                     BinOpCode.PLUS,
-                    index(id("b"), l(numLiteral(5))),
+                    index(id("b"), l(num(5))),
                     call(id("f"), l()))
                 ),
                 numLiteral(5)

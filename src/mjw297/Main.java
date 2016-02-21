@@ -188,12 +188,10 @@ public class Main {
 
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
-            /*
             SExpOut sExpOut = new SExpOut(System.out);
-            //((Ast.) p.fst.prog.value).accept(sExpOut);
+            ((Ast.Program<Position>) p.fst.prog.value).accept(sExpOut);
             sExpOut.flush();
             System.out.println("");
-            */
         }
     }
 

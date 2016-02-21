@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.List;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
-import org.junit.Ignore;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
@@ -326,9 +325,8 @@ public class ParserTest {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Abbreviations
+    // Tests
     ////////////////////////////////////////////////////////////////////////////
-
     @Test
     public void emptyMainTest() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -616,7 +614,7 @@ public class ParserTest {
             sym(SEMICOLON)
         );
         Stmt<Position> stmt = decl(
-            l(annotatedUnderscore(underscore(), num())) 
+            l(annotatedUnderscore(underscore(), num()))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -755,7 +753,7 @@ public class ParserTest {
     public void declTest20() throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(ID, "a"), sym(COLON), sym(INT),
-            sym(LBRACKET), sym(NUM, 5L), 
+            sym(LBRACKET), sym(NUM, 5L),
             sym(RBRACKET),
             sym(LBRACKET), sym(RBRACKET),
             sym(SEMICOLON)
@@ -875,7 +873,7 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    
+
     /* Assignments */
     @Test
     public void asgnTest1() throws Exception {
@@ -886,7 +884,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest2() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -904,7 +901,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest3() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -919,7 +915,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest4() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -936,7 +931,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest5() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -951,7 +945,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest6() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -973,7 +966,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest7() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -991,7 +983,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest8() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -1212,73 +1203,72 @@ public class ParserTest {
     }
 
 
-    /* BinOps */
-    private void binopHelper(Symbol s1, BinOpCode c) throws Exception {
+    private void binopHelper(BinOpCode s1) throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(NUM, 1l),
-            s1,
+            sym(s1.code),
             sym(NUM, 2l)
         );
 
-        Expr<Position> e = binOp(c, numLiteral(1l), numLiteral(2l));
+        Expr<Position> e = binOp(s1, numLiteral(1l), numLiteral(2l));
         exprTestHelper(symbols, e);
     }
 
     @Test
     public void binopTest1() throws Exception {
-        binopHelper(sym(PLUS), BinOpCode.PLUS);
+        binopHelper(BinOpCode.PLUS);
     }
     @Test
     public void binopTest2() throws Exception {
-        binopHelper(sym(STAR), BinOpCode.STAR);
+        binopHelper(BinOpCode.STAR);
     }
     @Test
     public void binopTest3() throws Exception {
-        binopHelper(sym(MINUS), BinOpCode.MINUS);
+        binopHelper(BinOpCode.MINUS);
     }
     @Test
     public void binopTest4() throws Exception {
-        binopHelper(sym(DIV), BinOpCode.DIV);
+        binopHelper(BinOpCode.DIV);
     }
     @Test
     public void binopTest5() throws Exception {
-        binopHelper(sym(MOD), BinOpCode.MOD);
+        binopHelper(BinOpCode.MOD);
     }
     @Test
     public void binopTest6() throws Exception {
-        binopHelper(sym(LT), BinOpCode.LT);
+        binopHelper(BinOpCode.LT);
     }
     @Test
     public void binopTest7() throws Exception {
-        binopHelper(sym(LTE), BinOpCode.LTE);
+        binopHelper(BinOpCode.LTE);
     }
     @Test
     public void binopTest8() throws Exception {
-        binopHelper(sym(GTE), BinOpCode.GTE);
+        binopHelper(BinOpCode.GTE);
     }
     @Test
     public void binopTest9() throws Exception {
-        binopHelper(sym(GT), BinOpCode.GT);
+        binopHelper(BinOpCode.GT);
     }
     @Test
     public void binopTest10() throws Exception {
-        binopHelper(sym(EQEQ), BinOpCode.EQEQ);
+        binopHelper(BinOpCode.EQEQ);
     }
     @Test
     public void binopTest11() throws Exception {
-        binopHelper(sym(NEQ), BinOpCode.NEQ);
+        binopHelper(BinOpCode.NEQ);
     }
     @Test
     public void binopTest12() throws Exception {
-        binopHelper(sym(AMP), BinOpCode.AMP);
+        binopHelper(BinOpCode.AMP);
     }
     @Test
     public void binopTest13() throws Exception {
-        binopHelper(sym(BAR), BinOpCode.BAR);
+        binopHelper(BinOpCode.BAR);
     }
     @Test
     public void binopTest14() throws Exception {
-        binopHelper(sym(HIGHMULT), BinOpCode.HIGHMULT);
+        binopHelper(BinOpCode.HIGHMULT);
     }
 
     /**
@@ -1286,13 +1276,13 @@ public class ParserTest {
      * pass in the same token twice; otherwise the parser complains about token
      * recycling.
      */
-    private void assocHelper(Symbol s1, Symbol s2, BinOpCode c)
+    private void assocHelper(BinOpCode c)
                  throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(NUM, 1l),
-            s1,
+            sym(c.code),
             sym(NUM, 2l),
-            s2,
+            sym(c.code),
             sym(NUM, 3l)
         );
 
@@ -1301,89 +1291,74 @@ public class ParserTest {
         exprTestHelper(symbols, e);
     }
 
-    @Ignore
     @Test
-    // 1 op 2 op 3
     public void assocTest1() throws Exception {
-        assocHelper(sym(PLUS), sym(PLUS), BinOpCode.PLUS);
+        assocHelper(BinOpCode.PLUS);
     }
-    @Ignore
     @Test
     public void assocTest2() throws Exception {
-        assocHelper(sym(STAR), sym(STAR), BinOpCode.STAR);
+        assocHelper(BinOpCode.STAR);
     }
-    @Ignore
     @Test
     public void assocTest3() throws Exception {
-        assocHelper(sym(MINUS), sym(MINUS), BinOpCode.MINUS);
+        assocHelper(BinOpCode.MINUS);
     }
-    @Ignore
     @Test
     public void assocTest4() throws Exception {
-        assocHelper(sym(DIV), sym(DIV), BinOpCode.DIV);
+        assocHelper(BinOpCode.DIV);
     }
-    @Ignore
     @Test
     public void assocTest5() throws Exception {
-        assocHelper(sym(MOD), sym(MOD), BinOpCode.MOD);
+        assocHelper(BinOpCode.MOD);
     }
-    @Ignore
     @Test
     public void assocTest6() throws Exception {
-        assocHelper(sym(LT), sym(LT), BinOpCode.LT);
+        assocHelper(BinOpCode.LT);
     }
-    @Ignore
     @Test
     public void assocTest7() throws Exception {
-        assocHelper(sym(LTE), sym(LTE), BinOpCode.LTE);
+        assocHelper(BinOpCode.LTE);
     }
-    @Ignore
     @Test
     public void assocTest8() throws Exception {
-        assocHelper(sym(GTE), sym(GTE), BinOpCode.GTE);
+        assocHelper(BinOpCode.GTE);
     }
-    @Ignore
     @Test
     public void assocTest9() throws Exception {
-        assocHelper(sym(GT), sym(GT), BinOpCode.GT);
+        assocHelper(BinOpCode.GT);
     }
-    @Ignore
     @Test
     public void assocTest10() throws Exception {
-        assocHelper(sym(EQEQ), sym(EQEQ), BinOpCode.EQEQ);
+        assocHelper(BinOpCode.EQEQ);
     }
-    @Ignore
     @Test
     public void assocTest11() throws Exception {
-        assocHelper(sym(NEQ), sym(NEQ), BinOpCode.NEQ);
+        assocHelper(BinOpCode.NEQ);
     }
-    @Ignore
     @Test
     public void assocTest12() throws Exception {
-        assocHelper(sym(AMP), sym(AMP), BinOpCode.AMP);
+        assocHelper(BinOpCode.AMP);
     }
-    @Ignore
     @Test
     public void assocTest13() throws Exception {
-        assocHelper(sym(BAR), sym(BAR), BinOpCode.BAR);
+        assocHelper(BinOpCode.BAR);
     }
-    @Ignore
     @Test
     public void assocTest14() throws Exception {
-        assocHelper(sym(HIGHMULT), sym(HIGHMULT), BinOpCode.HIGHMULT);
+        assocHelper(BinOpCode.HIGHMULT);
     }
 
     /**
      * Tests that {@code 1 op_1 2 op_2 3} == {@code 1 op_1 (2 op_2 3)} where
      * op_2 has higher precedence than op_1.
      */
-    private void precHelper(Symbol op1, Symbol op2, BinOpCode c1, BinOpCode c2)
+    private void precHelper(BinOpCode c1, BinOpCode c2)
                  throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(NUM, 1l),
-            op1,
+            sym(c1.code),
             sym(NUM, 2l),
-            op2,
+            sym(c2.code),
             sym(NUM, 3l)
         );
 
@@ -1394,138 +1369,336 @@ public class ParserTest {
 
     @Test
     public void precTest1() throws Exception {
-        precHelper(sym(BAR), sym(AMP), BinOpCode.BAR, BinOpCode.AMP);
-        precHelper(sym(BAR), sym(EQEQ), BinOpCode.BAR, BinOpCode.EQEQ);
-        precHelper(sym(BAR), sym(NEQ), BinOpCode.BAR, BinOpCode.NEQ);
-        precHelper(sym(BAR), sym(GT), BinOpCode.BAR, BinOpCode.GT);
-        precHelper(sym(BAR), sym(GTE), BinOpCode.BAR, BinOpCode.GTE);
-        precHelper(sym(BAR), sym(LT), BinOpCode.BAR, BinOpCode.LT);
-        precHelper(sym(BAR), sym(LTE), BinOpCode.BAR, BinOpCode.LTE);
-        precHelper(sym(BAR), sym(PLUS), BinOpCode.BAR, BinOpCode.PLUS);
-        precHelper(sym(BAR), sym(MINUS), BinOpCode.BAR, BinOpCode.MINUS);
-        precHelper(sym(BAR), sym(STAR), BinOpCode.BAR, BinOpCode.STAR);
-        precHelper(sym(BAR), sym(DIV), BinOpCode.BAR, BinOpCode.DIV);
-        precHelper(sym(BAR), sym(MOD), BinOpCode.BAR, BinOpCode.MOD);
-        precHelper(sym(BAR), sym(HIGHMULT), BinOpCode.BAR, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.BAR, BinOpCode.AMP);
+        precHelper(BinOpCode.BAR, BinOpCode.EQEQ);
+        precHelper(BinOpCode.BAR, BinOpCode.NEQ);
+        precHelper(BinOpCode.BAR, BinOpCode.GT);
+        precHelper(BinOpCode.BAR, BinOpCode.GTE);
+        precHelper(BinOpCode.BAR, BinOpCode.LT);
+        precHelper(BinOpCode.BAR, BinOpCode.LTE);
+        precHelper(BinOpCode.BAR, BinOpCode.PLUS);
+        precHelper(BinOpCode.BAR, BinOpCode.MINUS);
+        precHelper(BinOpCode.BAR, BinOpCode.STAR);
+        precHelper(BinOpCode.BAR, BinOpCode.DIV);
+        precHelper(BinOpCode.BAR, BinOpCode.MOD);
+        precHelper(BinOpCode.BAR, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest2() throws Exception {
-        precHelper(sym(AMP), sym(EQEQ), BinOpCode.AMP, BinOpCode.EQEQ);
-        precHelper(sym(AMP), sym(NEQ), BinOpCode.AMP, BinOpCode.NEQ);
-        precHelper(sym(AMP), sym(GT), BinOpCode.AMP, BinOpCode.GT);
-        precHelper(sym(AMP), sym(GTE), BinOpCode.AMP, BinOpCode.GTE);
-        precHelper(sym(AMP), sym(LT), BinOpCode.AMP, BinOpCode.LT);
-        precHelper(sym(AMP), sym(LTE), BinOpCode.AMP, BinOpCode.LTE);
-        precHelper(sym(AMP), sym(PLUS), BinOpCode.AMP, BinOpCode.PLUS);
-        precHelper(sym(AMP), sym(MINUS), BinOpCode.AMP, BinOpCode.MINUS);
-        precHelper(sym(AMP), sym(STAR), BinOpCode.AMP, BinOpCode.STAR);
-        precHelper(sym(AMP), sym(DIV), BinOpCode.AMP, BinOpCode.DIV);
-        precHelper(sym(AMP), sym(MOD), BinOpCode.AMP, BinOpCode.MOD);
-        precHelper(sym(AMP), sym(HIGHMULT), BinOpCode.AMP, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.AMP, BinOpCode.EQEQ);
+        precHelper(BinOpCode.AMP, BinOpCode.NEQ);
+        precHelper(BinOpCode.AMP, BinOpCode.GT);
+        precHelper(BinOpCode.AMP, BinOpCode.GTE);
+        precHelper(BinOpCode.AMP, BinOpCode.LT);
+        precHelper(BinOpCode.AMP, BinOpCode.LTE);
+        precHelper(BinOpCode.AMP, BinOpCode.PLUS);
+        precHelper(BinOpCode.AMP, BinOpCode.MINUS);
+        precHelper(BinOpCode.AMP, BinOpCode.STAR);
+        precHelper(BinOpCode.AMP, BinOpCode.DIV);
+        precHelper(BinOpCode.AMP, BinOpCode.MOD);
+        precHelper(BinOpCode.AMP, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest3() throws Exception {
-        precHelper(sym(EQEQ), sym(GT), BinOpCode.EQEQ, BinOpCode.GT);
-        precHelper(sym(EQEQ), sym(GTE), BinOpCode.EQEQ, BinOpCode.GTE);
-        precHelper(sym(EQEQ), sym(LT), BinOpCode.EQEQ, BinOpCode.LT);
-        precHelper(sym(EQEQ), sym(LTE), BinOpCode.EQEQ, BinOpCode.LTE);
-        precHelper(sym(EQEQ), sym(PLUS), BinOpCode.EQEQ, BinOpCode.PLUS);
-        precHelper(sym(EQEQ), sym(MINUS), BinOpCode.EQEQ, BinOpCode.MINUS);
-        precHelper(sym(EQEQ), sym(STAR), BinOpCode.EQEQ, BinOpCode.STAR);
-        precHelper(sym(EQEQ), sym(DIV), BinOpCode.EQEQ, BinOpCode.DIV);
-        precHelper(sym(EQEQ), sym(MOD), BinOpCode.EQEQ, BinOpCode.MOD);
-        precHelper(sym(EQEQ), sym(HIGHMULT), BinOpCode.EQEQ, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.EQEQ, BinOpCode.GT);
+        precHelper(BinOpCode.EQEQ, BinOpCode.GTE);
+        precHelper(BinOpCode.EQEQ, BinOpCode.LT);
+        precHelper(BinOpCode.EQEQ, BinOpCode.LTE);
+        precHelper(BinOpCode.EQEQ, BinOpCode.PLUS);
+        precHelper(BinOpCode.EQEQ, BinOpCode.MINUS);
+        precHelper(BinOpCode.EQEQ, BinOpCode.STAR);
+        precHelper(BinOpCode.EQEQ, BinOpCode.DIV);
+        precHelper(BinOpCode.EQEQ, BinOpCode.MOD);
+        precHelper(BinOpCode.EQEQ, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest4() throws Exception {
-        precHelper(sym(NEQ), sym(GT), BinOpCode.NEQ, BinOpCode.GT);
-        precHelper(sym(NEQ), sym(GTE), BinOpCode.NEQ, BinOpCode.GTE);
-        precHelper(sym(NEQ), sym(LT), BinOpCode.NEQ, BinOpCode.LT);
-        precHelper(sym(NEQ), sym(LTE), BinOpCode.NEQ, BinOpCode.LTE);
-        precHelper(sym(NEQ), sym(PLUS), BinOpCode.NEQ, BinOpCode.PLUS);
-        precHelper(sym(NEQ), sym(MINUS), BinOpCode.NEQ, BinOpCode.MINUS);
-        precHelper(sym(NEQ), sym(STAR), BinOpCode.NEQ, BinOpCode.STAR);
-        precHelper(sym(NEQ), sym(DIV), BinOpCode.NEQ, BinOpCode.DIV);
-        precHelper(sym(NEQ), sym(MOD), BinOpCode.NEQ, BinOpCode.MOD);
-        precHelper(sym(NEQ), sym(HIGHMULT), BinOpCode.NEQ, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.NEQ, BinOpCode.GT);
+        precHelper(BinOpCode.NEQ, BinOpCode.GTE);
+        precHelper(BinOpCode.NEQ, BinOpCode.LT);
+        precHelper(BinOpCode.NEQ, BinOpCode.LTE);
+        precHelper(BinOpCode.NEQ, BinOpCode.PLUS);
+        precHelper(BinOpCode.NEQ, BinOpCode.MINUS);
+        precHelper(BinOpCode.NEQ, BinOpCode.STAR);
+        precHelper(BinOpCode.NEQ, BinOpCode.DIV);
+        precHelper(BinOpCode.NEQ, BinOpCode.MOD);
+        precHelper(BinOpCode.NEQ, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest5() throws Exception {
-        precHelper(sym(GT), sym(PLUS), BinOpCode.GT, BinOpCode.PLUS);
-        precHelper(sym(GT), sym(MINUS), BinOpCode.GT, BinOpCode.MINUS);
-        precHelper(sym(GT), sym(STAR), BinOpCode.GT, BinOpCode.STAR);
-        precHelper(sym(GT), sym(DIV), BinOpCode.GT, BinOpCode.DIV);
-        precHelper(sym(GT), sym(MOD), BinOpCode.GT, BinOpCode.MOD);
-        precHelper(sym(GT), sym(HIGHMULT), BinOpCode.GT, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.GT, BinOpCode.PLUS);
+        precHelper(BinOpCode.GT, BinOpCode.MINUS);
+        precHelper(BinOpCode.GT, BinOpCode.STAR);
+        precHelper(BinOpCode.GT, BinOpCode.DIV);
+        precHelper(BinOpCode.GT, BinOpCode.MOD);
+        precHelper(BinOpCode.GT, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest6() throws Exception {
-        precHelper(sym(GTE), sym(PLUS), BinOpCode.GTE, BinOpCode.PLUS);
-        precHelper(sym(GTE), sym(MINUS), BinOpCode.GTE, BinOpCode.MINUS);
-        precHelper(sym(GTE), sym(STAR), BinOpCode.GTE, BinOpCode.STAR);
-        precHelper(sym(GTE), sym(DIV), BinOpCode.GTE, BinOpCode.DIV);
-        precHelper(sym(GTE), sym(MOD), BinOpCode.GTE, BinOpCode.MOD);
-        precHelper(sym(GTE), sym(HIGHMULT), BinOpCode.GTE, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.GTE, BinOpCode.PLUS);
+        precHelper(BinOpCode.GTE, BinOpCode.MINUS);
+        precHelper(BinOpCode.GTE, BinOpCode.STAR);
+        precHelper(BinOpCode.GTE, BinOpCode.DIV);
+        precHelper(BinOpCode.GTE, BinOpCode.MOD);
+        precHelper(BinOpCode.GTE, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest7() throws Exception {
-        precHelper(sym(LT), sym(PLUS), BinOpCode.LT, BinOpCode.PLUS);
-        precHelper(sym(LT), sym(MINUS), BinOpCode.LT, BinOpCode.MINUS);
-        precHelper(sym(LT), sym(STAR), BinOpCode.LT, BinOpCode.STAR);
-        precHelper(sym(LT), sym(DIV), BinOpCode.LT, BinOpCode.DIV);
-        precHelper(sym(LT), sym(MOD), BinOpCode.LT, BinOpCode.MOD);
-        precHelper(sym(LT), sym(HIGHMULT), BinOpCode.LT, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.LT, BinOpCode.PLUS);
+        precHelper(BinOpCode.LT, BinOpCode.MINUS);
+        precHelper(BinOpCode.LT, BinOpCode.STAR);
+        precHelper(BinOpCode.LT, BinOpCode.DIV);
+        precHelper(BinOpCode.LT, BinOpCode.MOD);
+        precHelper(BinOpCode.LT, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest8() throws Exception {
-        precHelper(sym(LTE), sym(PLUS), BinOpCode.LTE, BinOpCode.PLUS);
-        precHelper(sym(LTE), sym(MINUS), BinOpCode.LTE, BinOpCode.MINUS);
-        precHelper(sym(LTE), sym(STAR), BinOpCode.LTE, BinOpCode.STAR);
-        precHelper(sym(LTE), sym(DIV), BinOpCode.LTE, BinOpCode.DIV);
-        precHelper(sym(LTE), sym(MOD), BinOpCode.LTE, BinOpCode.MOD);
-        precHelper(sym(LTE), sym(HIGHMULT), BinOpCode.LTE, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.LTE, BinOpCode.PLUS);
+        precHelper(BinOpCode.LTE, BinOpCode.MINUS);
+        precHelper(BinOpCode.LTE, BinOpCode.STAR);
+        precHelper(BinOpCode.LTE, BinOpCode.DIV);
+        precHelper(BinOpCode.LTE, BinOpCode.MOD);
+        precHelper(BinOpCode.LTE, BinOpCode.HIGHMULT);
     }
-
 
     @Test
     public void precTest9() throws Exception {
-        precHelper(sym(PLUS), sym(STAR), BinOpCode.PLUS, BinOpCode.STAR);
-        precHelper(sym(PLUS), sym(DIV), BinOpCode.PLUS, BinOpCode.DIV);
-        precHelper(sym(PLUS), sym(MOD), BinOpCode.PLUS, BinOpCode.MOD);
-        precHelper(sym(PLUS), sym(HIGHMULT), BinOpCode.PLUS, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.PLUS, BinOpCode.STAR);
+        precHelper(BinOpCode.PLUS, BinOpCode.DIV);
+        precHelper(BinOpCode.PLUS, BinOpCode.MOD);
+        precHelper(BinOpCode.PLUS, BinOpCode.HIGHMULT);
     }
 
     @Test
     public void precTest10() throws Exception {
-        precHelper(sym(MINUS), sym(STAR), BinOpCode.MINUS, BinOpCode.STAR);
-        precHelper(sym(MINUS), sym(DIV), BinOpCode.MINUS, BinOpCode.DIV);
-        precHelper(sym(MINUS), sym(MOD), BinOpCode.MINUS, BinOpCode.MOD);
-        precHelper(sym(MINUS), sym(HIGHMULT), BinOpCode.MINUS, BinOpCode.HIGHMULT);
+        precHelper(BinOpCode.MINUS, BinOpCode.STAR);
+        precHelper(BinOpCode.MINUS, BinOpCode.DIV);
+        precHelper(BinOpCode.MINUS, BinOpCode.MOD);
+        precHelper(BinOpCode.MINUS, BinOpCode.HIGHMULT);
     }
 
-    // TODO: determine function returns
-    // @Test
-    // public void singleFuncTest() throws Exception {
-    //     List<Symbol> symbols = Arrays.asList(
-    //         sym(ID, "foo"),
-    //         sym(LPAREN),
-    //         sym(RPAREN),
-    //         sym(COLON),
-    //         sym(INT),
-    //         sym(LBRACE),
-    //         sym(RBRACE)
-    //     );
-    //     Program<Position> expected = program(
-    //         l(),
-    //         l(func(id("foo"), l(), l(num()), l(), l()))
-    //     );
-    //     assertEquals(expected, parse(symbols));
-    // }
+    /**
+     * Tests that {@code 1 op_high 2 op_low 3 op_high 4} == {@code (1 op_high 2)
+     * op_3 (3 op_high 4)} where op_high has higher precedence than op_low.
+     */
+    private void precHelper(BinOpCode h1, BinOpCode l, BinOpCode h2)
+                 throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(NUM, 1l),
+            sym(h1.code),
+            sym(NUM, 2l),
+            sym(l.code),
+            sym(NUM, 3l),
+            sym(h2.code),
+            sym(NUM, 4l)
+        );
+
+        Expr<Position> e =
+            binOp(l, binOp(h1, numLiteral(1l), numLiteral(2l)),
+                     binOp(h2, numLiteral(3l), numLiteral(4l)));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void doublePrecTest1() throws Exception {
+        BinOpCode[] codes = {
+            BinOpCode.AMP,
+            BinOpCode.EQEQ,
+            BinOpCode.NEQ,
+            BinOpCode.GT,
+            BinOpCode.GTE,
+            BinOpCode.LT,
+            BinOpCode.LTE,
+            BinOpCode.PLUS,
+            BinOpCode.MINUS,
+            BinOpCode.STAR,
+            BinOpCode.DIV,
+            BinOpCode.MOD,
+            BinOpCode.HIGHMULT
+        };
+        for (BinOpCode c1 : codes) {
+            for (BinOpCode c2 : codes) {
+                precHelper(c1, BinOpCode.BAR, c2);
+            }
+        }
+    }
+
+    @Test
+    public void doublePrecTest2() throws Exception {
+        BinOpCode[] codes = {
+            BinOpCode.EQEQ,
+            BinOpCode.NEQ,
+            BinOpCode.GT,
+            BinOpCode.GTE,
+            BinOpCode.LT,
+            BinOpCode.LTE,
+            BinOpCode.PLUS,
+            BinOpCode.MINUS,
+            BinOpCode.STAR,
+            BinOpCode.DIV,
+            BinOpCode.MOD,
+            BinOpCode.HIGHMULT
+        };
+
+        for (BinOpCode c1 : codes) {
+            for (BinOpCode c2 : codes) {
+                precHelper(c1, BinOpCode.AMP, c2);
+            }
+        }
+    }
+
+    @Test
+    public void doublePrecTest3() throws Exception {
+        BinOpCode[] codes = {
+            BinOpCode.GT,
+            BinOpCode.GTE,
+            BinOpCode.LT,
+            BinOpCode.LTE,
+            BinOpCode.PLUS,
+            BinOpCode.MINUS,
+            BinOpCode.STAR,
+            BinOpCode.DIV,
+            BinOpCode.MOD,
+            BinOpCode.HIGHMULT
+        };
+
+        BinOpCode[] lows = {
+            BinOpCode.EQEQ,
+            BinOpCode.NEQ
+        };
+
+        for (BinOpCode l : lows) {
+            for (BinOpCode c1 : codes) {
+                for (BinOpCode c2 : codes) {
+                    precHelper(c1, l, c2);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void doublePrecTest4() throws Exception {
+        BinOpCode[] codes = {
+            BinOpCode.PLUS,
+            BinOpCode.MINUS,
+            BinOpCode.STAR,
+            BinOpCode.DIV,
+            BinOpCode.MOD,
+            BinOpCode.HIGHMULT
+        };
+
+        BinOpCode[] lows = {
+            BinOpCode.GT,
+            BinOpCode.GTE,
+            BinOpCode.LT,
+            BinOpCode.LTE,
+        };
+
+        for (BinOpCode l : lows) {
+            for (BinOpCode c1 : codes) {
+                for (BinOpCode c2 : codes) {
+                    precHelper(c1, l, c2);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void doublePrecTest5() throws Exception {
+        BinOpCode[] codes = {
+            BinOpCode.STAR,
+            BinOpCode.DIV,
+            BinOpCode.MOD,
+            BinOpCode.HIGHMULT
+        };
+
+        BinOpCode[] lows = {
+            BinOpCode.PLUS,
+            BinOpCode.MINUS,
+        };
+
+        for (BinOpCode l : lows) {
+            for (BinOpCode c1 : codes) {
+                for (BinOpCode c2 : codes) {
+                    precHelper(c1, l, c2);
+                }
+            }
+        }
+    }
+
+    /** Tests that {@code uop 1 bop 2} == {@code uop (1 bop 2)}. */
+    private void unaryHelper(UnOpCode u, BinOpCode b) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(u.code),
+            sym(NUM, 1l),
+            sym(b.code),
+            sym(NUM, 2l)
+        );
+
+        Expr<Position> e = binOp(b, unOp(u, numLiteral(1l)), numLiteral(2l));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void unopTest() throws Exception {
+        for (UnOpCode u : UnOpCode.values()) {
+            for (BinOpCode b : BinOpCode.values()) {
+                unaryHelper(u, b);
+            }
+        }
+    }
+
+    /**
+     * Tests that {@code a op b[1]} == {@code a op (b[1])}
+     */
+    private void indexPrecHelper(BinOpCode c) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"),
+            sym(c.code),
+            sym(ID, "b"),
+            sym(LBRACKET),
+            sym(NUM, 1l),
+            sym(RBRACKET)
+        );
+
+        Expr<Position> e = binOp(c, id("a"), index(id("b"), numLiteral(1l)));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void indexPrecTest() throws Exception {
+        for (BinOpCode b : BinOpCode.values()) {
+            indexPrecHelper(b);
+        }
+    }
+
+    /**
+     * Tests that op {@code a op b()} == {@code a op (b())}
+     */
+    private void callPrecHelper(BinOpCode c) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"),
+            sym(c.code),
+            sym(ID, "b"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+
+        Expr<Position> e = binOp(c, id("a"), call(id("b"), l()));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void callPrecTest() throws Exception {
+        for (BinOpCode b : BinOpCode.values()) {
+            callPrecHelper(b);
+        }
+    }
 }

@@ -170,10 +170,8 @@ nonterminal ArrayList<Callable<Position>>
 nonterminal Program<Position>
     prog;
 
-nonterminal BinOpCode
-	binop;
-
-nonterminal UnOpCode
+nonterminal Expr<Position>
+	binop,
 	unop;
 
 // expressions
@@ -448,10 +446,10 @@ prog ::= use_def_star:us func_def_plus:fs
 
 expr ::= literal:l
 	{: RESULT = l; :}
-    | expr:e1 binop:op expr:e2
-	{: RESULT = BinOp.of(new Position(e1left, e1right), op, e1, e2); :}
-    | unop:op expr:e
-	{: RESULT = UnOp.of(new Position(opleft, opright), op, e); :} %prec UMINUS
+    | binop:bop
+	{: RESULT = bop; :}
+    | unop:uop 
+	{: RESULT = uop; :}
     | expr:e1 num_array_index_plus:e_lst
 	{: Position p = new Position(e1left, e1right);
 	   Expr<Position> exp = Index.of(p, e1, e_lst.get(0));   
@@ -517,40 +515,56 @@ literal ::= NUM:n
 	{: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
     ;
 
-binop ::= MINUS
-	{: RESULT = BinOpCode.MINUS; :}
-    | STAR
-	{: RESULT = BinOpCode.STAR; :}
-    | HIGHMULT
-	{: RESULT = BinOpCode.HIGHMULT; :}
-    | DIV
-	{: RESULT = BinOpCode.DIV; :}
-    | MOD
-	{: RESULT = BinOpCode.MOD; :}
-    | PLUS
-	{: RESULT = BinOpCode.PLUS; :}
-    | LT
-	{: RESULT = BinOpCode.LT; :}
-    | LTE
-	{: RESULT = BinOpCode.LTE; :}
-    | GTE
-	{: RESULT = BinOpCode.GTE; :}
-    | GT
-	{: RESULT = BinOpCode.GT; :}
-    | EQEQ
-	{: RESULT = BinOpCode.EQEQ; :}
-    | NEQ
-	{: RESULT = BinOpCode.NEQ; :}
-    | AMP
-	{: RESULT = BinOpCode.AMP; :}
-    | BAR
-	{: RESULT = BinOpCode.BAR; :}
+binop ::= expr:e1 MINUS expr:e2
+	{: Position p = new Position(e1left, e2right); 
+	   RESULT = BinOp.of(p, BinOpCode.MINUS, e1, e2); :}
+    | expr:e1 STAR expr:e2
+	{: Position p = new Position(e1left, e2right);
+	   RESULT = BinOp.of(p, BinOpCode.STAR, e1, e2); :}
+    | expr:e1 HIGHMULT expr:e2
+	{: Position p = new Position(e1left, e2right); 
+	   RESULT = BinOp.of(p, BinOpCode.HIGHMULT, e1, e2); :}
+    | expr:e1 DIV expr:e2
+	{: Position p = new Position(e1left, e2right); 
+	   RESULT = BinOp.of(p, BinOpCode.DIV, e1, e2); :}
+    | expr:e1 MOD expr:e2
+	{: Position p = new Position(e1left, e1right); 
+	   RESULT = BinOp.of(p, BinOpCode.MOD, e1, e2); :}
+    | expr:e1 PLUS expr:e2
+	{: Position p = new Position(e1left, e1right); 
+	   RESULT = BinOp.of(p, BinOpCode.PLUS, e1, e2); :}
+    | expr:e1 LT expr:e2
+	{: Position p = new Position(e1left, e1right); 
+	   RESULT = BinOp.of(p, BinOpCode.LT, e1, e2); :}
+    | expr:e1 LTE expr:e2
+	{: Position p = new Position(e1left, e1right);
+	   RESULT = BinOp.of(p, BinOpCode.LTE, e1, e2); :}
+    | expr:e1 GTE expr:e2
+	{: Position p = new Position(e1left, e1right); 
+	   RESULT = BinOp.of(p, BinOpCode.GTE, e1, e2); :}
+    | expr:e1 GT expr:e2
+	{: Position p = new Position(e1left, e1right);
+	   RESULT = BinOp.of(p, BinOpCode.GT, e1, e2); :}
+    | expr:e1 EQEQ expr:e2
+	{: Position p = new Position(e1left, e1right);
+	   RESULT = BinOp.of(p, BinOpCode.EQEQ, e1, e2); :}
+    | expr:e1 NEQ expr:e2
+	{: Position p = new Position(e1left, e1right);
+	   RESULT = BinOp.of(p, BinOpCode.NEQ, e1, e2); :}
+    | expr:e1 AMP expr:e2
+	{: Position p = new Position(e1left, e1right);
+	   RESULT = BinOp.of(p, BinOpCode.AMP, e1, e2); :}
+    | expr:e1 BAR expr:e2
+	{: Position p = new Position(e1left, e1right); 
+	   RESULT = BinOp.of(p, BinOpCode.BAR, e1, e2); :}
     ;
 
-unop ::= BANG
-	{: RESULT = UnOpCode.BANG; :}
-    | MINUS
-	{: RESULT = UnOpCode.UMINUS; :}
+unop ::= BANG:b expr:e
+	{: Position p = new Position(bleft, bright);
+	  RESULT = UnOp.of(p, UnOpCode.BANG, e); :} %prec UMINUS
+    | MINUS:u expr:e
+	{: Position p = new Position(uleft, uright); 
+	   RESULT = UnOp.of(p, UnOpCode.UMINUS, e); :} %prec UMINUS
     ;
 
 

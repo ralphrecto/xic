@@ -264,20 +264,25 @@ public interface Ast {
     }
 
     public enum BinOpCode {
-        MINUS,    // -
-        STAR,     // *
-        HIGHMULT, // *>>
-        DIV,      // /
-        MOD,      // %
-        PLUS,     // +
-        LT,       // <
-        LTE,      // <=
-        GTE,      // >=
-        GT,       // >
-        EQEQ,     // ==
-        NEQ,      // !=
-        AMP,      // &
-        BAR       // |
+        MINUS(Sym.MINUS),       // -
+        STAR(Sym.STAR),         // *
+        HIGHMULT(Sym.HIGHMULT), // *>>
+        DIV(Sym.DIV),           // /
+        MOD(Sym.MOD),           // %
+        PLUS(Sym.PLUS),         // +
+        LT(Sym.LT),             // <
+        LTE(Sym.LTE),           // <=
+        GTE(Sym.GTE),           // >=
+        GT(Sym.GT),             // >
+        EQEQ(Sym.EQEQ),         // ==
+        NEQ(Sym.NEQ),           // !=
+        AMP(Sym.AMP),           // &
+        BAR(Sym.BAR);           // |
+
+        public final int code;
+        BinOpCode(int code) {
+             this.code = code;
+        }
     }
 
     @AllArgsConstructor(staticName="of")
@@ -293,8 +298,13 @@ public interface Ast {
     }
 
     public enum UnOpCode {
-        UMINUS, // -
-        BANG    // !
+        UMINUS(Sym.MINUS), // -
+        BANG(Sym.BANG);    // !
+
+        public final int code;
+        UnOpCode(int code) {
+             this.code = code;
+        }
     }
 
     @AllArgsConstructor(staticName="of")

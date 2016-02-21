@@ -709,20 +709,82 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Test
-    // 1 + 2 + 3
-    public void assocTest1() throws Exception {
-        List<Symbol> symbols = Arrays.asList(
-            sym(NUM, 1l),
-            sym(PLUS),
-            sym(NUM, 2l),
-            sym(PLUS),
-            sym(NUM, 3l)
-        );
-        Expr<Position> e = plus(plus(numLiteral(1l), numLiteral(2l)), numLiteral(3l));
+    /**
+     * Tests that {@code 1 op 2 op 3} == {@code (1 op 2) op 3}. You have to
+     * pass in the same token twice; otherwise the parser complains about token
+     * recycling.
+     */
+    private void assocHelper(List<Symbol> s1, List<Symbol> s2, BinOpCode c)
+                 throws Exception {
+        List<Symbol> symbols = new ArrayList<>();
+        symbols.add(sym(NUM, 1l));
+        symbols.addAll(s1);
+        symbols.add(sym(NUM, 2l));
+        symbols.addAll(s2);
+        symbols.add(sym(NUM, 3l));
+
+        Expr<Position> e =
+            binOp(c, binOp(c, numLiteral(1l), numLiteral(2l)), numLiteral(3l));
         exprTestHelper(symbols, e);
     }
 
+    @Test
+    // 1 op 2 op 3
+    public void assocTest1() throws Exception {
+        assocHelper(l(sym(PLUS)), l(sym(PLUS)), BinOpCode.PLUS);
+    }
+    @Test
+    public void assocTest2() throws Exception {
+        assocHelper(l(sym(STAR)), l(sym(STAR)), BinOpCode.STAR);
+    }
+    @Test
+    public void assocTest3() throws Exception {
+        assocHelper(l(sym(MINUS)), l(sym(MINUS)), BinOpCode.MINUS);
+    }
+    @Test
+    public void assocTest4() throws Exception {
+        assocHelper(l(sym(DIV)), l(sym(DIV)), BinOpCode.DIV);
+    }
+    @Test
+    public void assocTest5() throws Exception {
+        assocHelper(l(sym(MOD)), l(sym(MOD)), BinOpCode.MOD);
+    }
+    @Test
+    public void assocTest6() throws Exception {
+        assocHelper(l(sym(LT)), l(sym(LT)), BinOpCode.LT);
+    }
+    @Test
+    public void assocTest7() throws Exception {
+        assocHelper(l(sym(LTE)), l(sym(LTE)), BinOpCode.LTE);
+    }
+    @Test
+    public void assocTest8() throws Exception {
+        assocHelper(l(sym(GTE)), l(sym(GTE)), BinOpCode.GTE);
+    }
+    @Test
+    public void assocTest9() throws Exception {
+        assocHelper(l(sym(GT)), l(sym(GT)), BinOpCode.GT);
+    }
+    @Test
+    public void assocTest10() throws Exception {
+        assocHelper(l(sym(EQEQ)), l(sym(EQEQ)), BinOpCode.EQEQ);
+    }
+    @Test
+    public void assocTest11() throws Exception {
+        assocHelper(l(sym(NEQ)), l(sym(NEQ)), BinOpCode.NEQ);
+    }
+    @Test
+    public void assocTest12() throws Exception {
+        assocHelper(l(sym(AMP)), l(sym(AMP)), BinOpCode.AMP);
+    }
+    @Test
+    public void assocTest13() throws Exception {
+        assocHelper(l(sym(BAR)), l(sym(BAR)), BinOpCode.BAR);
+    }
+    @Test
+    public void assocTest14() throws Exception {
+        assocHelper(l(sym(STAR, GT, GT)), l(sym(STAR, GT, GT)), BinOpCode.HIGHMULT);
+    }
 
     // TODO: determine function returns
     // @Test

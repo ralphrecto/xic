@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.List;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
-import org.junit.Ignore;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
@@ -299,9 +298,8 @@ public class ParserTest {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Abbreviations
+    // Tests
     ////////////////////////////////////////////////////////////////////////////
-
     @Test
     public void emptyMainTest() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -589,7 +587,7 @@ public class ParserTest {
             sym(SEMICOLON)
         );
         Stmt<Position> stmt = decl(
-            l(annotatedUnderscore(underscore(), num())) 
+            l(annotatedUnderscore(underscore(), num()))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -728,7 +726,7 @@ public class ParserTest {
     public void declTest20() throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(ID, "a"), sym(COLON), sym(INT),
-            sym(LBRACKET), sym(NUM, 5L), 
+            sym(LBRACKET), sym(NUM, 5L),
             sym(RBRACKET),
             sym(LBRACKET), sym(RBRACKET),
             sym(SEMICOLON)
@@ -848,7 +846,7 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    
+
     /* Assignments */
     @Test
     public void asgnTest1() throws Exception {
@@ -859,7 +857,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest2() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -877,7 +874,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest3() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -892,7 +888,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest4() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -909,7 +904,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest5() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -924,7 +918,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest6() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -946,7 +939,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest7() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -964,7 +956,6 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    @Ignore
     @Test
     public void asgnTest8() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -1132,9 +1123,7 @@ public class ParserTest {
         exprTestHelper(symbols, e);
     }
 
-    @Ignore
     @Test
-    // 1 op 2 op 3
     public void assocTest1() throws Exception {
         assocHelper(BinOpCode.PLUS);
     }
@@ -1475,23 +1464,4 @@ public class ParserTest {
             }
         }
     }
-
-    // TODO: determine function returns
-    // @Test
-    // public void singleFuncTest() throws Exception {
-    //     List<Symbol> symbols = Arrays.asList(
-    //         sym(ID, "foo"),
-    //         sym(LPAREN),
-    //         sym(RPAREN),
-    //         sym(COLON),
-    //         sym(INT),
-    //         sym(LBRACE),
-    //         sym(RBRACE)
-    //     );
-    //     Program<Position> expected = program(
-    //         l(),
-    //         l(func(id("foo"), l(), l(num()), l(), l()))
-    //     );
-    //     assertEquals(expected, parse(symbols));
-    // }
 }

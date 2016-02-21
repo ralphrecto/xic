@@ -13,7 +13,7 @@ SRCS  = $(shell find src -name '*.java') \
 	    $(LEXER).java \
 	    $(PARSER).java \
 	    $(SYMBOL).java
-TESTS = $(shell find test -name '*.java' \
+TESTS = $(shell find test -name '*Test.java' \
             | sed 's/.java//' \
 		    | sed 's_test/__' \
 			| tr '/' '.')

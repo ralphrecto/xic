@@ -1,5 +1,6 @@
 package mjw297;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.List;
@@ -52,10 +53,15 @@ public class ParserTest {
     }
 
     public void stmtTestHelper(List<Symbol> syms, Stmt<Position> stmt) throws Exception {
-        List<Symbol> symbols = Arrays.asList(
-                sym(ID, "main"), sym(LPAREN), sym(RPAREN), sym(LBRACE)
-        );
-        symbols.addAll(syms);
+        List<Symbol> symbols = new ArrayList<>();
+        symbols.add(sym(ID, "main"));
+        symbols.add(sym(LPAREN));
+        symbols.add(sym(RPAREN));
+        symbols.add(sym(LBRACE));
+
+        for (Symbol sym : syms) {
+            symbols.add(sym);
+        }
         symbols.add(sym(RBRACE));
 
         Program<Position> expected = program(
@@ -310,17 +316,17 @@ public class ParserTest {
             sym(RBRACE, 3, 2)
         );
         Program<Position> expected = Program.of(
-            pos(0, 5),
-            l(Use.of(
-                pos(1, 1),
-                Id.of(pos(1, 5), "foo")
-             )),
-            l(Proc.of(
-                pos(2, 1),
-                Id.of(pos(2, 1), "main"),
-                l(),
-                l()
-             ))                
+                pos(0, 5),
+                l(Use.of(
+                        pos(1, 1),
+                        Id.of(pos(1, 5), "foo")
+                )),
+                l(Proc.of(
+                        pos(2, 1),
+                        Id.of(pos(2, 1), "main"),
+                        l(),
+                        l()
+                ))
         );
         assertEquals(expected, parsePos(symbols));
     }
@@ -364,6 +370,160 @@ public class ParserTest {
               proc(id("baz"), l(), l()))
         );
         assertEquals(expected, parse(symbols));
+    }
+
+    @Test
+    public void asgnTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(EQ), sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(NUM, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+            id("a"),
+            l(numLiteral(5)),
+            numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(NUM, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(numLiteral(5), numLiteral(4)),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest4() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(RPAREN),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(numLiteral(5), numLiteral(4)),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest5() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(STRING, "hello"),
+                sym(LBRACKET),
+                sym(INT, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(numLiteral(5), numLiteral(4)),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest6() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(ID, "b"),
+                sym(LBRACKET),
+                sym(INT, 5),
+                sym(RBRACKET),
+                sym(PLUS),
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(RPAREN),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(binOp(
+                    BinOpCode.PLUS,
+                    index(id("b"), l(numLiteral(5))),
+                    call(id("f"), l()))
+                ),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest7() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(STRING, "["),
+                sym(LBRACKET),
+                sym(STRING, "["),
+                sym(LBRACKET),
+                sym(NUM, 0),
+                sym(RBRACKET),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(numLiteral(5), numLiteral(4)),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest8() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(ID, "b"),
+                sym(LBRACKET),
+                sym(NUM, 0),
+                sym(RBRACKET),
+                sym(RPAREN),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgnArrayIndex(
+                id("a"),
+                l(numLiteral(5), numLiteral(4)),
+                numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
     }
 
     // TODO: determine function returns

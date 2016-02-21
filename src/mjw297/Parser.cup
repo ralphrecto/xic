@@ -253,11 +253,26 @@ var ::= avar:av
 	{: RESULT = Underscore.of(new Position(uleft, uright)); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
 	{: Position p = new Position(idleft, idright);
-       if (e_lst != null) {
-	       RESULT = AnnotatedId.of(p, Id.of(p, id), Array.of(dummy, bt, Optional.of(e_lst)));
-	   } else {
-		   RESULT = AnnotatedId.of(p, Id.of(p, id), Array.of(dummy, bt, Optional.empty()));
+       Position pArray = new Position(btleft, btright);
+	   Expr<Position> first = e_lst.get(0);
+	   Type<Position> array_type = Array.of(
+	        pArray,
+	        bt,
+	        first == null ? Optional.empty() : Optional.of(first)
+       );
+	   for (int i = 1; i < e_lst.size(); i++) {
+	       Expr<Position> current = e_lst.get(i);
+           array_type = Array.of(
+                pArray,
+                array_type,
+                current == null ? Optional.empty() : Optional.of(current)
+           );
 	   }
+	   RESULT = AnnotatedId.of(
+	        p,
+	        Id.of(p, id),
+	        array_type
+       );
     :}
     ;
 
@@ -416,7 +431,7 @@ expr ::= literal:l
     | LENGTH:l LPAREN expr:e RPAREN
 	{: RESULT = Length.of(new Position(lleft, lright), e); :}
     | LPAREN:l expr:e RPAREN
-	{: RESULT = ParenthesizedExpr.of(new Position(lleft, lright), e); :}
+	{: RESULT = e; :}
     | call:c
 	{: RESULT = c; :}
     | ID:id
@@ -424,9 +439,12 @@ expr ::= literal:l
     ;
 
 empty_array_index_star ::=
-	{: RESULT = null; :}
-    | empty_array_index_star LBRACKET RBRACKET
-	{: RESULT = null; :}
+	{: RESULT = new ArrayList<Expr<Position>>();
+	 :}
+    | empty_array_index_star:list LBRACKET RBRACKET
+	{: list.add(null);
+	   RESULT = list;
+	:}
     ;
 
 // TODO: expr or NUM?
@@ -439,10 +457,14 @@ num_array_index_plus ::= LBRACKET expr:e RBRACKET
 	   RESULT = e_lst; :}
     ;
 
-array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
-	{: RESULT = null; :}
-    | num_array_index_plus:e_lst empty_array_index_star
-	{: RESULT = e_lst; :}
+array_index_plus ::= LBRACKET RBRACKET empty_array_index_star:emp_lst
+	{: emp_lst.add(null);
+       RESULT = emp_lst;
+	:}
+    | num_array_index_plus:e_lst empty_array_index_star:emp_lst
+	{: e_lst.addAll(emp_lst);
+	   RESULT = e_lst;
+	 :}
     ;
 
 literal ::= NUM:n

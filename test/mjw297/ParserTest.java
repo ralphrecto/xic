@@ -306,6 +306,20 @@ public class ParserTest {
         assertEquals(expected, parse(symbols));
     }
 
+    public void stmtTestHelper(List<Symbol> syms, Stmt<Position> stmt) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "main"), sym(LPAREN), sym(RPAREN), sym(LBRACE)
+        );
+        symbols.addAll(syms);
+        symbols.add(sym(RBRACE));
+
+        Program<Position> expected = program(
+                l(),
+                l(proc(id("foo"), l(), l(stmt)))
+        );
+        assertEquals(expected, parse(symbols));
+    }
+
     // TODO: determine function returns
     // @Test
     // public void singleFuncTest() throws Exception {

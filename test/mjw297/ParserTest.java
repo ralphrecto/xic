@@ -12,6 +12,13 @@ import static org.junit.Assert.assertEquals;
 
 public class ParserTest {
     @SuppressWarnings("deprecation")
+    private static Program<Position> parsePos(List<Symbol> symbols) throws Exception {
+        MockLexer l = new MockLexer(symbols) ;
+        Parser p = new Parser(l);
+        return p.parse().value();
+    }
+
+    @SuppressWarnings("deprecation")
     private static Program<Position> parse(List<Symbol> symbols) throws Exception {
         MockLexer l = new MockLexer(symbols) ;
         Parser p = new Parser(l);
@@ -302,7 +309,7 @@ public class ParserTest {
                 l()
              ))                
         );
-        assertEquals(expected, parse(symbols));
+        assertEquals(expected, parsePos(symbols));
     }
 
     @Test

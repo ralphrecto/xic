@@ -709,11 +709,12 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    private void binopHelper(List<Symbol> s1, BinOpCode c) throws Exception {
-        List<Symbol> symbols = new ArrayList<>();
-        symbols.add(sym(NUM, 1l));
-        symbols.addAll(s1);
-        symbols.add(sym(NUM, 2l));
+    private void binopHelper(Symbol s1, BinOpCode c) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(NUM, 1l),
+            s1,
+            sym(NUM, 2l)
+        );
 
         Expr<Position> e = binOp(c, numLiteral(1l), numLiteral(2l));
         exprTestHelper(symbols, e);
@@ -721,59 +722,59 @@ public class ParserTest {
 
     @Test
     public void binopTest1() throws Exception {
-        binopHelper(l(sym(PLUS)), BinOpCode.PLUS);
+        binopHelper(sym(PLUS), BinOpCode.PLUS);
     }
     @Test
     public void binopTest2() throws Exception {
-        binopHelper(l(sym(STAR)), BinOpCode.STAR);
+        binopHelper(sym(STAR), BinOpCode.STAR);
     }
     @Test
     public void binopTest3() throws Exception {
-        binopHelper(l(sym(MINUS)), BinOpCode.MINUS);
+        binopHelper(sym(MINUS), BinOpCode.MINUS);
     }
     @Test
     public void binopTest4() throws Exception {
-        binopHelper(l(sym(DIV)), BinOpCode.DIV);
+        binopHelper(sym(DIV), BinOpCode.DIV);
     }
     @Test
     public void binopTest5() throws Exception {
-        binopHelper(l(sym(MOD)), BinOpCode.MOD);
+        binopHelper(sym(MOD), BinOpCode.MOD);
     }
     @Test
     public void binopTest6() throws Exception {
-        binopHelper(l(sym(LT)), BinOpCode.LT);
+        binopHelper(sym(LT), BinOpCode.LT);
     }
     @Test
     public void binopTest7() throws Exception {
-        binopHelper(l(sym(LTE)), BinOpCode.LTE);
+        binopHelper(sym(LTE), BinOpCode.LTE);
     }
     @Test
     public void binopTest8() throws Exception {
-        binopHelper(l(sym(GTE)), BinOpCode.GTE);
+        binopHelper(sym(GTE), BinOpCode.GTE);
     }
     @Test
     public void binopTest9() throws Exception {
-        binopHelper(l(sym(GT)), BinOpCode.GT);
+        binopHelper(sym(GT), BinOpCode.GT);
     }
     @Test
     public void binopTest10() throws Exception {
-        binopHelper(l(sym(EQEQ)), BinOpCode.EQEQ);
+        binopHelper(sym(EQEQ), BinOpCode.EQEQ);
     }
     @Test
     public void binopTest11() throws Exception {
-        binopHelper(l(sym(NEQ)), BinOpCode.NEQ);
+        binopHelper(sym(NEQ), BinOpCode.NEQ);
     }
     @Test
     public void binopTest12() throws Exception {
-        binopHelper(l(sym(AMP)), BinOpCode.AMP);
+        binopHelper(sym(AMP), BinOpCode.AMP);
     }
     @Test
     public void binopTest13() throws Exception {
-        binopHelper(l(sym(BAR)), BinOpCode.BAR);
+        binopHelper(sym(BAR), BinOpCode.BAR);
     }
     @Test
     public void binopTest14() throws Exception {
-        binopHelper(l(sym(STAR), sym(GT), sym(GT)), BinOpCode.HIGHMULT);
+        binopHelper(sym(HIGHMULT), BinOpCode.HIGHMULT);
     }
 
     /**
@@ -781,14 +782,15 @@ public class ParserTest {
      * pass in the same token twice; otherwise the parser complains about token
      * recycling.
      */
-    private void assocHelper(List<Symbol> s1, List<Symbol> s2, BinOpCode c)
+    private void assocHelper(Symbol s1, Symbol s2, BinOpCode c)
                  throws Exception {
-        List<Symbol> symbols = new ArrayList<>();
-        symbols.add(sym(NUM, 1l));
-        symbols.addAll(s1);
-        symbols.add(sym(NUM, 2l));
-        symbols.addAll(s2);
-        symbols.add(sym(NUM, 3l));
+        List<Symbol> symbols = Arrays.asList(
+            sym(NUM, 1l),
+            s1,
+            sym(NUM, 2l),
+            s2,
+            sym(NUM, 3l)
+        );
 
         Expr<Position> e =
             binOp(c, binOp(c, numLiteral(1l), numLiteral(2l)), numLiteral(3l));
@@ -798,59 +800,59 @@ public class ParserTest {
     @Test
     // 1 op 2 op 3
     public void assocTest1() throws Exception {
-        assocHelper(l(sym(PLUS)), l(sym(PLUS)), BinOpCode.PLUS);
+        assocHelper(sym(PLUS), sym(PLUS), BinOpCode.PLUS);
     }
     @Test
     public void assocTest2() throws Exception {
-        assocHelper(l(sym(STAR)), l(sym(STAR)), BinOpCode.STAR);
+        assocHelper(sym(STAR), sym(STAR), BinOpCode.STAR);
     }
     @Test
     public void assocTest3() throws Exception {
-        assocHelper(l(sym(MINUS)), l(sym(MINUS)), BinOpCode.MINUS);
+        assocHelper(sym(MINUS), sym(MINUS), BinOpCode.MINUS);
     }
     @Test
     public void assocTest4() throws Exception {
-        assocHelper(l(sym(DIV)), l(sym(DIV)), BinOpCode.DIV);
+        assocHelper(sym(DIV), sym(DIV), BinOpCode.DIV);
     }
     @Test
     public void assocTest5() throws Exception {
-        assocHelper(l(sym(MOD)), l(sym(MOD)), BinOpCode.MOD);
+        assocHelper(sym(MOD), sym(MOD), BinOpCode.MOD);
     }
     @Test
     public void assocTest6() throws Exception {
-        assocHelper(l(sym(LT)), l(sym(LT)), BinOpCode.LT);
+        assocHelper(sym(LT), sym(LT), BinOpCode.LT);
     }
     @Test
     public void assocTest7() throws Exception {
-        assocHelper(l(sym(LTE)), l(sym(LTE)), BinOpCode.LTE);
+        assocHelper(sym(LTE), sym(LTE), BinOpCode.LTE);
     }
     @Test
     public void assocTest8() throws Exception {
-        assocHelper(l(sym(GTE)), l(sym(GTE)), BinOpCode.GTE);
+        assocHelper(sym(GTE), sym(GTE), BinOpCode.GTE);
     }
     @Test
     public void assocTest9() throws Exception {
-        assocHelper(l(sym(GT)), l(sym(GT)), BinOpCode.GT);
+        assocHelper(sym(GT), sym(GT), BinOpCode.GT);
     }
     @Test
     public void assocTest10() throws Exception {
-        assocHelper(l(sym(EQEQ)), l(sym(EQEQ)), BinOpCode.EQEQ);
+        assocHelper(sym(EQEQ), sym(EQEQ), BinOpCode.EQEQ);
     }
     @Test
     public void assocTest11() throws Exception {
-        assocHelper(l(sym(NEQ)), l(sym(NEQ)), BinOpCode.NEQ);
+        assocHelper(sym(NEQ), sym(NEQ), BinOpCode.NEQ);
     }
     @Test
     public void assocTest12() throws Exception {
-        assocHelper(l(sym(AMP)), l(sym(AMP)), BinOpCode.AMP);
+        assocHelper(sym(AMP), sym(AMP), BinOpCode.AMP);
     }
     @Test
     public void assocTest13() throws Exception {
-        assocHelper(l(sym(BAR)), l(sym(BAR)), BinOpCode.BAR);
+        assocHelper(sym(BAR), sym(BAR), BinOpCode.BAR);
     }
     @Test
     public void assocTest14() throws Exception {
-        assocHelper(l(sym(STAR, GT, GT)), l(sym(STAR, GT, GT)), BinOpCode.HIGHMULT);
+        assocHelper(sym(HIGHMULT), sym(HIGHMULT), BinOpCode.HIGHMULT);
     }
 
     // TODO: determine function returns

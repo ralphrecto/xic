@@ -2,6 +2,7 @@ package mjw297;
 
 import java_cup.runtime.*;
 import java.util.ArrayList;
+import java.util.List;
 import mjw297.Ast.*;
 import java.util.Optional;
 
@@ -126,6 +127,9 @@ nonterminal Stmt<Position>
 	if_body,
 	while_body;
 
+nonterminal Expr<Position>
+    asgn_indexable;
+
 nonterminal Stmt<Position>
 	full_decl,
     full_stmt,
@@ -180,6 +184,9 @@ nonterminal UnOpCode
 nonterminal Expr<Position>
     expr,
     literal;
+
+nonterminal Expr<Position>
+    index_contents;
 
 nonterminal ArrayList<Expr<Position>>
     empty_array_index_star,
@@ -270,11 +277,7 @@ var ::= avar:av
                 current == null ? Optional.empty() : Optional.of(current)
            );
 	   }
-	   RESULT = AnnotatedId.of(
-	        p,
-	        Id.of(p, id),
-	        array_type
-       );
+	   RESULT = AnnotatedId.of(p, Id.of(p, id), array_type);
     :}
     ;
 
@@ -291,6 +294,8 @@ stmt ::= full_decl:f
 	{: RESULT = w; :}
     | call:c
 	{: RESULT = c; :}
+	| block:b
+	{: RESULT = b; :}
     ;
 
 end_stmt ::=
@@ -303,9 +308,9 @@ full_stmt ::= stmt:s end_stmt
 block ::= LBRACE:lb stmt_star:s RBRACE
 	{: Position p = new Position(lbleft, lbright); 
 	   RESULT = Block.of(p, s, Optional.empty()); :}
-	| LBRACE:lb stmt_star:s RETURN expr:e RBRACE
+	| LBRACE:lb stmt_star:s RETURN expr_star:el end_stmt RBRACE
 	{: Position p = new Position(lbleft, lbright); 
-	   RESULT = Block.of(p, s, Optional.of(e)); :}
+	   RESULT = Block.of(p, s, Optional.of(el)); :}
 	;
 
 full_decl ::= var_plus:v
@@ -314,39 +319,29 @@ full_decl ::= var_plus:v
 	{: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
     ;
 
+asgn_indexable ::= ID:i
+    {: RESULT = Id.of(new Position(ileft, iright), i); :}
+    | call:c
+    {: RESULT = c; :}
+    | STRING:s
+    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
+    ;
+
+// TODO: add underscore to LHS
 asgn ::= ID:i EQ expr:e
 	{: Position p = new Position(ileft, iright);
-	   RESULT = Asgn.of(p, Id.of(p,i), e); 
-	:}
-	| ID:i num_array_index_plus:idx EQ expr:e
-	{: Position p = new Position(ileft, iright);
-	   Expr<Position> exp = Index.of(p, Id.of(p, i), idx.get(0));
-	   for (int j = 1; j < idx.size(); j++) { 
-	       exp = Index.of(p, exp, idx.get(j));
-	   } 
-	   RESULT = Asgn.of(p, exp, e);
-	:}
-	| call:c num_array_index_plus:idx EQ expr:e
-	{: Position p = new Position(cleft, cright);
-	   Expr<Position> exp = Index.of(p, c, idx.get(0));
-	   for (int i = 1; i < idx.size(); i++) {
-	       exp = Index.of(p, exp, idx.get(i));
-	   }
-	   RESULT = Asgn.of(p, exp, e);
-	:} 
-	| STRING:s num_array_index_plus:idx EQ expr:e	
-	{: Position p = new Position(sleft, sright);
-	   Expr<Position> exp = Index.of(p, StringLiteral.of(p, s), idx.get(0));
+	   RESULT = Asgn.of(p, Id.of(p,i), e); :}
+	| asgn_indexable:a num_array_index_plus:idx EQ expr:e
+	{: Position p = new Position(aleft, aright);
+	   Index<Position> index = Index.of(p, a, idx.get(0));
 	   for (int i = 1; i < idx.size(); i++){
-	       exp = Index.of(p, exp, idx.get(i));
+	       index = Index.of(p, index, idx.get(i));
 	   }
-	   RESULT = Asgn.of(p, exp, e);
-	:}
+	   RESULT = Asgn.of(p, index, e);
+    :}
 	;
 
-if_body ::= block:b
-	{: RESULT = b; :}
-   	| full_stmt:s
+if_body ::= full_stmt:s
 	{: RESULT = s; :}
    	;
 
@@ -356,9 +351,7 @@ if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
 	{: RESULT = If.of(new Position(ileft, iright), e, s); :}
    	;
 
-while_body ::= block:b
-	{: RESULT = b; :}
-  	| full_stmt:s
+while_body ::= full_stmt:s
 	{: RESULT = s; :}
   	;
 
@@ -386,22 +379,23 @@ args_decl ::= LPAREN RPAREN
     {: RESULT = a; :}
     ;
 
-proc_ret ::=
-    {: RESULT = null; :}
-    | RETURN end_stmt
-    {: RESULT = null; :}
+proc_decl ::= ID:i args_decl:a block:b
+    {: Position p = new Position(ileft, iright);
+       if (b.ret.isPresent() && b.ret.get().size() > 0) {
+           report_error(String.format(
+               "error: returning value from a procedure, line %d col %d",
+               bleft, bright),
+               null
+           );
+       }
+       RESULT = Proc.of(p, Id.of(p, i), a, b);
+    :}
     ;
 
-func_ret ::= RETURN expr_plus:e end_stmt
-    {: RESULT = e; :};
-
-proc_decl ::= ID:i args_decl:a LBRACE stmt_star:s proc_ret RBRACE
-    {: Position p = new Position(ileft, iright);
-       RESULT = Proc.of(p, Id.of(p, i), a, s); :};
-
-func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r RBRACE
+func_decl ::= ID:f args_decl:a COLON type_plus:t block:b
     {: Position p = new Position(fleft, fright);
-       RESULT = Func.of(p, Id.of(p, f), a, t, s, r); :}
+       RESULT = Func.of(p, Id.of(p, f), a, t, b);
+    :}
     ;
 
 
@@ -471,15 +465,13 @@ expr ::= literal:l
     ;
 
 empty_array_index_star ::=
-	{: RESULT = new ArrayList<Expr<Position>>();
-	 :}
+	{: RESULT = new ArrayList<Expr<Position>>(); :}
     | empty_array_index_star:list LBRACKET RBRACKET
 	{: list.add(null);
 	   RESULT = list;
 	:}
     ;
 
-// TODO: expr or NUM?
 num_array_index_plus ::= LBRACKET expr:e RBRACKET
 	{: ArrayList<Expr<Position>> list = new ArrayList<>();
 	   list.add(e);
@@ -489,20 +481,34 @@ num_array_index_plus ::= LBRACKET expr:e RBRACKET
 	   RESULT = e_lst; :}
     ;
 
-array_index_plus ::= LBRACKET RBRACKET empty_array_index_star:emp_lst
-	{: emp_lst.add(null);
-       RESULT = emp_lst;
-	:}
-    | num_array_index_plus:e_lst empty_array_index_star:emp_lst
-	{: e_lst.addAll(emp_lst);
-	   RESULT = e_lst;
-	 :}
+index_contents ::=
+    {: RESULT = null; :}
+    | expr:e
+    {: RESULT = e; :}
     ;
+
+array_index_plus ::= LBRACKET index_contents:e RBRACKET
+    {: ArrayList<Expr<Position>> indexList = new ArrayList<>();
+       indexList.add(e);
+       RESULT = indexList; :}
+    | array_index_plus:a LBRACKET index_contents:e RBRACKET
+    {: if (e != null && a.get(a.size() - 1) == null) {
+           report_error(String.format(
+               "Invalid array index declaration at row %d, col %d:"
+               + "cannot have [] after [expr]", eleft, eright),
+               null);
+       } else {
+           a.add(e);
+           RESULT = a;
+       }
+    :}
+    ;
+
 
 literal ::= NUM:n
 	{: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
     | MINUS:m BIG_NUM:n // TODO : ok?
-	{: RESULT = NumLiteral.of(new Position(mleft, mright), (Integer) n); :}
+	{: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
     | STRING:s
 	{: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
     | CHAR:c

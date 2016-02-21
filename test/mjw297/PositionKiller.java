@@ -8,8 +8,7 @@ import mjw297.Ast.*;
 public class PositionKiller {
     public static Position dummyPosition = new Position(-1, -1);
 
-    public static class ExprKiller implements
-                        ExprVisitor<Position, Expr<Position>> {
+    public static class ExprKiller implements ExprVisitor<Position, Expr<Position>> {
         public Expr<Position> visit(Id<Position> i) {
             return Id.of(dummyPosition, i.x);
         }
@@ -75,7 +74,9 @@ public class PositionKiller {
         }
         public Stmt<Position> visit(Block<Position> b) {
             List<Stmt<Position>> ss = Lists.transform(b.ss, s -> s.accept(this));
-            Optional<Expr<Position>> ret = b.ret.map(e -> e.accept(new ExprKiller()));
+            Optional<List<Expr<Position>>> ret = b.ret.map(retList -> Lists.transform(
+                retList, e -> e.accept(new ExprKiller())
+            ));
             return Block.of(dummyPosition, ss, ret);
         }
         public Stmt<Position> visit(If<Position> i) {
@@ -129,12 +130,8 @@ public class PositionKiller {
                 Lists.transform(f.args, a -> a.accept(new AnnotatedVarKiller()));
             List<Type<Position>> retType =
                 Lists.transform(f.returnType, t -> t.accept(new TypeKiller()));
-            List<Stmt<Position>> body =
-                Lists.transform(f.body, s -> s.accept(new StmtKiller()));
-            List<Expr<Position>> returns =
-                Lists.transform(f.returns, e -> e.accept(new ExprKiller()));
-            return Func.of(dummyPosition, kill(f.name), args, retType,
-                           body, returns);
+            Stmt<Position> body = f.body.accept(new StmtKiller());
+            return Func.of(dummyPosition, kill(f.name), args, retType, body);
         }
         public Callable<Position> visit(Proc<Position> p) {
             return Proc.of(dummyPosition, p.name, p.args, p.body);

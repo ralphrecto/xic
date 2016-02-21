@@ -71,7 +71,7 @@ public class ParserTest {
 
         Program<Position> expected = program(
                 l(),
-                l(proc(id("main"), l(), l(stmt)))
+                l(proc(id("main"), l(), block(l(stmt), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
     }
@@ -91,7 +91,7 @@ public class ParserTest {
 
         Program<Position> expected = program(
                 l(),
-                l(proc(id("main"), l(), l(asgn(id("x"), e))))
+                l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
     }
@@ -117,16 +117,16 @@ public class ParserTest {
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
         List<Type<Position>> returnType,
-        List<Stmt<Position>> body,
+        Stmt<Position> body,
         List<Expr<Position>> returns
     ) {
-        return Func.of(PositionKiller.dummyPosition, name, args, returnType, body, returns);
+        return Func.of(PositionKiller.dummyPosition, name, args, returnType, body);
     }
 
     private static Proc<Position> proc (
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return Proc.of(PositionKiller.dummyPosition, name, args, body);
     }
@@ -236,7 +236,7 @@ public class ParserTest {
 
     private static Block<Position> block (
         List<Stmt<Position>> ss,
-        Optional<Expr<Position>> ret
+        Optional<List<Expr<Position>>> ret
     ) {
         return Block.of(PositionKiller.dummyPosition, ss, ret);
     }
@@ -311,7 +311,8 @@ public class ParserTest {
             sym(LBRACE),
             sym(RBRACE)
         );
-        Program<Position> expected = program(l(), l(proc(id("main"), l(), l())));
+        Program<Position> expected = program(l(), l(proc(id("main"), l(),
+                block(l(), Optional.empty()))));
         assertEquals(expected, parse(symbols));
     }
 
@@ -324,7 +325,9 @@ public class ParserTest {
             sym(LBRACE),
             sym(RBRACE)
         );
-        Program<Position> expected = program(l(), l(proc(id("foo_bar'"), l(), l())));
+        Program<Position> expected = program(l(), l(proc(id("foo_bar'"), l(),
+                block(l(), Optional.empty())))
+        );
         assertEquals(expected, parse(symbols));
     }
 
@@ -341,7 +344,7 @@ public class ParserTest {
         );
         Program<Position> expected = program(
             l(use(id("foo"))),
-            l(proc(id("main"), l(), l()))
+            l(proc(id("main"), l(), block(l(), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
     }
@@ -367,7 +370,7 @@ public class ParserTest {
                 pos(2, 1),
                 Id.of(pos(2, 1), "main"),
                 l(),
-                l()
+                block(l(), Optional.empty())
              ))
         );
         assertEquals(expected, parsePos(symbols));
@@ -393,7 +396,7 @@ public class ParserTest {
                 use(id("foo")),
                 use(id("bar"))
             ),
-            l(proc(id("main"), l(), l()))
+            l(proc(id("main"), l(), block(l(), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
     }
@@ -407,9 +410,9 @@ public class ParserTest {
         );
         Program<Position> expected = program(
             l(),
-            l(proc(id("foo"), l(), l()),
-              proc(id("bar"), l(), l()),
-              proc(id("baz"), l(), l()))
+            l(proc(id("foo"), l(), block(l(), Optional.empty())),
+              proc(id("bar"), l(), block(l(), Optional.empty())),
+              proc(id("baz"), l(), block(l(), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
     }

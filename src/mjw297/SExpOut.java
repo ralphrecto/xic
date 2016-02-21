@@ -54,11 +54,10 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
 
         /* block */
         printer.startList();
-        f.body.forEach(s -> s.accept(this));
+        f.body.accept(this);
 
         /* returns */
         printer.printAtom("return");
-        f.returns.forEach(e -> e.accept(this));
         printer.endList();
 
         printer.endList();
@@ -81,7 +80,7 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
         printer.endList();
 
         /* block */
-        p.body.forEach(s -> s.accept(this));
+        p.body.accept(this);
 
         printer.endList();
 
@@ -213,7 +212,7 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
         printer.startList();
         b.ss.forEach(s -> s.accept(this));
         if (b.ret.isPresent()) {
-            b.ret.get().accept(this);
+            b.ret.get().forEach(e -> e.accept(this));
         }
         printer.endList();
 

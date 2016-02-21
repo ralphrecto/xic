@@ -224,6 +224,11 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Callable
     ////////////////////////////////////////////////////////////////////////////
+
+    /* Implementation note: the bodies of Procs and Funcs are both a single stmt.
+     * The grammar disallows for this stmt to be anything but a block. This is
+     * done to make folding over ASTs easier. */
+
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
@@ -232,8 +237,7 @@ public interface Ast {
         public final Id<A> name;
         public final List<AnnotatedVar<A>> args;
         public final List<Type<A>> returnType;
-        public final List<Stmt<A>> body;
-        public final List<Expr<A>> returns;
+        public final Stmt<A> body;
         public <R> R accept(CallableVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -245,7 +249,7 @@ public interface Ast {
         public final A a;
         public final Id<A> name;
         public final List<AnnotatedVar<A>> args;
-        public final List<Stmt<A>> body;
+        public final Stmt<A> body;
         public <R> R accept(CallableVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -441,7 +445,7 @@ public interface Ast {
     public final class Block<A> implements Stmt<A> {
         public final A a;
         public final List<Stmt<A>> ss;
-        public final Optional<Expr<A>> ret;
+        public final Optional<List<Expr<A>>> ret;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }

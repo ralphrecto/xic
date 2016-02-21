@@ -88,7 +88,7 @@ public class ParserTest {
 
     private static Index<Position> index (
         Expr<Position> e,
-        List<Expr<Position>> index
+        Expr<Position> index
     ) {
         return Index.of(dummyPosition, e, index);
     }
@@ -154,14 +154,6 @@ public class ParserTest {
         Expr<Position> expr
     ) {
         return Asgn.of(dummyPosition, id, expr);
-    }
-
-    private static AsgnArrayIndex<Position> asgnArrayIndex (
-        Id<Position> id,
-        List<Expr<Position>> index,
-        Expr<Position> expr
-    ) {
-        return AsgnArrayIndex.of(dummyPosition, id, index, expr);
     }
 
     private static If<Position> if_ (

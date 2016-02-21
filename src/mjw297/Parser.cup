@@ -320,12 +320,28 @@ asgn ::= ID:i EQ expr:e
 	:}
 	| ID:i num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(ileft, iright);
-	   RESULT = AsgnArrayIndex.of(p, Id.of(p, i), idx, e); 
+	   Expr<Position> exp = Index.of(p, Id.of(p, i), idx.get(0));
+	   for (int j = 1; j < idx.size(); j++) { 
+	       exp = Index.of(p, exp, idx.get(j));
+	   } 
+	   RESULT = Asgn.of(p, exp, e);
 	:}
 	| call:c num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(cleft, cright);
-	   RESULT = AsgnArrayIndex.of(p, c, idx, e);
+	   Expr<Position> exp = Index.of(p, c, idx.get(0));
+	   for (int i = 1; i < idx.size(); i++) {
+	       exp = Index.of(p, exp, idx.get(i));
+	   }
+	   RESULT = Asgn.of(p, exp, e);
 	:} 
+	| STRING:s num_array_index_plus:idx EQ expr:e	
+	{: Position p = new Position(sleft, sright);
+	   Expr<Position> exp = Index.of(p, StringLiteral.of(p, s), idx.get(0));
+	   for (int i = 1; i < idx.size(); i++){
+	       exp = Index.of(p, exp, idx.get(i));
+	   }
+	   RESULT = Asgn.of(p, exp, e);
+	:}
 	;
 
 if_body ::= block:b
@@ -436,7 +452,13 @@ expr ::= literal:l
     | unop:op expr:e
 	{: RESULT = UnOp.of(new Position(opleft, opright), op, e); :} %prec UMINUS
     | expr:e1 num_array_index_plus:e_lst
-	{: RESULT = Index.of(new Position(e1left, e1right), e1, e_lst); :}
+	{: Position p = new Position(e1left, e1right);
+	   Expr<Position> exp = Index.of(p, e1, e_lst.get(0));   
+	   for (int i = 1; i < e_lst.size(); i++) {
+	       exp = Index.of(p, exp, e_lst.get(i));
+	   }
+	   RESULT = exp;
+	:}
     | LENGTH:l LPAREN expr:e RPAREN
 	{: RESULT = Length.of(new Position(lleft, lright), e); :}
     | LPAREN:l expr:e RPAREN

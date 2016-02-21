@@ -999,24 +999,24 @@ public class ParserTest {
 
     /* If and If-Else */
     // if (b) { f() return } else { g() return };
-//    @Test
-//    public void ifTest1() throws Exception {
-//        List<Symbol> symbols = Arrays.asList(
-//            sym(IF), sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(LBRACE), sym(ID, "f"), sym(LPAREN), sym(RPAREN),
-//            sym(RETURN), sym(RBRACE)
-//            sym(ELSE), sym(LBRACE),
-//            sym(ID, "g"), sym(LPAREN), sym(RPAREN),
-//            sym(RETURN), sym(RBRACE), sym(SEMICOLON)
-//        );
-//        Stmt<Position> stmt = ifElse(
-//            id("b"),
-//            block(l(call(id("f"), l()), Optional.of(l()))),
-//            block(l(call(id("g"), l()), Optional.of(l())))
-//        );
-//
-//        stmtTestHelper(symbols, stmt);
-//    }
+    @Test
+    public void ifTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(IF), sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(LBRACE), sym(ID, "f"), sym(LPAREN), sym(RPAREN),
+            sym(RETURN), sym(RBRACE),
+            sym(ELSE), sym(LBRACE),
+            sym(ID, "g"), sym(LPAREN), sym(RPAREN),
+            sym(RETURN), sym(RBRACE), sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = ifElse(
+            id("b"),
+            block(l(call(id("f"), l())), Optional.of(l())),
+            block(l(call(id("g"), l())), Optional.of(l()))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
 
     // if (b1) if (b2) b = 5 else b = 5
     @Test
@@ -1042,84 +1042,84 @@ public class ParserTest {
     }
 
     // if (b) { _; if (b) _ }
-//    @Test
-//    public void ifTest3() throws Exception {
-//        List<Symbol> symbols = Arrays.asList(
-//            sym(IF),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(LBRACE),
-//            sym(UNDERSCORE), sym(SEMICOLON),
-//            sym(IF), sym(LPAREN), sym(ID, "b"), sym(RPAREN), sym(UNDERSCORE),
-//            sym(RBRACE)
-//        );
-//        Stmt<Position> stmt = if_(
-//            id("b"),
-//            block(l(
-//                underscore(),
-//                if_(id("b"), underscore())
-//            ))
-//        );
-//
-//        stmtTestHelper(symbols, stmt);
-//    }
-//
+    @Test
+    public void ifTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(IF),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(LBRACE),
+            sym(UNDERSCORE), sym(SEMICOLON),
+            sym(IF), sym(LPAREN), sym(ID, "b"), sym(RPAREN), sym(UNDERSCORE),
+            sym(RBRACE)
+        );
+        Stmt<Position> stmt = if_(
+            id("b"),
+            block(l(
+                decl(l(underscore())),
+                if_(id("b"), decl(l(underscore())))
+            ), Optional.empty())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
     // if (b) _; if (b) _
-//    @Test
-//    public void ifTest4() throws Exception {
-//        List<Symbol> symbols = Arrays.asList(
-//            sym(IF),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(UNDERSCORE), sym(SEMICOLON),
-//            sym(IF),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(UNDERSCORE)
-//        );
-//        List<Stmt<Position>> stmts = Arrays.asList(
-//            if_(
-//                id("b"),
-//                underscore()),
-//            if_(
-//                id("b"),
-//                underscore())
-//        );
-//
-//        stmtsTestHelper(symbols, stmts);
-//    }
+    @Test
+    public void ifTest4() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(IF),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(UNDERSCORE), sym(SEMICOLON),
+            sym(IF),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(UNDERSCORE)
+        );
+        List<Stmt<Position>> stmts = Arrays.asList(
+            if_(
+                id("b"),
+                decl(l(underscore()))),
+            if_(
+                id("b"),
+                decl(l(underscore())))
+        );
+
+        stmtsTestHelper(symbols, stmts);
+    }
 
     // if (b)
     //  while (b)
     //   if (b) _
     //   else while(b) if (b) _
-//    @Test
-//    public void ifTest5() throws Exception {
-//        List<Symbol> symbols = Arrays.asList(
-//            sym(IF),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(WHILE),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(IF), 
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(ELSE),
-//            sym(WHILE),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(IF),
-//            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-//            sym(UNDERSCORE)
-//        );
-//        Stmt<Position> stmt = if_(
-//            id("b"),
-//            while_(
-//                id("b"),
-//                ifElse(
-//                    id("b"),
-//                    underscore(),
-//                    while_(
-//                        id("b"),
-//                        if_(id("b"), underscore()))))
-//        );
-//
-//        stmtTestHelper(symbols, stmt);
-//    }
+    @Test
+    public void ifTest5() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(IF),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(WHILE),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(IF), 
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(ELSE),
+            sym(WHILE),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(IF),
+            sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+            sym(UNDERSCORE)
+        );
+        Stmt<Position> stmt = if_(
+            id("b"),
+            while_(
+                id("b"),
+                ifElse(
+                    id("b"),
+                    decl(l(underscore())),
+                    while_(
+                        id("b"),
+                        if_(id("b"), decl(l(underscore()))))))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
 
     // if (b) b = 5 else b = 5
     @Test

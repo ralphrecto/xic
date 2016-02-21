@@ -7,12 +7,12 @@ import java.util.Optional;
 
 parser code {:
 	public void syntax_error(Symbol sym){
-		report_error(String.format("%d:%d error:Invalid syntax\n",
-					 sym.left, sym.right), null);
+		report_error(String.format("%d:%d error:Unexpected token %s\n",
+					 sym.left, sym.right, SymUtil.symToLiteral(sym)), null);
 	}
 
-    // TODO: remove dummy positions; they're a temporary placeholder
-    private Position dummy = new Position(-1, -1);
+    // TODO: remove
+    Position dummy = new Position(-1, -1);
 :}
 
 
@@ -227,34 +227,52 @@ start with prog;
 
 // Types and variables --SH
 
-base_type ::= INT
-	{: RESULT = Int.of(dummy); :}
-    | BOOL
-	{: RESULT = Bool.of(dummy); :}
+base_type ::= INT:i
+	{: RESULT = Int.of(new Position(ileft, iright)); :}
+    | BOOL:b
+	{: RESULT = Bool.of(new Position(bleft, bright)); :}
     ;
 
 type ::= base_type:bt
 	{: RESULT = bt; :}
     | type:t LBRACKET RBRACKET
-	{: RESULT = Array.of(dummy, t, Optional.empty()); :}
+	{: RESULT = Array.of(new Position(tleft, tright), t, Optional.empty()); :}
     ;
 
 avar ::= ID:id COLON type:t
-	{: RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), t); :}
-    | UNDERSCORE COLON type:t
-	{: RESULT = AnnotatedUnderscore.of(dummy, Underscore.of(dummy), t); :}
+    {: Position p = new Position(idleft, idright);
+	   RESULT = AnnotatedId.of(p, Id.of(p, id), t); :}
+    | UNDERSCORE:u COLON type:t
+    {: Position p = new Position(uleft, uright);
+	   RESULT = AnnotatedUnderscore.of(p, Underscore.of(p), t); :}
     ;
 
 var ::= avar:av
 	{: RESULT = av; :}
-    | UNDERSCORE
-	{: RESULT = Underscore.of(dummy); :}
+    | UNDERSCORE:u
+	{: RESULT = Underscore.of(new Position(uleft, uright)); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
-	{: if (e_lst != null) {
-	       RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.of(e_lst)));
-	   } else {
-		   RESULT = AnnotatedId.of(dummy, Id.of(dummy, id), Array.of(dummy, bt, Optional.empty()));
+	{: Position p = new Position(idleft, idright);
+       Position pArray = new Position(btleft, btright);
+	   Expr<Position> first = e_lst.get(0);
+	   Type<Position> array_type = Array.of(
+	        pArray,
+	        bt,
+	        first == null ? Optional.empty() : Optional.of(first)
+       );
+	   for (int i = 1; i < e_lst.size(); i++) {
+	       Expr<Position> current = e_lst.get(i);
+           array_type = Array.of(
+                pArray,
+                array_type,
+                current == null ? Optional.empty() : Optional.of(current)
+           );
 	   }
+	   RESULT = AnnotatedId.of(
+	        p,
+	        Id.of(p, id),
+	        array_type
+       );
     :}
     ;
 
@@ -284,15 +302,17 @@ block ::= LBRACE stmt_star:s RBRACE
 	{: RESULT = s; :};
 
 full_decl ::= var_plus:v
-	{: RESULT = Decl.of(dummy, v); :}
+	{: RESULT = Decl.of(new Position(vleft, vright), v); :}
     | var_plus:v EQ expr:e
-	{: RESULT = DeclAsgn.of(dummy, v, e); :}
+	{: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
     ;
 
 asgn ::= ID:i EQ expr:e
-	{: RESULT = Asgn.of(dummy, Id.of(dummy, i), e); :}
+	{: Position p = new Position(ileft, iright);
+       RESULT = Asgn.of(p, Id.of(p, i), e); :}
     | ID:i num_array_index_plus:b EQ expr:e
-	{: RESULT = AsgnArrayIndex.of(dummy, Id.of(dummy, i), b, e); :}
+	{: Position p = new Position(ileft, iright);
+       RESULT = AsgnArrayIndex.of(p, Id.of(p, i), b, e); :}
     ;
 
 if_body ::= block:b
@@ -303,10 +323,10 @@ if_body ::= block:b
 	   RESULT = list; :}
    	;
 
-if_stmt ::= IF LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
-	{: RESULT = IfElse.of(dummy, e, s1, s2); :}
-   	| IF LPAREN expr:e RPAREN if_body:s
-	{: RESULT = If.of(dummy, e, s); :}
+if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
+	{: RESULT = IfElse.of(new Position(ileft, iright), e, s1, s2); :}
+   	| IF:i LPAREN expr:e RPAREN if_body:s
+	{: RESULT = If.of(new Position(ileft, iright), e, s); :}
    	;
 
 while_body ::= block:b
@@ -317,8 +337,8 @@ while_body ::= block:b
 	   RESULT = list; :}
   	;
 
-while_stmt ::= WHILE LPAREN expr:e RPAREN while_body:b
-	{: RESULT = While.of(dummy, e, b); :}
+while_stmt ::= WHILE:w LPAREN expr:e RPAREN while_body:b
+	{: RESULT = While.of(new Position(wleft, wright), e, b); :}
 	;
 
 args_call ::= LPAREN RPAREN
@@ -328,7 +348,8 @@ args_call ::= LPAREN RPAREN
     ;
 
 call ::= ID:i args_call:a
-	{: RESULT = Call.of(dummy, Id.of(dummy, i), a); :}
+	{: Position p = new Position(ileft, iright);
+       RESULT = Call.of(p, Id.of(p, i), a); :}
 	;
 
 
@@ -349,18 +370,21 @@ proc_ret ::=
 func_ret ::= RETURN expr_plus:e end_stmt
     {: RESULT = e; :};
 
-proc_decl ::= ID:p args_decl:a LBRACE stmt_star:s proc_ret RBRACE
-    {: RESULT = Proc.of(dummy, Id.of(dummy, p), a, s); :};
+proc_decl ::= ID:i args_decl:a LBRACE stmt_star:s proc_ret RBRACE
+    {: Position p = new Position(ileft, iright);
+       RESULT = Proc.of(p, Id.of(p, i), a, s); :};
 
 func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r RBRACE
-    {: RESULT = Func.of(dummy, Id.of(dummy, f), a, t, s, r); :}
+    {: Position p = new Position(fleft, fright);
+       RESULT = Func.of(p, Id.of(p, f), a, t, s, r); :}
     ;
 
 
 // Programs --AM
 
-use_def ::= USE ID:x end_stmt
-    {: RESULT = Use.of(dummy, Id.of(dummy, x)); :}
+use_def ::= USE:u ID:x end_stmt
+    {: Position p = new Position(uleft, uright);
+       RESULT = Use.of(p, Id.of(p, x)); :}
 	;
 
 func_def ::= func_decl:f
@@ -389,7 +413,7 @@ func_def_plus ::= func_def:f
     ;
 
 prog ::= use_def_star:us func_def_plus:fs
-    {: RESULT = Program.of(dummy, us, fs); :}
+    {: RESULT = Program.of(new Position(usleft, usright), us, fs); :}
 	;
 
 
@@ -399,25 +423,28 @@ prog ::= use_def_star:us func_def_plus:fs
 expr ::= literal:l
 	{: RESULT = l; :}
     | expr:e1 binop:op expr:e2
-	{: RESULT = BinOp.of(dummy, op, e1, e2); :}
+	{: RESULT = BinOp.of(new Position(e1left, e1right), op, e1, e2); :}
     | unop:op expr:e
-	{: RESULT = UnOp.of(dummy, op, e); :} %prec UMINUS
+	{: RESULT = UnOp.of(new Position(opleft, opright), op, e); :} %prec UMINUS
     | expr:e1 num_array_index_plus:e_lst
-	{: RESULT = Index.of(dummy, e1, e_lst); :}
-    | LENGTH LPAREN expr:e RPAREN
-	{: RESULT = Length.of(dummy, e); :}
-    | LPAREN expr:e RPAREN
-	{: RESULT = ParenthesizedExpr.of(dummy, e); :}
+	{: RESULT = Index.of(new Position(e1left, e1right), e1, e_lst); :}
+    | LENGTH:l LPAREN expr:e RPAREN
+	{: RESULT = Length.of(new Position(lleft, lright), e); :}
+    | LPAREN:l expr:e RPAREN
+	{: RESULT = e; :}
     | call:c
 	{: RESULT = c; :}
     | ID:id
-	{: RESULT = Id.of(dummy, id); :}
+	{: RESULT = Id.of(new Position(idleft, idright), id); :}
     ;
 
 empty_array_index_star ::=
-	{: RESULT = null; :}
-    | empty_array_index_star LBRACKET RBRACKET
-	{: RESULT = null; :}
+	{: RESULT = new ArrayList<Expr<Position>>();
+	 :}
+    | empty_array_index_star:list LBRACKET RBRACKET
+	{: list.add(null);
+	   RESULT = list;
+	:}
     ;
 
 // TODO: expr or NUM?
@@ -430,28 +457,32 @@ num_array_index_plus ::= LBRACKET expr:e RBRACKET
 	   RESULT = e_lst; :}
     ;
 
-array_index_plus ::= LBRACKET RBRACKET empty_array_index_star
-	{: RESULT = null; :}
-    | num_array_index_plus:e_lst empty_array_index_star
-	{: RESULT = e_lst; :}
+array_index_plus ::= LBRACKET RBRACKET empty_array_index_star:emp_lst
+	{: emp_lst.add(null);
+       RESULT = emp_lst;
+	:}
+    | num_array_index_plus:e_lst empty_array_index_star:emp_lst
+	{: e_lst.addAll(emp_lst);
+	   RESULT = e_lst;
+	 :}
     ;
 
 literal ::= NUM:n
-	{: RESULT = NumLiteral.of(dummy, n); :}
-    | MINUS BIG_NUM:n // TODO : ok?
-	{: RESULT = NumLiteral.of(dummy, -(Integer) n); :}
+	{: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
+    | MINUS:m BIG_NUM:n // TODO : ok?
+	{: RESULT = NumLiteral.of(new Position(mleft, mright), (Integer) n); :}
     | STRING:s
-	{: RESULT = StringLiteral.of(dummy, s); :}
+	{: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
     | CHAR:c
-	{: RESULT = CharLiteral.of(dummy, c); :}
+	{: RESULT = CharLiteral.of(new Position(cleft, cright), c); :}
     | TRUE:b
-	{: RESULT = BoolLiteral.of(dummy, true); :}
+	{: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
     | FALSE:b
-	{: RESULT = BoolLiteral.of(dummy, false); :}
-    | LBRACE expr_star:e RBRACE
-	{: RESULT = ArrayLiteral.of(dummy, e); :}
-    | LBRACE expr_plus:e COMMA RBRACE
-	{: RESULT = ArrayLiteral.of(dummy, e); :}
+	{: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
+    | LBRACE:l expr_star:e RBRACE
+	{: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    | LBRACE:l expr_plus:e COMMA RBRACE
+	{: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
     ;
 
 binop ::= MINUS

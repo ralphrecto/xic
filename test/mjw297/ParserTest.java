@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.List;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
+import org.junit.Ignore;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
@@ -288,7 +289,8 @@ public class ParserTest {
             sym(LBRACE, 3, 1),
             sym(RBRACE, 3, 2)
         );
-        Program<Position> expected = program(
+        Program<Position> expected = Program.of(
+            pos(0, 5),
             l(Use.of(
                 pos(1, 1),
                 Id.of(pos(1, 5), "foo")

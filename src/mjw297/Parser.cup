@@ -384,7 +384,8 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t LBRACE stmt_star:s func_ret:r R
 
 use_def ::= USE:u ID:x end_stmt
     {: Position p = new Position(uleft, uright);
-       RESULT = Use.of(p, Id.of(p, x)); :}
+       Position pId = new Position(xleft, xright);
+       RESULT = Use.of(p, Id.of(pId, x)); :}
 	;
 
 func_def ::= func_decl:f

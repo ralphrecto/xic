@@ -7,19 +7,84 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 public interface Ast {
+    /*
+     * type AnnotatedVar<A> =
+     *     | AnnotatedId<A>(A a, Id<A> x, Type<A> t)
+     *     | AnnotatedUnderscore<A>(A a, Underscore<A> u, Type<A> t)
+     *
+     * type Callable<A> =
+     *     | Func<A>(A a, Id<A> name, List<AnnotatedVar<A>> args,
+     *               List<Type<A>> returnType, List<Stmt<A>> body,
+     *               List<Expr<A>> returns)
+     *     | Proc<A>(A a, Id<A> name, List<AnnotatedVar<A>> args, List<Stmt<A>> body)
+     *
+     * type Expr<A> =
+     *     | Literal<A>
+     *     | Id<A>(A a, String x)
+     *     | BinOp<A>(A a, BinOpCode c, Expr<A> lhs, Expr<A> rhs)
+     *     | UnOp<A>(A a, UnOpCode c, Expr<A> e)
+     *     | Index<A>(A a, Expr<A> e, List<Expr<A>> index)
+     *     | Length<A>(A a, Expr<A> e)
+     *     | Call<A>(A a, Id<A> f, List<Expr<A>> args)
+     *
+     * type Literal<A> =
+     *     | NumLiteral<A>(A a, long x)
+     *     | BoolLiteral<A>(A a, boolean b)
+     *     | StringLiteral<A>(A a, String s)
+     *     | CharLiteral<A>(A a, char c)
+     *     | ArrayLiteral<A>(A a, List<Expr<A>> xs)
+     *
+     * type Node<A> =
+     *     | Program<A>(A a, List<Use<A>> uses, List<Callable<A>> fs)
+     *     | Use<A>(A a, Id<A> x)
+     *
+     * type Stmt<A> =
+     *     | Decl<A>(A a, List<Var<A>> vs)
+     *     | DeclAsgn<A>(A a, List<Var<A>> vs, Expr<A> e)
+     *     | Asgn<A>(A a, Id<A> id, Expr<A> expr)
+     *     | AsgnArrayIndex<A>(A a, Id<A> id, List<Expr<A>> index, Expr<A> expr)
+     *     | If<A>(A a, Expr<A> b, List<Stmt<A>> body)
+     *     | IfElse<A>(A a, Expr<A> b, List<Stmt<A>> thenBody, List<Stmt<A>> elseBody)
+     *     | While<A>(A a, Expr<A> b, List<Stmt<A>> body)
+     *     | Call<A>(A a, Id<A> f, List<Expr<A>> args)
+     *
+     * type Type<A> =
+     *     | Int<A>(A a)
+     *     | Bool<A>(A a)
+     *     | Array<A>(A a, Type<A> t, Optional<Expr<A>> size)
+     *
+     * type Var<A> =
+     *     | AnnotatedVar<A>
+     *     | Underscore<A>(A a)
+     */
+
     ////////////////////////////////////////////////////////////////////////////
     // Interfaces
     ////////////////////////////////////////////////////////////////////////////
     public interface Node<A> {
         public <R> R accept(NodeVisitor<A, R> v);
     }
-    public interface AnnotatedVar<A> extends Var<A>  {}
-    public interface Callable<A>     extends Node<A> {}
-    public interface Expr<A>         extends Node<A> {}
-    public interface Literal<A>      extends Expr<A> {}
-    public interface Stmt<A>         extends Node<A> {}
-    public interface Type<A>         extends Node<A> {}
-    public interface Var<A>          extends Node<A> {}
+    public interface AnnotatedVar<A> extends Var<A>  {
+        public <R> R accept(AnnotatedVarVisitor<A, R> v);
+    }
+    public interface Callable<A>     extends Node<A> {
+        public <R> R accept(CallableVisitor<A, R> v);
+    }
+    public interface Expr<A>         extends Node<A> {
+        public <R> R accept(ExprVisitor<A, R> v);
+    }
+    public interface Literal<A>      extends Expr<A> {
+        public <R> R accept(LiteralVisitor<A, R> v);
+    }
+    public interface Stmt<A>         extends Node<A> {
+        public <R> R accept(StmtVisitor<A, R> v);
+    }
+    public interface Type<A>         extends Node<A> {
+        public <R> R accept(TypeVisitor<A, R> v);
+    }
+    public interface Var<A>          extends Node<A> {
+        public <R> R accept(VarVisitor<A, R> v);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Visitors
@@ -86,12 +151,17 @@ public interface Ast {
 
     public interface ExprVisitor<A, R> {
         public R visit(Id<A> i);
-        public R visit(Literal<A> l);
         public R visit(BinOp<A> o);
         public R visit(UnOp<A> o);
         public R visit(Index<A> i);
         public R visit(Length<A> l);
         public R visit(Call<A> c);
+
+        public R visit(NumLiteral<A> n);
+        public R visit(BoolLiteral<A> b);
+        public R visit(StringLiteral<A> s);
+        public R visit(CharLiteral<A> c);
+        public R visit(ArrayLiteral<A> a);
     }
 
     public interface LiteralVisitor<A, R> {
@@ -135,6 +205,7 @@ public interface Ast {
         public final Id<A> x;
         public final Type<A> t;
         public <R> R accept(AnnotatedVarVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(VarVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -146,6 +217,7 @@ public interface Ast {
         public final Underscore<A> u;
         public final Type<A> t;
         public <R> R accept(AnnotatedVarVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(VarVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -267,6 +339,7 @@ public interface Ast {
         public final A a;
         public final long x;
         public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -277,6 +350,7 @@ public interface Ast {
         public final A a;
         public final boolean b;
         public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -287,6 +361,7 @@ public interface Ast {
         public final A a;
         public final String s;
         public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -297,6 +372,7 @@ public interface Ast {
         public final A a;
         public final char c;
         public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -307,6 +383,7 @@ public interface Ast {
         public final A a;
         public final List<Expr<A>> xs;
         public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 

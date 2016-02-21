@@ -32,6 +32,18 @@ public class ParserTest {
         return SymUtil.sym(type, dummyPosition.row, dummyPosition.col, value);
     }
 
+    private static Symbol sym(int type, int row, int col) {
+        return SymUtil.sym(type, row, col);
+    }
+
+    private static Symbol sym(int type, Object value, int row, int col) {
+        return SymUtil.sym(type, row, col, value);
+    }
+
+    private static Position pos(int row, int col) {
+        return new Position(row, col);
+    }
+
 
     private static AnnotatedId<Position> annotatedId (
         Id<Position> x,
@@ -97,12 +109,6 @@ public class ParserTest {
         Expr<Position> e
     ) {
         return Length.of(dummyPosition, e);
-    }
-
-    private static ParenthesizedExpr<Position> parenthesizedExpr (
-        Expr<Position> e
-    ) {
-        return ParenthesizedExpr.of(dummyPosition, e);
     }
 
     private static NumLiteral<Position> numLiteral (
@@ -204,7 +210,7 @@ public class ParserTest {
 
     private static Array<Position> array (
         Type<Position> t,
-        Optional<List<Expr<Position>>> size
+        Optional<Expr<Position>> size
     ) {
         return Array.of(dummyPosition, t, size);
     }
@@ -267,6 +273,32 @@ public class ParserTest {
         Program<Position> expected = program(
             l(use(id("foo"))),
             l(proc(id("main"), l(), l()))
+        );
+        assertEquals(expected, parse(symbols));
+    }
+
+    @Test
+    public void singleUsePosTest() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(USE, 1, 1),
+            sym(ID, "foo", 1, 5),
+            sym(ID, "main", 2, 1),
+            sym(LPAREN, 2, 5),
+            sym(RPAREN, 2, 6),
+            sym(LBRACE, 3, 1),
+            sym(RBRACE, 3, 2)
+        );
+        Program<Position> expected = program(
+            l(Use.of(
+                pos(1, 1),
+                Id.of(pos(1, 5), "foo")
+             )),
+            l(Proc.of(
+                pos(2, 1),
+                Id.of(pos(2, 1), "main"),
+                l(),
+                l()
+             ))                
         );
         assertEquals(expected, parse(symbols));
     }

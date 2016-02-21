@@ -2172,4 +2172,23 @@ public class ParserTest {
             exprTestHelper(symbols, arrayLiteral(es));
         }
     }
+
+    @Test
+    public void parenTest() throws Exception {
+        int numTests = 100;
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> es =
+                Util.choose(exprs);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : es.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, es.snd);
+        }
+    }
 }

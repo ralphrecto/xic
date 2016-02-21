@@ -1175,6 +1175,7 @@ public class ParserTest {
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
             sym(IF), 
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+			sym(UNDERSCORE),
             sym(ELSE),
             sym(WHILE),
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),

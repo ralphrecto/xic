@@ -2,16 +2,9 @@ package mjw297;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
-import polyglot.util.OptimalCodeWriter;
 
 import java.io.OutputStream;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
-/**
- * Created by ralphrecto on 2/20/16.
- */
 
 class SExpOut implements Ast.NodeVisitor<Position, Void> {
     SExpPrinter printer;

@@ -352,8 +352,8 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Asgn<A> implements Stmt<A> {
         public final A a;
-        public final Id<A> id;
-        public final Expr<A> expr;
+        public final Expr<A> expr1;
+        public final Expr<A> expr2;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -363,9 +363,9 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class AsgnArrayIndex<A> implements Stmt<A> {
         public final A a;
-		public final Id<A> id;
+		public final Expr<A> left_expr;
 		public final List<Expr<A>> index;
-        public final Expr<A> expr;
+        public final Expr<A> right_expr;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }

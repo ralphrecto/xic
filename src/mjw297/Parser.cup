@@ -309,11 +309,17 @@ full_decl ::= var_plus:v
 
 asgn ::= ID:i EQ expr:e
 	{: Position p = new Position(ileft, iright);
-       RESULT = Asgn.of(p, Id.of(p, i), e); :}
-    | ID:i num_array_index_plus:b EQ expr:e
+	   RESULT = Asgn.of(p, Id.of(p,i), e); 
+	:}
+	| ID:i num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(ileft, iright);
-       RESULT = AsgnArrayIndex.of(p, Id.of(p, i), b, e); :}
-    ;
+	   RESULT = AsgnArrayIndex.of(p, Id.of(p, i), idx, e); 
+	:}
+	| call:c num_array_index_plus:idx EQ expr:e
+	{: Position p = new Position(cleft, cright);
+	   RESULT = AsgnArrayIndex.of(p, c, idx, e);
+	:} 
+	;
 
 if_body ::= block:b
 	{: RESULT = b; :}

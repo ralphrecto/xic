@@ -1465,7 +1465,7 @@ public class ParserTest {
         }
     }
 
-    /** Tests that {@code 1 uop 1 bop 2} == {@code uop (1 bop 2)}. */
+    /** Tests that {@code uop 1 bop 2} == {@code uop (1 bop 2)}. */
     private void unaryHelper(UnOpCode u, BinOpCode b) throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(u.code),
@@ -1474,7 +1474,7 @@ public class ParserTest {
             sym(NUM, 2l)
         );
 
-        Expr<Position> e = unOp(u, binOp(b, numLiteral(1l), numLiteral(2l)));
+        Expr<Position> e = binOp(b, unOp(u, numLiteral(1l)), numLiteral(2l));
         exprTestHelper(symbols, e);
     }
 

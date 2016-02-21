@@ -298,8 +298,8 @@ public interface Ast {
     }
 
     public enum UnOpCode {
-        UMINUS(Sym.UMINUS), // -
-        BANG(Sym.BANG);     // !
+        UMINUS(Sym.MINUS), // -
+        BANG(Sym.BANG);    // !
 
         public final int code;
         UnOpCode(int code) {

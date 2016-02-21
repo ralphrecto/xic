@@ -38,6 +38,7 @@ public class ParserTest {
         return PositionKiller.kill(prog);
     }
 
+    @SuppressWarnings({"unchecked", "varargs"})
     @SafeVarargs
     private static <A> List<A> l(A... xs) {
         return Arrays.asList(xs);

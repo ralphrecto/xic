@@ -250,14 +250,26 @@ var ::= avar:av
     | UNDERSCORE
 	{: RESULT = Underscore.of(dummy); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
-	{: Expr first = e_lst.get(0);
-	   Type array_type = new Array(bt, first == null ? Optional.empty() : Optional.of(first));
+	{: Expr<Position> first = e_lst.get(0);
+	   Type<Position> array_type = Array.of(
+	        new Position(0,0),
+	        bt,
+	        first == null ? Optional.empty() : Optional.of(first)
+       );
 	   for (int i = 1; i < e_lst.size(); i++) {
-	       Expr current = e_lst.get(i);
-           array_type = new Array(array_type,
-                                  current == null ? Optional.empty() : Optional.of(current));
+	       Expr<Position> current = e_lst.get(i);
+           array_type = Array.of(
+                new Position(0,0),
+                array_type,
+                current == null ? Optional.empty() : Optional.of(current)
+           );
 	   }
-	   RESULT = new AnnotatedId(new Id(id), array_type);
+	   /* TODO: add proper position */
+	   RESULT = AnnotatedId.of(
+	        new Position(0,0),
+	        Id.of(new Position(0, 0), id),
+	        array_type
+       );
     :}
     ;
 
@@ -418,7 +430,7 @@ expr ::= literal:l
     ;
 
 empty_array_index_star ::=
-	{: RESULT = new ArrayList<Expr>();
+	{: RESULT = new ArrayList<Expr<Position>>();
 	 :}
     | empty_array_index_star:list LBRACKET RBRACKET
 	{: list.add(null);

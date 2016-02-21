@@ -39,7 +39,6 @@ public interface Ast {
         public R visit(UnOp<A> o);
         public R visit(Index<A> i);
         public R visit(Length<A> l);
-        public R visit(ParenthesizedExpr<A> e);
 
         // Literal
         public R visit(NumLiteral<A> n);
@@ -92,7 +91,6 @@ public interface Ast {
         public R visit(UnOp<A> o);
         public R visit(Index<A> i);
         public R visit(Length<A> l);
-        public R visit(ParenthesizedExpr<A> e);
         public R visit(Call<A> c);
     }
 
@@ -433,7 +431,7 @@ public interface Ast {
     public final class Array<A> implements Type<A> {
         public final A a;
         public final Type<A> t;
-        public final Optional<List<Expr<A>>> size;
+        public final Optional<Expr<A>> size;
         public <R> R accept(TypeVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -490,7 +488,6 @@ public interface Ast {
         public String visit(UnOp<Position> o)                { return o.toString(); }
         public String visit(Index<Position> i)               { return i.toString(); }
         public String visit(Length<Position> l)              { return l.toString(); }
-        public String visit(ParenthesizedExpr<Position> e)   { return e.toString(); }
         public String visit(NumLiteral<Position> n)          { return n.toString(); }
         public String visit(BoolLiteral<Position> b)         { return b.toString(); }
         public String visit(StringLiteral<Position> s)       { return s.toString(); }

@@ -387,12 +387,12 @@ public class ParserTest {
         List<Symbol> symbols = Arrays.asList(
             sym(ID, "x"), sym(COLON), sym(INT), sym(COMMA),
             sym(ID, "y"), sym(COLON), sym(BOOL), sym(EQ),
-            sym(NUM, 5)
+            sym(NUM, new Long(5L))
         );
         Stmt<Position> stmt = declAsgn(
             l(annotatedId(id("x"), num()),
-              annotatedId(id("y"), num())),
-            numLiteral((long) 5)
+              annotatedId(id("y"), bool())),
+            numLiteral(new Long(5L))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -445,7 +445,7 @@ public class ParserTest {
             sym(BOOL), sym(LBRACKET), sym(RBRACKET)
         );
         Stmt<Position> stmt = decl(
-            l(annotatedId(id("x"), array(num(), Optional.empty())))
+            l(annotatedId(id("x"), array(bool(), Optional.empty())))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -454,24 +454,350 @@ public class ParserTest {
     // _ = expr
     @Test
     public void declTest6() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(EQ), sym(NUM, new Long(5L))
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(underscore()),
+            numLiteral(new Long(5L))
+        );
 
+        stmtTestHelper(symbols, stmt);
     }
 
     // _:bool = expr
     @Test
     public void declTest7() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COLON), sym(BOOL),
+            sym(EQ), sym(NUM, new Long(5L))
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedUnderscore(underscore(), bool())),
+            numLiteral(new Long(5L))
+        );
 
+        stmtTestHelper(symbols, stmt);
     }
 
     // _:bool, y:bool = expr
+    @Test
+    public void declTest8() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COLON), sym(BOOL), sym(COMMA),
+            sym(ID, "y"), sym(COLON), sym(BOOL), sym(EQ),
+            sym(NUM, new Long(5L))
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedUnderscore(underscore(), bool()),
+              annotatedId(id("y"), bool())),
+            numLiteral(new Long(5L))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
 
     // y:bool, _:bool = expr;
+    @Test
+    public void declTest9() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "y"), sym(COLON), sym(BOOL), sym(COMMA),
+            sym(UNDERSCORE), sym(COLON), sym(BOOL), sym(EQ),
+            sym(NUM, new Long(5L))
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedId(id("y"), bool()),
+              annotatedUnderscore(underscore(), bool())),
+            numLiteral(new Long(5L))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
 
     // x:bool, _ = expr;
+    @Test
+    public void declTest10() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"), sym(COLON), sym(BOOL), sym(COMMA),
+            sym(UNDERSCORE), sym(EQ),
+            sym(NUM, new Long(5L))
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedId(id("x"), bool()),
+              underscore()),
+            numLiteral(new Long(5L))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // _:int;
+    @Test
+    public void declTest11() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COLON), sym(INT),
+            sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedUnderscore(underscore(), num())) 
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // _:int, y:bool;
+    @Test
+    public void declTest12() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COLON), sym(INT), sym(COMMA),
+            sym(ID, "y"), sym(COLON), sym(BOOL),
+            sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedUnderscore(underscore(), num()),
+              annotatedId(id("y"), bool()))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // b:bool;
+    @Test
+    public void declTest13() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "b"), sym(COLON), sym(BOOL),
+            sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("b"), bool()))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // x:int, _:int;
+    @Test
+    public void declTest14() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"), sym(COLON), sym(INT), sym(COMMA),
+            sym(UNDERSCORE), sym(COLON), sym(INT)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("x"), num()),
+              annotatedUnderscore(underscore(), num()))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // x:int, _;
+    @Test
+    public void declTest15() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"), sym(COLON), sym(INT), sym(COMMA),
+            sym(UNDERSCORE), sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("x"), num()),
+              underscore())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // _, _ = f()
+    @Test
+    public void declTest16() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COMMA), sym(UNDERSCORE),
+            sym(EQ), sym(ID, "f"), sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(underscore(),
+              underscore()),
+            call(id("f"), l())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[]
+    @Test
+    public void declTest17() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(RBRACKET)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("a"), array(num(), Optional.empty())))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[][]
+    @Test
+    public void declTest18() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(RBRACKET),
+            sym(LBRACKET), sym(RBRACKET)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("a"), array(array(num(), Optional.empty()), Optional.empty())))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[n+5][f()];
+    @Test
+    public void declTest19() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(ID, "n"), sym(PLUS),
+            sym(NUM, new Long(5L)), sym(RBRACKET),
+            sym(LBRACKET), sym(ID, "f"),
+            sym(LPAREN), sym(RPAREN), sym(RBRACKET),
+            sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("a"), array(
+                array(
+                    num(),
+                    Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L))))),
+                Optional.of(call(id("f"), l())))))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[5][];
+    @Test
+    public void declTest20() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(NUM, new Long(5L)),
+            sym(RBRACKET), sym(LBRACKET), sym(RBRACKET),
+            sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("a"), array(
+                array(
+                    num(),
+                    Optional.of(numLiteral(new Long(5L)))),
+                Optional.empty())))
+
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[] = {1, 2, 3};
+    @Test
+    public void declTest21() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(RBRACKET), sym(EQ),
+            sym(LBRACE), sym(NUM, new Long(1L)),
+            sym(NUM, new Long(2L)), sym(NUM, new Long(3L)),
+            sym(RBRACE), sym(SEMICOLON)
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedId(id("a"), array(num(), Optional.empty()))),
+            arrayLiteral(Arrays.asList(
+                numLiteral(new Long(1L)),
+                numLiteral(new Long(2L)),
+                numLiteral(new Long(3L))))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[][] = {{1, 2, 3}, {4}}
+    @Test
+    public void declTest22() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(RBRACKET),
+            sym(LBRACKET), sym(RBRACKET), sym(EQ),
+            sym(LBRACE), sym(LBRACE),
+            sym(NUM, new Long(1L)), sym(COMMA),
+            sym(NUM, new Long(2L)), sym(COMMA),
+            sym(NUM, new Long(3L)), sym(RBRACE),
+            sym(COMMA), sym(LBRACE),
+            sym(NUM, new Long(4L)),
+            sym(RBRACE), sym(RBRACE)
+        );
+        Stmt<Position> stmt = declAsgn(
+            l(annotatedId(id("a"), array(array(num(), Optional.empty()), Optional.empty()))),
+            arrayLiteral(l(
+                arrayLiteral(l(
+                    numLiteral(new Long(1L)),
+                    numLiteral(new Long(2L)),
+                    numLiteral(new Long(3L)))),
+                arrayLiteral(l(
+                    numLiteral(new Long(4L))))))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // a:int[({1}[0])]
+    @Test
+    public void declTest23() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(COLON), sym(INT),
+            sym(LBRACKET), sym(LPAREN),
+            sym(LBRACE), sym(NUM, new Long(1L)),
+            sym(RBRACE), sym(LBRACKET),
+            sym(NUM, new Long(0L)), sym(RBRACKET),
+            sym(RPAREN), sym(RBRACKET)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("a"), array(num(),
+                Optional.of(index(
+                    arrayLiteral(l(numLiteral(new Long(1L)))),
+                    numLiteral(new Long(0L)))))))
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
+    // _, _, _, _
+    @Test
+    public void declTest24() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(UNDERSCORE), sym(COMMA),
+            sym(UNDERSCORE), sym(COMMA),
+            sym(UNDERSCORE), sym(COMMA),
+            sym(UNDERSCORE)
+        );
+        Stmt<Position> stmt = decl(
+            l(underscore(), underscore(), underscore(), underscore())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
 
     // x:int[x]
+    @Test
+    public void declTest25() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"), sym(COLON),
+            sym(INT), sym(LBRACKET), sym(ID, "x"),
+            sym(RBRACKET)
+        );
+        Stmt<Position> stmt = decl(
+            l(annotatedId(id("x"), array(num(), Optional.of(id("x")))))
+        );
 
-            
+        stmtTestHelper(symbols, stmt);
+    }
+
+    
+    /* Assignments */
     @Test
     public void asgnTest1() throws Exception {
         List<Symbol> symbols = Arrays.asList(

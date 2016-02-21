@@ -1802,6 +1802,70 @@ public class ParserTest {
         }
     }
 
+    private void hardUnaryHelper(UnOpCode u, BinOpCode b) throws Exception {
+        List<Symbol> symbols;
+        Expr<Position> e;
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b")
+        );
+        e = binOp(b, unOp(u, unOp(u, id("a"))),
+                     unOp(u, unOp(u, id("b"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "c")
+        );
+        e = binOp(b, binOp(b, unOp(u, unOp(u, id("a"))),
+                              unOp(u, unOp(u, id("b")))),
+                     unOp(u, unOp(u, id("c"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        e = unOp(u, call(id("a"), l()));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LBRACKET),
+            sym(ID, "a"),
+            sym(RBRACKET)
+        );
+        e = unOp(u, index(id("a"), id("a")));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void hardUnopTest() throws Exception {
+        for (UnOpCode u : UnOpCode.values()) {
+            for (BinOpCode b : BinOpCode.values()) {
+                hardUnaryHelper(u, b);
+            }
+        }
+    }
+
     /**
      * Tests that {@code a op b[1]} == {@code a op (b[1])}
      */

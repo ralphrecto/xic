@@ -153,11 +153,16 @@ public class Main {
     /**
      * Actions for the --lex option
      */
-    private void lexOut(List<Util.Tuple<Actions.Lexed, XiSource>> lexed) {
-        for (Util.Tuple<Actions.Lexed, XiSource> t : lexed) {
+    private void lexOut(List<Util.Tuple<Actions.Lexed, XiSource>> lexedOut) {
+        for (Util.Tuple<Actions.Lexed, XiSource> t : lexedOut) {
+
+            Actions.Lexed lexed = t.fst;
+
             StringBuilder outputBuilder = new StringBuilder();
 
-            for (Symbol sym : t.fst.symbols) {
+            /* The last symbol is always EOF; do not include it in output */
+            for (int i = 0; i < lexed.symbols.size() - 1; i++) {
+                Symbol sym = lexed.symbols.get(i);
                 outputBuilder.append(
                     String.format("%d:%d %s\n", sym.left, sym.right,
                         SymUtil.symToLiteral(sym)
@@ -172,7 +177,6 @@ public class Main {
                 );
             }
 
-
             String outputFilename = diagnosticPath + t.snd.changeExtension("lexed");
             File outputFile = Paths.get(outputFilename).toFile();
 
@@ -181,20 +185,32 @@ public class Main {
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("Could not write to file " + outputFilename);
-                return;
+                System.exit(1);
             }
         }
     }
 
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
-            SExpOut sExpOut = new SExpOut(System.out);
+
             @SuppressWarnings("unchecked")
             Ast.Program<Position> prog = (Ast.Program<Position>) p.fst.prog.value;
-            prog.accept(sExpOut);
-            sExpOut.flush();
-            System.out.println("");
+
+            String outputFilename = diagnosticPath + p.snd.changeExtension("parsed");
+            File outputFile = Paths.get(outputFilename).toFile();
+
+            try {
+                SExpOut sExpOut = new SExpOut(new FileOutputStream(outputFile));
+                prog.accept(sExpOut);
+                sExpOut.flush();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+
         }
+
+        System.exit(0);
     }
 
     /**

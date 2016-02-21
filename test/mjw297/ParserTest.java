@@ -69,6 +69,22 @@ public class ParserTest {
         stmtsTestHelper(syms, l(stmt));
     }
 
+	public void errorTestHelper(List<Symbol> syms) throws Exception {
+		List<Symbol> symbols = new ArrayList<>();
+		symbols.add(sym(ID, "main"));
+        symbols.add(sym(LPAREN));
+        symbols.add(sym(RPAREN));
+        symbols.add(sym(LBRACE));
+
+        for (Symbol sym : syms) {
+            symbols.add(sym);
+        }
+
+        symbols.add(sym(RBRACE));
+
+		parse(symbols);
+	}
+
     public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts) throws Exception {
         List<Symbol> symbols = new ArrayList<>();
         symbols.add(sym(ID, "main"));
@@ -1757,4 +1773,167 @@ public class ParserTest {
             callPrecHelper(b);
         }
     }
+
+	//////////////////////////////////////////////////////////////////////////
+	// Testing Exceptions
+	/////////////////////////////////////////////////////////////////////////
+	
+	// if (b) else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest1() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest2() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if (b else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest3() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b) else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest4() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"), sym(RPAREN),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if (b) else
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest5() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+			sym(ELSE)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if (b) _ else
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest6() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"), sym(RPAREN),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b _ else
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest7() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if (b _ else
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest8() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b) _ else
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest9() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"), sym(RPAREN),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b _ else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest10() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if (b _ else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest11() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(LPAREN), sym(ID, "b"),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+
+	// if b) _ else _
+	@Test(expected=Exception.class)
+	public void ifElseErrorTest12() throws Exception {
+		List<Symbol> symbols = Arrays.asList(
+			sym(IF),
+			sym(ID, "b"), sym(RPAREN),
+			sym(ID, "b"), sym(EQ), sym(NUM,5),
+			sym(ELSE),
+			sym(ID, "b"), sym(EQ), sym(NUM,5)
+		);
+
+		errorTestHelper(symbols);
+	}
+	
 }

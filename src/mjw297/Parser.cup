@@ -449,7 +449,7 @@ expr ::= literal:l
     | binop:bop
 	{: RESULT = bop; :}
     | unop:uop 
-	{: RESULT = uop; :} %prec UMINUS
+	{: RESULT = uop; :}
     | expr:e1 num_array_index_plus:e_lst
 	{: Position p = new Position(e1left, e1right);
 	   Expr<Position> exp = Index.of(p, e1, e_lst.get(0));   
@@ -561,10 +561,10 @@ binop ::= expr:e1 MINUS expr:e2
 
 unop ::= BANG:b expr:e
 	{: Position p = new Position(bleft, bright);
-	  RESULT = UnOp.of(p, UnOpCode.BANG, e); :}
+	  RESULT = UnOp.of(p, UnOpCode.BANG, e); :} %prec UMINUS
     | MINUS:u expr:e
 	{: Position p = new Position(uleft, uright); 
-	   RESULT = UnOp.of(p, UnOpCode.UMINUS, e); :}
+	   RESULT = UnOp.of(p, UnOpCode.UMINUS, e); :} %prec UMINUS
     ;
 
 

@@ -99,12 +99,6 @@ public class ParserTest {
         return Length.of(dummyPosition, e);
     }
 
-    private static ParenthesizedExpr<Position> parenthesizedExpr (
-        Expr<Position> e
-    ) {
-        return ParenthesizedExpr.of(dummyPosition, e);
-    }
-
     private static NumLiteral<Position> numLiteral (
         long x
     ) {
@@ -204,7 +198,7 @@ public class ParserTest {
 
     private static Array<Position> array (
         Type<Position> t,
-        Optional<List<Expr<Position>>> size
+        Optional<Expr<Position>> size
     ) {
         return Array.of(dummyPosition, t, size);
     }

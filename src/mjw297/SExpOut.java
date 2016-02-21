@@ -130,8 +130,11 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     }
 
     public Void visit(Ast.Index<Position> i) {
-        indexPrintHelper(i.e, i.index);
-
+        printer.startList();
+        printer.printAtom("[]");
+        i.e.accept(this);
+        i.index.accept(this);
+        printer.endList();
         return null;
     }
 
@@ -199,19 +202,21 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.Asgn<Position> a) {
         printer.startList();
         printer.printAtom("=");
-        a.id.accept(this);
-        a.expr.accept(this);
+        a.lhs.accept(this);
+        a.rhs.accept(this);
         printer.endList();
         return null;
     }
 
-    public Void visit(Ast.AsgnArrayIndex<Position> a) {
-
+    @Override
+    public Void visit(Ast.Block<Position> b) {
         printer.startList();
-        printer.printAtom("=");
-        indexPrintHelper(a.id, a.index);
-        a.expr.accept(this);
+        b.ss.forEach(s -> s.accept(this));
+        if (b.ret.isPresent()) {
+            b.ret.get().accept(this);
+        }
         printer.endList();
+
         return null;
     }
 
@@ -226,7 +231,7 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
 
         /* block */
         printer.startList();
-        i.body.forEach(s -> s.accept(this));
+        i.body.accept(this);
         printer.endList();
 
         printer.endList();
@@ -245,12 +250,12 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
 
         /* then block */
         printer.startList();
-        i.thenBody.forEach(s -> s.accept(this));
+        i.thenBody.accept(this);
         printer.endList();
 
         /* else block */
         printer.startList();
-        i.elseBody.forEach(s -> s.accept(this));
+        i.elseBody.accept(this);
         printer.endList();
 
         printer.endList();
@@ -269,7 +274,7 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
 
         /* body */
         printer.startList();
-        w.body.forEach(s -> s.accept(this));
+        w.body.accept(this);
         printer.endList();
 
         printer.endList();

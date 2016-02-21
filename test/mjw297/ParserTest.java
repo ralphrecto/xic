@@ -1,5 +1,6 @@
 package mjw297;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.List;
@@ -52,10 +53,15 @@ public class ParserTest {
     }
 
     public void stmtTestHelper(List<Symbol> syms, Stmt<Position> stmt) throws Exception {
-        List<Symbol> symbols = Arrays.asList(
-                sym(ID, "main"), sym(LPAREN), sym(RPAREN), sym(LBRACE)
-        );
-        symbols.addAll(syms);
+        List<Symbol> symbols = new ArrayList<>();
+        symbols.add(sym(ID, "main"));
+        symbols.add(sym(LPAREN));
+        symbols.add(sym(RPAREN));
+        symbols.add(sym(LBRACE));
+
+        for (Symbol sym : syms) {
+            symbols.add(sym);
+        }
         symbols.add(sym(RBRACE));
 
         Program<Position> expected = program(
@@ -121,7 +127,7 @@ public class ParserTest {
 
     private static Index<Position> index (
         Expr<Position> e,
-        List<Expr<Position>> index
+        Expr<Position> index
     ) {
         return Index.of(PositionKiller.dummyPosition, e, index);
     }
@@ -189,32 +195,24 @@ public class ParserTest {
         return Asgn.of(PositionKiller.dummyPosition, id, expr);
     }
 
-    private static AsgnArrayIndex<Position> asgnArrayIndex (
-        Id<Position> id,
-        List<Expr<Position>> index,
-        Expr<Position> expr
-    ) {
-        return AsgnArrayIndex.of(PositionKiller.dummyPosition, id, index, expr);
-    }
-
     private static If<Position> if_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return If.of(PositionKiller.dummyPosition, b, body);
     }
 
     private static IfElse<Position> ifElse (
         Expr<Position> b,
-        List<Stmt<Position>> thenBody,
-        List<Stmt<Position>> elseBody
+        Stmt<Position> thenBody,
+        Stmt<Position> elseBody
     ) {
         return IfElse.of(PositionKiller.dummyPosition, b, thenBody, elseBody);
     }
 
     private static While<Position> while_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return While.of(PositionKiller.dummyPosition, b, body);
     }
@@ -320,7 +318,7 @@ public class ParserTest {
                 Id.of(pos(2, 1), "main"),
                 l(),
                 l()
-             ))                
+             ))
         );
         assertEquals(expected, parsePos(symbols));
     }
@@ -474,6 +472,131 @@ public class ParserTest {
     // x:int[x]
 
             
+    @Test
+    public void asgnTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"), sym(EQ), sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(NUM, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(
+            id("a"),
+            numLiteral(5)
+        );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(NUM, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest4() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(RPAREN),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest5() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(STRING, "hello"),
+                sym(LBRACKET),
+                sym(INT, 5),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest6() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "a"),
+                sym(LBRACKET),
+                sym(ID, "b"),
+                sym(LBRACKET),
+                sym(INT, 5),
+                sym(RBRACKET),
+                sym(PLUS),
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(RPAREN),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest7() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(STRING, "["),
+                sym(LBRACKET),
+                sym(STRING, "["),
+                sym(LBRACKET),
+                sym(NUM, 0),
+                sym(RBRACKET),
+                sym(RBRACKET),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void asgnTest8() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "f"),
+                sym(LPAREN),
+                sym(ID, "b"),
+                sym(LBRACKET),
+                sym(NUM, 0),
+                sym(RBRACKET),
+                sym(RPAREN),
+                sym(EQ),
+                sym(NUM, 5)
+        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        stmtTestHelper(symbols, stmt);
+    }
+
     // TODO: determine function returns
     // @Test
     // public void singleFuncTest() throws Exception {

@@ -23,7 +23,7 @@ public interface Ast {
      *     | Id<A>(A a, String x)
      *     | BinOp<A>(A a, BinOpCode c, Expr<A> lhs, Expr<A> rhs)
      *     | UnOp<A>(A a, UnOpCode c, Expr<A> e)
-     *     | Index<A>(A a, Expr<A> e, List<Expr<A>> index)
+     *     | Index<A>(A a, Expr<A> e, Expr<A> index)
      *     | Length<A>(A a, Expr<A> e)
      *     | Call<A>(A a, Id<A> f, List<Expr<A>> args)
      *
@@ -41,10 +41,10 @@ public interface Ast {
      * type Stmt<A> =
      *     | Decl<A>(A a, List<Var<A>> vs)
      *     | DeclAsgn<A>(A a, List<Var<A>> vs, Expr<A> e)
-     *     | Asgn<A>(A a, Id<A> id, Expr<A> expr)
-     *     | AsgnArrayIndex<A>(A a, Id<A> id, List<Expr<A>> index, Expr<A> expr)
-     *     | If<A>(A a, Expr<A> b, List<Stmt<A>> body)
-     *     | IfElse<A>(A a, Expr<A> b, List<Stmt<A>> thenBody, List<Stmt<A>> elseBody)
+     *     | Asgn<A>(A a, Expr<A> lhs, Expr<A> rhs)
+     *     | Block<A>(A a, List<Stmt<A>> ss, Optional<Expr> ret)
+     *     | If<A>(A a, Expr<A> b, Stmt<A> body)
+     *     | IfElse<A>(A a, Expr<A> b, Stmt<A> thenBody, Stmt<A> elseBody)
      *     | While<A>(A a, Expr<A> b, List<Stmt<A>> body)
      *     | Call<A>(A a, Id<A> f, List<Expr<A>> args)
      *
@@ -67,22 +67,22 @@ public interface Ast {
     public interface AnnotatedVar<A> extends Var<A>  {
         public <R> R accept(AnnotatedVarVisitor<A, R> v);
     }
-    public interface Callable<A>     extends Node<A> {
+    public interface Callable<A> extends Node<A> {
         public <R> R accept(CallableVisitor<A, R> v);
     }
-    public interface Expr<A>         extends Node<A> {
+    public interface Expr<A> extends Node<A> {
         public <R> R accept(ExprVisitor<A, R> v);
     }
-    public interface Literal<A>      extends Expr<A> {
+    public interface Literal<A> extends Expr<A> {
         public <R> R accept(LiteralVisitor<A, R> v);
     }
-    public interface Stmt<A>         extends Node<A> {
+    public interface Stmt<A> extends Node<A> {
         public <R> R accept(StmtVisitor<A, R> v);
     }
-    public interface Type<A>         extends Node<A> {
+    public interface Type<A> extends Node<A> {
         public <R> R accept(TypeVisitor<A, R> v);
     }
-    public interface Var<A>          extends Node<A> {
+    public interface Var<A> extends Node<A> {
         public <R> R accept(VarVisitor<A, R> v);
     }
 
@@ -119,7 +119,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
-        public R visit(AsgnArrayIndex<A> a);
+        public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
@@ -176,7 +176,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
-        public R visit(AsgnArrayIndex<A> a);
+        public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
@@ -314,7 +314,7 @@ public interface Ast {
     public final class Index<A> implements Expr<A> {
         public final A a;
         public final Expr<A> e;
-        public final List<Expr<A>> index;
+        public final Expr<A> index;
         public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -429,8 +429,8 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Asgn<A> implements Stmt<A> {
         public final A a;
-        public final Id<A> id;
-        public final Expr<A> expr;
+        public final Expr<A> lhs;
+        public final Expr<A> rhs;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -438,11 +438,10 @@ public interface Ast {
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
-    public final class AsgnArrayIndex<A> implements Stmt<A> {
+    public final class Block<A> implements Stmt<A> {
         public final A a;
-		public final Id<A> id;
-		public final List<Expr<A>> index;
-        public final Expr<A> expr;
+        public final List<Stmt<A>> ss;
+        public final Optional<Expr<A>> ret;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -453,7 +452,7 @@ public interface Ast {
     public final class If<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> body;
+        public final Stmt<A> body;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -464,8 +463,8 @@ public interface Ast {
     public final class IfElse<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> thenBody;
-        public final List<Stmt<A>> elseBody;
+        public final Stmt<A> thenBody;
+        public final Stmt<A> elseBody;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -476,7 +475,7 @@ public interface Ast {
     public final class While<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> body;
+        public final Stmt<A> body;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -574,7 +573,7 @@ public interface Ast {
         public String visit(Decl<Position> d)                { return d.toString(); }
         public String visit(DeclAsgn<Position> d)            { return d.toString(); }
         public String visit(Asgn<Position> a)                { return a.toString(); }
-        public String visit(AsgnArrayIndex<Position> a)      { return a.toString(); }
+        public String visit(Block<Position> b)               { return b.toString(); }
         public String visit(If<Position> i)                  { return i.toString(); }
         public String visit(IfElse<Position> i)              { return i.toString(); }
         public String visit(While<Position> w)               { return w.toString(); }

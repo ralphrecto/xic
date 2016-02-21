@@ -709,6 +709,73 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
+    private void binopHelper(List<Symbol> s1, BinOpCode c) throws Exception {
+        List<Symbol> symbols = new ArrayList<>();
+        symbols.add(sym(NUM, 1l));
+        symbols.addAll(s1);
+        symbols.add(sym(NUM, 2l));
+
+        Expr<Position> e = binOp(c, numLiteral(1l), numLiteral(2l));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void binopTest1() throws Exception {
+        binopHelper(l(sym(PLUS)), BinOpCode.PLUS);
+    }
+    @Test
+    public void binopTest2() throws Exception {
+        binopHelper(l(sym(STAR)), BinOpCode.STAR);
+    }
+    @Test
+    public void binopTest3() throws Exception {
+        binopHelper(l(sym(MINUS)), BinOpCode.MINUS);
+    }
+    @Test
+    public void binopTest4() throws Exception {
+        binopHelper(l(sym(DIV)), BinOpCode.DIV);
+    }
+    @Test
+    public void binopTest5() throws Exception {
+        binopHelper(l(sym(MOD)), BinOpCode.MOD);
+    }
+    @Test
+    public void binopTest6() throws Exception {
+        binopHelper(l(sym(LT)), BinOpCode.LT);
+    }
+    @Test
+    public void binopTest7() throws Exception {
+        binopHelper(l(sym(LTE)), BinOpCode.LTE);
+    }
+    @Test
+    public void binopTest8() throws Exception {
+        binopHelper(l(sym(GTE)), BinOpCode.GTE);
+    }
+    @Test
+    public void binopTest9() throws Exception {
+        binopHelper(l(sym(GT)), BinOpCode.GT);
+    }
+    @Test
+    public void binopTest10() throws Exception {
+        binopHelper(l(sym(EQEQ)), BinOpCode.EQEQ);
+    }
+    @Test
+    public void binopTest11() throws Exception {
+        binopHelper(l(sym(NEQ)), BinOpCode.NEQ);
+    }
+    @Test
+    public void binopTest12() throws Exception {
+        binopHelper(l(sym(AMP)), BinOpCode.AMP);
+    }
+    @Test
+    public void binopTest13() throws Exception {
+        binopHelper(l(sym(BAR)), BinOpCode.BAR);
+    }
+    @Test
+    public void binopTest14() throws Exception {
+        binopHelper(l(sym(STAR), sym(GT), sym(GT)), BinOpCode.HIGHMULT);
+    }
+
     /**
      * Tests that {@code 1 op 2 op 3} == {@code (1 op 2) op 3}. You have to
      * pass in the same token twice; otherwise the parser complains about token

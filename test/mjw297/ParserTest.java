@@ -2,16 +2,21 @@ package mjw297;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java_cup.runtime.Symbol;
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
 
 public class ParserTest {
+    private static HashMap<List<Symbol>, Expr<Position>> exprs = new HashMap<>();
+
     ////////////////////////////////////////////////////////////////////////////
     // Helper Functions
     ////////////////////////////////////////////////////////////////////////////
@@ -60,6 +65,10 @@ public class ParserTest {
 
     private static Symbol sym(int type, Object value, int row, int col) {
         return SymUtil.sym(type, row, col, value);
+    }
+
+    private static Symbol sym(Symbol s) {
+        return sym(s.sym, s.value());
     }
 
     private static Position pos(int row, int col) {
@@ -119,10 +128,11 @@ public class ParserTest {
         symbols.add(sym(RBRACE));
 
         Program<Position> expected = program(
-                l(),
-                l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
+            l(),
+            l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
+        exprs.put(syms, e);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2073,5 +2083,34 @@ public class ParserTest {
         );
         Expr<Position> e = id("dummy");
         exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void callTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(ID, "foo"));
+            symbols.add(sym(LPAREN));
+            for (int j = 0; j < ss.size(); ++j) {
+                for (Symbol s : ss.get(j)) {
+                    symbols.add(sym(s));
+                }
+                if (j + 1 != ss.size()) {
+                    symbols.add(sym(COMMA));
+                }
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, call(id("foo"), es));
+        }
     }
 }

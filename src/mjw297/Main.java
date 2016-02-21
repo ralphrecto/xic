@@ -189,7 +189,9 @@ public class Main {
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
             SExpOut sExpOut = new SExpOut(System.out);
-            ((Ast.Program<Position>) p.fst.prog.value).accept(sExpOut);
+            @SuppressWarnings("unchecked")
+            Ast.Program<Position> prog = (Ast.Program<Position>) p.fst.prog.value;
+            prog.accept(sExpOut);
             sExpOut.flush();
             System.out.println("");
         }

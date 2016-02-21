@@ -385,7 +385,6 @@ public class ParserTest {
         );
         Stmt<Position> stmt = asgn(
             id("a"),
-            l(numLiteral(5)),
             numLiteral(5)
         );
         stmtTestHelper(symbols, stmt);
@@ -401,11 +400,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(numLiteral(5), numLiteral(4)),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -421,11 +416,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(numLiteral(5), numLiteral(4)),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -439,11 +430,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(numLiteral(5), numLiteral(4)),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -464,15 +451,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(binOp(
-                    BinOpCode.PLUS,
-                    index(id("b"), l(num(5))),
-                    call(id("f"), l()))
-                ),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -489,11 +468,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(numLiteral(5), numLiteral(4)),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -510,11 +485,7 @@ public class ParserTest {
                 sym(EQ),
                 sym(NUM, 5)
         );
-        Stmt<Position> stmt = asgnArrayIndex(
-                id("a"),
-                l(numLiteral(5), numLiteral(4)),
-                numLiteral(5)
-        );
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
         stmtTestHelper(symbols, stmt);
     }
 

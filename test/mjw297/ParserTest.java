@@ -22,7 +22,8 @@ public class ParserTest {
     private static Program<Position> parse(List<Symbol> symbols) throws Exception {
         MockLexer l = new MockLexer(symbols) ;
         Parser p = new Parser(l);
-        return p.parse().value();
+        Program<Position> prog = p.parse().value();
+        return PositionKiller.kill(prog);
     }
 
     @SafeVarargs
@@ -30,14 +31,12 @@ public class ParserTest {
         return Arrays.asList(xs);
     }
 
-    private static Position dummyPosition = new Position(-1, -1);
-
     private static Symbol sym(int type) {
-        return SymUtil.sym(type, dummyPosition.row, dummyPosition.col);
+        return SymUtil.sym(type, PositionKiller.dummyPosition.row, PositionKiller.dummyPosition.col);
     }
 
     private static Symbol sym(int type, Object value) {
-        return SymUtil.sym(type, dummyPosition.row, dummyPosition.col, value);
+        return SymUtil.sym(type, PositionKiller.dummyPosition.row, PositionKiller.dummyPosition.col, value);
     }
 
     private static Symbol sym(int type, int row, int col) {
@@ -57,14 +56,14 @@ public class ParserTest {
         Id<Position> x,
         Type<Position> t
     ) {
-        return AnnotatedId.of(dummyPosition, x, t);
+        return AnnotatedId.of(PositionKiller.dummyPosition, x, t);
     }
 
     private static AnnotatedUnderscore<Position> annotatedUnderscore (
         Underscore<Position> u,
         Type<Position> t
     ) {
-        return AnnotatedUnderscore.of(dummyPosition, u, t);
+        return AnnotatedUnderscore.of(PositionKiller.dummyPosition, u, t);
     }
 
     private static Func<Position> func (
@@ -74,7 +73,7 @@ public class ParserTest {
         List<Stmt<Position>> body,
         List<Expr<Position>> returns
     ) {
-        return Func.of(dummyPosition, name, args, returnType, body, returns);
+        return Func.of(PositionKiller.dummyPosition, name, args, returnType, body, returns);
     }
 
     private static Proc<Position> proc (
@@ -82,13 +81,13 @@ public class ParserTest {
         List<AnnotatedVar<Position>> args,
         List<Stmt<Position>> body
     ) {
-        return Proc.of(dummyPosition, name, args, body);
+        return Proc.of(PositionKiller.dummyPosition, name, args, body);
     }
 
     private static Id<Position> id (
         String x
     ) {
-        return Id.of(dummyPosition, x);
+        return Id.of(PositionKiller.dummyPosition, x);
     }
 
     private static BinOp<Position> binOp (
@@ -96,84 +95,84 @@ public class ParserTest {
         Expr<Position> lhs,
         Expr<Position> rhs
     ) {
-        return BinOp.of(dummyPosition, c, lhs, rhs);
+        return BinOp.of(PositionKiller.dummyPosition, c, lhs, rhs);
     }
 
     private static UnOp<Position> unOp (
         UnOpCode c,
         Expr<Position> e
     ) {
-        return UnOp.of(dummyPosition, c, e);
+        return UnOp.of(PositionKiller.dummyPosition, c, e);
     }
 
     private static Index<Position> index (
         Expr<Position> e,
         List<Expr<Position>> index
     ) {
-        return Index.of(dummyPosition, e, index);
+        return Index.of(PositionKiller.dummyPosition, e, index);
     }
 
     private static Length<Position> length (
         Expr<Position> e
     ) {
-        return Length.of(dummyPosition, e);
+        return Length.of(PositionKiller.dummyPosition, e);
     }
 
     private static NumLiteral<Position> numLiteral (
         long x
     ) {
-        return NumLiteral.of(dummyPosition, x);
+        return NumLiteral.of(PositionKiller.dummyPosition, x);
     }
 
     private static BoolLiteral<Position> boolLiteral (
         boolean b
     ) {
-        return BoolLiteral.of(dummyPosition, b);
+        return BoolLiteral.of(PositionKiller.dummyPosition, b);
     }
 
     private static StringLiteral<Position> stringLiteral (
         String s
     ) {
-        return StringLiteral.of(dummyPosition, s);
+        return StringLiteral.of(PositionKiller.dummyPosition, s);
     }
 
     private static CharLiteral<Position> charLiteral (
         char c
     ) {
-        return CharLiteral.of(dummyPosition, c);
+        return CharLiteral.of(PositionKiller.dummyPosition, c);
     }
 
     private static ArrayLiteral<Position> arrayLiteral (
         List<Expr<Position>> xs
     ) {
-        return ArrayLiteral.of(dummyPosition, xs);
+        return ArrayLiteral.of(PositionKiller.dummyPosition, xs);
     }
 
     private static Program<Position> program (
         List<Use<Position>> uses,
         List<Callable<Position>> fs
     ) {
-        return Program.of(dummyPosition, uses, fs);
+        return Program.of(PositionKiller.dummyPosition, uses, fs);
     }
 
     private static Decl<Position> decl (
         List<Var<Position>> vs
     ) {
-        return Decl.of(dummyPosition, vs);
+        return Decl.of(PositionKiller.dummyPosition, vs);
     }
 
     private static DeclAsgn<Position> declAsgn (
         List<Var<Position>> vs,
         Expr<Position> e
     ) {
-        return DeclAsgn.of(dummyPosition, vs, e);
+        return DeclAsgn.of(PositionKiller.dummyPosition, vs, e);
     }
 
     private static Asgn<Position> asgn (
         Id<Position> id,
         Expr<Position> expr
     ) {
-        return Asgn.of(dummyPosition, id, expr);
+        return Asgn.of(PositionKiller.dummyPosition, id, expr);
     }
 
     private static AsgnArrayIndex<Position> asgnArrayIndex (
@@ -181,14 +180,14 @@ public class ParserTest {
         List<Expr<Position>> index,
         Expr<Position> expr
     ) {
-        return AsgnArrayIndex.of(dummyPosition, id, index, expr);
+        return AsgnArrayIndex.of(PositionKiller.dummyPosition, id, index, expr);
     }
 
     private static If<Position> if_ (
         Expr<Position> b,
         List<Stmt<Position>> body
     ) {
-        return If.of(dummyPosition, b, body);
+        return If.of(PositionKiller.dummyPosition, b, body);
     }
 
     private static IfElse<Position> ifElse (
@@ -196,49 +195,49 @@ public class ParserTest {
         List<Stmt<Position>> thenBody,
         List<Stmt<Position>> elseBody
     ) {
-        return IfElse.of(dummyPosition, b, thenBody, elseBody);
+        return IfElse.of(PositionKiller.dummyPosition, b, thenBody, elseBody);
     }
 
     private static While<Position> while_ (
         Expr<Position> b,
         List<Stmt<Position>> body
     ) {
-        return While.of(dummyPosition, b, body);
+        return While.of(PositionKiller.dummyPosition, b, body);
     }
 
     private static Int<Position> num (
     ) {
-        return Int.of(dummyPosition);
+        return Int.of(PositionKiller.dummyPosition);
     }
 
     private static Bool<Position> bool (
     ) {
-        return Bool.of(dummyPosition);
+        return Bool.of(PositionKiller.dummyPosition);
     }
 
     private static Array<Position> array (
         Type<Position> t,
         Optional<Expr<Position>> size
     ) {
-        return Array.of(dummyPosition, t, size);
+        return Array.of(PositionKiller.dummyPosition, t, size);
     }
 
     private static Use<Position> use (
         Id<Position> x
     ) {
-        return Use.of(dummyPosition, x);
+        return Use.of(PositionKiller.dummyPosition, x);
     }
 
     private static Underscore<Position> underscore (
     ) {
-        return Underscore.of(dummyPosition);
+        return Underscore.of(PositionKiller.dummyPosition);
     }
 
     private static Call<Position> call (
         Id<Position> f,
         List<Expr<Position>> args
     ) {
-        return Call.of(dummyPosition, f, args);
+        return Call.of(PositionKiller.dummyPosition, f, args);
     }
 
     @Test

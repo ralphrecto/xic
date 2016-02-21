@@ -119,8 +119,10 @@ nonterminal Var<Position>
 nonterminal
     end_stmt;
 
-nonterminal ArrayList<Stmt<Position>>
-	block,
+nonterminal Block<Position>
+	block;
+
+nonterminal Stmt<Position>
 	if_body,
 	while_body;
 
@@ -298,8 +300,13 @@ end_stmt ::=
 full_stmt ::= stmt:s end_stmt
 	{: RESULT = s; :};
 
-block ::= LBRACE stmt_star:s RBRACE
-	{: RESULT = s; :};
+block ::= LBRACE:lb stmt_star:s RBRACE
+	{: Position p = new Position(lbleft, lbright); 
+	   RESULT = Block.of(p, s, Optional.empty()); :}
+	| LBRACE:lb stmt_star:s RETURN expr:e RBRACE
+	{: Position p = new Position(lbleft, lbright); 
+	   RESULT = Block.of(p, s, Optional.of(e)); :}
+	;
 
 full_decl ::= var_plus:v
 	{: RESULT = Decl.of(new Position(vleft, vright), v); :}
@@ -324,9 +331,7 @@ asgn ::= ID:i EQ expr:e
 if_body ::= block:b
 	{: RESULT = b; :}
    	| full_stmt:s
-	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
-	   list.add(s);
-	   RESULT = list; :}
+	{: RESULT = s; :}
    	;
 
 if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
@@ -338,9 +343,7 @@ if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
 while_body ::= block:b
 	{: RESULT = b; :}
   	| full_stmt:s
-	{: ArrayList<Stmt<Position>> list = new ArrayList<>();
-	   list.add(s);
-	   RESULT = list; :}
+	{: RESULT = s; :}
   	;
 
 while_stmt ::= WHILE:w LPAREN expr:e RPAREN while_body:b

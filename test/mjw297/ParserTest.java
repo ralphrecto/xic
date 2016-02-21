@@ -166,22 +166,22 @@ public class ParserTest {
 
     private static If<Position> if_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return If.of(dummyPosition, b, body);
     }
 
     private static IfElse<Position> ifElse (
         Expr<Position> b,
-        List<Stmt<Position>> thenBody,
-        List<Stmt<Position>> elseBody
+        Stmt<Position> thenBody,
+        Stmt<Position> elseBody
     ) {
         return IfElse.of(dummyPosition, b, thenBody, elseBody);
     }
 
     private static While<Position> while_ (
         Expr<Position> b,
-        List<Stmt<Position>> body
+        Stmt<Position> body
     ) {
         return While.of(dummyPosition, b, body);
     }

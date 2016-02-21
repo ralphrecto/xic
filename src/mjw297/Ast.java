@@ -55,6 +55,7 @@ public interface Ast {
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
         public R visit(AsgnArrayIndex<A> a);
+		public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
@@ -107,6 +108,7 @@ public interface Ast {
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
         public R visit(AsgnArrayIndex<A> a);
+		public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
@@ -326,7 +328,7 @@ public interface Ast {
     ////////////////////////////////////////////////////////////////////////////
     // Stmt
     ////////////////////////////////////////////////////////////////////////////
-    @AllArgsConstructor(staticName="of")
+	@AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class Decl<A> implements Stmt<A> {
@@ -370,13 +372,24 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
+	@AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class Block<A> implements Stmt<A> {
+		public final A a;
+        public final List<Stmt<A>> ss;
+		public final Optional<Expr> ret; 
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public final class If<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> body;
+        public final Stmt<A> body;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -387,8 +400,8 @@ public interface Ast {
     public final class IfElse<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> thenBody;
-        public final List<Stmt<A>> elseBody;
+        public final Stmt<A> thenBody;
+        public final Stmt<A> elseBody;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -399,7 +412,7 @@ public interface Ast {
     public final class While<A> implements Stmt<A> {
         public final A a;
         public final Expr<A> b;
-        public final List<Stmt<A>> body;
+        public final Stmt<A> body;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -498,6 +511,7 @@ public interface Ast {
         public String visit(DeclAsgn<Position> d)            { return d.toString(); }
         public String visit(Asgn<Position> a)                { return a.toString(); }
         public String visit(AsgnArrayIndex<Position> a)      { return a.toString(); }
+		public String visit(Block<Position> b)				 { return b.toString(); }
         public String visit(If<Position> i)                  { return i.toString(); }
         public String visit(IfElse<Position> i)              { return i.toString(); }
         public String visit(While<Position> w)               { return w.toString(); }

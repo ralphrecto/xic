@@ -2144,4 +2144,32 @@ public class ParserTest {
             exprTestHelper(symbols, e);
         }
     }
+
+    @Test
+    public void arrayLiteralTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LBRACE));
+            for (int j = 0; j < ss.size(); ++j) {
+                for (Symbol s : ss.get(j)) {
+                    symbols.add(sym(s));
+                }
+                if (j + 1 != ss.size()) {
+                    symbols.add(sym(COMMA));
+                }
+            }
+            symbols.add(sym(RBRACE));
+
+            exprTestHelper(symbols, arrayLiteral(es));
+        }
+    }
 }

@@ -12,6 +12,9 @@ import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
 
 public class ParserTest {
+    ////////////////////////////////////////////////////////////////////////////
+    // Helper Functions
+    ////////////////////////////////////////////////////////////////////////////
     @SuppressWarnings("deprecation")
     private static Program<Position> parsePos(List<Symbol> symbols) throws Exception {
         MockLexer l = new MockLexer(symbols) ;
@@ -33,11 +36,13 @@ public class ParserTest {
     }
 
     private static Symbol sym(int type) {
-        return SymUtil.sym(type, PositionKiller.dummyPosition.row, PositionKiller.dummyPosition.col);
+        return SymUtil.sym(type, PositionKiller.dummyPosition.row,
+                           PositionKiller.dummyPosition.col);
     }
 
     private static Symbol sym(int type, Object value) {
-        return SymUtil.sym(type, PositionKiller.dummyPosition.row, PositionKiller.dummyPosition.col, value);
+        return SymUtil.sym(type, PositionKiller.dummyPosition.row,
+                           PositionKiller.dummyPosition.col, value);
     }
 
     private static Symbol sym(int type, int row, int col) {
@@ -71,7 +76,29 @@ public class ParserTest {
         assertEquals(expected, parse(symbols));
     }
 
+    public void exprTestHelper(List<Symbol> syms, Expr<Position> e) throws Exception {
+        List<Symbol> symbols = new ArrayList<>();
+        symbols.add(sym(ID, "main"));
+        symbols.add(sym(LPAREN));
+        symbols.add(sym(RPAREN));
+        symbols.add(sym(LBRACE));
+        symbols.add(sym(ID, "x"));
+        symbols.add(sym(EQ));
+        for (Symbol sym : syms) {
+            symbols.add(sym);
+        }
+        symbols.add(sym(RBRACE));
 
+        Program<Position> expected = program(
+                l(),
+                l(proc(id("main"), l(), l(asgn(id("x"), e))))
+        );
+        assertEquals(expected, parse(symbols));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Abbreviations
+    ////////////////////////////////////////////////////////////////////////////
     private static AnnotatedId<Position> annotatedId (
         Id<Position> x,
         Type<Position> t
@@ -116,6 +143,10 @@ public class ParserTest {
         Expr<Position> rhs
     ) {
         return BinOp.of(PositionKiller.dummyPosition, c, lhs, rhs);
+    }
+
+    private static BinOp<Position> plus(Expr<Position> lhs, Expr<Position> rhs) {
+        return binOp(BinOpCode.PLUS, lhs, rhs);
     }
 
     private static UnOp<Position> unOp (
@@ -203,6 +234,13 @@ public class ParserTest {
         return Asgn.of(PositionKiller.dummyPosition, id, expr);
     }
 
+    private static Block<Position> block (
+        List<Stmt<Position>> ss,
+        Optional<Expr<Position>> ret
+    ) {
+        return Block.of(PositionKiller.dummyPosition, ss, ret);
+    }
+
     private static If<Position> if_ (
         Expr<Position> b,
         Stmt<Position> body
@@ -259,6 +297,10 @@ public class ParserTest {
     ) {
         return Call.of(PositionKiller.dummyPosition, f, args);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Abbreviations
+    ////////////////////////////////////////////////////////////////////////////
 
     @Test
     public void emptyMainTest() throws Exception {
@@ -606,6 +648,7 @@ public class ParserTest {
     }
 
     @Test
+    // while (true) _
     public void whileTest1() throws Exception {
         List<Symbol> symbols = Arrays.asList(
                 sym(WHILE, "f"),
@@ -617,6 +660,69 @@ public class ParserTest {
         Stmt<Position> stmt = while_(true_(), decl(l(underscore())));
         stmtTestHelper(symbols, stmt);
     }
+
+    @Test
+    // while (true) {_}
+    public void whileTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(WHILE),
+                sym(LPAREN),
+                sym(FALSE),
+                sym(RPAREN),
+                sym(LBRACE),
+                sym(UNDERSCORE),
+                sym(RBRACE)
+        );
+        Stmt<Position> stmt =
+            while_(false_(),
+                   block(l(decl(l(underscore()))), Optional.empty()));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    // while (1) {_; _; _}
+    public void whileTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(WHILE),
+                sym(LPAREN),
+                sym(NUM, 1l),
+                sym(RPAREN),
+                sym(LBRACE),
+                sym(UNDERSCORE),
+                sym(SEMICOLON),
+                sym(UNDERSCORE),
+                sym(SEMICOLON),
+                sym(UNDERSCORE),
+                sym(SEMICOLON),
+                sym(RBRACE)
+        );
+        Stmt<Position> stmt =
+            while_(
+                numLiteral(1l),
+                block(l(
+                    decl(l(underscore())),
+                    decl(l(underscore())),
+                    decl(l(underscore()))),
+                    Optional.empty()
+                )
+            );
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    // 1 + 2 + 3
+    public void assocTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(NUM, 1l),
+            sym(PLUS),
+            sym(NUM, 2l),
+            sym(PLUS),
+            sym(NUM, 3l)
+        );
+        Expr<Position> e = plus(plus(numLiteral(1l), numLiteral(2l)), numLiteral(3l));
+        exprTestHelper(symbols, e);
+    }
+
 
     // TODO: determine function returns
     // @Test

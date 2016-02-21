@@ -45,7 +45,7 @@ public interface Ast {
      *     | Block<A>(A a, List<Stmt<A>> ss, Optional<Expr> ret)
      *     | If<A>(A a, Expr<A> b, Stmt<A> body)
      *     | IfElse<A>(A a, Expr<A> b, Stmt<A> thenBody, Stmt<A> elseBody)
-     *     | While<A>(A a, Expr<A> b, List<Stmt<A>> body)
+     *     | While<A>(A a, Expr<A> b, Stmt<A> body)
      *     | Call<A>(A a, Id<A> f, List<Expr<A>> args)
      *
      * type Type<A> =

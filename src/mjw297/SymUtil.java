@@ -106,4 +106,26 @@ public class SymUtil {
             default: return terminalName.toLowerCase();
         }
     }
+
+    public static Ast.BinOpCode toBinopCode(int c) {
+        switch (c) {
+            case Sym.MINUS:    return Ast.BinOpCode.MINUS;
+            case Sym.STAR:     return Ast.BinOpCode.STAR;
+            case Sym.HIGHMULT: return Ast.BinOpCode.HIGHMULT;
+            case Sym.DIV:      return Ast.BinOpCode.DIV;
+            case Sym.MOD:      return Ast.BinOpCode.MOD;
+            case Sym.PLUS:     return Ast.BinOpCode.PLUS;
+            case Sym.LT:       return Ast.BinOpCode.LT;
+            case Sym.LTE:      return Ast.BinOpCode.LTE;
+            case Sym.GTE:      return Ast.BinOpCode.GTE;
+            case Sym.GT:       return Ast.BinOpCode.GT;
+            case Sym.EQEQ:     return Ast.BinOpCode.EQEQ;
+            case Sym.NEQ:      return Ast.BinOpCode.NEQ;
+            case Sym.AMP:      return Ast.BinOpCode.AMP;
+            case Sym.BAR:      return Ast.BinOpCode.BAR;
+            default:
+                String msg = String.format("%d id not a BinOpCode");
+                throw new IllegalArgumentException(msg);
+        }
+    }
 }

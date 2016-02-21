@@ -1187,7 +1187,7 @@ public class ParserTest {
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
             sym(WHILE),
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-            sym(IF), 
+            sym(IF),
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
 			sym(UNDERSCORE),
             sym(ELSE),
@@ -1852,7 +1852,7 @@ public class ParserTest {
 	//////////////////////////////////////////////////////////////////////////
 	// Testing Exceptions
 	/////////////////////////////////////////////////////////////////////////
-	
+
 	// if (b) else _
 	@Test(expected=Exception.class)
 	public void ifElseErrorTest1() throws Exception {
@@ -2010,7 +2010,7 @@ public class ParserTest {
 
 		errorTestHelper(symbols);
 	}
-	
+
     @Test
     public void bigNumTest() throws Exception {
         Expr<Position> e;
@@ -2111,6 +2111,37 @@ public class ParserTest {
             symbols.add(sym(RPAREN));
 
             exprTestHelper(symbols, call(id("foo"), es));
+        }
+    }
+
+    @Test
+    public void indexTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> lhs = Util.choose(exprs);
+            Expr<Position> e = lhs.snd;
+            List<Util.Tuple<List<Symbol>, Expr<Position>>> ses
+                = Util.choose(exprs, rand.nextInt(maxArgs) + 1);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : lhs.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+            for (Util.Tuple<List<Symbol>, Expr<Position>> t : ses) {
+                symbols.add(sym(LBRACKET));
+                for (Symbol s : t.fst) {
+                    symbols.add(sym(s));
+                }
+                symbols.add(sym(RBRACKET));
+                e = index(e, t.snd);
+            }
+
+            exprTestHelper(symbols, e);
         }
     }
 }

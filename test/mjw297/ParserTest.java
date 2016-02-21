@@ -1817,4 +1817,69 @@ public class ParserTest {
             callPrecHelper(b);
         }
     }
+
+    @Test
+    public void bigNumTest() throws Exception {
+        Expr<Position> e;
+        List<Symbol> symbols;
+
+        symbols = Arrays.asList(
+            sym(MINUS),
+            sym(BIG_NUM)
+        );
+        e = numLiteral(Long.MIN_VALUE);
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(MINUS),
+            sym(MINUS),
+            sym(BIG_NUM)
+        );
+        e = unOp(UnOpCode.UMINUS, numLiteral(Long.MIN_VALUE));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(MINUS),
+            sym(MINUS),
+            sym(MINUS),
+            sym(MINUS),
+            sym(BIG_NUM)
+        );
+        e = unOp(UnOpCode.UMINUS,
+                 unOp(UnOpCode.UMINUS,
+                      unOp(UnOpCode.UMINUS, numLiteral(Long.MIN_VALUE))));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test(expected=Exception.class)
+    public void failingBigNumTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(BIG_NUM)
+        );
+        Expr<Position> e = id("dummy");
+        exprTestHelper(symbols, e);
+    }
+
+    @Test(expected=Exception.class)
+    public void failingBigNumTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(MINUS),
+            sym(LPAREN),
+            sym(BIG_NUM),
+            sym(RPAREN)
+        );
+        Expr<Position> e = id("dummy");
+        exprTestHelper(symbols, e);
+    }
+
+    @Test(expected=Exception.class)
+    public void failingBigNumTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(NUM, 1l),
+            sym(PLUS),
+            sym(BIG_NUM)
+        );
+        Expr<Position> e = id("dummy");
+        exprTestHelper(symbols, e);
+    }
 }

@@ -20,8 +20,7 @@ public class PositionKiller {
             return UnOp.of(dummyPosition, o.c, o.e.accept(this));
         }
         public Expr<Position> visit(Index<Position> i) {
-            List<Expr<Position>> index = Lists.transform(i.index, e -> e.accept(this));
-            return Index.of(dummyPosition, i.e.accept(this), index);
+            return Index.of(dummyPosition, i.e.accept(this), i.index.accept(this));
         }
         public Expr<Position> visit(Length<Position> l) {
             return Length.of(dummyPosition, l.e.accept(this));
@@ -71,25 +70,25 @@ public class PositionKiller {
             return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
         }
         public Stmt<Position> visit(Asgn<Position> a) {
-            return Asgn.of(dummyPosition, kill(a.id), a.expr.accept(new ExprKiller()));
+            return Asgn.of(dummyPosition, a.lhs.accept(new ExprKiller()),
+                                          a.rhs.accept(new ExprKiller()));
+        }
+        public Stmt<Position> visit(Block<Position> b) {
+            List<Stmt<Position>> ss = Lists.transform(b.ss, s -> s.accept(this));
+            Optional<Expr<Position>> ret = ret.map(e -> e.accept(new ExprKiller()));
+            return Block.of(dummyPosition, ss, ret);
         }
         public Stmt<Position> visit(If<Position> i) {
-            List<Stmt<Position>> body =
-                Lists.transform(i.body, s -> s.accept(this));
-            return If.of(dummyPosition, i.b.accept(new ExprKiller()), body);
+            return If.of(dummyPosition, i.b.accept(new ExprKiller()),
+                                        i.body.accept(this));
         }
         public Stmt<Position> visit(IfElse<Position> i) {
-            List<Stmt<Position>> thenBody =
-                Lists.transform(i.thenBody, s -> s.accept(this));
-            List<Stmt<Position>> elseBody =
-                Lists.transform(i.elseBody, s -> s.accept(this));
             return IfElse.of(dummyPosition, i.b.accept(new ExprKiller()),
-                    thenBody, elseBody);
+                    i.thenBody.accept(this), i.elseBody.accept(this));
         }
         public Stmt<Position> visit(While<Position> w) {
-            List<Stmt<Position>> body =
-                Lists.transform(w.body, s -> s.accept(this));
-            return While.of(dummyPosition, w.b.accept(new ExprKiller()), body);
+            return While.of(dummyPosition, w.b.accept(new ExprKiller()),
+                            w.body.accept(this));
         }
         public Stmt<Position> visit(Call<Position> c) {
             List<Expr<Position>> args =

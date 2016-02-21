@@ -98,7 +98,7 @@ public class ParserTest {
 
         Program<Position> expected = program(
                 l(),
-                l(proc(id("main"), l(), l(stmt)))
+                l(proc(id("main"), l(), block(l(stmt), Optional.empty())))
         );
         assertEquals(expected, debugParse(symbols));
     }
@@ -396,7 +396,7 @@ public class ParserTest {
                 pos(2, 1),
                 Id.of(pos(2, 1), "main"),
                 l(),
-                block(l(), Optional.empty())
+                Block.of(pos(3, 1), l(), Optional.empty())
              ))
         );
         assertEquals(expected, parsePos(symbols));

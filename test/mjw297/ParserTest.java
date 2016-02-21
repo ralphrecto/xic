@@ -51,6 +51,20 @@ public class ParserTest {
         return new Position(row, col);
     }
 
+    public void stmtTestHelper(List<Symbol> syms, Stmt<Position> stmt) throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(ID, "main"), sym(LPAREN), sym(RPAREN), sym(LBRACE)
+        );
+        symbols.addAll(syms);
+        symbols.add(sym(RBRACE));
+
+        Program<Position> expected = program(
+                l(),
+                l(proc(id("foo"), l(), l(stmt)))
+        );
+        assertEquals(expected, parse(symbols));
+    }
+
 
     private static AnnotatedId<Position> annotatedId (
         Id<Position> x,
@@ -348,20 +362,6 @@ public class ParserTest {
             l(proc(id("foo"), l(), l()),
               proc(id("bar"), l(), l()),
               proc(id("baz"), l(), l()))
-        );
-        assertEquals(expected, parse(symbols));
-    }
-
-    public void stmtTestHelper(List<Symbol> syms, Stmt<Position> stmt) throws Exception {
-        List<Symbol> symbols = Arrays.asList(
-                sym(ID, "main"), sym(LPAREN), sym(RPAREN), sym(LBRACE)
-        );
-        symbols.addAll(syms);
-        symbols.add(sym(RBRACE));
-
-        Program<Position> expected = program(
-                l(),
-                l(proc(id("foo"), l(), l(stmt)))
         );
         assertEquals(expected, parse(symbols));
     }

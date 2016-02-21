@@ -150,6 +150,14 @@ public class ParserTest {
         return BoolLiteral.of(PositionKiller.dummyPosition, b);
     }
 
+    private static BoolLiteral<Position> true_ () {
+        return boolLiteral(true);
+    }
+
+    private static BoolLiteral<Position> false_ () {
+        return boolLiteral(false);
+    }
+
     private static StringLiteral<Position> stringLiteral (
         String s
     ) {
@@ -377,7 +385,7 @@ public class ParserTest {
             l(annotatedId(id("x"), Int.of(PositionKiller.dummyPosition))),
             binOp(BinOpCode.EQEQ, id("x"), id("x"))
         );
-              
+
         stmtTestHelper(symbols, stmt);
     }
 
@@ -387,12 +395,12 @@ public class ParserTest {
         List<Symbol> symbols = Arrays.asList(
             sym(ID, "x"), sym(COLON), sym(INT), sym(COMMA),
             sym(ID, "y"), sym(COLON), sym(BOOL), sym(EQ),
-            sym(NUM, 5)
+            sym(NUM, 5l)
         );
         Stmt<Position> stmt = declAsgn(
             l(annotatedId(id("x"), num()),
               annotatedId(id("y"), num())),
-            numLiteral((long) 5)
+            numLiteral(5l)
         );
 
         stmtTestHelper(symbols, stmt);
@@ -408,8 +416,8 @@ public class ParserTest {
         Stmt<Position> stmt = decl(
             l(annotatedUnderscore(underscore(), array(num(), Optional.empty())))
         );
-        
-        stmtTestHelper(symbols, stmt); 
+
+        stmtTestHelper(symbols, stmt);
     }
 
     // x:int, y:bool, z:int, x:int, y:bool, z:int, x:int
@@ -471,13 +479,13 @@ public class ParserTest {
 
     // x:int[x]
 
-            
+
     @Test
     public void asgnTest1() throws Exception {
         List<Symbol> symbols = Arrays.asList(
-            sym(ID, "a"), sym(EQ), sym(NUM, 5)
+            sym(ID, "a"), sym(EQ), sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -486,14 +494,14 @@ public class ParserTest {
         List<Symbol> symbols = Arrays.asList(
                 sym(ID, "a"),
                 sym(LBRACKET),
-                sym(NUM, 5),
+                sym(NUM, 5l),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
         Stmt<Position> stmt = asgn(
             id("a"),
-            numLiteral(5)
+            numLiteral(5l)
         );
         stmtTestHelper(symbols, stmt);
     }
@@ -503,12 +511,12 @@ public class ParserTest {
         List<Symbol> symbols = Arrays.asList(
                 sym(ID, "a"),
                 sym(LBRACKET),
-                sym(NUM, 5),
+                sym(NUM, 5l),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -522,9 +530,9 @@ public class ParserTest {
                 sym(RPAREN),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -533,12 +541,12 @@ public class ParserTest {
         List<Symbol> symbols = Arrays.asList(
                 sym(STRING, "hello"),
                 sym(LBRACKET),
-                sym(INT, 5),
+                sym(INT, 5l),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -549,7 +557,7 @@ public class ParserTest {
                 sym(LBRACKET),
                 sym(ID, "b"),
                 sym(LBRACKET),
-                sym(INT, 5),
+                sym(INT, 5l),
                 sym(RBRACKET),
                 sym(PLUS),
                 sym(ID, "f"),
@@ -557,9 +565,9 @@ public class ParserTest {
                 sym(RPAREN),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -570,13 +578,13 @@ public class ParserTest {
                 sym(LBRACKET),
                 sym(STRING, "["),
                 sym(LBRACKET),
-                sym(NUM, 0),
+                sym(NUM, 0l),
                 sym(RBRACKET),
                 sym(RBRACKET),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
         stmtTestHelper(symbols, stmt);
     }
 
@@ -587,13 +595,26 @@ public class ParserTest {
                 sym(LPAREN),
                 sym(ID, "b"),
                 sym(LBRACKET),
-                sym(NUM, 0),
+                sym(NUM, 0l),
                 sym(RBRACKET),
                 sym(RPAREN),
                 sym(EQ),
-                sym(NUM, 5)
+                sym(NUM, 5l)
         );
-        Stmt<Position> stmt = asgn(id("a"), numLiteral(5));
+        Stmt<Position> stmt = asgn(id("a"), numLiteral(5l));
+        stmtTestHelper(symbols, stmt);
+    }
+
+    @Test
+    public void whileTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+                sym(WHILE, "f"),
+                sym(LPAREN),
+                sym(TRUE),
+                sym(RPAREN),
+                sym(UNDERSCORE)
+        );
+        Stmt<Position> stmt = while_(true_(), decl(l(underscore())));
         stmtTestHelper(symbols, stmt);
     }
 

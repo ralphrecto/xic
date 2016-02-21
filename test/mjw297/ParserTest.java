@@ -162,6 +162,10 @@ public class ParserTest {
         return binOp(BinOpCode.PLUS, lhs, rhs);
     }
 
+    private static BinOp<Position> minus(Expr<Position> lhs, Expr<Position> rhs) {
+        return binOp(BinOpCode.MINUS, lhs, rhs);
+    }
+
     private static UnOp<Position> unOp (
         UnOpCode c,
         Expr<Position> e
@@ -1848,6 +1852,15 @@ public class ParserTest {
         e = unOp(UnOpCode.UMINUS,
                  unOp(UnOpCode.UMINUS,
                       unOp(UnOpCode.UMINUS, numLiteral(Long.MIN_VALUE))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(NUM, 1l),
+            sym(MINUS),
+            sym(MINUS),
+            sym(BIG_NUM)
+        );
+        e = minus(numLiteral(1l), numLiteral(Long.MIN_VALUE));
         exprTestHelper(symbols, e);
     }
 

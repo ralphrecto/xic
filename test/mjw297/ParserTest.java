@@ -30,14 +30,6 @@ public class ParserTest {
         return PositionKiller.kill(prog);
     }
 
-    @SuppressWarnings("deprecation")
-    private static Program<Position> debugParse(List<Symbol> symbols) throws Exception {
-        MockLexer l = new MockLexer(symbols) ;
-        Parser p = new Parser(l);
-        Program<Position> prog = p.debug_parse().value();
-        return PositionKiller.kill(prog);
-    }
-
     @SuppressWarnings({"unchecked", "varargs"})
     @SafeVarargs
     private static <A> List<A> l(A... xs) {
@@ -332,7 +324,7 @@ public class ParserTest {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Tests
+    // Simple Programs and Use Tests
     ////////////////////////////////////////////////////////////////////////////
     @Test
     public void emptyMainTest() throws Exception {
@@ -449,7 +441,9 @@ public class ParserTest {
         assertEquals(expected, parse(symbols));
     }
 
-    /* Declarations */
+	//////////////////////////////////////////////////////////////////////////
+	// Declarations 
+	/////////////////////////////////////////////////////////////////////////
     // x:int = x == x
     @Test
     public void declTest1() throws Exception {
@@ -884,7 +878,7 @@ public class ParserTest {
     }
 
 
-    /* Assignments */
+    /* ASSIGNMENTS */
     // a = 5
     @Test
     public void asgnTest1() throws Exception {
@@ -1077,7 +1071,9 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    /* If and If-Else */
+	//////////////////////////////////////////////////////////////////////////
+	// If and If-Else Statements 
+	/////////////////////////////////////////////////////////////////////////
     // if (b) { f() return } else { g() return };
     @Test
     public void ifTest1() throws Exception {
@@ -1261,7 +1257,9 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    /* While */
+	//////////////////////////////////////////////////////////////////////////
+	// While Statements 
+	/////////////////////////////////////////////////////////////////////////
     @Test
     // while (true) _
     public void whileTest1() throws Exception {

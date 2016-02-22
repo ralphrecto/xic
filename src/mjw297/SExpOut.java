@@ -43,18 +43,12 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
         f.args.forEach(a -> a.accept(this));
         printer.endList();
 
-        /* return type list is always empty */
+        /* return types */
         printer.startList();
         f.returnType.forEach(t -> t.accept(this));
         printer.endList();
 
-        /* block */
-        printer.startList();
         f.body.accept(this);
-
-        /* returns */
-        printer.printAtom("return");
-        printer.endList();
 
         printer.endList();
 
@@ -155,14 +149,15 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     }
 
     public Void visit(Ast.StringLiteral<Position> s) {
-        printer.printAtom(String.format("\"%s\"", s.s));
-
+        printer.printAtom(
+            String.format("\"%s\"", SymUtil.prettyPrintString(s.s))
+        );
         return null;
     }
 
     public Void visit(Ast.CharLiteral<Position> c) {
         printer.printAtom(
-                String.format("\'%s\'", ((Character) c.c).toString())
+            String.format("\'%s\'", SymUtil.prettyPrintChar(c.c))
         );
         return null;
     }
@@ -247,13 +242,8 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.If<Position> i) {
         printer.startList();
         printer.printAtom("if");
-
-        /* predicate
         i.b.accept(this);
-
-        /* block */
         i.body.accept(this);
-
         printer.endList();
 
         return null;

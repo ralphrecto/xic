@@ -1,2 +1,8 @@
 #! /bin/bash
-java -cp "bin:$CLASSPATH:`ls lib/*.jar | tr '\n' ':' | sed 's/:$$//'`" mjw297.Main "$@"
+
+main() {
+    readonly dir="$(dirname $0)"
+    java -cp "$dir/bin:$CLASSPATH:$(ls $dir/lib/*.jar | tr '\n' ':' | sed 's/:$$//')" mjw297.Main "$@"
+}
+
+main "$@"

@@ -2373,6 +2373,7 @@ public class ParserTest {
     // {{}
     // {1,,}
     // {,1,}
+    @Test
     public void invalidExprTest() throws Exception {
         List<List<Symbol>> ss = Arrays.asList(
             Arrays.asList(
@@ -2491,7 +2492,6 @@ public class ParserTest {
         );
         for (List<Symbol> s : ss) {
             try {
-                System.out.println(s);
                 exprErrorTestHelper(s);
                 fail("Should have failed.");
             } catch (XicException.SyntaxException e) {}
@@ -2742,5 +2742,68 @@ public class ParserTest {
             block(l(), Optional.empty())
         );
         callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    // foo():{}
+    // foo(x):int{}
+    // foo(_):int{}
+    // foo(_:int):int{}
+    // foo(,x:int):int{}
+    // foo(x:int,):int{}
+    @Test
+    public void funcTest11() throws Exception {
+        List<List<Symbol>> ss = Arrays.asList(
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(RPAREN),
+                sym(COLON),
+                sym(LBRACE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "a"),
+                sym(RPAREN),
+                sym(COLON),
+                sym(INT),
+                sym(LBRACE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(COMMA),
+                sym(ID, "x"),
+                sym(COLON),
+                sym(INT),
+                sym(RPAREN),
+                sym(COLON),
+                sym(INT),
+                sym(LBRACE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "x"),
+                sym(COLON),
+                sym(INT),
+                sym(COMMA),
+                sym(RPAREN),
+                sym(COLON),
+                sym(INT),
+                sym(LBRACE),
+                sym(RBRACE)
+            )
+        );
+        for (List<Symbol> s : ss) {
+            try {
+                Program<Position> prog = parse(s);
+                System.out.println(prog);
+                fail("Should have failed.");
+            } catch (XicException.SyntaxException e) {}
+        }
     }
 }

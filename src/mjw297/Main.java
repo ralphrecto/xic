@@ -56,10 +56,12 @@ public class Main {
 
         String filename;
         FileReader reader;
+        File file;
 
-        private XiSource(String filename, FileReader reader) {
+        private XiSource(String filename, File f, FileReader reader) {
             this.filename = filename;
             this.reader = reader;
+            this.file = f;
         }
 
         /**
@@ -78,7 +80,14 @@ public class Main {
                 throw new XiSourceException("Valid Xi files must have .xi extension");
             }
             try {
-                return new XiSource(filename, new FileReader(sourcePath + filename));
+                File f = Paths.get(sourcePath, filename).toFile();
+                System.out.println(sourcePath);
+                System.out.println(f.toPath().toString());
+                return new XiSource(
+                        filename,
+                        f,
+                        new FileReader(f)
+                );
             } catch (FileNotFoundException e) {
                 throw new XiSourceException(e.getMessage());
             }
@@ -142,6 +151,7 @@ public class Main {
         List<Util.Tuple<Actions.Parsed, XiSource>> parse() {
             return Util.zip(parseS(), this.sources);
         }
+
     }
 
     /**
@@ -150,6 +160,26 @@ public class Main {
     private void printUsage() {
         System.out.println("xic [options] <source files>");
         parser.printUsage(System.err);
+    }
+
+    private String diagPathOut(XiSource xs, String ext) {
+        String nameNoExt = Files.getNameWithoutExtension(xs.filename);
+        if (diagnosticPath.equals("")) {
+            System.out.println(Files.simplifyPath(xs.file.getParent()));
+            return String.format(
+                "%s/%s.%s",
+                Files.simplifyPath(xs.file.getParent()),
+                nameNoExt,
+                ext
+            );
+        } else {
+            return String.format(
+                "%s/%s.%s",
+                Files.simplifyPath(Paths.get(".").toAbsolutePath().toString()),
+                nameNoExt,
+                ext
+            );
+        }
     }
 
     /**
@@ -179,11 +209,7 @@ public class Main {
                 );
             }
 
-            String outputFilename = String.format("%s%s.%s",
-                    diagnosticPath,
-                    Files.getNameWithoutExtension(t.snd.filename),
-                    "lexed"
-            );
+            String outputFilename = diagPathOut(t.snd, "lexed");
             File outputFile = Paths.get(outputFilename).toFile();
 
             try {
@@ -202,12 +228,7 @@ public class Main {
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
 
-            String outputFilename = String.format("%s%s.%s",
-                    diagnosticPath,
-                    Files.getNameWithoutExtension(p.snd.filename),
-                    "parsed"
-            );
-            File outputFile = Paths.get(outputFilename).toFile();
+            File outputFile = Paths.get(diagPathOut(p.snd, "parsed")).toFile();
 
             SExpOut sExpOut = null;
             try {
@@ -257,17 +278,12 @@ public class Main {
                 System.exit(1);
             }
 
-            if (sourcePath.equals("")) {
-                sourcePath = Paths.get(".").toAbsolutePath().toString();
-            }
+            sourcePath = sourcePath.equals("") ?
+                    "" : Files.simplifyPath(sourcePath);
+            diagnosticPath = diagnosticPath.equals("") ?
+                    "" : Files.simplifyPath(diagnosticPath);
 
-            if (diagnosticPath.equals("")) {
-                diagnosticPath = Paths.get(".").toAbsolutePath().toString();
-            }
-
-
-            sourcePath = Files.simplifyPath(sourcePath) + "/";
-            diagnosticPath = Files.simplifyPath(diagnosticPath) + "/";
+            System.out.println(diagnosticPath);
 
             Staging staging = new Staging(arguments);
 

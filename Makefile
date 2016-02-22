@@ -95,5 +95,8 @@ clean:
 p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
+p2.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+	zip -r $@ $^
+
 print-%:
 	@echo $*=$($*)

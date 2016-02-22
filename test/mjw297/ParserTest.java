@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java_cup.runtime.Symbol;
-import org.junit.Ignore;
 import org.junit.Test;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;

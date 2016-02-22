@@ -1,4 +1,5 @@
 package mjw297;
+import mjw297.XicException.*;
 import com.google.common.collect.Lists;
 import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
@@ -9,6 +10,7 @@ import com.google.common.io.Files;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -190,6 +192,9 @@ public class Main {
         }
     }
 
+    /**
+     * Actions for the --parse option
+     */
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
 
@@ -206,7 +211,11 @@ public class Main {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
-            }
+            } 
+            /*catch (SyntaxException e) {
+                Files.write(e.getMessage().toString().getBytes(), outputFile);
+                System.exit(1);
+            }*/
 
         }
 

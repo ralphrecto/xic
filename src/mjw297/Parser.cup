@@ -4,16 +4,25 @@ import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.List;
 import mjw297.Ast.*;
+import mjw297.XicException.*;
 import java.util.Optional;
 
 parser code {:
-	public void syntax_error(Symbol sym){
-		report_error(String.format("%d:%d error:Unexpected token %s\n",
-					 sym.left, sym.right, SymUtil.symToLiteral(sym)), null);
+    public void report_error(String message, Object info) {
+        // Don't print anything
+    }
+
+    public void report_fatal_error(String message, Object info) throws SyntaxException {
+        throw new SyntaxException(-1, -1, message);
+    }
+
+	public void syntax_error(Symbol sym) {
+        // Don't print anything
 	}
 
-    // TODO: remove
-    Position dummy = new Position(-1, -1);
+    public void unrecovered_syntax_error(Symbol sym) throws SyntaxException {
+        throw new SyntaxException(sym.left, sym.right, SymUtil.symToLiteral(sym));
+    }
 :}
 
 

@@ -128,4 +128,65 @@ public class SymUtil {
                 throw new IllegalArgumentException(msg);
         }
     }
+
+    public static String toTokenLiteral(String tokenName) {
+        switch(tokenName) {
+            case ("UMINUS"):
+                return "-";
+            case ("MINUS"):
+                return "-";
+            case ("BANG"):
+                return "!";
+            case ("STAR"):
+                return "*";
+            case ("HIGHMULT"):
+                return "*>>";
+            case ("DIV"):
+                return "/";
+            case ("MOD"):
+                return "%";
+            case ("PLUS"):
+                return "+";
+            case ("EQ"):
+                return "=";
+            case ("LT"):
+                return "<";
+            case ("LTE"):
+                return "<=";
+            case ("GTE"):
+                return ">=";
+            case ("GT"):
+                return ">";
+            case ("EQEQ"):
+                return "==";
+            case ("NEQ"):
+                return "!=";
+            case ("AMP"):
+                return "&";
+            case ("BAR"):
+                return "|";
+            case ("SEMICOLON"):
+                return ";";
+            case ("LPAREN"):
+                return "(";
+            case ("RPAREN"):
+                return ")";
+            case ("LBRACKET"):
+                return "[";
+            case ("RBRACKET"):
+                return "]";
+            case ("LBRACE"):
+                return "{";
+            case ("RBRACE"):
+                return "}";
+            case ("UNDERSCORE"):
+                return "_";
+            case ("COMMA"):
+                return ",";
+            case ("COLON"):
+                return ":";
+            default: return tokenName;
+        }
+    }
+
 }

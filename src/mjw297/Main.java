@@ -241,7 +241,6 @@ public class Main {
             }
 
             if (diagnosticPath.equals("")) {
-                System.out.println("weee");
                 diagnosticPath = Paths.get(".").toAbsolutePath().toString();
             }
 

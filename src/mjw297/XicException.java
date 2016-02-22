@@ -20,7 +20,8 @@ public abstract class XicException extends Exception {
 		INVALID_CHAR_CONSTANT,
 		INVALID_TOKEN,
 		UNCLOSED_STRING_LITERAL,
-		UNCLOSED_CHAR_LITERAL
+		UNCLOSED_CHAR_LITERAL,
+        SYNTAX
     }
 
     public final ErrorCode code;
@@ -101,13 +102,11 @@ public abstract class XicException extends Exception {
 				  "error:Unclosed char literal %s", s));
 		}
 	}
+    
+    public static class SyntaxException extends XicException {
+        public SyntaxException(int row, int column, String symbol) {
+            super(ErrorCode.SYNTAX, row, column, String.format(
+                  "%d:%d error:Unexpected token %s", row, column, symbol));
+        } 
+    }
 }
-
-
-
-
-
-
-
-
-

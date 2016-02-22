@@ -35,14 +35,6 @@ public class ParserTest {
         return PositionKiller.kill(prog);
     }
 
-    @SuppressWarnings("deprecation")
-    private static Program<Position> debugParse(List<Symbol> symbols) throws Exception {
-        MockLexer l = new MockLexer(symbols) ;
-        Parser p = new Parser(l);
-        Program<Position> prog = p.debug_parse().value();
-        return PositionKiller.kill(prog);
-    }
-
     @SuppressWarnings({"unchecked", "varargs"})
     @SafeVarargs
     private static <A> List<A> l(A... xs) {
@@ -274,7 +266,8 @@ public class ParserTest {
         Expr<Position> indexable,
         Expr<Position> index
     ) {
-        return Asgn.of(PositionKiller.dummyPosition, indexable, index);
+		Either<Expr<Position>, Var<Position>> indexable_either = Either.left(indexable);
+        return Asgn.of(PositionKiller.dummyPosition, indexable_either, index);
     }
 
     private static Block<Position> block (
@@ -342,7 +335,7 @@ public class ParserTest {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // Tests
+    // Simple Programs and Use Tests
     ////////////////////////////////////////////////////////////////////////////
     @Test
     public void emptyMainTest() throws Exception {
@@ -459,7 +452,9 @@ public class ParserTest {
         assertEquals(expected, parse(symbols));
     }
 
-    /* Declarations */
+	//////////////////////////////////////////////////////////////////////////
+	// Declarations 
+	/////////////////////////////////////////////////////////////////////////
     // x:int = x == x
     @Test
     public void declTest1() throws Exception {
@@ -894,7 +889,7 @@ public class ParserTest {
     }
 
 
-    /* Assignments */
+    /* ASSIGNMENTS */
     // a = 5
     @Test
     public void asgnTest1() throws Exception {
@@ -1087,7 +1082,9 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    /* If and If-Else */
+	//////////////////////////////////////////////////////////////////////////
+	// If and If-Else Statements 
+	/////////////////////////////////////////////////////////////////////////
     // if (b) { f() return } else { g() return };
     @Test
     public void ifTest1() throws Exception {
@@ -1272,7 +1269,9 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-    /* While */
+	//////////////////////////////////////////////////////////////////////////
+	// While Statements 
+	/////////////////////////////////////////////////////////////////////////
     @Test
     // while (true) _
     public void whileTest1() throws Exception {
@@ -1798,6 +1797,70 @@ public class ParserTest {
         for (UnOpCode u : UnOpCode.values()) {
             for (BinOpCode b : BinOpCode.values()) {
                 unaryHelper(u, b);
+            }
+        }
+    }
+
+    private void hardUnaryHelper(UnOpCode u, BinOpCode b) throws Exception {
+        List<Symbol> symbols;
+        Expr<Position> e;
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b")
+        );
+        e = binOp(b, unOp(u, unOp(u, id("a"))),
+                     unOp(u, unOp(u, id("b"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "c")
+        );
+        e = binOp(b, binOp(b, unOp(u, unOp(u, id("a"))),
+                              unOp(u, unOp(u, id("b")))),
+                     unOp(u, unOp(u, id("c"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        e = unOp(u, call(id("a"), l()));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LBRACKET),
+            sym(ID, "a"),
+            sym(RBRACKET)
+        );
+        e = unOp(u, index(id("a"), id("a")));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void hardUnopTest() throws Exception {
+        for (UnOpCode u : UnOpCode.values()) {
+            for (BinOpCode b : BinOpCode.values()) {
+                hardUnaryHelper(u, b);
             }
         }
     }

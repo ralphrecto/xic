@@ -121,9 +121,30 @@ public class ParserTest {
         exprs.put(syms, e);
     }
 
-    public void funcTestHelper(List<Symbol> syms, Callable<Position> f)
+    public void callableTestHelper(List<Symbol> declSyms,
+                                   List<Symbol> typeSyms,
+                                   Func<Position> f)
                 throws Exception {
-        assertEquals(program(l(), l(f)), parse(syms));
+        List<Symbol> funcSyms = new ArrayList<>();
+        for (Symbol s : declSyms) {
+            funcSyms.add(sym(s));
+        }
+        funcSyms.add(sym(COLON));
+        for (Symbol s : typeSyms) {
+            funcSyms.add(sym(s));
+        }
+        funcSyms.add(sym(LBRACE));
+        funcSyms.add(sym(RBRACE));
+        assertEquals(program(l(), l(f)), parse(funcSyms));
+
+        List<Symbol> procSyms = new ArrayList<>();
+        for (Symbol s : declSyms) {
+            procSyms.add(sym(s));
+        }
+        procSyms.add(sym(LBRACE));
+        procSyms.add(sym(RBRACE));
+        Proc<Position> p = proc(f.name, f.args, f.body);
+        assertEquals(program(l(), l(p)), parse(procSyms));
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2479,14 +2500,13 @@ public class ParserTest {
 
     @Test
     public void funcTest1() throws Exception {
-        List<Symbol> symbols = Arrays.asList(
+        List<Symbol> declSymbols = Arrays.asList(
             sym(ID, "foo") ,
             sym(LPAREN),
-            sym(RPAREN),
-            sym(COLON),
-            sym(INT),
-            sym(LBRACE),
-            sym(RBRACE)
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT)
         );
         Func<Position> f = func(
             id("foo"),
@@ -2494,6 +2514,132 @@ public class ParserTest {
             l(num()),
             block(l(), Optional.empty())
         );
-        funcTestHelper(symbols, f);
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest2() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest3() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num())),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest4() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool())),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest5() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"), sym(COLON), sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(BOOL),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool()),
+              annotatedId(id("foo"), array(num(), Optional.empty()))),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest6() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(ID, "foo"), sym(COLON), sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(BOOL),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+                                                  sym(LBRACKET), sym(RBRACKET),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool()),
+              annotatedId(id("foo"), array(num(), Optional.empty())),
+              annotatedId(id("foo"),
+                  array(array(num(), Optional.empty()), Optional.empty()))
+              ),
+            l(num()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
     }
 }

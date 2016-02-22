@@ -162,13 +162,18 @@ public class Main {
 
     private String diagPathOut(XiSource xs, String ext) {
         String nameNoExt = Files.getNameWithoutExtension(xs.filename);
+        String parentDir = xs.file.getParent();
         if (diagnosticPath.equals("")) {
-            return String.format(
-                "%s/%s.%s",
-                Files.simplifyPath(xs.file.getParent()),
-                nameNoExt,
-                ext
-            );
+            if (parentDir == null) {
+                return String.format(xs.changeExtension(ext));
+            } else {
+                return String.format(
+                    "%s/%s.%s",
+                    Files.simplifyPath(parentDir),
+                    nameNoExt,
+                    ext
+                );
+            }
         } else {
             return String.format(
                 "%s/%s.%s",

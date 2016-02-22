@@ -5,7 +5,6 @@ import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import mjw297.Either.*;
 
 public interface Ast {
     /*
@@ -120,6 +119,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
+		public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
@@ -177,6 +177,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
+		public R visit(UnderscoreAsgn<A> a);	
         public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
@@ -444,7 +445,18 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Asgn<A> implements Stmt<A> {
         public final A a;
-        public final Either<Expr<A>, Var<A>> lhs;
+        public final Expr<A> lhs;
+        public final Expr<A> rhs;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+	
+	@AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class UnderscoreAsgn<A> implements Stmt<A> {
+        public final A a;
+        public final Var<A> lhs;
         public final Expr<A> rhs;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
@@ -588,6 +600,7 @@ public interface Ast {
         public String visit(Decl<Position> d)                { return d.toString(); }
         public String visit(DeclAsgn<Position> d)            { return d.toString(); }
         public String visit(Asgn<Position> a)                { return a.toString(); }
+		public String visit(UnderscoreAsgn<Position> a)		 { return a.toString(); }
         public String visit(Block<Position> b)               { return b.toString(); }
         public String visit(If<Position> i)                  { return i.toString(); }
         public String visit(IfElse<Position> i)              { return i.toString(); }

@@ -6,7 +6,6 @@ import java.util.List;
 import mjw297.Ast.*;
 import mjw297.XicException.*;
 import java.util.Optional;
-import mjw297.Either.*;
 
 parser code {:
     public void report_error(String message, Object info) {
@@ -145,6 +144,7 @@ nonterminal Stmt<Position>
     full_stmt,
     stmt,
     asgn,
+	underscore_asgn,
     if_stmt,
     while_stmt;
 
@@ -335,27 +335,23 @@ asgn_indexable ::= ID:i
     {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
     ;
 
-// TODO: add underscore to LHS
 asgn ::= ID:i EQ expr:e
 	{: Position p = new Position(ileft, iright);
-	   Expr<Position> id_exp = Id.of(p,i);
-	   Either<Expr<Position>, Var<Position>> lhs = Either.left(id_exp);	
-	   RESULT = Asgn.of(p, lhs, e); :}
-	| UNDERSCORE:u EQ expr:e
-	{: Position p = new Position(uleft, uright);
-	   Var<Position> u_exp = Underscore.of(p);
-	   Either<Expr<Position>, Var<Position>> lhs = Either.right(u_exp);
-	   RESULT = Asgn.of(p, lhs, e); 
-	:}
+	   RESULT = Asgn.of(p, Id.of(p,i), e); :}
 	| asgn_indexable:a num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(aleft, aright);
 	   Index<Position> index = Index.of(p, a, idx.get(0));
 	   for (int i = 1; i < idx.size(); i++){
 	       index = Index.of(p, index, idx.get(i));
 	   }
-	   Either<Expr<Position>, Var<Position>> lhs = Either.left(index);
-	   RESULT = Asgn.of(p, lhs, e);
+	   RESULT = Asgn.of(p, index, e);
     :}
+	;
+
+underscore_asgn ::= UNDERSCORE:u EQ expr:e
+	{: Position p = new Position(uleft, uright);
+	   RESULT = UnderscoreAsgn.of(p, Underscore.of(p), e);
+	:}
 	;
 
 if_body ::= full_stmt:s
@@ -524,7 +520,7 @@ array_index_plus ::= LBRACKET index_contents:e RBRACKET
 
 literal ::= NUM:n
 	{: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
-    | MINUS:m BIG_NUM:n // TODO : ok?
+    | MINUS:m BIG_NUM:n 
 	{: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
     | STRING:s
 	{: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}

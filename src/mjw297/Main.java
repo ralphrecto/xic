@@ -243,6 +243,11 @@ public class Main {
         try {
             parser.parseArgument(args);
 
+            if (helpMode) {
+                printUsage();
+                System.exit(0);
+            }
+
             if (arguments.isEmpty()) {
                 System.out.println("No filenames provided.");
                 printUsage();
@@ -263,9 +268,7 @@ public class Main {
 
             Staging staging = new Staging(arguments);
 
-            if (helpMode) {
-                printUsage();
-            } else if (lexMode) {
+            if (lexMode) {
                 lexOut(staging.lex());
             } else if (parseMode) {
                 parseOut(staging.parse());

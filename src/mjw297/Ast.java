@@ -14,9 +14,8 @@ public interface Ast {
      *
      * type Callable<A> =
      *     | Func<A>(A a, Id<A> name, List<AnnotatedVar<A>> args,
-     *               List<Type<A>> returnType, List<Stmt<A>> body,
-     *               List<Expr<A>> returns)
-     *     | Proc<A>(A a, Id<A> name, List<AnnotatedVar<A>> args, List<Stmt<A>> body)
+     *               List<Type<A>> returnType, Stmt<A> body)
+     *     | Proc<A>(A a, Id<A> name, List<AnnotatedVar<A>> args, Stmt<A> body)
      *
      * type Expr<A> =
      *     | Literal<A>

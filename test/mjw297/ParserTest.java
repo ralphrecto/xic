@@ -264,7 +264,8 @@ public class ParserTest {
         Expr<Position> indexable,
         Expr<Position> index
     ) {
-        return Asgn.of(PositionKiller.dummyPosition, indexable, index);
+		Either<Expr<Position>, Var<Position>> indexable_either = Either.left(indexable);
+        return Asgn.of(PositionKiller.dummyPosition, indexable_either, index);
     }
 
     private static Block<Position> block (

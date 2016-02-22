@@ -5,6 +5,7 @@ import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import mjw297.Either.*;
 
 public interface Ast {
     /*
@@ -443,7 +444,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Asgn<A> implements Stmt<A> {
         public final A a;
-        public final Expr<A> lhs;
+        public final Either<Expr<A>, Var<A>> lhs;
         public final Expr<A> rhs;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }

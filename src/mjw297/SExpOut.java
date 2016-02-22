@@ -3,6 +3,9 @@ package mjw297;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 
+import mjw297.Either.*;
+import mjw297.Ast.*;
+
 import java.io.OutputStream;
 import java.util.List;
 
@@ -194,7 +197,16 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.Asgn<Position> a) {
         printer.startList();
         printer.printAtom("=");
-        a.lhs.accept(this);
+		Either<Expr<Position>, Var<Position>> lhs_either = a.lhs;
+		Expr<Position> lhs_exp = null;
+		Var<Position> lhs_var = null;
+		if (lhs_either.isLeft()) {
+			lhs_exp = ((Left<Expr<Position>, Var<Position>>) lhs_either).getValue();
+			lhs_exp.accept(this);
+		} else {
+			lhs_var = ((Right<Expr<Position>, Var<Position>>) lhs_either).getValue();
+			lhs_var.accept(this);
+		}
         a.rhs.accept(this);
         printer.endList();
         return null;

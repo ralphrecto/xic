@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import mjw297.Ast.*;
 import java.util.Optional;
+import mjw297.Either.*;
 
 parser code {:
 	public void syntax_error(Symbol sym){
@@ -328,14 +329,23 @@ asgn_indexable ::= ID:i
 // TODO: add underscore to LHS
 asgn ::= ID:i EQ expr:e
 	{: Position p = new Position(ileft, iright);
-	   RESULT = Asgn.of(p, Id.of(p,i), e); :}
+	   Expr<Position> id_exp = Id.of(p,i);
+	   Either<Expr<Position>, Var<Position>> lhs = Either.left(id_exp);	
+	   RESULT = Asgn.of(p, lhs, e); :}
+	| UNDERSCORE:u EQ expr:e
+	{: Position p = new Position(uleft, uright);
+	   Var<Position> u_exp = Underscore.of(p);
+	   Either<Expr<Position>, Var<Position>> lhs = Either.right(u_exp);
+	   RESULT = Asgn.of(p, lhs, e); 
+	:}
 	| asgn_indexable:a num_array_index_plus:idx EQ expr:e
 	{: Position p = new Position(aleft, aright);
 	   Index<Position> index = Index.of(p, a, idx.get(0));
 	   for (int i = 1; i < idx.size(); i++){
 	       index = Index.of(p, index, idx.get(i));
 	   }
-	   RESULT = Asgn.of(p, index, e);
+	   Either<Expr<Position>, Var<Position>> lhs = Either.left(index);
+	   RESULT = Asgn.of(p, lhs, e);
     :}
 	;
 

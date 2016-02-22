@@ -81,8 +81,6 @@ public class Main {
             }
             try {
                 File f = Paths.get(sourcePath, filename).toFile();
-                System.out.println(sourcePath);
-                System.out.println(f.toPath().toString());
                 return new XiSource(
                         filename,
                         f,
@@ -113,7 +111,6 @@ public class Main {
             try {
                 sources = XiSource.createMany(filenames);
             } catch (XiSource.XiSourceException e) {
-                System.out.println(e.getMessage());
                 System.exit(1);
             }
         }
@@ -165,7 +162,6 @@ public class Main {
     private String diagPathOut(XiSource xs, String ext) {
         String nameNoExt = Files.getNameWithoutExtension(xs.filename);
         if (diagnosticPath.equals("")) {
-            System.out.println(Files.simplifyPath(xs.file.getParent()));
             return String.format(
                 "%s/%s.%s",
                 Files.simplifyPath(xs.file.getParent()),
@@ -282,8 +278,6 @@ public class Main {
                     "" : Files.simplifyPath(sourcePath);
             diagnosticPath = diagnosticPath.equals("") ?
                     "" : Files.simplifyPath(diagnosticPath);
-
-            System.out.println(diagnosticPath);
 
             Staging staging = new Staging(arguments);
 

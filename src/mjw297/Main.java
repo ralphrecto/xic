@@ -111,6 +111,7 @@ public class Main {
             try {
                 sources = XiSource.createMany(filenames);
             } catch (XiSource.XiSourceException e) {
+                System.out.println(e.getMessage());
                 System.exit(1);
             }
         }
@@ -171,7 +172,7 @@ public class Main {
         } else {
             return String.format(
                 "%s/%s.%s",
-                Files.simplifyPath(Paths.get(".").toAbsolutePath().toString()),
+                Files.simplifyPath(diagnosticPath),
                 nameNoExt,
                 ext
             );
@@ -276,8 +277,6 @@ public class Main {
 
             sourcePath = sourcePath.equals("") ?
                     "" : Files.simplifyPath(sourcePath);
-            diagnosticPath = diagnosticPath.equals("") ?
-                    "" : Files.simplifyPath(diagnosticPath);
 
             Staging staging = new Staging(arguments);
 

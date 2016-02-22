@@ -121,6 +121,11 @@ public class ParserTest {
         exprs.put(syms, e);
     }
 
+    public void funcTestHelper(List<Symbol> syms, Callable<Position> f)
+                throws Exception {
+        assertEquals(program(l(), l(f)), parse(syms));
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Abbreviations
     ////////////////////////////////////////////////////////////////////////////
@@ -142,8 +147,7 @@ public class ParserTest {
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
         List<Type<Position>> returnType,
-        Stmt<Position> body,
-        List<Expr<Position>> returns
+        Stmt<Position> body
     ) {
         return Func.of(PositionKiller.dummyPosition, name, args, returnType, body);
     }
@@ -2471,5 +2475,25 @@ public class ParserTest {
                 fail("Should have failed.");
             } catch (XicException.SyntaxException e) {}
         }
+    }
+
+    @Test
+    public void funcTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(num()),
+            block(l(), Optional.empty())
+        );
+        funcTestHelper(symbols, f);
     }
 }

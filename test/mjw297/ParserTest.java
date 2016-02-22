@@ -749,8 +749,9 @@ public class ParserTest {
             l(annotatedId(id("a"), array(
                 array(
                     num(),
-                    Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L))))),
-                Optional.of(call(id("f"), l())))))
+                    Optional.of(call(id("f"), l()))),
+                Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L)))))
+            ))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -770,9 +771,9 @@ public class ParserTest {
             l(annotatedId(id("a"), array(
                 array(
                     num(),
-                    Optional.of(numLiteral(5L))),
-                Optional.empty())))
-
+                    Optional.empty()),
+                Optional.of(numLiteral(5l))))
+            )
         );
 
         stmtTestHelper(symbols, stmt);

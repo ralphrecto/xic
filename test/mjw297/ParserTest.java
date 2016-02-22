@@ -2,16 +2,21 @@ package mjw297;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java_cup.runtime.Symbol;
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
 
 public class ParserTest {
+    private static HashMap<List<Symbol>, Expr<Position>> exprs = new HashMap<>();
+
     ////////////////////////////////////////////////////////////////////////////
     // Helper Functions
     ////////////////////////////////////////////////////////////////////////////
@@ -52,6 +57,10 @@ public class ParserTest {
 
     private static Symbol sym(int type, Object value, int row, int col) {
         return SymUtil.sym(type, row, col, value);
+    }
+
+    private static Symbol sym(Symbol s) {
+        return sym(s.sym, s.value());
     }
 
     private static Position pos(int row, int col) {
@@ -111,10 +120,11 @@ public class ParserTest {
         symbols.add(sym(RBRACE));
 
         Program<Position> expected = program(
-                l(),
-                l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
+            l(),
+            l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
         );
         assertEquals(expected, parse(symbols));
+        exprs.put(syms, e);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1173,7 +1183,7 @@ public class ParserTest {
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
             sym(WHILE),
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
-            sym(IF), 
+            sym(IF),
             sym(LPAREN), sym(ID, "b"), sym(RPAREN),
 			sym(UNDERSCORE),
             sym(ELSE),
@@ -1790,6 +1800,70 @@ public class ParserTest {
         }
     }
 
+    private void hardUnaryHelper(UnOpCode u, BinOpCode b) throws Exception {
+        List<Symbol> symbols;
+        Expr<Position> e;
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b")
+        );
+        e = binOp(b, unOp(u, unOp(u, id("a"))),
+                     unOp(u, unOp(u, id("b"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "a"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "b"),
+            sym(b.code),
+            sym(u.code),
+            sym(u.code),
+            sym(ID, "c")
+        );
+        e = binOp(b, binOp(b, unOp(u, unOp(u, id("a"))),
+                              unOp(u, unOp(u, id("b")))),
+                     unOp(u, unOp(u, id("c"))));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        e = unOp(u, call(id("a"), l()));
+        exprTestHelper(symbols, e);
+
+        symbols = Arrays.asList(
+            sym(u.code),
+            sym(ID, "a"),
+            sym(LBRACKET),
+            sym(ID, "a"),
+            sym(RBRACKET)
+        );
+        e = unOp(u, index(id("a"), id("a")));
+        exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void hardUnopTest() throws Exception {
+        for (UnOpCode u : UnOpCode.values()) {
+            for (BinOpCode b : BinOpCode.values()) {
+                hardUnaryHelper(u, b);
+            }
+        }
+    }
+
     /**
      * Tests that {@code a op b[1]} == {@code a op (b[1])}
      */
@@ -1840,7 +1914,7 @@ public class ParserTest {
 	//////////////////////////////////////////////////////////////////////////
 	// Testing Exceptions
 	/////////////////////////////////////////////////////////////////////////
-	
+
 	// if (b) else _
 	@Test(expected=Exception.class)
 	public void ifElseErrorTest1() throws Exception {
@@ -1998,7 +2072,7 @@ public class ParserTest {
 
 		errorTestHelper(symbols);
 	}
-	
+
     @Test
     public void bigNumTest() throws Exception {
         Expr<Position> e;
@@ -2071,5 +2145,112 @@ public class ParserTest {
         );
         Expr<Position> e = id("dummy");
         exprTestHelper(symbols, e);
+    }
+
+    @Test
+    public void callTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(ID, "foo"));
+            symbols.add(sym(LPAREN));
+            for (int j = 0; j < ss.size(); ++j) {
+                for (Symbol s : ss.get(j)) {
+                    symbols.add(sym(s));
+                }
+                if (j + 1 != ss.size()) {
+                    symbols.add(sym(COMMA));
+                }
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, call(id("foo"), es));
+        }
+    }
+
+    @Test
+    public void indexTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> lhs = Util.choose(exprs);
+            Expr<Position> e = lhs.snd;
+            List<Util.Tuple<List<Symbol>, Expr<Position>>> ses
+                = Util.choose(exprs, rand.nextInt(maxArgs) + 1);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : lhs.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+            for (Util.Tuple<List<Symbol>, Expr<Position>> t : ses) {
+                symbols.add(sym(LBRACKET));
+                for (Symbol s : t.fst) {
+                    symbols.add(sym(s));
+                }
+                symbols.add(sym(RBRACKET));
+                e = index(e, t.snd);
+            }
+
+            exprTestHelper(symbols, e);
+        }
+    }
+
+    @Test
+    public void arrayLiteralTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LBRACE));
+            for (int j = 0; j < ss.size(); ++j) {
+                for (Symbol s : ss.get(j)) {
+                    symbols.add(sym(s));
+                }
+                if (j + 1 != ss.size()) {
+                    symbols.add(sym(COMMA));
+                }
+            }
+            symbols.add(sym(RBRACE));
+
+            exprTestHelper(symbols, arrayLiteral(es));
+        }
+    }
+
+    @Test
+    public void parenTest() throws Exception {
+        int numTests = 100;
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> es =
+                Util.choose(exprs);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : es.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, es.snd);
+        }
     }
 }

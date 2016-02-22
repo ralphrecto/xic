@@ -162,9 +162,9 @@ public class Main {
 
             StringBuilder outputBuilder = new StringBuilder();
 
-            /* The last symbol is always EOF; do not include it in output */
-            for (int i = 0; i < lexed.symbols.size() - 1; i++) {
+            for (int i = 0; i < lexed.symbols.size(); i++) {
                 Symbol sym = lexed.symbols.get(i);
+                if (sym.sym == Sym.EOF) continue;
                 outputBuilder.append(
                     String.format("%d:%d %s\n", sym.left, sym.right,
                         SymUtil.symToLiteral(sym)
@@ -179,7 +179,11 @@ public class Main {
                 );
             }
 
-            String outputFilename = diagnosticPath + t.snd.changeExtension("lexed");
+            String outputFilename = String.format("%s%s.%s",
+                diagnosticPath,
+                Files.getNameWithoutExtension(t.snd.filename),
+                "lexed"
+            );
             File outputFile = Paths.get(outputFilename).toFile();
 
             try {
@@ -201,7 +205,11 @@ public class Main {
             @SuppressWarnings("unchecked")
             Ast.Program<Position> prog = (Ast.Program<Position>) p.fst.prog.value;
 
-            String outputFilename = diagnosticPath + p.snd.changeExtension("parsed");
+            String outputFilename = String.format("%s%s.%s",
+                    diagnosticPath,
+                    Files.getNameWithoutExtension(p.snd.filename),
+                    "parsed"
+            );
             File outputFile = Paths.get(outputFilename).toFile();
 
             try {
@@ -242,8 +250,10 @@ public class Main {
             }
 
             if (diagnosticPath.equals("")) {
+                System.out.println("weee");
                 diagnosticPath = Paths.get(".").toAbsolutePath().toString();
             }
+
 
             sourcePath = Files.simplifyPath(sourcePath) + "/";
             diagnosticPath = Files.simplifyPath(diagnosticPath) + "/";

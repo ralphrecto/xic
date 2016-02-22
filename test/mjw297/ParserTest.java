@@ -13,6 +13,7 @@ import org.junit.Test;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ParserTest {
     private static HashMap<List<Symbol>, Expr<Position>> exprs = new HashMap<>();
@@ -2226,6 +2227,32 @@ public class ParserTest {
     }
 
     @Test
+    public void arrayLiteralTrailTest() throws Exception {
+        int numTests = 100;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LBRACE));
+            for (List<Symbol> syms : ss) {
+                for (Symbol s : syms) {
+                    symbols.add(sym(s));
+                }
+                symbols.add(sym(COMMA));
+            }
+            symbols.add(sym(RBRACE));
+
+            exprTestHelper(symbols, arrayLiteral(es));
+        }
+    }
+
+    @Test
     public void parenTest() throws Exception {
         int numTests = 100;
 
@@ -2261,6 +2288,169 @@ public class ParserTest {
             symbols.add(sym(RPAREN));
 
             exprTestHelper(symbols, length(es.snd));
+        }
+    }
+
+    // x x
+    // x[]
+    // _
+    // _[1]
+    // foo(x
+    // foo x)
+    // foo
+    // 1()
+    // length[x]
+    // length()
+    // length(1, 2)
+    // (1, 2)
+    // 1 2
+    // 1 2 +
+    // 1 -maxint
+    // ;
+    // ;;
+    // 1;;
+    // {_}
+    // {{}
+    // 1()
+    // length[x]
+    // length()
+    // length(1, 2)
+    // use
+    // while
+    // if
+    // (1, 2)
+    // 1 2
+    // 1 2 +
+    // 1 -maxint
+    // ;
+    // ;;
+    // 1;;
+    // {_}
+    // {{}
+    // {1,,}
+    // {,1,}
+    public void invalidExprTest() throws Exception {
+        List<List<Symbol>> ss = Arrays.asList(
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(ID, "x")
+            ),
+            Arrays.asList(
+                sym(UNDERSCORE)
+            ),
+            Arrays.asList(
+                sym(UNDERSCORE),
+                sym(LBRACKET),
+                sym(ID, "x"),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(LBRACKET),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(LBRACKET),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "foo")
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "foo")
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(LPAREN),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(LENGTH),
+                sym(LPAREN),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(LENGTH),
+                sym(LPAREN),
+                sym(ID, "a"),
+                sym(COMMA),
+                sym(ID, "b"),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(USE)
+            ),
+            Arrays.asList(
+                sym(WHILE)
+            ),
+            Arrays.asList(
+                sym(IF)
+            ),
+            Arrays.asList(
+                sym(LPAREN),
+                sym(NUM, 1l),
+                sym(COMMA),
+                sym(NUM, 2l),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(NUM, 2l)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(NUM, 2l),
+                sym(PLUS, 2l)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(MINUS),
+                sym(BIG_NUM)
+            ),
+            Arrays.asList(
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(SEMICOLON),
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(SEMICOLON),
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(LBRACE),
+                sym(UNDERSCORE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(LBRACE),
+                sym(LBRACE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(COMMA),
+                sym(COMMA)
+            ),
+            Arrays.asList(
+                sym(COMMA),
+                sym(NUM, 1l),
+                sym(COMMA)
+            )
+        );
+        for (List<Symbol> s : ss) {
+            try {
+                System.out.println(s);
+                errorTestHelper(s);
+                fail("Should have failed.");
+            } catch (XicException.SyntaxException e) {}
         }
     }
 }

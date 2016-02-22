@@ -1,0 +1,8 @@
+#!/bin/sh
+
+WEBSEMESTER=2016sp
+XTH=xth.tar.gz
+
+cd `dirname $0`/..
+wget -nv -N http://www.cs.cornell.edu/courses/cs4120/$WEBSEMESTER/project/$XTH
+tar -zxf $XTH -C xth

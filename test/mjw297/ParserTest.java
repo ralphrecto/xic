@@ -72,8 +72,12 @@ public class ParserTest {
         stmtsTestHelper(syms, l(stmt));
     }
 
-	public void errorTestHelper(List<Symbol> syms) throws Exception {
+	public void exprErrorTestHelper(List<Symbol> syms) throws Exception {
         exprTestHelper(syms, id("dummy"));
+	}
+
+    public void stmtErrorTestHelper(List<Symbol> syms) throws Exception {
+        stmtTestHelper(syms, decl(l(underscore())));
 	}
 
     public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts)
@@ -877,6 +881,21 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
+    // x:int[][10]
+    @Test(expected=XicException.SyntaxException.class)
+    public void declTest26() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET),
+            sym(LBRACKET),
+            sym(ID, "x"),
+            sym(RBRACKET)
+        );
+        stmtErrorTestHelper(symbols);
+    }
 
     /* ASSIGNMENTS */
     // a = 5
@@ -1915,7 +1934,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b else _
@@ -1928,7 +1947,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b else _
@@ -1941,7 +1960,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) else _
@@ -1954,7 +1973,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b) else
@@ -1966,7 +1985,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b) _ else
@@ -1979,7 +1998,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b _ else
@@ -1992,7 +2011,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b _ else
@@ -2005,7 +2024,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) _ else
@@ -2018,7 +2037,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b _ else _
@@ -2032,7 +2051,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b _ else _
@@ -2046,7 +2065,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) _ else _
@@ -2060,7 +2079,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
     @Test
@@ -2447,7 +2466,7 @@ public class ParserTest {
         for (List<Symbol> s : ss) {
             try {
                 System.out.println(s);
-                errorTestHelper(s);
+                exprErrorTestHelper(s);
                 fail("Should have failed.");
             } catch (XicException.SyntaxException e) {}
         }

@@ -223,7 +223,10 @@ public class Main {
                 sExpOut.flush();
             } else {
                 try {
-                    Files.write(result.exception.get().toString().getBytes(), outputFile);
+                    Files.write(
+                        result.exception.get().getMessage().toString().getBytes(),
+                        outputFile
+                    );
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.exit(1);

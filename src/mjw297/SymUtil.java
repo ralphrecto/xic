@@ -8,6 +8,39 @@ import java.util.function.Function;
  * Lexing helper class. A catch-all for any helper functions used for lexing.
  */
 public class SymUtil {
+
+    public static String prettyPrintChar(char c) {
+        int codePoint = (int) c;
+        if (0x20 <= codePoint && codePoint <= 0x7E) {
+            return "" + c;
+        }
+        switch (c) {
+            case ('\t'): return "\\t";
+            case ('\b'): return "\\b";
+            case ('\n'): return "\\n";
+            case ('\r'): return "\\r";
+            case ('\f'): return "\\f";
+            case ('\''): return "\\'";
+            case ('\"'): return "\\\"";
+            case ('\\'): return "\\\\";
+            default: return ("\\x" + codePoint);
+        }
+    }
+
+    public static String prettyPrintString(String s) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            int codePoint = s.codePointAt(i);
+            if (0x20 <= codePoint && codePoint <= 0x7E) {
+                out.append(s.charAt(i));
+            } else {
+                out.append(prettyPrintChar(s.charAt(i)));
+            }
+        }
+        return out.toString();
+    }
+
+
     /** Abbreviation of new {@code Symbol(type, row, col)}. */
     public static Symbol sym(int type, int row, int col) {
         return new Symbol(type, row, col);
@@ -33,28 +66,6 @@ public class SymUtil {
      * @return String escaped/pretty printed string for the Symbol
      */
     public static String symToLiteral(Symbol sym) {
-        Function<String, String> prettyPrint = (s) -> {
-            StringBuilder out = new StringBuilder();
-            for (int i = 0; i < s.length(); i++) {
-                int codePoint = s.codePointAt(i);
-                if (0x20 <= codePoint && codePoint <= 0x7E) {
-                    out.append(s.charAt(i));
-                } else {
-                    switch (s.charAt(i)) {
-                        case ('\t'): out.append("\\t"); break;
-                        case ('\b'): out.append("\\b"); break;
-                        case ('\n'): out.append("\\n"); break;
-                        case ('\r'): out.append("\\r"); break;
-                        case ('\f'): out.append("\\f"); break;
-                        case ('\''): out.append("\\'"); break;
-                        case ('\"'): out.append("\\\""); break;
-                        case ('\\'): out.append("\\\\"); break;
-                        default: out.append("\\x" + Integer.toHexString(codePoint));
-                    }
-                }
-            }
-            return out.toString();
-        };
 
         String terminalName = Sym.terminalNames[sym.sym];
         switch (terminalName) {
@@ -87,9 +98,9 @@ public class SymUtil {
             case ("COMMA"): return ",";
             case ("COLON"): return ":";
             case ("STRING"): return "string " +
-                    prettyPrint.apply((String) sym.value);
+                    prettyPrintString((String) sym.value);
             case ("CHAR"): return "character " +
-                    prettyPrint.apply(sym.value.toString());
+                    prettyPrintString(sym.value.toString());
             case ("ID"): return "id " + sym.value;
             case ("NUM"): return "integer " + sym.value;
             case ("BIG_NUM"): return "integer " + sym.value;

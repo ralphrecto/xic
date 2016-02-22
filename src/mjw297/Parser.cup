@@ -271,13 +271,13 @@ var ::= avar:av
     | ID:id COLON base_type:bt array_index_plus:e_lst
 	{: Position p = new Position(idleft, idright);
        Position pArray = new Position(btleft, btright);
-	   Expr<Position> first = e_lst.get(0);
+	   Expr<Position> first = e_lst.get(e_lst.size() - 1);
 	   Type<Position> array_type = Array.of(
 	        pArray,
 	        bt,
 	        first == null ? Optional.empty() : Optional.of(first)
        );
-	   for (int i = 1; i < e_lst.size(); i++) {
+	   for (int i = e_lst.size() - 2; i >= 0; i--) {
 	       Expr<Position> current = e_lst.get(i);
            array_type = Array.of(
                 pArray,
@@ -508,7 +508,7 @@ array_index_plus ::= LBRACKET index_contents:e RBRACKET
     {: if (e != null && a.get(a.size() - 1) == null) {
            report_error(String.format(
                "Invalid array index declaration at row %d, col %d:"
-               + "cannot have [] after [expr]", eleft, eright),
+               + "cannot have [] after [expr]", aleft, aright),
                null);
        } else {
            a.add(e);

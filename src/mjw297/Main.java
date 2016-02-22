@@ -1,4 +1,5 @@
 package mjw297;
+import mjw297.XicException.*;
 import com.google.common.collect.Lists;
 import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
@@ -9,6 +10,7 @@ import com.google.common.io.Files;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -160,9 +162,9 @@ public class Main {
 
             StringBuilder outputBuilder = new StringBuilder();
 
-            /* The last symbol is always EOF; do not include it in output */
-            for (int i = 0; i < lexed.symbols.size() - 1; i++) {
+            for (int i = 0; i < lexed.symbols.size(); i++) {
                 Symbol sym = lexed.symbols.get(i);
+                if (sym.sym == Sym.EOF) continue;
                 outputBuilder.append(
                     String.format("%d:%d %s\n", sym.left, sym.right,
                         SymUtil.symToLiteral(sym)
@@ -177,7 +179,11 @@ public class Main {
                 );
             }
 
-            String outputFilename = diagnosticPath + t.snd.changeExtension("lexed");
+            String outputFilename = String.format("%s%s.%s",
+                diagnosticPath,
+                Files.getNameWithoutExtension(t.snd.filename),
+                "lexed"
+            );
             File outputFile = Paths.get(outputFilename).toFile();
 
             try {
@@ -190,13 +196,20 @@ public class Main {
         }
     }
 
+    /**
+     * Actions for the --parse option
+     */
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
 
             @SuppressWarnings("unchecked")
             Ast.Program<Position> prog = (Ast.Program<Position>) p.fst.prog.value;
 
-            String outputFilename = diagnosticPath + p.snd.changeExtension("parsed");
+            String outputFilename = String.format("%s%s.%s",
+                    diagnosticPath,
+                    Files.getNameWithoutExtension(p.snd.filename),
+                    "parsed"
+            );
             File outputFile = Paths.get(outputFilename).toFile();
 
             try {
@@ -206,7 +219,11 @@ public class Main {
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
-            }
+            } 
+            /*catch (SyntaxException e) {
+                Files.write(e.getMessage().toString().getBytes(), outputFile);
+                System.exit(1);
+            }*/
 
         }
 
@@ -233,8 +250,10 @@ public class Main {
             }
 
             if (diagnosticPath.equals("")) {
+                System.out.println("weee");
                 diagnosticPath = Paths.get(".").toAbsolutePath().toString();
             }
+
 
             sourcePath = Files.simplifyPath(sourcePath) + "/";
             diagnosticPath = Files.simplifyPath(diagnosticPath) + "/";

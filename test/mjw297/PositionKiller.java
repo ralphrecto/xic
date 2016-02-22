@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
 import mjw297.Ast.*;
+import mjw297.Either.*;
 
 public class PositionKiller {
     public static Position dummyPosition = new Position(-1, -1);
@@ -68,10 +69,15 @@ public class PositionKiller {
                 Lists.transform(d.vs, v -> v.accept(new VarKiller()));
             return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
         }
+
         public Stmt<Position> visit(Asgn<Position> a) {
-            return Asgn.of(dummyPosition, a.lhs.accept(new ExprKiller()),
-                                          a.rhs.accept(new ExprKiller()));
+			return Asgn.of(dummyPosition, a.lhs.accept(new ExprKiller()), a.rhs.accept(new ExprKiller()));
         }
+
+		public Stmt<Position> visit(UnderscoreAsgn<Position> a){
+			return UnderscoreAsgn.of(dummyPosition, a.lhs.accept(new VarKiller()), a.rhs.accept(new ExprKiller()));
+		}
+
         public Stmt<Position> visit(Block<Position> b) {
             List<Stmt<Position>> ss = Lists.transform(b.ss, s -> s.accept(this));
             Optional<List<Expr<Position>>> ret = b.ret.map(retList -> Lists.transform(

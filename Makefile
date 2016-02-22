@@ -37,7 +37,7 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						-parser $(PARSER_CLASS) \
 						-symbols $(SYMBOL_CLASS) \
 						-nowarn \
-						-dump $<
+						$<
 
 .PHONY: src
 src: $(SRCS)
@@ -93,6 +93,9 @@ clean:
 	@echo
 
 p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+	zip -r $@ $^
+
+p2.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
 print-%:

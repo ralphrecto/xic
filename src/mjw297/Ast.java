@@ -14,9 +14,8 @@ public interface Ast {
      *
      * type Callable<A> =
      *     | Func<A>(A a, Id<A> name, List<AnnotatedVar<A>> args,
-     *               List<Type<A>> returnType, List<Stmt<A>> body,
-     *               List<Expr<A>> returns)
-     *     | Proc<A>(A a, Id<A> name, List<AnnotatedVar<A>> args, List<Stmt<A>> body)
+     *               List<Type<A>> returnType, Stmt<A> body)
+     *     | Proc<A>(A a, Id<A> name, List<AnnotatedVar<A>> args, Stmt<A> body)
      *
      * type Expr<A> =
      *     | Literal<A>
@@ -119,6 +118,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
+        public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
@@ -176,6 +176,7 @@ public interface Ast {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
         public R visit(Asgn<A> a);
+        public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
         public R visit(If<A> i);
         public R visit(IfElse<A> i);
@@ -452,6 +453,17 @@ public interface Ast {
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
+    public final class UnderscoreAsgn<A> implements Stmt<A> {
+        public final A a;
+        public final Var<A> lhs;
+        public final Expr<A> rhs;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
     public final class Block<A> implements Stmt<A> {
         public final A a;
         public final List<Stmt<A>> ss;
@@ -587,6 +599,7 @@ public interface Ast {
         public String visit(Decl<Position> d)                { return d.toString(); }
         public String visit(DeclAsgn<Position> d)            { return d.toString(); }
         public String visit(Asgn<Position> a)                { return a.toString(); }
+        public String visit(UnderscoreAsgn<Position> a)      { return a.toString(); }
         public String visit(Block<Position> b)               { return b.toString(); }
         public String visit(If<Position> i)                  { return i.toString(); }
         public String visit(IfElse<Position> i)              { return i.toString(); }

@@ -13,6 +13,7 @@ import org.junit.Test;
 import static mjw297.Ast.*;
 import static mjw297.Sym.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ParserTest {
     private static HashMap<List<Symbol>, Expr<Position>> exprs = new HashMap<>();
@@ -71,23 +72,16 @@ public class ParserTest {
         stmtsTestHelper(syms, l(stmt));
     }
 
-	public void errorTestHelper(List<Symbol> syms) throws Exception {
-		List<Symbol> symbols = new ArrayList<>();
-		symbols.add(sym(ID, "main"));
-        symbols.add(sym(LPAREN));
-        symbols.add(sym(RPAREN));
-        symbols.add(sym(LBRACE));
-
-        for (Symbol sym : syms) {
-            symbols.add(sym);
-        }
-
-        symbols.add(sym(RBRACE));
-
-		parse(symbols);
+	public void exprErrorTestHelper(List<Symbol> syms) throws Exception {
+        exprTestHelper(syms, id("dummy"));
 	}
 
-    public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts) throws Exception {
+    public void stmtErrorTestHelper(List<Symbol> syms) throws Exception {
+        stmtTestHelper(syms, decl(l(underscore())));
+	}
+
+    public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts)
+           throws Exception {
         List<Symbol> symbols = new ArrayList<>();
         symbols.add(sym(ID, "main"));
         symbols.add(sym(LPAREN));
@@ -127,6 +121,32 @@ public class ParserTest {
         exprs.put(syms, e);
     }
 
+    public void callableTestHelper(List<Symbol> declSyms,
+                                   List<Symbol> typeSyms,
+                                   Func<Position> f)
+                throws Exception {
+        List<Symbol> funcSyms = new ArrayList<>();
+        for (Symbol s : declSyms) {
+            funcSyms.add(sym(s));
+        }
+        funcSyms.add(sym(COLON));
+        for (Symbol s : typeSyms) {
+            funcSyms.add(sym(s));
+        }
+        funcSyms.add(sym(LBRACE));
+        funcSyms.add(sym(RBRACE));
+        assertEquals(program(l(), l(f)), parse(funcSyms));
+
+        List<Symbol> procSyms = new ArrayList<>();
+        for (Symbol s : declSyms) {
+            procSyms.add(sym(s));
+        }
+        procSyms.add(sym(LBRACE));
+        procSyms.add(sym(RBRACE));
+        Proc<Position> p = proc(f.name, f.args, f.body);
+        assertEquals(program(l(), l(p)), parse(procSyms));
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Abbreviations
     ////////////////////////////////////////////////////////////////////////////
@@ -148,8 +168,7 @@ public class ParserTest {
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
         List<Type<Position>> returnType,
-        Stmt<Position> body,
-        List<Expr<Position>> returns
+        Stmt<Position> body
     ) {
         return Func.of(PositionKiller.dummyPosition, name, args, returnType, body);
     }
@@ -452,7 +471,7 @@ public class ParserTest {
     }
 
 	//////////////////////////////////////////////////////////////////////////
-	// Declarations 
+	// Declarations
 	/////////////////////////////////////////////////////////////////////////
     // x:int = x == x
     @Test
@@ -755,8 +774,9 @@ public class ParserTest {
             l(annotatedId(id("a"), array(
                 array(
                     num(),
-                    Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L))))),
-                Optional.of(call(id("f"), l())))))
+                    Optional.of(call(id("f"), l()))),
+                Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L)))))
+            ))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -776,9 +796,9 @@ public class ParserTest {
             l(annotatedId(id("a"), array(
                 array(
                     num(),
-                    Optional.of(numLiteral(5L))),
-                Optional.empty())))
-
+                    Optional.empty()),
+                Optional.of(numLiteral(5l))))
+            )
         );
 
         stmtTestHelper(symbols, stmt);
@@ -887,6 +907,21 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
+    // x:int[][10]
+    @Test(expected=XicException.SyntaxException.class)
+    public void declTest26() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET),
+            sym(LBRACKET),
+            sym(ID, "x"),
+            sym(RBRACKET)
+        );
+        stmtErrorTestHelper(symbols);
+    }
 
     /* ASSIGNMENTS */
     // a = 5
@@ -1082,7 +1117,7 @@ public class ParserTest {
     }
 
 	//////////////////////////////////////////////////////////////////////////
-	// If and If-Else Statements 
+	// If and If-Else Statements
 	/////////////////////////////////////////////////////////////////////////
     // if (b) { f() return } else { g() return };
     @Test
@@ -1269,7 +1304,7 @@ public class ParserTest {
     }
 
 	//////////////////////////////////////////////////////////////////////////
-	// While Statements 
+	// While Statements
 	/////////////////////////////////////////////////////////////////////////
     @Test
     // while (true) _
@@ -1972,7 +2007,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b else _
@@ -1985,7 +2020,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b else _
@@ -1998,7 +2033,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) else _
@@ -2011,7 +2046,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b) else
@@ -2023,7 +2058,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b) _ else
@@ -2036,7 +2071,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b _ else
@@ -2049,7 +2084,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b _ else
@@ -2062,7 +2097,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) _ else
@@ -2075,7 +2110,7 @@ public class ParserTest {
 			sym(ELSE)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b _ else _
@@ -2089,7 +2124,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if (b _ else _
@@ -2103,7 +2138,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
 	// if b) _ else _
@@ -2117,7 +2152,7 @@ public class ParserTest {
 			sym(ID, "b"), sym(EQ), sym(NUM,5)
 		);
 
-		errorTestHelper(symbols);
+		stmtErrorTestHelper(symbols);
 	}
 
     @Test
@@ -2196,7 +2231,7 @@ public class ParserTest {
 
     @Test
     public void callTest() throws Exception {
-        int numTests = 100;
+        int numTests = 25;
         int maxArgs = 10;
         Random rand = new Random();
 
@@ -2225,7 +2260,7 @@ public class ParserTest {
 
     @Test
     public void indexTest() throws Exception {
-        int numTests = 100;
+        int numTests = 25;
         int maxArgs = 10;
         Random rand = new Random();
 
@@ -2256,7 +2291,7 @@ public class ParserTest {
 
     @Test
     public void arrayLiteralTest() throws Exception {
-        int numTests = 100;
+        int numTests = 25;
         int maxArgs = 10;
         Random rand = new Random();
 
@@ -2283,8 +2318,34 @@ public class ParserTest {
     }
 
     @Test
+    public void arrayLiteralTrailTest() throws Exception {
+        int numTests = 25;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LBRACE));
+            for (List<Symbol> syms : ss) {
+                for (Symbol s : syms) {
+                    symbols.add(sym(s));
+                }
+                symbols.add(sym(COMMA));
+            }
+            symbols.add(sym(RBRACE));
+
+            exprTestHelper(symbols, arrayLiteral(es));
+        }
+    }
+
+    @Test
     public void parenTest() throws Exception {
-        int numTests = 100;
+        int numTests = 25;
 
         for (int i = 0; i < numTests; ++i) {
             Util.Tuple<List<Symbol>, Expr<Position>> es =
@@ -2299,5 +2360,434 @@ public class ParserTest {
 
             exprTestHelper(symbols, es.snd);
         }
+    }
+
+    @Test
+    public void lengthTest() throws Exception {
+        int numTests = 25;
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> es =
+                Util.choose(exprs);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LENGTH));
+            symbols.add(sym(LPAREN));
+            for (Symbol s : es.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, length(es.snd));
+        }
+    }
+
+    // x x
+    // x[]
+    // _
+    // _[1]
+    // foo(x
+    // foo x)
+    // foo
+    // 1()
+    // length[x]
+    // length()
+    // length(1, 2)
+    // (1, 2)
+    // 1 2
+    // 1 2 +
+    // 1 -maxint
+    // ;
+    // ;;
+    // 1;;
+    // {_}
+    // {{}
+    // 1()
+    // length[x]
+    // length()
+    // length(1, 2)
+    // use
+    // while
+    // if
+    // (1, 2)
+    // 1 2
+    // 1 2 +
+    // 1 -maxint
+    // ;
+    // ;;
+    // 1;;
+    // {_}
+    // {{}
+    // {1,,}
+    // {,1,}
+    public void invalidExprTest() throws Exception {
+        List<List<Symbol>> ss = Arrays.asList(
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(ID, "x")
+            ),
+            Arrays.asList(
+                sym(UNDERSCORE)
+            ),
+            Arrays.asList(
+                sym(UNDERSCORE),
+                sym(LBRACKET),
+                sym(ID, "x"),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(LBRACKET),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "x"),
+                sym(LBRACKET),
+                sym(RBRACKET)
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "foo")
+            ),
+            Arrays.asList(
+                sym(ID, "foo"),
+                sym(LPAREN),
+                sym(ID, "foo")
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(LPAREN),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(LENGTH),
+                sym(LPAREN),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(LENGTH),
+                sym(LPAREN),
+                sym(ID, "a"),
+                sym(COMMA),
+                sym(ID, "b"),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(USE)
+            ),
+            Arrays.asList(
+                sym(WHILE)
+            ),
+            Arrays.asList(
+                sym(IF)
+            ),
+            Arrays.asList(
+                sym(LPAREN),
+                sym(NUM, 1l),
+                sym(COMMA),
+                sym(NUM, 2l),
+                sym(RPAREN)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(NUM, 2l)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(NUM, 2l),
+                sym(PLUS, 2l)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(MINUS),
+                sym(BIG_NUM)
+            ),
+            Arrays.asList(
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(SEMICOLON),
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(SEMICOLON),
+                sym(SEMICOLON)
+            ),
+            Arrays.asList(
+                sym(LBRACE),
+                sym(UNDERSCORE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(LBRACE),
+                sym(LBRACE),
+                sym(RBRACE)
+            ),
+            Arrays.asList(
+                sym(NUM, 1l),
+                sym(COMMA),
+                sym(COMMA)
+            ),
+            Arrays.asList(
+                sym(COMMA),
+                sym(NUM, 1l),
+                sym(COMMA)
+            )
+        );
+        for (List<Symbol> s : ss) {
+            try {
+                System.out.println(s);
+                exprErrorTestHelper(s);
+                fail("Should have failed.");
+            } catch (XicException.SyntaxException e) {}
+        }
+    }
+
+    @Test
+    public void funcTest1() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(num()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest2() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest3() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num())),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest4() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool())),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest5() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo") ,
+            sym(LPAREN),
+            sym(ID, "foo"), sym(COLON), sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(BOOL),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool()),
+              annotatedId(id("foo"), array(num(), Optional.empty()))),
+            l(bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest6() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(ID, "foo"), sym(COLON), sym(INT),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(BOOL),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+            sym(COMMA),
+            sym(ID, "foo"), sym(COLON), sym(INT), sym(LBRACKET), sym(RBRACKET),
+                                                  sym(LBRACKET), sym(RBRACKET),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(annotatedId(id("foo"), num()),
+              annotatedId(id("foo"), bool()),
+              annotatedId(id("foo"), array(num(), Optional.empty())),
+              annotatedId(id("foo"),
+                  array(array(num(), Optional.empty()), Optional.empty()))
+              ),
+            l(num()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest7() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT),
+            sym(COMMA),
+            sym(INT)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(num(), num()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest8() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL),
+            sym(COMMA),
+            sym(BOOL)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(bool(), bool()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest9() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(INT),
+            sym(COMMA),
+            sym(BOOL),
+            sym(COMMA),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(num(), bool(), array(num(), Optional.empty())),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
+    }
+
+    @Test
+    public void funcTest10() throws Exception {
+        List<Symbol> declSymbols = Arrays.asList(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        List<Symbol> typeSymbols = Arrays.asList(
+            sym(BOOL),
+            sym(COMMA),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET),
+            sym(COMMA),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET),
+            sym(LBRACKET),
+            sym(RBRACKET),
+            sym(COMMA),
+            sym(INT)
+        );
+        Func<Position> f = func(
+            id("foo"),
+            l(),
+            l(bool(),
+              array(num(), Optional.empty()),
+              array(array(num(), Optional.empty()), Optional.empty()),
+              num()),
+            block(l(), Optional.empty())
+        );
+        callableTestHelper(declSymbols, typeSymbols, f);
     }
 }

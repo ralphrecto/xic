@@ -2,6 +2,7 @@ package mjw297;
 
 import java_cup.runtime.Symbol;
 
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -48,20 +49,30 @@ public class Actions {
     }
 
     public static class Parsed {
-        public final Symbol prog;
+        public final Optional<Ast.Program<Position>> prog;
+        public final Optional<Exception> exception;
 
-        public Parsed(Symbol prog) {
-            this.prog = prog;
+        Parsed(Ast.Program<Position> p) {
+            this.prog = Optional.of(p);
+            this.exception = Optional.empty();
         }
+
+        Parsed(Exception e) {
+            this.prog = Optional.empty();
+            this.exception = Optional.of(e);
+        }
+
     }
 
-    public static Parsed parse(List<Symbol> symbols) {
-        return null;
-    }
-
-    public static Parsed parse(Reader r) throws Exception {
+    public static Parsed parse(Reader r) {
         Parser parser = new Parser(new Lexer(r));
-        return new Parsed(parser.parse());
+        try {
+            @SuppressWarnings("unchecked")
+            Ast.Program<Position> p = (Ast.Program<Position>) parser.parse().value;
+            return new Parsed(p);
+        } catch (Exception e) {
+            return new Parsed(e);
+        }
     }
 }
 

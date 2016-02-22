@@ -103,7 +103,7 @@ public class SymUtil {
                     prettyPrintString(sym.value.toString());
             case ("ID"): return "id " + sym.value;
             case ("NUM"): return "integer " + sym.value;
-            case ("BIG_NUM"): return "integer " + sym.value;
+            case ("BIG_NUM"): return "integer 9223372036854775808";
             case ("WHILE"):
             case ("INT"):
             case ("BOOL"):

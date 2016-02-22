@@ -1347,6 +1347,53 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
+    // while (false) { {} {}; {} {_} }
+    @Test
+    public void whileTest5() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(WHILE),
+            sym(LPAREN), sym(FALSE), sym(RPAREN),
+            sym(LBRACE),
+            sym(LBRACE), sym(RBRACE), sym(LBRACE), sym(RBRACE), sym(SEMICOLON),
+            sym(LBRACE), sym(RBRACE), sym(LBRACE), sym(UNDERSCORE), sym(RBRACE),
+            sym(RBRACE)
+        );
+        Stmt<Position> stmt = while_(
+            false_(),
+            block(
+                l(
+                    block(l(), Optional.empty()),
+                    block(l(), Optional.empty()),
+                    block(l(), Optional.empty()),
+                    block(l(decl(l(underscore()))), Optional.empty())),
+                Optional.empty())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+    
+    // while (f(1, 2)) { x = f(3, 4) & true }
+    @Test
+    public void whileTest6() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(WHILE),
+            sym(LPAREN), sym(ID, "f"),
+            sym(LPAREN), sym(NUM, 1l), sym(COMMA), sym(NUM, 2l), sym(RPAREN), sym(RPAREN),
+            sym(LBRACE), sym(ID, "x"), sym(EQ),
+            sym(ID, "f"), sym(LPAREN), sym(NUM, 3l), sym(COMMA), sym(NUM, 4l), sym(RPAREN),
+            sym(AMP), sym(TRUE),
+            sym(RBRACE)
+        );
+        Stmt<Position> stmt = while_(
+            call(id("f"),
+                 l(numLiteral(1l), numLiteral(2l))),
+            block(l(asgn(id("x"),
+                binOp(BinOpCode.AMP, call(id("f"), l(numLiteral(3l), numLiteral(4l))), true_()))), Optional.empty())
+        );
+
+        stmtTestHelper(symbols, stmt);
+    }
+
 
     private void binopHelper(BinOpCode s1) throws Exception {
         List<Symbol> symbols = Arrays.asList(

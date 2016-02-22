@@ -69,20 +69,15 @@ public class PositionKiller {
                 Lists.transform(d.vs, v -> v.accept(new VarKiller()));
             return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
         }
+
         public Stmt<Position> visit(Asgn<Position> a) {
-			Either<Expr<Position>, Var<Position>> lhs = a.lhs;
-			if (lhs.isLeft()) {
-				Expr<Position> lhs_exp = ((Either.Left<Expr<Position>, Var<Position>>) lhs).getValue();
-				lhs_exp = lhs_exp.accept(new ExprKiller());
-				lhs = Either.left(lhs_exp);
-				return Asgn.of(dummyPosition, lhs, a.rhs.accept(new ExprKiller()));
-			} else {
-				Var<Position> lhs_var = ((Either.Right<Expr<Position>, Var<Position>>) lhs).getValue();
-				lhs_var = lhs_var.accept(new VarKiller());
-				lhs = Either.right(lhs_var);
-				return Asgn.of(dummyPosition, lhs, a.rhs.accept(new ExprKiller()));
-			}
+			return Asgn.of(dummyPosition, a.lhs.accept(new ExprKiller()), a.rhs.accept(new ExprKiller()));
         }
+
+		public Stmt<Position> visit(UnderscoreAsgn<Position> a){
+			return UnderscoreAsgn.of(dummyPosition, a.lhs.accept(new VarKiller()), a.rhs.accept(new ExprKiller()));
+		}
+
         public Stmt<Position> visit(Block<Position> b) {
             List<Stmt<Position>> ss = Lists.transform(b.ss, s -> s.accept(this));
             Optional<List<Expr<Position>>> ret = b.ret.map(retList -> Lists.transform(

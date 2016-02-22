@@ -72,22 +72,11 @@ public class ParserTest {
     }
 
 	public void errorTestHelper(List<Symbol> syms) throws Exception {
-		List<Symbol> symbols = new ArrayList<>();
-		symbols.add(sym(ID, "main"));
-        symbols.add(sym(LPAREN));
-        symbols.add(sym(RPAREN));
-        symbols.add(sym(LBRACE));
-
-        for (Symbol sym : syms) {
-            symbols.add(sym);
-        }
-
-        symbols.add(sym(RBRACE));
-
-		parse(symbols);
+        exprTestHelper(syms, id("dummy"));
 	}
 
-    public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts) throws Exception {
+    public void stmtsTestHelper(List<Symbol> syms, List<Stmt<Position>> stmts)
+           throws Exception {
         List<Symbol> symbols = new ArrayList<>();
         symbols.add(sym(ID, "main"));
         symbols.add(sym(LPAREN));

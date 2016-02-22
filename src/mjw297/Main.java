@@ -166,9 +166,9 @@ public class Main {
                 Symbol sym = lexed.symbols.get(i);
                 if (sym.sym == Sym.EOF) continue;
                 outputBuilder.append(
-                    String.format("%d:%d %s\n", sym.left, sym.right,
-                        SymUtil.symToLiteral(sym)
-                    )
+                        String.format("%d:%d %s\n", sym.left, sym.right,
+                                SymUtil.symToLiteral(sym)
+                        )
                 );
             }
 
@@ -180,9 +180,9 @@ public class Main {
             }
 
             String outputFilename = String.format("%s%s.%s",
-                diagnosticPath,
-                Files.getNameWithoutExtension(t.snd.filename),
-                "lexed"
+                    diagnosticPath,
+                    Files.getNameWithoutExtension(t.snd.filename),
+                    "lexed"
             );
             File outputFile = Paths.get(outputFilename).toFile();
 
@@ -202,9 +202,6 @@ public class Main {
     void parseOut(List<Util.Tuple<Actions.Parsed, XiSource>> parsed) {
         for (Util.Tuple<Actions.Parsed, XiSource> p : parsed) {
 
-            @SuppressWarnings("unchecked")
-            Ast.Program<Position> prog = (Ast.Program<Position>) p.fst.prog.value;
-
             String outputFilename = String.format("%s%s.%s",
                     diagnosticPath,
                     Files.getNameWithoutExtension(p.snd.filename),
@@ -212,19 +209,26 @@ public class Main {
             );
             File outputFile = Paths.get(outputFilename).toFile();
 
+            SExpOut sExpOut = null;
             try {
-                SExpOut sExpOut = new SExpOut(new FileOutputStream(outputFile));
-                prog.accept(sExpOut);
-                sExpOut.flush();
+                sExpOut = new SExpOut(new FileOutputStream(outputFile));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
-            } 
-            /*catch (SyntaxException e) {
-                Files.write(e.getMessage().toString().getBytes(), outputFile);
-                System.exit(1);
-            }*/
+            }
 
+            Actions.Parsed result = p.fst;
+            if (result.prog.isPresent()) {
+                sExpOut.visit(result.prog.get());
+                sExpOut.flush();
+            }
+
+            try {
+                Files.write(result.exception.toString().getBytes(), outputFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
 
         System.exit(0);

@@ -65,7 +65,7 @@ public abstract class XicException extends Exception {
 		public InvalidEscapeException(int row, int column, String s) {
 			super(ErrorCode.INVALID_ESCAPE, row, column, String.format(
 				  "error:Invalid escape %s", s));
-		} 
+		}
 	}
 
 	public static class EmptyCharacterLiteralException extends XicException {
@@ -74,7 +74,7 @@ public abstract class XicException extends Exception {
 				  "error:empty character literal");
 		}
 	}
-	
+
 	public static class InvalidCharacterConstantException extends XicException {
 		public InvalidCharacterConstantException(int row, int column) {
 			super(ErrorCode.INVALID_CHAR_CONSTANT, row, column,
@@ -102,11 +102,11 @@ public abstract class XicException extends Exception {
 				  "error:Unclosed char literal %s", s));
 		}
 	}
-    
+
     public static class SyntaxException extends XicException {
         public SyntaxException(int row, int column, String symbol) {
             super(ErrorCode.SYNTAX, row, column, String.format(
                   "%d:%d error:Unexpected token %s", row, column, symbol));
-        } 
+        }
     }
 }

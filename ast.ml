@@ -25,9 +25,6 @@ and 'a var =
   | AnnotatedVar of 'a annnotated_var
   | Underscore of 'a
 
-and 'a call =
-  | Call of 'a id * 'a expr list
-
 and 'a stmt =
   | Decl of 'a * 'a var list
   | DeclAsgn of 'a * 'a var list * 'a expr
@@ -36,7 +33,7 @@ and 'a stmt =
   | If of 'a * 'a expr * 'a stmt
   | IfElse of 'a * 'a expr * 'a stmt * 'a stmt
   | While of 'a * 'a expr * 'a stmt
-  | StmtCall of 'a call
+  | Call of 'a id * 'a expr list
 
 and binop_code =
   | MINUS
@@ -72,7 +69,7 @@ and 'a expr =
   | UnOp of unop_code * 'a expr
   | Index of 'a * 'a expr * 'a expr
   | Length of 'a * 'a expr
-  | ExprCall of 'a call
+  | Call of 'a id * 'a expr list
 
 and 'a typ =
   | Int of 'a

@@ -55,15 +55,12 @@ and unop_code =
   | UMINUS
   | BANG
 
-and 'a literal =
+and 'a expr =
   | NumLiteral of 'a * int
   | BoolLiteral of 'a * bool
   | StringLiteral of 'a * string
   | CharLiteral of 'a * char
   | ArrayLiteral of 'a * 'a expr list
-
-and 'a expr =
-  | Literal of 'a literal
   | ExprId of 'a id
   | BinOp of 'a * binop_code * 'a expr * 'a expr
   | UnOp of unop_code * 'a expr

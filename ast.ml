@@ -1,7 +1,8 @@
 open Core.Std
 open Async.Std
 
-type pos = int * int with sexp
+type pos =
+  | Position of int * int with sexp
 
 type 'a program =
   | Program of 'a * 'a use list * 'a callable list
@@ -83,7 +84,13 @@ let main filenames () : unit Deferred.t =
   Deferred.List.iter filenames ~f:(fun filename ->
     Reader.load_sexp_exn filename (program_of_sexp pos_of_sexp) >>| fun p ->
     print_endline (Sexp.to_string (sexp_of_program sexp_of_pos p))
-  )
+  ) >>= fun () ->
+  let d = Position (-1, -1) in
+  Program (d, [], [Proc (d, Id (d, "main"), [], Block (d, [], None))])
+  |> sexp_of_program sexp_of_pos
+  |> Sexp.to_string
+  |> print_endline;
+  return ()
 
 let () =
   Command.async

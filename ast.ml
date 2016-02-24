@@ -11,18 +11,18 @@ and 'a use =
   | Use of 'a * 'a id
 
 and 'a callable =
-  | Func of 'a * 'a id * 'a annnotated_var list * 'a typ list * 'a stmt
-  | Proc of 'a * 'a id * 'a annnotated_var list * 'a stmt
+  | Func of 'a * 'a id * 'a annotated_var list * 'a typ list * 'a stmt
+  | Proc of 'a * 'a id * 'a annotated_var list * 'a stmt
 
 and 'a id =
   | Id of 'a * string
 
-and 'a annnotated_var =
+and 'a annotated_var =
   | AnnotatedId of 'a * 'a id * 'a typ
   | AnnotatedUnderscore of 'a * 'a typ
 
 and 'a var =
-  | AnnotatedVar of 'a annnotated_var
+  | AnnotatedVar of 'a annotated_var
   | Underscore of 'a
 
 and 'a stmt =

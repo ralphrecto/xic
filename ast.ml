@@ -33,7 +33,7 @@ and 'a stmt =
   | If of 'a * 'a expr * 'a stmt
   | IfElse of 'a * 'a expr * 'a stmt * 'a stmt
   | While of 'a * 'a expr * 'a stmt
-  | Call of 'a id * 'a expr list
+  | Call of 'a * 'a id * 'a expr list
 
 and binop_code =
   | MINUS
@@ -66,7 +66,7 @@ and 'a expr =
   | UnOp of unop_code * 'a expr
   | Index of 'a * 'a expr * 'a expr
   | Length of 'a * 'a expr
-  | Call of 'a id * 'a expr list
+  | Call of 'a * 'a id * 'a expr list
 
 and 'a typ =
   | Int of 'a

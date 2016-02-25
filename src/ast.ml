@@ -76,6 +76,7 @@ and 'a raw_expr =
   | Length        of 'a expr
   | FuncCall      of 'a id * 'a expr list
 
+(* types *)
 and 'a typ = 'a * 'a raw_typ
 and 'a raw_typ =
   | Int   of 'a

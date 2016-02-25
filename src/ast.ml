@@ -43,43 +43,43 @@ and 'a raw_stmt =
 
 (* expressions *)
 and binop_code =
-  | MINUS    (* - *)
-  | STAR     (* * *)
-  | HIGHMULT (* *>> *)
-  | DIV      (* / *)
-  | MOD      (* % *)
-  | PLUS     (* + *)
-  | LT       (* < *)
-  | LTE      (* <= *)
-  | GTE      (* >= *)
-  | GT       (* > *)
-  | EQEQ     (* == *)
-  | NEQ      (* != *)
-  | AMP      (* & *)
-  | BAR      (* | *)
+  | Minus    (* - *)
+  | Star     (* * *)
+  | Highmult (* *>> *)
+  | Div      (* / *)
+  | Mod      (* % *)
+  | Plus     (* + *)
+  | Lt       (* < *)
+  | Lte      (* <= *)
+  | Gte      (* >= *)
+  | Gt       (* > *)
+  | Eqeq     (* == *)
+  | Neq      (* != *)
+  | Amp      (* & *)
+  | Bar      (* | *)
 
 and unop_code =
-  | UMINUS (* - *)
-  | BANG   (* ! *)
+  | Uminus (* - *)
+  | Bang   (* ! *)
 
 and 'a expr = 'a * 'a raw_expr
 and 'a raw_expr =
-  | NumLiteral    of Int64.t
-  | BoolLiteral   of bool
-  | StringLiteral of string
-  | CharLiteral   of char
-  | ArrayLiteral  of 'a expr list
-  | Id            of 'a id
-  | BinOp         of 'a expr * binop_code * 'a expr
-  | UnOp          of unop_code * 'a expr
-  | Index         of 'a expr * 'a expr
-  | Length        of 'a expr
-  | FuncCall      of 'a id * 'a expr list
+  | Int      of Int64.t
+  | Bool     of bool
+  | String   of string
+  | Char     of char
+  | Array    of 'a expr list
+  | Id       of 'a id
+  | BinOp    of 'a expr * binop_code * 'a expr
+  | UnOp     of unop_code * 'a expr
+  | Index    of 'a expr * 'a expr
+  | Length   of 'a expr
+  | FuncCall of 'a id * 'a expr list
 
 (* types *)
 and 'a typ = 'a * 'a raw_typ
 and 'a raw_typ =
-  | Int   of 'a
-  | Bool  of 'a
-  | Array of 'a typ * 'a expr option
+  | TInt   of 'a
+  | TBool  of 'a
+  | TArray of 'a typ * 'a expr option
 [@@deriving sexp]

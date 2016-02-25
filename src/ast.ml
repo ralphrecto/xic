@@ -16,8 +16,7 @@ and 'a raw_callable =
   | Proc of 'a id * 'a avar list * 'a stmt
 
 (* identifiers, variables, and annotated variables *)
-and 'a id = 'a * 'a raw_id
-and 'a raw_id = string
+and 'a id = 'a * string
 
 and 'a avar = 'a * 'a raw_avar
 and 'a raw_avar =
@@ -26,7 +25,7 @@ and 'a raw_avar =
 
 and 'a var = 'a * 'a raw_var
 and 'a raw_var =
-  | AnnotatedVar of 'a avar
+  | AVar of 'a avar
   | Underscore
 
 (* statements *)
@@ -43,24 +42,24 @@ and 'a raw_stmt =
 
 (* expressions *)
 and binop_code =
-  | Minus    (* - *)
-  | Star     (* * *)
-  | Highmult (* *>> *)
-  | Div      (* / *)
-  | Mod      (* % *)
-  | Plus     (* + *)
-  | Lt       (* < *)
-  | Lte      (* <= *)
-  | Gte      (* >= *)
-  | Gt       (* > *)
-  | Eqeq     (* == *)
-  | Neq      (* != *)
-  | Amp      (* & *)
-  | Bar      (* | *)
+  | MINUS    (* - *)
+  | STAR     (* * *)
+  | HIGHMULT (* *>> *)
+  | DIV      (* / *)
+  | MOD      (* % *)
+  | PLUS     (* + *)
+  | LT       (* < *)
+  | LTE      (* <= *)
+  | GTE      (* >= *)
+  | GT       (* > *)
+  | EQEQ     (* == *)
+  | NEQ      (* != *)
+  | AMP      (* & *)
+  | BAR      (* | *)
 
 and unop_code =
-  | Uminus (* - *)
-  | Bang   (* ! *)
+  | UMINUS (* - *)
+  | BANG   (* ! *)
 
 and 'a expr = 'a * 'a raw_expr
 and 'a raw_expr =
@@ -69,7 +68,7 @@ and 'a raw_expr =
   | String   of string
   | Char     of char
   | Array    of 'a expr list
-  | Id       of 'a id
+  | Id       of string
   | BinOp    of 'a expr * binop_code * 'a expr
   | UnOp     of unop_code * 'a expr
   | Index    of 'a expr * 'a expr
@@ -79,7 +78,7 @@ and 'a raw_expr =
 (* types *)
 and 'a typ = 'a * 'a raw_typ
 and 'a raw_typ =
-  | TInt   of 'a
-  | TBool  of 'a
+  | TInt
+  | TBool
   | TArray of 'a typ * 'a expr option
 [@@deriving sexp]

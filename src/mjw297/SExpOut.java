@@ -3,7 +3,6 @@ package mjw297;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 
-import mjw297.Either.*;
 import mjw297.Ast.*;
 
 import java.io.OutputStream;
@@ -312,7 +311,18 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.Call<Position> c) {
+    public Void visit(Ast.FuncCall<Position> c) {
+        printer.startList();
+        c.f.accept(this);
+
+        /* function arguments */
+        c.args.forEach(v -> v.accept(this));
+
+        printer.endList();
+        return null;
+    }
+
+    public Void visit(Ast.ProcCall<Position> c) {
         printer.startList();
         c.f.accept(this);
 

@@ -3,7 +3,6 @@ package mjw297;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 
-import mjw297.Either.*;
 import mjw297.Ast.*;
 
 import java.io.OutputStream;
@@ -15,8 +14,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         this.printer = new CodeWriterSExpPrinter(o);
     }
 
-    class SExpVar implements Ast.VarVisitor<Position, Void> {
+    class AnnotatedVarPos implements Ast.AnnotatedVarVisitor<Position, Position> {
+        public Position visit(AnnotatedId<Position> i) {
+            return i.a;
+        }
+        public Position visit(AnnotatedUnderscore<Position> u) {
+            return u.a;
+        }
+    }
 
+    class SExpVar implements Ast.VarVisitor<Position, Void> {
         SExpJaneStreetOut parent;
         SExpPrinter printer;
 
@@ -28,8 +35,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         @Override
         public Void visit(AnnotatedVar<Position> v) {
             printer.startList();
-            printer.printAtom("AnnotatedVar");
+            posPrinter(v.accept(new AnnotatedVarPos()));
+            printer.startList();
+            printer.printAtom("AVar");
             v.accept(this.parent);
+            printer.endList();
             printer.endList();
 
             return null;
@@ -38,34 +48,39 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         @Override
         public Void visit(Underscore<Position> u) {
             printer.startList();
-            printer.printAtom("Underscore");
             posPrinter(u.a);
+            printer.printAtom("Underscore");
             printer.endList();
 
             return null;
         }
-
-
     }
 
     private void posPrinter(Position p) {
         this.printer.startList();
-        this.printer.printAtom("Position");
-
         this.printer.printAtom(((Integer) p.row).toString());
         this.printer.printAtom(((Integer) p.col).toString());
-
         this.printer.endList();
+    }
+
+    private void rawIdPrinter(Ast.Id<Position> i) {
+        printer.startList();
+        posPrinter(i.a);
+        printer.printAtom(i.x);
+        printer.endList();
     }
 
     public Void visit(Ast.AnnotatedId<Position> i) {
         printer.startList();
-        printer.printAtom("AnnotatedId");
         posPrinter(i.a);
 
-        i.x.accept(this);
+        printer.startList();
+        printer.printAtom("AId");
+
+        rawIdPrinter(i.x);
         i.t.accept(this);
 
+        printer.endList();
         printer.endList();
 
         return null;
@@ -73,10 +88,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.AnnotatedUnderscore<Position> u) {
         printer.startList();
-        printer.printAtom("AnnotatedUnderscore");
         posPrinter(u.a);
-        u.u.accept(this);
+        printer.startList();
+        printer.printAtom("AUnderscore");
         u.t.accept(this);
+        printer.endList();
         printer.endList();
 
         return null;
@@ -85,9 +101,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.Func<Position> f) {
         /* function name */
         printer.startList();
-        printer.printAtom("Func");
         posPrinter(f.a);
-        f.name.accept(this);
+
+        printer.startList();
+        printer.printAtom("Func");
+        rawIdPrinter(f.name);
 
         /* proc parameters */
         printer.startList();
@@ -102,6 +120,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         f.body.accept(this);
 
         printer.endList();
+        printer.endList();
 
         return null;
     }
@@ -109,10 +128,12 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.Proc<Position> p) {
         /* function name */
         printer.startList();
-        printer.printAtom("Proc");
         posPrinter(p.a);
 
-        p.name.accept(this);
+        printer.startList();
+        printer.printAtom("Proc");
+
+        rawIdPrinter(p.name);
 
         /* proc parameters */
         printer.startList();
@@ -123,15 +144,18 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         p.body.accept(this);
 
         printer.endList();
+        printer.endList();
 
         return null;
     }
 
     public Void visit(Ast.Id<Position> i) {
         printer.startList();
-        printer.printAtom("Id");
         posPrinter(i.a);
+        printer.startList();
+        printer.printAtom("Id");
         printer.printAtom(i.x);
+        printer.endList();
         printer.endList();
 
         return null;
@@ -139,11 +163,13 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.BinOp<Position> o) {
         printer.startList();
-        printer.printAtom("BinOp");
         posPrinter(o.a);
-        printer.printAtom(o.c.name());
+        printer.startList();
+        printer.printAtom("BinOp");
         o.lhs.accept(this);
+        printer.printAtom(o.c.name());
         o.rhs.accept(this);
+        printer.endList();
         printer.endList();
 
         return null;
@@ -151,10 +177,12 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.UnOp<Position> o) {
         printer.startList();
-        printer.printAtom("UnOp");
         posPrinter(o.a);
+        printer.startList();
+        printer.printAtom("UnOp");
         printer.printAtom(o.c.name());
         o.e.accept(this);
+        printer.endList();
         printer.endList();
 
         return null;
@@ -162,19 +190,23 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.Index<Position> i) {
         printer.startList();
-        printer.printAtom("Index");
         posPrinter(i.a);
+        printer.startList();
+        printer.printAtom("Index");
         i.e.accept(this);
         i.index.accept(this);
+        printer.endList();
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.Length<Position> l) {
         printer.startList();
-        printer.printAtom("Length");
         posPrinter(l.a);
+        printer.startList();
+        printer.printAtom("Length");
         l.e.accept(this);
+        printer.endList();
         printer.endList();
 
         return null;
@@ -182,9 +214,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.NumLiteral<Position> n) {
         printer.startList();
-        printer.printAtom("NumLiteral");
         posPrinter(n.a);
+        printer.startList();
+        printer.printAtom("Int");
         printer.printAtom(((Long) n.x).toString());
+        printer.endList();
         printer.endList();
 
         return null;
@@ -192,9 +226,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.BoolLiteral<Position> b) {
         printer.startList();
-        printer.printAtom("BoolLiteral");
         posPrinter(b.a);
+        printer.startList();
+        printer.printAtom("Bool");
         printer.printAtom(((Boolean) b.b).toString());
+        printer.endList();
         printer.endList();
 
         return null;
@@ -202,30 +238,35 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.StringLiteral<Position> s) {
         printer.startList();
-        printer.printAtom("StringLiteral");
         posPrinter(s.a);
+        printer.startList();
+        printer.printAtom("String");
         printer.printAtom(
                 String.format("\"%s\"", SymUtil.prettyPrintString(s.s))
         );
+        printer.endList();
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.CharLiteral<Position> c) {
         printer.startList();
-        printer.printAtom("CharLiteral");
         posPrinter(c.a);
+        printer.startList();
+        printer.printAtom("Char");
         printer.printAtom(
-                String.format("\'%s\'", SymUtil.prettyPrintChar(c.c))
+                String.format("%s", SymUtil.prettyPrintChar(c.c))
         );
+        printer.endList();
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.ArrayLiteral<Position> a) {
         printer.startList();
-        printer.printAtom("ArrayLiteral");
         posPrinter(a.a);
+        printer.startList();
+        printer.printAtom("Array");
 
         /* Actual list contents */
         printer.startList();
@@ -233,13 +274,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         printer.endList();
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.Program<Position> p) {
         printer.startList();
-        printer.printAtom("Program");
         posPrinter(p.a);
+
+        printer.startList();
+        printer.printAtom("Prog");
 
         printer.startList();
         p.uses.forEach((u -> u.accept(this)));
@@ -250,13 +294,15 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         printer.endList();
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.Decl<Position> d) {
         printer.startList();
-        printer.printAtom("Decl");
         posPrinter(d.a);
+        printer.startList();
+        printer.printAtom("Decl");
 
         printer.startList();
         SExpVar varVisitor = new SExpVar(this);
@@ -264,14 +310,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         printer.endList();
 
         printer.endList();
+        printer.endList();
 
         return null;
     }
 
     public Void visit(Ast.DeclAsgn<Position> d) {
         printer.startList();
-        printer.printAtom("DeclAsgn");
         posPrinter(d.a);
+        printer.startList();
+        printer.printAtom("DeclAsgn");
 
         printer.startList();
         SExpVar varVisitor = new SExpVar(this);
@@ -281,38 +329,34 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         d.e.accept(this);
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.Asgn<Position> a) {
         printer.startList();
-        printer.printAtom("Asgn");
         posPrinter(a.a);
+        printer.startList();
+        printer.printAtom("Asgn");
 
         a.lhs.accept(this);
         a.rhs.accept(this);
 
+        printer.endList();
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.UnderscoreAsgn<Position> a) {
-        printer.startList();
-        printer.printAtom("UnderscoreAsgn");
-        posPrinter(a.a);
-
-        a.lhs.accept(this);
-        a.rhs.accept(this);
-
-        printer.endList();
         return null;
     }
 
     @Override
     public Void visit(Ast.Block<Position> b) {
         printer.startList();
-        printer.printAtom("Block");
         posPrinter(b.a);
+        printer.startList();
+        printer.printAtom("Block");
 
         printer.startList();
         b.ss.forEach(s -> s.accept(this));
@@ -332,17 +376,20 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         }
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.If<Position> i) {
         printer.startList();
-        printer.printAtom("If");
         posPrinter(i.a);
+        printer.startList();
+        printer.printAtom("If");
 
         i.b.accept(this);
         i.body.accept(this);
 
+        printer.endList();
         printer.endList();
 
         return null;
@@ -350,21 +397,24 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.IfElse<Position> i) {
         printer.startList();
-        printer.printAtom("IfElse");
         posPrinter(i.a);
+        printer.startList();
+        printer.printAtom("IfElse");
 
         i.b.accept(this);
         i.thenBody.accept(this);
         i.elseBody.accept(this);
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.While<Position> w) {
         printer.startList();
-        printer.printAtom("While");
         posPrinter(w.a);
+        printer.startList();
+        printer.printAtom("While");
 
         /* predicate */
         w.b.accept(this);
@@ -373,29 +423,31 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         w.body.accept(this);
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.Int<Position> l) {
         printer.startList();
-        printer.printAtom("Int");
         posPrinter(l.a);
+        printer.printAtom("TInt");
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.Bool<Position> o) {
         printer.startList();
-        printer.printAtom("Bool");
         posPrinter(o.a);
+        printer.printAtom("TBool");
         printer.endList();
         return null;
     }
 
     public Void visit(Ast.Array<Position> o) {
         printer.startList();
-        printer.printAtom("Array");
         posPrinter(o.a);
+        printer.startList();
+        printer.printAtom("TArray");
 
         o.t.accept(this);
 
@@ -409,14 +461,17 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         }
 
         printer.endList();
+        printer.endList();
         return null;
     }
 
     public Void visit(Ast.Use<Position> u) {
         printer.startList();
-        printer.printAtom("Use");
         posPrinter(u.a);
-        u.x.accept(this);
+        printer.startList();
+        printer.printAtom("Use");
+        rawIdPrinter(u.x);
+        printer.endList();
         printer.endList();
         return null;
     }
@@ -429,12 +484,13 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.Call<Position> c) {
+    public Void visit(Ast.FuncCall<Position> c) {
         printer.startList();
-        printer.printAtom("Call");
         posPrinter(c.a);
+        printer.startList();
+        printer.printAtom("FuncCall");
 
-        c.f.accept(this);
+        rawIdPrinter(c.f);
 
         /* function arguments */
         printer.startList();
@@ -442,12 +498,30 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         printer.endList();
 
         printer.endList();
+        printer.endList();
         return null;
     }
+
+    public Void visit(Ast.ProcCall<Position> c) {
+        printer.startList();
+        posPrinter(c.a);
+        printer.startList();
+        printer.printAtom("ProcCall");
+
+        rawIdPrinter(c.f);
+
+        /* function arguments */
+        printer.startList();
+        c.args.forEach(v -> v.accept(this));
+        printer.endList();
+
+        printer.endList();
+        printer.endList();
+        return null;
+    }
+
 
     public void flush() {
         printer.flush();
     }
 }
-
-

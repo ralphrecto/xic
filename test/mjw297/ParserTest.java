@@ -344,11 +344,18 @@ public class ParserTest {
         return Underscore.of(PositionKiller.dummyPosition);
     }
 
-    private static Call<Position> call (
+    private static FuncCall<Position> funcCall (
         Id<Position> f,
         List<Expr<Position>> args
     ) {
-        return Call.of(PositionKiller.dummyPosition, f, args);
+        return FuncCall.of(PositionKiller.dummyPosition, f, args);
+    }
+
+    private static ProcCall<Position> procCall (
+        Id<Position> f,
+        List<Expr<Position>> args
+    ) {
+        return ProcCall.of(PositionKiller.dummyPosition, f, args);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -723,7 +730,7 @@ public class ParserTest {
         Stmt<Position> stmt = declAsgn(
                 l(underscore(),
                         underscore()),
-                call(id("f"), l())
+                funcCall(id("f"), l())
         );
 
         stmtTestHelper(symbols, stmt);
@@ -773,7 +780,7 @@ public class ParserTest {
             l(annotatedId(id("a"), array(
                 array(
                     num(),
-                    Optional.of(call(id("f"), l()))),
+                    Optional.of(funcCall(id("f"), l()))),
                 Optional.of(binOp(BinOpCode.PLUS, id("n"), numLiteral(new Long(5L)))))
             ))
         );
@@ -995,7 +1002,7 @@ public class ParserTest {
         Stmt<Position> stmt = asgn(
                 index(
                     id("a"),
-                    call(id("f"), l())
+                    funcCall(id("f"), l())
                 ),
                 numLiteral(5l)
         );
@@ -1050,7 +1057,7 @@ public class ParserTest {
                                 id("b"),
                                 numLiteral(5l)
                         ),
-                        call(id("f"), l())
+                        funcCall(id("f"), l())
                 )
             ),
             numLiteral(5l)
@@ -1105,7 +1112,7 @@ public class ParserTest {
         Stmt<Position> stmt = asgn(
             index(
                 id("b"),
-                call(
+                funcCall(
                     id("f"),
                     l(index(id("b"), numLiteral(0l)))
                 )
@@ -1131,8 +1138,8 @@ public class ParserTest {
         );
         Stmt<Position> stmt = ifElse(
             id("b"),
-            block(l(call(id("f"), l())), Optional.of(l())),
-            block(l(call(id("g"), l())), Optional.of(l()))
+            block(l(procCall(id("f"), l())), Optional.of(l())),
+            block(l(procCall(id("g"), l())), Optional.of(l()))
         );
 
         stmtTestHelper(symbols, stmt);
@@ -1295,8 +1302,8 @@ public class ParserTest {
         );
         Stmt<Position> stmt = ifElse(
             id("b"),
-            block(l(if_(id("b"), call(id("f"), l()))), Optional.empty()),
-            block(l(if_(id("b"), call(id("g"), l()))), Optional.empty())
+            block(l(if_(id("b"), procCall(id("f"), l()))), Optional.empty()),
+            block(l(if_(id("b"), procCall(id("g"), l()))), Optional.empty())
         );
 
         stmtTestHelper(symbols, stmt);
@@ -1405,7 +1412,7 @@ public class ParserTest {
 
         stmtTestHelper(symbols, stmt);
     }
-    
+
     // while (f(1, 2)) { x = f(3, 4) & true }
     @Test
     public void whileTest6() throws Exception {
@@ -1419,10 +1426,10 @@ public class ParserTest {
             sym(RBRACE)
         );
         Stmt<Position> stmt = while_(
-            call(id("f"),
+            funcCall(id("f"),
                  l(numLiteral(1l), numLiteral(2l))),
             block(l(asgn(id("x"),
-                binOp(BinOpCode.AMP, call(id("f"), l(numLiteral(3l), numLiteral(4l))), true_()))), Optional.empty())
+                binOp(BinOpCode.AMP, funcCall(id("f"), l(numLiteral(3l), numLiteral(4l))), true_()))), Optional.empty())
         );
 
         stmtTestHelper(symbols, stmt);
@@ -1922,7 +1929,7 @@ public class ParserTest {
             sym(LPAREN),
             sym(RPAREN)
         );
-        e = unOp(u, call(id("a"), l()));
+        e = unOp(u, funcCall(id("a"), l()));
         exprTestHelper(symbols, e);
 
         symbols = Arrays.asList(
@@ -1981,7 +1988,7 @@ public class ParserTest {
             sym(RPAREN)
         );
 
-        Expr<Position> e = binOp(c, id("a"), call(id("b"), l()));
+        Expr<Position> e = binOp(c, id("a"), funcCall(id("b"), l()));
         exprTestHelper(symbols, e);
     }
 
@@ -2253,7 +2260,7 @@ public class ParserTest {
             }
             symbols.add(sym(RPAREN));
 
-            exprTestHelper(symbols, call(id("foo"), es));
+            exprTestHelper(symbols, funcCall(id("foo"), es));
         }
     }
 

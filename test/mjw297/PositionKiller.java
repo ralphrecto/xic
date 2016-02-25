@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
 import mjw297.Ast.*;
-import mjw297.Either.*;
 
 public class PositionKiller {
     public static Position dummyPosition = new Position(-1, -1);
@@ -25,9 +24,9 @@ public class PositionKiller {
         public Expr<Position> visit(Length<Position> l) {
             return Length.of(dummyPosition, l.e.accept(this));
         }
-        public Expr<Position> visit(Call<Position> c) {
+        public Expr<Position> visit(FuncCall<Position> c) {
             List<Expr<Position>> args = Lists.transform(c.args, e -> e.accept(this));
-            return Call.of(dummyPosition, kill(c.f), args);
+            return FuncCall.of(dummyPosition, kill(c.f), args);
         }
         public Expr<Position> visit(NumLiteral<Position> n) {
             return NumLiteral.of(dummyPosition, n.x);
@@ -97,10 +96,10 @@ public class PositionKiller {
             return While.of(dummyPosition, w.b.accept(new ExprKiller()),
                             w.body.accept(this));
         }
-        public Stmt<Position> visit(Call<Position> c) {
+        public Stmt<Position> visit(ProcCall<Position> c) {
             List<Expr<Position>> args =
                 Lists.transform(c.args, e -> e.accept(new ExprKiller()));
-            return Call.of(dummyPosition, kill(c.f), args);
+            return ProcCall.of(dummyPosition, kill(c.f), args);
         }
     }
 

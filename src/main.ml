@@ -2,13 +2,13 @@ open Core.Std
 open Async.Std
 
 type flags = {
-  help:       bool;   (* --help       *)
-  lex:        bool;   (* --lex        *)
-  parse:      bool;   (* --parse      *)
-  typecheck:  bool;   (* --typecheck  *)
-  sourcepath: string; (* --sourcepath *)
-  libpath:    string; (* --libpath    *)
-  outpath:    string; (* -D           *)
+  help:       bool;   (* --help      *)
+  lex:        bool;   (* --lex       *)
+  parse:      bool;   (* --parse     *)
+  typecheck:  bool;   (* --typecheck *)
+  sourcepath: string; (* -sourcepath *)
+  libpath:    string; (* -libpath    *)
+  outpath:    string; (* -D          *)
 } [@@deriving sexp]
 
 let main flags filenames () : unit Deferred.t =

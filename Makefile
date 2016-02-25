@@ -21,9 +21,11 @@ LIBS  = $(shell ls lib/*.jar | tr '\n' ':' | sed 's/:$$//')
 CP    = $(LIBS):$$CLASSPATH
 BIN   = bin
 DOC   = doc
-
 JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
+
+OCAML_MAIN = src/main
+OCAML_BIN = $(OCAML_MAIN).byte
 
 default: clean src test doc publish
 
@@ -40,12 +42,15 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						$<
 
 .PHONY: src
-src: $(SRCS)
+src: $(SRCS) $(OCAML_BIN)
 	@echo "********************************************************************"
 	@echo "* make src                                                         *"
 	@echo "********************************************************************"
 	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
 	@echo
+
+$(OCAML_BIN): $(OCAML_MAIN).ml
+	corebuild -pkgs async $@
 
 .PHONY: doc
 doc:
@@ -90,6 +95,7 @@ clean:
 	rm -rf $(SYMBOL).java
 	rm -rf $(LEXER).java
 	rm -f  p1.zip
+	corebuild -clean
 	@echo
 
 p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build

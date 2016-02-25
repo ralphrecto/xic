@@ -2,6 +2,9 @@
 A compiler for the Xi programming language.
 
 ## Getting Started ##
+Before you get started, you may want to be running in the VM described below.
+Once you have that set up, read on!
+
 This repository comes with a spiffy [Makefile](Makefile) that can build code,
 run tests, generate documentation and more. All the libraries you need to build
 and run code are also packaged with this repository, so `make` should "just
@@ -43,13 +46,14 @@ you can connect to it with the following command:
 vagrant ssh
 ```
 
-Once you've ssh'ed into the virtual machine, run the following command to
-install Java 8, [Eclipse Mars][eclipse_mars], [eclim][], and
-[ghp-import](https://github.com/davisp/ghp-import).
+Once you've ssh'ed into the virtual machine, run the following commands to
+install Java 8, [Eclipse Mars][eclipse_mars], [eclim][],
+[ghp-import](https://github.com/davisp/ghp-import), and OCaml.
 
 ```bash
 # make sure to run this in the virtual machine
 bash /vagrant/install_java8.sh
+source /vagrant/install_ocaml.sh
 ```
 The installation script sets up a bunch of environment variables in the
 `~/.bash_path` file in the virutal machine. To make sure these variables are

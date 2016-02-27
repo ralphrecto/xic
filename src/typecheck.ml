@@ -6,14 +6,13 @@ type t = IntT
   | BoolT 
   | UnitT
   | ArrayT of t
-  | TupleT of t list (* list len >= 2 *)
   | EmptyArray
 
 type return = UnitR
   | Void
   
 type sigma = Var of t
-  | Function of t * t
+  | Function of t list * t list
 
 type context = sigma String.Map.t
 
@@ -94,4 +93,58 @@ let rec expr_typecheck (c: context) ((p, expr): Pos.expr)  : ((t Ast.expr) * (Po
         List.zip lst args 
     | Function (t1, t2) ->
   end
+
+let give_types ((p, av): 'a avar) : t =
+	let rec typ_to_t (typ: 'a typ) : t =
+		match typ with
+		| TInt -> IntT
+		| TBool -> BoolT
+		| TArray (typ', _) -> 
+			let t' = typ_to_t typ' in
+			ArrayT t'
+	in
+	match av with	
+	| AId (_, typ) -> typ_to_t typ
+	| AUnderscore typ -> typ_to_t typ	
+
+let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) : (context * (Pos * string)) Result.t =
+	match call with
+	| Func ((pid, id), (pargs, args), (prets, rets), (pbody, body)) ->
+		if String.Map.mem context id then 
+			Error(p, "Function already exists")
+		else
+			let args_t_list = List.map ~f:give_types args in
+			let rets_t_list = List.map ~f:give_types rets in
+			let c' = String.Map.add context id (Function (args_t_list, rets_t_list)) in
+			Ok c'	
+	| Proc (id, args, body) ->
+		if String.Map.mem context id then
+			Error(p, "Procedure already exists")
+		else
+			let args_t_list = List.map ~f:give_types args in	
+			let c' = String.Map.add context id (Function (args_t_list, UnitR)) in
+			Ok c'	
+
+let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) : ((t Ast.stmt) * (Pos * string)) Result.t =
+	failwith "lol"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

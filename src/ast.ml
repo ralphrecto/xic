@@ -1,84 +1,156 @@
 open Core.Std
 open Async.Std
 
-(* top level terms *)
-type 'a prog = 'a * 'a raw_prog
-and 'a raw_prog =
-  | Prog of 'a use list * 'a callable list
+(* The AST module contains
+ *
+ *     1. a module S,
+ *     2. a module type TAGS,
+ *     3. and a functor Make.
+ *
+ * S defines the type of an AST and is parameterized on 9 types, each
+ * corresponding to one type of AST node:
+ *
+ *     1. 'p: prog
+ *     2. 'u: use
+ *     3. 'c: callable
+ *     4. 'i: id
+ *     5. 'a: avar
+ *     6. 'v: var
+ *     7. 's: stmt
+ *     8. 'e: expr
+ *     9. 't: typ
+ *
+ * Each AST node type is paired with its corresponding type parameter. For
+ * example, an expression is bundled as ('e, expr) and a statement is bundled
+ * as ('s, stmt). Of course, manually writing the type parameters is tedious.
+ * Enter TAGS. If you want to specialize an AST to use a set of tags, simply
+ * create a TAGS struct specifying the type of each tag. Then, apply the Make
+ * functor.
+ *
+ * For example, say we wanted to annotated every node with an integer. Here's
+ * how we'd do it.
+ *
+ *     module T = struct
+ *       type p = int [@@deriving sexp]
+ *       type u = int [@@deriving sexp]
+ *       type c = int [@@deriving sexp]
+ *       type i = int [@@deriving sexp]
+ *       type a = int [@@deriving sexp]
+ *       type v = int [@@deriving sexp]
+ *       type s = int [@@deriving sexp]
+ *       type e = int [@@deriving sexp]
+ *       type t = int [@@deriving sexp]
+ *     end
+ *
+ *     include Ast.Make(T)
+ *)
+module S = struct
 
-and 'a use = 'a * 'a raw_use
-and 'a raw_use =
-  | Use of 'a id
+  (* top level terms *)
+  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
+  and ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog =
+    | Prog of ('u,'i) use list * ('c,'i,'a,'v,'s,'e,'t) callable list
 
-and 'a callable = 'a * 'a raw_callable
-and 'a raw_callable =
-  | Func of 'a id * 'a avar list * 'a typ list * 'a stmt
-  | Proc of 'a id * 'a avar list * 'a stmt
+  and ('u, 'i) use = 'u * 'i raw_use
+  and 'i raw_use =
+    | Use of 'i id
 
-(* identifiers, variables, and annotated variables *)
-and 'a id = 'a * string
+  and ('c,'i,'a,'v,'s,'e,'t) callable = 'c * ('i,'a,'v,'s,'e,'t) raw_callable
+  and ('i,'a,'v,'s,'e,'t) raw_callable =
+    | Func of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list *
+              ('i,'a,'v,'s,'e,'t) stmt
+    | Proc of 'i id * ('i,'a,'e,'t) avar list * ('i,'a,'v,'s,'e,'t) stmt
 
-and 'a avar = 'a * 'a raw_avar
-and 'a raw_avar =
-  | AId         of 'a id * 'a typ
-  | AUnderscore of 'a typ
+  (* identifiers, variaeles, and annotated variables *)
+  and 'i id = 'i * string
 
-and 'a var = 'a * 'a raw_var
-and 'a raw_var =
-  | AVar of 'a avar
-  | Underscore
+  and ('i,'a,'e,'t) avar = 'a * ('i,'e,'t) raw_avar
+  and ('i,'e,'t) raw_avar =
+    | AId         of 'i id * ('i,'e,'t) typ
+    | AUnderscore of ('i,'e,'t) typ
 
-(* statements *)
-and 'a stmt = 'a * 'a raw_stmt
-and 'a raw_stmt =
-  | Decl     of 'a var list
-  | DeclAsgn of 'a var list * 'a expr
-  | Asgn     of 'a expr * 'a expr
-  | Block    of 'a stmt list * 'a expr list option
-  | If       of 'a expr * 'a stmt
-  | IfElse   of 'a expr * 'a stmt * 'a stmt
-  | While    of 'a expr * 'a stmt
-  | ProcCall of 'a id * 'a expr list
+  and ('i,'a,'v,'e,'t) var = 'v * ('i,'a,'e,'t) raw_var
+  and ('i,'a,'e,'t) raw_var =
+    | AVar of ('i,'a,'e,'t) avar
+    | Underscore
 
-(* expressions *)
-and binop_code =
-  | MINUS    (* - *)
-  | STAR     (* * *)
-  | HIGHMULT (* *>> *)
-  | DIV      (* / *)
-  | MOD      (* % *)
-  | PLUS     (* + *)
-  | LT       (* < *)
-  | LTE      (* <= *)
-  | GTE      (* >= *)
-  | GT       (* > *)
-  | EQEQ     (* == *)
-  | NEQ      (* != *)
-  | AMP      (* & *)
-  | BAR      (* | *)
+  (* statements *)
+  and ('i,'a,'v,'s,'e,'t) stmt = 's * ('i,'a,'v,'s,'e,'t) raw_stmt
+  and ('i,'a,'v,'s,'e,'t) raw_stmt =
+    | Decl     of ('i,'a,'v,'e,'t) var list
+    | DeclAsgn of ('i,'a,'v,'e,'t) var list * ('i,'e) expr
+    | Asgn     of ('i,'e) expr * ('i,'e) expr
+    | Block    of ('i,'a,'v,'s,'e,'t) stmt list * ('i,'e) expr list option
+    | If       of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
+    | IfElse   of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt * ('i,'a,'v,'s,'e,'t) stmt
+    | While    of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
+    | ProcCall of 'a id * ('i,'e) expr list
 
-and unop_code =
-  | UMINUS (* - *)
-  | BANG   (* ! *)
+  (* expressions *)
+  and binop_code =
+    | MINUS    (* - *)
+    | STAR     (* * *)
+    | HIGHMULT (* *>> *)
+    | DIV      (* / *)
+    | MOD      (* % *)
+    | PLUS     (* + *)
+    | LT       (* < *)
+    | LTE      (* <= *)
+    | GTE      (* >= *)
+    | GT       (* > *)
+    | EQEQ     (* == *)
+    | NEQ      (* != *)
+    | AMP      (* & *)
+    | BAR      (* | *)
 
-and 'a expr = 'a * 'a raw_expr
-and 'a raw_expr =
-  | Int      of Int64.t
-  | Bool     of bool
-  | String   of string
-  | Char     of char
-  | Array    of 'a expr list
-  | Id       of string
-  | BinOp    of 'a expr * binop_code * 'a expr
-  | UnOp     of unop_code * 'a expr
-  | Index    of 'a expr * 'a expr
-  | Length   of 'a expr
-  | FuncCall of 'a id * 'a expr list
+  and unop_code =
+    | UMINUS (* - *)
+    | BANG   (* ! *)
 
-(* types *)
-and 'a typ = 'a * 'a raw_typ
-and 'a raw_typ =
-  | TInt
-  | TBool
-  | TArray of 'a typ * 'a expr option
-[@@deriving sexp]
+  and ('i,'e) expr = 'e * ('i,'e) raw_expr
+  and ('i,'e) raw_expr =
+    | Int      of Int64.t
+    | Bool     of bool
+    | String   of 'i id
+    | Char     of char
+    | Array    of ('i,'e) expr list
+    | Id       of string
+    | BinOp    of ('i,'e) expr * binop_code * ('i,'e) expr
+    | UnOp     of unop_code * ('i,'e) expr
+    | Index    of ('i,'e) expr * ('i,'e) expr
+    | Length   of ('i,'e) expr
+    | FuncCall of 'i id * ('i,'e) expr list
+
+  (* types *)
+  and ('i,'e,'t) typ = 't * ('i,'e,'t) raw_typ
+  and ('i,'e,'t) raw_typ =
+    | TInt
+    | TBool
+    | TArray of ('i,'e,'t) typ * ('i,'e) expr option
+  [@@deriving sexp]
+end
+
+module type TAGS = sig
+  type p [@@deriving sexp]
+  type u [@@deriving sexp]
+  type c [@@deriving sexp]
+  type i [@@deriving sexp]
+  type a [@@deriving sexp]
+  type v [@@deriving sexp]
+  type s [@@deriving sexp]
+  type e [@@deriving sexp]
+  type t [@@deriving sexp]
+end
+
+module Make(T: TAGS) = struct
+  open T
+  type prog     = (p,u,c,i,a,v,s,e,t) S.prog     [@@deriving sexp]
+  type use      = (  u,  i          ) S.use      [@@deriving sexp]
+  type callable = (    c,i,a,v,s,e,t) S.callable [@@deriving sexp]
+  type id       =        i            S.id       [@@deriving sexp]
+  type avar     = (      i,a,    e,t) S.avar     [@@deriving sexp]
+  type var      = (      i,a,v,  e,t) S.var      [@@deriving sexp]
+  type stmt     = (      i,a,v,s,e,t) S.stmt     [@@deriving sexp]
+  type expr     = (      i,      e  ) S.expr     [@@deriving sexp]
+  type typ      = (      i,      e,t) S.typ      [@@deriving sexp]
+end

@@ -12,6 +12,7 @@ type flags = {
 } [@@deriving sexp]
 
 let main flags filenames () : unit Deferred.t =
+  Typecheck.dummy ();
   print_endline (Sexp.to_string (sexp_of_flags flags));
   Deferred.List.iter filenames ~f:(fun filename ->
     Reader.load_sexp_exn filename Pos.prog_of_sexp

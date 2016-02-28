@@ -88,12 +88,10 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
       | ArrayT _ | EmptyArray -> Ok (IntT, expr)
       | _ -> Error (p, "Using length() on a non-array expr")
   end
-  | FuncCall ((_, name), args) -> failwith "f"
-	(*
-	begin
+  | FuncCall ((_, name), args) -> begin
     match String.Map.find c name, args with
-    | Some (Function ([UnitT], t)), [] when t <> [UnitT] -> Ok (t, expr)
-    | Some (Function (lst, t)), _ :: _ :: _ when t <> [UnitT] -> begin
+    | Some (Function (UnitT, t)), [] when t <> UnitT -> Ok (t, expr)
+    | Some (Function (TupleT lst, t)), _ :: _ :: _ when t <> UnitT -> begin
       List.map ~f:(expr_typecheck c) args |> Result.all >>= fun typlist ->
         List.zip lst typlist |> function
           | Some zipped ->
@@ -110,7 +108,6 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
     | None, _ -> Error (p, Printf.sprintf "Variable %s not in scope" name)
     | _ -> Error (p, "Function call type error")
   end
-	*)
 
 let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t) =
 	failwith "lol"

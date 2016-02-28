@@ -7,13 +7,14 @@ type t = IntT
   | BoolT 
   | UnitT
   | ArrayT of t
+	| TupleT of t list (* list len >= 2 *)
   | EmptyArray
 
 type return = UnitR
   | Void
   
 type sigma = Var of t
-  | Function of t list * t list
+  | Function of t * t
 
 type context = sigma String.Map.t
 
@@ -111,7 +112,7 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
   end
 	*)
 
-let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t list) =
+let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t) =
 	failwith "lol"
 
 let rec typ_to_t ((_,typ): 'a typ) : t =
@@ -122,7 +123,7 @@ let rec typ_to_t ((_,typ): 'a typ) : t =
 			let t' = typ_to_t typ' in
 			ArrayT t'
 	
-let avar_to_t ((p, av): 'a avar) : t =
+let avar_to_t ((_, av): 'a avar) : t =
 	match av with	
 	| AId (_, typ) -> typ_to_t typ
 	| AUnderscore typ -> typ_to_t typ	
@@ -130,51 +131,154 @@ let avar_to_t ((p, av): 'a avar) : t =
 let fst_func_pass (c: context) ((p, call): Pos.callable) = 
 	match call with
 	| Func ((_, id), args, rets, _) ->
-		if String.Map.mem c id then 
-			Error (p, "Function already exists")
-		else
-			let args_t_list = List.map ~f:avar_to_t args in
-			let rets_t_list = List.map ~f:typ_to_t rets in
-			let c' = String.Map.add c id (Function (args_t_list, rets_t_list)) in
-			Ok c'	
+		begin
+			if String.Map.mem c id then
+				Error (p, (Printf.sprintf "Function %s has already been defined" id))
+			else
+				match args, rets with
+				| [], [ret_typ] ->
+					let ret_t = typ_to_t ret_typ in
+					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, ret_t)) in
+					Ok c'
+				| [arg_avar], [ret_typ] ->
+					let arg_t = avar_to_t arg_avar in
+					let ret_t = typ_to_t ret_typ in
+					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, ret_t)) in
+					Ok c'
+				| _::_, [ret_typ] -> 
+					let args_t = TupleT (List.map ~f:avar_to_t args) in
+					let ret_t = typ_to_t ret_typ in
+					let c' = String.Map.add c ~key:id ~data:(Function (args_t, ret_t)) in
+					Ok c'
+				| [], _::_ ->
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, rets_t)) in
+					Ok c' 
+				| [arg_avar], _::_ ->
+					let arg_t = avar_to_t arg_avar in
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, rets_t)) in
+					Ok c'
+				| _::_, _::_ ->
+					let args_t = TupleT (List.map ~f:avar_to_t args) in
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let c' = String.Map.add c ~key:id ~data:(Function (args_t, rets_t)) in
+					Ok c'  
+				| _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
+		end
 	| Proc ((_, id), args, _) ->
-		if String.Map.mem c id then
-			Error (p, "Procedure already exists")
-		else
-			let args_t_list = List.map ~f:avar_to_t args in	
-			let c' = String.Map.add c id (Function (args_t_list, [])) in
-			Ok c'
+		begin
+			if String.Map.mem c id then
+				Error (p, (Printf.sprintf "Procedure %s has already been defined" id))
+			else
+				match args with
+				|[] ->
+					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, UnitT)) in
+					Ok c'
+				|[arg_avar] ->
+					let arg_t = avar_to_t arg_avar in
+					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, UnitT)) in
+					Ok c'
+				|_::_ ->
+					let args_t = TupleT (List.map ~f:avar_to_t args) in
+					let c' = String.Map.add c ~key:id ~data:(Function (args_t, UnitT)) in
+					Ok c'
+		end
 
-let is_var_shadowed c args = 
-		let fold acc (_, elm) =
-			match elm with
-			| AId ((_, str), _) -> acc || (String.Map.mem c str)
-			| _ -> acc
-		in
-    List.fold_left ~f: fold
-                   ~init: false
-                   args
+let check_var_shadow c (_, av) =
+	match av with
+	| AId ((p, id), _) -> 
+		if String.Map.mem c id then
+			Error (p, (Printf.sprintf "Variable %s has already been defined" id))
+		else
+			Ok ()
+	| _ -> Ok ()
+
+let check_varlist_shadow c args =
+	let fold acc e =
+		acc >>= fun _ -> check_var_shadow c e 
+	in
+	List.fold_left ~f:fold ~init:(Ok ()) args
 
 (* TODO: should the position of the errors be more accurate? i.e. the actual
  * position of the arg that was already defined *)
 (* Ensures parameters do not shadow and body is well-typed *)
 let snd_func_pass (c: context) ((p, call): Pos.callable) =
     match call with
-    | Func ((_, id), args, rets, s) ->
-        let rets_t_list = List.map ~f:typ_to_t rets in
-        stmt_typecheck c s rets_t_list >>= fun r -> begin
-        	match is_var_shadowed c args, r with
-        	| false, Void -> Ok ()
-        	| _ -> Error (p, "Var has already been defined")
-				end
-    | Proc ((_, id), args, s) ->
-        stmt_typecheck c s [UnitT] >>= fun r ->
-        if is_var_shadowed c args then
-            Error (p, "Var has already been defined")
-        else
-            Ok ()             
+		| Func (_, args, rets, s) ->
+			begin
+				match args, rets with
+				| [], [ret_typ] ->
+					let ret_t = typ_to_t ret_typ in
+					stmt_typecheck c s ret_t >>= fun r ->
+					begin 
+						match r with
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return") 
+					end
+				| [arg_avar], [ret_typ] ->
+					let ret_t = typ_to_t ret_typ in
+					stmt_typecheck c s ret_t >>= fun r ->
+					check_var_shadow c arg_avar >>= fun _ ->
+					begin 
+						match r with
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return")
+					end
+				| _::_, [ret_typ] ->
+					let ret_t = typ_to_t ret_typ in
+					stmt_typecheck c s ret_t >>= fun r ->
+					check_varlist_shadow c args >>= fun _ ->
+					begin 
+						match r with 
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return")
+					end
+				| [], _::_ ->
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					stmt_typecheck c s rets_t >>= fun r ->
+					begin
+						match r with
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return")
+					end
+				| [arg_avar], _::_ ->
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					stmt_typecheck c s rets_t >>= fun r ->
+					check_var_shadow c arg_avar >>= fun _ ->
+					begin
+						match r with
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return")
+					end
+				| _::_, _::_ ->
+					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					stmt_typecheck c s rets_t >>= fun r ->
+					check_varlist_shadow c args >>= fun _ ->
+					begin
+						match r with
+						| Void -> Ok ()
+						| _ -> Error (p, "Missing return")
+					end
+				| _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
+			end
+    | Proc (_, args, s) ->
+			begin
+				match args with
+				| [] ->
+					stmt_typecheck c s UnitT >>= fun _ ->
+					Ok ()
+				| [arg_avar] ->
+					stmt_typecheck c s UnitT >>= fun _ ->
+					check_var_shadow c arg_avar >>= fun _ ->
+					Ok ()
+				| _::_ ->
+					stmt_typecheck c s UnitT >>= fun _ ->
+					check_varlist_shadow c args >>= fun _ ->
+					Ok ()
+			end
 
-let prog_typecheck ((p, Prog(uses, funcs)): 'a prog) =
+let prog_typecheck ((_, Prog(_, funcs)): 'a prog) =
 	let fst_func_fold acc e =
 		acc >>= fun g -> fst_func_pass g e
 	in
@@ -183,17 +287,4 @@ let prog_typecheck ((p, Prog(uses, funcs)): 'a prog) =
 		acc >>= fun _ -> snd_func_pass gamma e
 	in
 	List.fold_left ~init: (Ok ()) ~f: snd_func_fold funcs
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -142,7 +142,7 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
 			Error (p, "Procedure already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in	
-			let c' = String.Map.add c id (Function (args_t_list, [UnitT])) in
+			let c' = String.Map.add c id (Function (args_t_list, [])) in
 			Ok c'
 
 let is_var_shadowed c args = 

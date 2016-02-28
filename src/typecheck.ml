@@ -123,11 +123,11 @@ let avar_to_t ((p, av): 'a avar) : t =
 	| AId (_, typ) -> typ_to_t typ
 	| AUnderscore typ -> typ_to_t typ	
 
-let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) = 
+let fst_func_pass (c: context) ((p, call): Pos.callable) = 
 	match call with
 	| Func ((_, id), args, rets, _) ->
 		if String.Map.mem c id then 
-			Error(p, "Function already exists")
+			Error (p, "Function already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in
 			let rets_t_list = List.map ~f:typ_to_t rets in
@@ -135,12 +135,35 @@ let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) =
 			Ok c'	
 	| Proc ((_, id), args, _) ->
 		if String.Map.mem c id then
-			Error(p, "Procedure already exists")
+			Error (p, "Procedure already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in	
 			let c' = String.Map.add c id (Function (args_t_list, [UnitT])) in
-			Ok c'	
+			Ok c'
 
-let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) =
+let is_var_shadowed c args = 
+    List.fold_left (fun acc elm -> acc || (String.Map.mem c elm))
+                   false
+                   args
+
+(* TODO: should the position of the errors be more accurate? i.e. the actual
+ * position of the arg that was already defined *)
+(* Ensures parameters do not shadow and body is well-typed *)
+let snd_func_pass (c: context) ((p, call): Pos.callable) =
+    match call with
+    | Func ((_, id), args, rets, s) ->
+        let rest_t_list = List.map ~f:typ_to_t rets in
+        stmt_typecheck c s rets_t_list >>= fun r ->
+        match is_var_shadowed c args, r with
+        | false, Void -> Ok ()
+        | _ -> Error (p, "Var has already been defined")
+    | Proc ((_, id), args, s) ->
+        stmt_typecheck c s [UnitT] >>= fun r ->
+        if is_var_shadowed c args then
+            Error (p, "Var has already been defined")
+        else
+            Ok ()             
+
+let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t list) : (return * ('a * string)) Result =
 	failwith "lol"
 

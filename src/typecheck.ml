@@ -123,7 +123,7 @@ let avar_to_t ((p, av): 'a avar) : t =
 	| AId (_, typ) -> typ_to_t typ
 	| AUnderscore typ -> typ_to_t typ	
 
-let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) = 
+let fst_funcpass (c: context) ((p, call): Pos.callable) = 
 	match call with
 	| Func ((_, id), args, rets, _) ->
 		if String.Map.mem c id then 
@@ -141,6 +141,31 @@ let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) =
 			let c' = String.Map.add c id (Function (args_t_list, [UnitT])) in
 			Ok c'	
 
+let snd_funcpass c p = failwith "lol" 
+
 let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) =
 	failwith "lol"
+
+let prog_typecheck ((p, Prog(uses, funcs)): 'a prog) =
+	let fst_func_fold acc e =
+		acc >>= fun g -> fst_funcpass g e
+	in
+	List.fold_left ~init: (Ok String.Map.empty) ~f:fst_func_fold funcs >>= fun gamma ->
+	let snd_func_fold acc e =
+		acc >>= fun _ -> snd_funcpass gamma e
+	in
+	List.fold_left ~init: (Ok ()) ~f: snd_func_fold funcs
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -110,6 +110,10 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
     | _ -> Error (p, "Function call type error")
   end
 	*)
+
+let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t list) =
+	failwith "lol"
+
 let rec typ_to_t ((_,typ): 'a typ) : t =
 		match typ with
 		| TInt -> IntT
@@ -123,11 +127,11 @@ let avar_to_t ((p, av): 'a avar) : t =
 	| AId (_, typ) -> typ_to_t typ
 	| AUnderscore typ -> typ_to_t typ	
 
-let fst_funcpass (c: context) ((p, call): Pos.callable) = 
+let fst_func_pass (c: context) ((p, call): Pos.callable) = 
 	match call with
 	| Func ((_, id), args, rets, _) ->
 		if String.Map.mem c id then 
-			Error(p, "Function already exists")
+			Error (p, "Function already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in
 			let rets_t_list = List.map ~f:typ_to_t rets in
@@ -135,24 +139,48 @@ let fst_funcpass (c: context) ((p, call): Pos.callable) =
 			Ok c'	
 	| Proc ((_, id), args, _) ->
 		if String.Map.mem c id then
-			Error(p, "Procedure already exists")
+			Error (p, "Procedure already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in	
 			let c' = String.Map.add c id (Function (args_t_list, [UnitT])) in
-			Ok c'	
+			Ok c'
 
-let snd_funcpass c p = failwith "lol" 
+let is_var_shadowed c args = 
+		let fold acc (_, elm) =
+			match elm with
+			| AId ((_, str), _) -> acc || (String.Map.mem c str)
+			| _ -> acc
+		in
+    List.fold_left ~f: fold
+                   ~init: false
+                   args
 
-let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) =
-	failwith "lol"
+(* TODO: should the position of the errors be more accurate? i.e. the actual
+ * position of the arg that was already defined *)
+(* Ensures parameters do not shadow and body is well-typed *)
+let snd_func_pass (c: context) ((p, call): Pos.callable) =
+    match call with
+    | Func ((_, id), args, rets, s) ->
+        let rets_t_list = List.map ~f:typ_to_t rets in
+        stmt_typecheck c s rets_t_list >>= fun r -> begin
+        	match is_var_shadowed c args, r with
+        	| false, Void -> Ok ()
+        	| _ -> Error (p, "Var has already been defined")
+				end
+    | Proc ((_, id), args, s) ->
+        stmt_typecheck c s [UnitT] >>= fun r ->
+        if is_var_shadowed c args then
+            Error (p, "Var has already been defined")
+        else
+            Ok ()             
 
 let prog_typecheck ((p, Prog(uses, funcs)): 'a prog) =
 	let fst_func_fold acc e =
-		acc >>= fun g -> fst_funcpass g e
+		acc >>= fun g -> fst_func_pass g e
 	in
 	List.fold_left ~init: (Ok String.Map.empty) ~f:fst_func_fold funcs >>= fun gamma ->
 	let snd_func_fold acc e =
-		acc >>= fun _ -> snd_funcpass gamma e
+		acc >>= fun _ -> snd_func_pass gamma e
 	in
 	List.fold_left ~init: (Ok ()) ~f: snd_func_fold funcs
 

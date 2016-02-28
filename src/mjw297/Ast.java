@@ -34,6 +34,9 @@ public interface Ast {
     public interface Var<A> extends Node<A> {
         public <R> R accept(VarVisitor<A, R> v);
     }
+    public interface CallableDecl<A> extends Node<A> { }
+
+    public interface XiFile<A> extends Node<A> { }
 
     ////////////////////////////////////////////////////////////////////////////
     // Visitors
@@ -64,6 +67,11 @@ public interface Ast {
 
         // Program
         public R visit(Program<A> p);
+
+        // Interfaces
+        public R visit(FuncDecl<A> p);
+        public R visit(ProcDecl<A> p);
+        public R visit(Interface<A> p);
 
         // Stmt
         public R visit(Decl<A> d);
@@ -368,7 +376,7 @@ public interface Ast {
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
-    public final class Program<A> implements Node<A> {
+    public final class Program<A> implements XiFile<A> {
         public final A a;
         public final List<Use<A>> uses;
         public final List<Callable<A>> fs;
@@ -530,6 +538,40 @@ public interface Ast {
     public final class Underscore<A> implements Var<A> {
         public final A a;
         public <R> R accept(VarVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Interface Declarations
+    ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class FuncDecl<A> implements CallableDecl<A> {
+        public final A a;
+        public final Id<A> name;
+        public final List<AnnotatedVar<A>> args;
+        public final List<Type<A>> returnType;
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class ProcDecl<A> implements CallableDecl<A> {
+        public final A a;
+        public final Id<A> name;
+        public final List<AnnotatedVar<A>> args;
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class Interface<A> implements XiFile<A> {
+        public final A a;
+        public final List<Use<A>> uses;
+        public final List<CallableDecl<A>> fs;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 }

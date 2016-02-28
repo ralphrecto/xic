@@ -171,6 +171,13 @@ nonterminal Callable<Position>
     proc_decl,
     func_decl;
 
+nonterminal CallableDecl<Position>
+    int_proc_decl,
+    int_func_decl;
+
+nonterminal CallableDecl<Position>
+    callable_decl;
+
 // programs
 nonterminal Use<Position>
     use_def;
@@ -184,7 +191,10 @@ nonterminal ArrayList<Use<Position>>
 nonterminal ArrayList<Callable<Position>>
     func_def_plus;
 
-nonterminal Program<Position>
+nonterminal ArrayList<CallableDecl<Position>>
+    callable_decl_plus;
+
+nonterminal XiFile<Position>
     prog;
 
 nonterminal Expr<Position>
@@ -420,7 +430,35 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t block:b
     ;
 
 
-// Programs --AM
+// Interface files
+int_proc_decl ::= ID:i args_decl:a end_stmt
+    {: Position p = new Position(ileft, iright);
+       RESULT = ProcDecl.of(p, Id.of(p, i), a);
+    :}
+    ;
+
+int_func_decl ::= ID:f args_decl:a COLON type_plus:t end_stmt
+    {: Position p = new Position(fleft, fright);
+       RESULT = FuncDecl.of(p, Id.of(p, f), a, t);
+    :}
+    ;
+
+callable_decl ::= int_proc_decl:p
+    {: RESULT = p; :}
+    | int_func_decl:f
+    {: RESULT = f; :}
+    ;
+
+callable_decl_plus ::= callable_decl:c
+    {: ArrayList<CallableDecl<Position>> cl = new ArrayList<>();
+       cl.add(c);
+       RESULT = cl; :}
+    | callable_decl_plus:cl callable_decl:c
+    {: cl.add(c);
+       RESULT = cl; :}
+    ;
+
+// Programs (and Interfaces) --AM
 
 use_def ::= USE:u ID:x end_stmt
     {: Position p = new Position(uleft, uright);
@@ -455,8 +493,9 @@ func_def_plus ::= func_def:f
 
 prog ::= use_def_star:us func_def_plus:fs
     {: RESULT = Program.of(new Position(usleft, usright), us, fs); :}
+    | use_def_star:us callable_decl_plus:cs
+    {: RESULT = Interface.of(new Position(usleft, usright), us, cs); :}
 	;
-
 
 
 // Expressions --SH

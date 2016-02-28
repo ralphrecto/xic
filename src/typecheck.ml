@@ -14,7 +14,6 @@ type return = UnitR
   
 type sigma = Var of t
   | Function of t list * t list
-	| Procedure of t list * return
 
 type context = sigma String.Map.t
 
@@ -139,7 +138,7 @@ let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) =
 			Error(p, "Procedure already exists")
 		else
 			let args_t_list = List.map ~f:avar_to_t args in	
-			let c' = String.Map.add c id (Procedure (args_t_list, UnitR)) in
+			let c' = String.Map.add c id (Function (args_t_list, [UnitT])) in
 			Ok c'	
 
 let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) =

@@ -1,6 +1,7 @@
 open Core.Std
 open Async.Std
 open Result
+open Ast
 
 type t = IntT
   | BoolT 
@@ -13,6 +14,7 @@ type return = UnitR
   
 type sigma = Var of t
   | Function of t list * t list
+	| Procedure of t list * return
 
 type context = sigma String.Map.t
 
@@ -86,10 +88,12 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
       | ArrayT _ | EmptyArray -> Ok (IntT, expr)
       | _ -> Error (p, "Using length() on a non-array expr")
   end
-  | FuncCall ((_, name), args) -> begin
+  | FuncCall ((_, name), args) -> failwith "f"
+	(*
+	begin
     match String.Map.find c name, args with
-    | Some (Function (UnitT, t)), [] when t <> UnitT -> Ok (t, expr)
-    | Some (Function (TupleT lst, t)), _ :: _ :: _ when t <> UnitT -> begin
+    | Some (Function ([UnitT], t)), [] when t <> [UnitT] -> Ok (t, expr)
+    | Some (Function (lst, t)), _ :: _ :: _ when t <> [UnitT] -> begin
       List.map ~f:(expr_typecheck c) args |> Result.all >>= fun typlist ->
         List.zip lst typlist |> function
           | Some zipped ->
@@ -106,36 +110,36 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
     | None, _ -> Error (p, Printf.sprintf "Variable %s not in scope" name)
     | _ -> Error (p, "Function call type error")
   end
-
-let give_types ((p, av): 'a avar) : t =
-	let rec typ_to_t (typ: 'a typ) : t =
+	*)
+let rec typ_to_t ((_,typ): 'a typ) : t =
 		match typ with
 		| TInt -> IntT
 		| TBool -> BoolT
 		| TArray (typ', _) -> 
 			let t' = typ_to_t typ' in
 			ArrayT t'
-	in
+	
+let avar_to_t ((p, av): 'a avar) : t =
 	match av with	
 	| AId (_, typ) -> typ_to_t typ
 	| AUnderscore typ -> typ_to_t typ	
 
 let rec toplevel_func_typecheck (c: context) ((p, call): Pos.callable) = 
 	match call with
-	| Func ((pid, id), (pargs, args), (prets, rets), (pbody, body)) ->
-		if String.Map.mem context id then 
+	| Func ((_, id), args, rets, _) ->
+		if String.Map.mem c id then 
 			Error(p, "Function already exists")
 		else
-			let args_t_list = List.map ~f:give_types args in
-			let rets_t_list = List.map ~f:give_types rets in
-			let c' = String.Map.add context id (Function (args_t_list, rets_t_list)) in
+			let args_t_list = List.map ~f:avar_to_t args in
+			let rets_t_list = List.map ~f:typ_to_t rets in
+			let c' = String.Map.add c id (Function (args_t_list, rets_t_list)) in
 			Ok c'	
-	| Proc (id, args, body) ->
-		if String.Map.mem context id then
+	| Proc ((_, id), args, _) ->
+		if String.Map.mem c id then
 			Error(p, "Procedure already exists")
 		else
-			let args_t_list = List.map ~f:give_types args in	
-			let c' = String.Map.add context id (Function (args_t_list, UnitR)) in
+			let args_t_list = List.map ~f:avar_to_t args in	
+			let c' = String.Map.add c id (Procedure (args_t_list, UnitR)) in
 			Ok c'	
 
 let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) =

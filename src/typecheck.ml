@@ -36,7 +36,10 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
   | Array (hd::tl) -> begin
     expr_typecheck c hd >>= fun (typ, _) ->
     List.map ~f:(expr_typecheck c) tl |> Result.all >>= fun typlist ->
-      if List.for_all ~f:(fun (el_typ, _) -> el_typ = typ) typlist then
+      let array_eq (el_typ, _) = match el_typ, typ with
+        | ArrayT _, EmptyArray | EmptyArray, ArrayT _ -> true
+        | _ -> el_typ = typ in
+      if List.for_all ~f:array_eq typlist then
         Ok (ArrayT typ, expr)
       else Error (p, "Array elements have different types")
   end

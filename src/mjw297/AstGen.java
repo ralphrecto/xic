@@ -1,13 +1,25 @@
 package mjw297;
 
-import com.google.common.collect.Lists;
-import javafx.geometry.Pos;
+import com.google.common.io.Files;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static mjw297.Ast.*;
 
 public class AstGen {
+
+    @Option(name="-outDir", usage="Directory where to place generated files")
+    private static String outDir = "";
+
+    @Option(name="-numAst", usage="Number of random ASTs to generate")
+    private static Integer numAst = 10;
 
     private static final Random rand = new Random();
     private static final Position dummyPos = new Position(-1, -1);
@@ -132,10 +144,16 @@ public class AstGen {
     /* Statements */
 
     static Block<Position> genBlock() {
+        return genBlock(false);
+    }
+
+    static Block<Position> genBlock(boolean baseStmt) {
         return Block.of(
-            dummyPos,
-            repeat(AstGen::genStmt, 10),
-            Optional.of(repeat(AstGen::genExpr, 10))
+                dummyPos,
+                baseStmt ?
+                    repeat(AstGen::genBaseStmt, 10) :
+                    repeat(AstGen::genStmt, 10),
+                Optional.of(repeat(AstGen::genExpr, 10))
         );
     }
 
@@ -166,7 +184,7 @@ public class AstGen {
         return If.of(
                 dummyPos,
                 genExpr(),
-                genBlock()
+                genBlock(true)
         );
     }
 
@@ -174,8 +192,8 @@ public class AstGen {
         return IfElse.of(
                 dummyPos,
                 genExpr(),
-                genBlock(),
-                genBlock()
+                genBlock(true),
+                genBlock(true)
         );
     }
 
@@ -183,7 +201,7 @@ public class AstGen {
         return While.of(
                 dummyPos,
                 genExpr(),
-                genBlock()
+                genBlock(true)
         );
     }
 
@@ -274,6 +292,30 @@ public class AstGen {
             case 3: return genLength();
             default: return genArrayLit();
         }
+    }
+
+    public void doMain(String[] args) throws CmdLineException, FileNotFoundException {
+        CmdLineParser parser = new CmdLineParser(this);
+        parser.parseArgument(args);
+
+        String dirPath = outDir.equals("") ?
+                Files.simplifyPath(Paths.get(".").toAbsolutePath().toString()) :
+                Files.simplifyPath(outDir);
+
+        for (int i = 0; i < numAst; i++) {
+            File outFile = Paths.get(
+                String.format("%s/ast%d.ast", dirPath, i)
+            ).toFile();
+            SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(
+                new FileOutputStream(outFile)
+            );
+            AstGen.genProgram().accept(sexpOut);
+            sexpOut.flush();
+        }
+    }
+
+    public static void main(String[] args) throws FileNotFoundException, CmdLineException {
+        new AstGen().doMain(args);
     }
 
 }

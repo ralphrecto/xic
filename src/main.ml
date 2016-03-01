@@ -17,9 +17,8 @@ let main flags filenames () : unit Deferred.t =
   Deferred.List.iter filenames ~f:(fun filename ->
     Reader.load_sexp_exn filename Pos.prog_of_sexp
     >>| Pos.sexp_of_prog
-    >>| Sexp.to_string
-    >>| print_endline
-  )
+    >>| ignore
+  ) >>| fun _ -> print_endline "parsed all ASTs"
 
 let () =
   Command.async

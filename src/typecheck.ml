@@ -3,28 +3,44 @@ open Async.Std
 open Result
 open Ast
 
-type t = IntT
+type expr_t = IntT
   | BoolT 
   | UnitT
-  | ArrayT of t
-	| TupleT of t list (* list len >= 2 *)
-  | EmptyArray
+  | ArrayT of expr_t
+	| TupleT of expr_t list (* list len >= 2 *)
+  | EmptyArray 
+	[@@deriving sexp]
 
 type return = UnitR
-  | Void
+  | Void 
+	[@@deriving sexp]
   
-type sigma = Var of t
-  | Function of t * t
+type sigma = Var of expr_t
+  | Function of expr_t * expr_t
 
 type context = sigma String.Map.t
+
+module T = struct
+	type p = unit             [@@deriving sexp]     
+  type u = unit  						[@@deriving sexp]   
+	type c = expr_t * expr_t  [@@deriving sexp]   
+	type i = unit  						[@@deriving sexp]    
+  type a = expr_t  					[@@deriving sexp]       
+	type v = expr_t  					[@@deriving sexp]      
+  type s = return  					[@@deriving sexp] 
+  type e = expr_t   				[@@deriving sexp]      
+  type t = expr_t   				[@@deriving sexp]     
+end
+
+include Ast.Make(T)
 
 let dummy () = ()
 
 let string_of_binopcode op =
-  op |> Ast.sexp_of_binop_code |> Sexp.to_string
+  op |> Ast.S.sexp_of_binop_code |> Sexp.to_string
 
 let string_of_unopcode op =
-  op |> Ast.sexp_of_unop_code |> Sexp.to_string
+  op |> Ast.S.sexp_of_unop_code |> Sexp.to_string
 
 let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
   match expr with
@@ -112,21 +128,21 @@ let rec expr_typecheck (c : context) ((p, expr) : Pos.expr) =
     | _ -> Error (p, "Function call type error")
   end
 
-let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: t) =
+let rec stmt_typecheck (c: context) ((p, stmt): Pos.stmt) (rho: expr_t) =
 	failwith "lol"
 
-let rec typ_to_t ((_,typ): 'a typ) : t =
+let rec typ_to_expr_t ((_,typ): Pos.typ) : expr_t =
 		match typ with
 		| TInt -> IntT
 		| TBool -> BoolT
 		| TArray (typ', _) -> 
-			let t' = typ_to_t typ' in
+			let t' = typ_to_expr_t typ' in
 			ArrayT t'
 	
-let avar_to_t ((_, av): 'a avar) : t =
+let avar_to_expr_t ((_, av): Pos.avar) : expr_t =
 	match av with	
-	| AId (_, typ) -> typ_to_t typ
-	| AUnderscore typ -> typ_to_t typ	
+	| AId (_, typ) -> typ_to_expr_t typ
+	| AUnderscore typ -> typ_to_expr_t typ	
 
 let fst_func_pass (c: context) ((p, call): Pos.callable) = 
 	match call with
@@ -137,31 +153,31 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
 			else
 				match args, rets with
 				| [], [ret_typ] ->
-					let ret_t = typ_to_t ret_typ in
+					let ret_t = typ_to_expr_t ret_typ in
 					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, ret_t)) in
 					Ok c'
 				| [arg_avar], [ret_typ] ->
-					let arg_t = avar_to_t arg_avar in
-					let ret_t = typ_to_t ret_typ in
+					let arg_t = avar_to_expr_t arg_avar in
+					let ret_t = typ_to_expr_t ret_typ in
 					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, ret_t)) in
 					Ok c'
 				| _::_, [ret_typ] -> 
-					let args_t = TupleT (List.map ~f:avar_to_t args) in
-					let ret_t = typ_to_t ret_typ in
+					let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
+					let ret_t = typ_to_expr_t ret_typ in
 					let c' = String.Map.add c ~key:id ~data:(Function (args_t, ret_t)) in
 					Ok c'
 				| [], _::_ ->
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, rets_t)) in
 					Ok c' 
 				| [arg_avar], _::_ ->
-					let arg_t = avar_to_t arg_avar in
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let arg_t = avar_to_expr_t arg_avar in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, rets_t)) in
 					Ok c'
 				| _::_, _::_ ->
-					let args_t = TupleT (List.map ~f:avar_to_t args) in
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					let c' = String.Map.add c ~key:id ~data:(Function (args_t, rets_t)) in
 					Ok c'  
 				| _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
@@ -176,16 +192,16 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
 					let c' = String.Map.add c ~key:id ~data:(Function (UnitT, UnitT)) in
 					Ok c'
 				|[arg_avar] ->
-					let arg_t = avar_to_t arg_avar in
+					let arg_t = avar_to_expr_t arg_avar in
 					let c' = String.Map.add c ~key:id ~data:(Function (arg_t, UnitT)) in
 					Ok c'
 				|_::_ ->
-					let args_t = TupleT (List.map ~f:avar_to_t args) in
+					let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
 					let c' = String.Map.add c ~key:id ~data:(Function (args_t, UnitT)) in
 					Ok c'
 		end
 
-let check_var_shadow c (_, av) =
+let check_var_shadow c ((_, av): Pos.avar) =
 	match av with
 	| AId ((p, id), _) -> 
 		if String.Map.mem c id then
@@ -209,7 +225,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 			begin
 				match args, rets with
 				| [], [ret_typ] ->
-					let ret_t = typ_to_t ret_typ in
+					let ret_t = typ_to_expr_t ret_typ in
 					stmt_typecheck c s ret_t >>= fun r ->
 					begin 
 						match r with
@@ -217,7 +233,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 						| _ -> Error (p, "Missing return") 
 					end
 				| [arg_avar], [ret_typ] ->
-					let ret_t = typ_to_t ret_typ in
+					let ret_t = typ_to_expr_t ret_typ in
 					stmt_typecheck c s ret_t >>= fun r ->
 					check_var_shadow c arg_avar >>= fun _ ->
 					begin 
@@ -226,7 +242,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 						| _ -> Error (p, "Missing return")
 					end
 				| _::_, [ret_typ] ->
-					let ret_t = typ_to_t ret_typ in
+					let ret_t = typ_to_expr_t ret_typ in
 					stmt_typecheck c s ret_t >>= fun r ->
 					check_varlist_shadow c args >>= fun _ ->
 					begin 
@@ -235,7 +251,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 						| _ -> Error (p, "Missing return")
 					end
 				| [], _::_ ->
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					stmt_typecheck c s rets_t >>= fun r ->
 					begin
 						match r with
@@ -243,7 +259,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 						| _ -> Error (p, "Missing return")
 					end
 				| [arg_avar], _::_ ->
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					stmt_typecheck c s rets_t >>= fun r ->
 					check_var_shadow c arg_avar >>= fun _ ->
 					begin
@@ -252,7 +268,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 						| _ -> Error (p, "Missing return")
 					end
 				| _::_, _::_ ->
-					let rets_t = TupleT (List.map ~f:typ_to_t rets) in
+					let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
 					stmt_typecheck c s rets_t >>= fun r ->
 					check_varlist_shadow c args >>= fun _ ->
 					begin
@@ -278,7 +294,7 @@ let snd_func_pass (c: context) ((p, call): Pos.callable) =
 					Ok ()
 			end
 
-let prog_typecheck ((_, Prog(_, funcs)): 'a prog) =
+let prog_typecheck ((_, Prog(_, funcs)): Pos.prog) =
 	let fst_func_fold acc e =
 		acc >>= fun g -> fst_func_pass g e
 	in

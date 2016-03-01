@@ -111,7 +111,7 @@ module S = struct
   and ('i,'e) raw_expr =
     | Int      of Int64.t
     | Bool     of bool
-    | String   of 'i id
+    | String   of string
     | Char     of char
     | Array    of ('i,'e) expr list
     | Id       of string
@@ -129,6 +129,28 @@ module S = struct
     | TArray of ('i,'e,'t) typ * ('i,'e) expr option
   [@@deriving sexp]
 end
+
+let string_of_binop_code (c: S.binop_code) : string =
+  match c with
+  | MINUS    -> "-"
+  | STAR     -> "*"
+  | HIGHMULT -> "*>>"
+  | DIV      -> "/"
+  | MOD      -> "%"
+  | PLUS     -> "+"
+  | LT       -> "<"
+  | LTE      -> "<="
+  | GTE      -> ">="
+  | GT       -> ">"
+  | EQEQ     -> "=="
+  | NEQ      -> "!="
+  | AMP      -> "&"
+  | BAR      -> "|"
+
+let string_of_unop_code (c: S.unop_code) : string =
+  match c with
+  | UMINUS -> "-"
+  | BANG   -> "!"
 
 module type TAGS = sig
   type p [@@deriving sexp]

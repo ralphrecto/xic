@@ -11,8 +11,8 @@ type expr_t =
 [@@deriving sexp]
 
 type stmt_t =
-  | One   (* unit *)
-  | Zero  (* void *)
+  | One  (* unit *)
+  | Zero (* void *)
 [@@deriving sexp]
 
 type sigma =
@@ -33,7 +33,7 @@ module Tags: sig
 end
 include (module type of Ast.Make(Tags))
 
-type error_msg = string
+type error_msg = Pos.pos * string
 type context = sigma String.Map.t
 
 val dummy: unit -> unit

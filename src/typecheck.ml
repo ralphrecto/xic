@@ -42,8 +42,9 @@ type error_msg = Pos.pos * string
 (******************************************************************************)
 (* helpers                                                                    *)
 (******************************************************************************)
-let dummy () = ()
-
+(* Ok and Error constructors are defined in Core.Std. If we open Result, we get
+ * shadowed constructor warnings. We manually "open" map and bind to avoid the
+ * warnings. *)
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
@@ -63,7 +64,6 @@ module Errors = struct
 end
 open Errors
 
-aje foiahe foiah
 let rec string_of_expr_t t =
   match t with
   | IntT -> "int"

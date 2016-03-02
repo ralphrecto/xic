@@ -80,7 +80,8 @@ module S = struct
     | Decl     of ('i,'a,'v,'e,'t) var list
     | DeclAsgn of ('i,'a,'v,'e,'t) var list * ('i,'e) expr
     | Asgn     of ('i,'e) expr * ('i,'e) expr
-    | Block    of ('i,'a,'v,'s,'e,'t) stmt list * ('i,'e) expr list option
+    | Block    of ('i,'a,'v,'s,'e,'t) stmt list
+    | Return   of ('i,'e) expr list
     | If       of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
     | IfElse   of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt * ('i,'a,'v,'s,'e,'t) stmt
     | While    of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt

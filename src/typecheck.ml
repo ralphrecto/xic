@@ -39,8 +39,9 @@ type error_msg = Pos.pos * string
 let dummy () = ()
 
 let (>>=) = Result.bind
+let (>>|) = Result.map
 
-let rec expr_typecheck (c:context) ((p, expr):Pos.expr) : (expr, error_msg) Result.t=
+let rec expr_typecheck c (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
   | Bool b -> Ok (BoolT, Bool b)
@@ -132,8 +133,52 @@ let rec expr_typecheck (c:context) ((p, expr):Pos.expr) : (expr, error_msg) Resu
     | _ -> Error (p, "Function call type error")
   end
 
-let stmt_typecheck c rho (p, stmt) =
-  failwith "lol"
+
+(* init [] = []
+ * init [a, b, ..., y, z] = [a, b, ..., y] *)
+let init xs =
+  match List.rev xs with
+  | [] -> []
+  | y::ys -> List.rev ys
+
+let stmt_typecheck c rho s =
+  let rec (|-) (c, rho) (p, s) : (stmt * context, error_msg) Result.t =
+    match s with
+    | Block ss -> begin
+        (* iteratively typecheck all the statements in the block *)
+        let f s ssc =
+          ssc >>= fun (ss, c) ->
+          (c, rho) |- s >>= fun (s', c') ->
+          Ok (s'::ss, c')
+        in
+        List.fold_right ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+
+        (* make sure that all but the last stmt is of type One *)
+        if List.for_all (init ss) ~f:(fun (t, _) -> t = One)
+          then begin
+            match List.last ss with
+            | Some (r, sn) -> Ok ((r, (Block ss)), c)
+            | None -> Ok ((One, Block ss), c)
+          end
+          else Error (p, "Unreachable code")
+    end
+    | If (b, t) -> begin
+        expr_typecheck c b >>= fun (b't, b') ->
+        (c, rho) |- t >>= fun ((t't, t'), _) ->
+        match b't  with
+        | BoolT -> Ok ((One, If ((b't, b'), (t't, t'))), c)
+        | _ -> Error (p, "If conditional not a boolean.")
+    end
+    | Decl     vs -> failwith "a"
+    | DeclAsgn (vs, e) ->failwith "a"
+    | Asgn     (l, r) ->failwith "a"
+    | IfElse   (b, t, f) -> failwith "a"
+    | While    (b, s) -> failwith "a"
+    | ProcCall ((_, f), es) -> failwith "a"
+    | _ -> failwith "a"
+  in
+
+  (c, rho) |- s >>| fst
 
   (*
 let rec typ_to_expr_t ((_,typ): Pos.typ) : expr_t =

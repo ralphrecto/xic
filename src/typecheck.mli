@@ -75,6 +75,9 @@ module Context: sig
    * instead. *)
   val func: Pos.pos -> context -> string -> (Expr.t * Expr.t) Error.result
 
+  (* Abbreviation for Context.add c ~key:k ~data:d. *)
+  val bind: context -> string -> Sigma.t -> context
+
   (* For every annotated variable `x:t` in `vs`, `bind_all c vs` binds `x` to
    * `t`. underscores and annotated underscores are ignored. *)
   val bind_all: context -> var list -> context

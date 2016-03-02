@@ -123,10 +123,13 @@ module Context = struct
     | Some (Function (a, b)) -> Ok (a, b)
     | _ -> Error (p, unbound_call x)
 
+  let bind c x t =
+    add c x t
+
   let bind_all c vs =
     List.fold_left vs ~init:c ~f:(fun c v ->
       match varsof (snd v) with
-      | Some x -> add c ~key:x ~data:(Var (fst v))
+      | Some x -> bind c x (Var (fst v))
       | None -> c
     )
 end

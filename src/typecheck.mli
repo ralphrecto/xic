@@ -36,8 +36,6 @@ include (module type of Ast.Make(Tags))
 type error_msg = Pos.pos * string
 type context = sigma String.Map.t
 
-val dummy: unit -> unit
-
 val expr_typecheck: context ->           Pos.expr     -> (expr,     error_msg) Result.t
 val typ_typecheck:  context ->           Pos.typ      -> (typ,      error_msg) Result.t
 val avar_typecheck: context ->           Pos.avar     -> (avar,     error_msg) Result.t

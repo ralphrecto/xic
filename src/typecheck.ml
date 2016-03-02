@@ -4,6 +4,23 @@ open Ast.S
 (******************************************************************************)
 (* Types                                                                      *)
 (******************************************************************************)
+module Error = struct
+  type t = Pos.pos * string
+  type 'a result = ('a, t) Result.t
+end
+let num_f_args     = "Incorrect number of function arguments"
+let typ_f_args     = "Ill typed function arguments"
+let num_p_args     = "Incorrect number of procedure arguments"
+let typ_p_args     = "Ill typed procedure arguments"
+let num_ret_args   = "Incorrect number of return expressions"
+let typ_ret_args   = "Ill typed return expressions"
+let unbound_var x  = sprintf "Unbound variable %s" x
+let unbound_call x = sprintf "Unbound callable %s" x
+let dup_var_decl   = "Duplicate variable declaration"
+let bound_var_decl = "Cannot rebind variable"
+let num_decl_vars  = "Incorrect number of variables in declassign"
+let typ_decl_vars  = "Ill typed variable declassign"
+
 module Expr = struct
   type t =
     | IntT
@@ -28,14 +45,34 @@ module Expr = struct
     | TInt -> IntT
     | TBool -> BoolT
     | TArray (t, _) -> ArrayT (of_typ t)
+
+  let (<=) a b =
+    match a, b with
+    | _, UnitT -> true
+    | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
+    | _ -> a = b
+
+  let eqs p xs ys unequal_num mistyped =
+    match List.zip xs ys with
+    | Some zipped ->
+        if List.for_all ~f:(fun (x, y) -> x <= y) zipped
+          then Ok ()
+          else Error (p, mistyped)
+    | None -> Error (p, unequal_num)
 end
 open Expr
 
 module Stmt = struct
   type t =
-    | One  (* unit *)
-    | Zero (* void *)
+    | One
+    | Zero
   [@@deriving sexp]
+
+  let lub a b =
+    match a, b with
+    | One, _
+    | _, One -> One
+    | Zero, Zero -> Zero
 end
 open Stmt
 
@@ -60,22 +97,17 @@ module Tags = struct
 end
 include Ast.Make(Tags)
 
-module Error = struct
-  type t = Pos.pos * string
-end
-(* error messages *)
-let num_f_args     = "Incorrect number of function arguments"
-let typ_f_args     = "Ill typed function arguments"
-let num_p_args     = "Incorrect number of procedure arguments"
-let typ_p_args     = "Ill typed procedure arguments"
-let num_ret_args   = "Incorrect number of return expressions"
-let typ_ret_args   = "Ill typed return expressions"
-let unbound_var x  = sprintf "Unbound variable %s" x
-let unbound_call x = sprintf "Unbound callable %s" x
-let dup_var_decl   = "Duplicate variable declaration"
-let bound_var_decl = "Cannot rebind variable"
-let num_decl_vars  = "Incorrect number of variables in declassign"
-let typ_decl_vars  = "Ill typed variable declassign"
+let varsof v =
+  match v with
+  | AVar (_, AId  ((_, x), _)) -> Some x
+  | AVar (_, AUnderscore _)
+  | Underscore -> None
+
+let typeof v =
+  match v with
+  | AVar (_, AId  ((_, _), t)) -> Expr.of_typ t
+  | AVar (_, AUnderscore t) -> Expr.of_typ t
+  | Underscore -> UnitT
 
 type context = Sigma.t String.Map.t
 module Context = struct
@@ -90,6 +122,13 @@ module Context = struct
     match find c x with
     | Some (Function (a, b)) -> Ok (a, b)
     | _ -> Error (p, unbound_call x)
+
+  let bind_all c vs =
+    List.fold_left vs ~init:c ~f:(fun c v ->
+      match varsof (snd v) with
+      | Some x -> add c ~key:x ~data:(Var (fst v))
+      | None -> c
+    )
 end
 
 (******************************************************************************)
@@ -101,37 +140,18 @@ end
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
-let (<=) (a: Expr.t) (b: Expr.t) : bool =
-  match a, b with
-  | _, UnitT -> true
-  | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
-  | _ -> a = b
-
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)
-let rec expr_ts_typecheck (p: Pos.pos)
-                          (xs: Expr.t list)
-                          (ys: Expr.t list)
-                          (unequal_num: string)
-                          (mistyped: string)
-                          : (unit, Error.t) Result.t =
-  match List.zip xs ys with
-  | Some zipped ->
-      if List.for_all ~f:(fun (x, y) -> x <= y) zipped
-        then Ok ()
-        else Error (p, mistyped)
-  | None -> Error (p, unequal_num)
-
-and exprs_typecheck (p: Pos.pos)
-                    (c: context)
-                    (ts: Expr.t list)
-                    (args: Pos.expr list)
-                    (unequal_num: string)
-                    (mistyped: string)
-                    : (expr list, Error.t) Result.t =
+let rec exprs_typecheck (p: Pos.pos)
+                        (c: context)
+                        (ts: Expr.t list)
+                        (args: Pos.expr list)
+                        (unequal_num: string)
+                        (mistyped: string)
+                        : expr list Error.result =
   Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
-  expr_ts_typecheck p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
+  Expr.eqs p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
   Ok args'
 
 and expr_typecheck c (p, expr) =
@@ -250,37 +270,12 @@ let var_typecheck c (p, v) =
 (******************************************************************************)
 (* stmt                                                                       *)
 (******************************************************************************)
-let lub a b =
-  match a, b with
-  | One, _
-  | _, One -> One
-  | Zero, Zero -> Zero
-
-let varsof v =
-  match v with
-  | AVar (_, AId  ((_, x), _)) -> Some x
-  | AVar (_, AUnderscore _)
-  | Underscore -> None
-
-let typeof v =
-  match v with
-  | AVar (_, AId  ((_, _), t)) -> Expr.of_typ t
-  | AVar (_, AUnderscore t) -> Expr.of_typ t
-  | Underscore -> UnitT
-
-let bind_all (c: context) (vs: var list) : context =
-    List.fold_left vs ~init:c ~f:(fun c v ->
-      match varsof (snd v) with
-      | Some x -> Context.add c ~key:x ~data:(Var (fst v))
-      | None -> c
-    )
-
 let vars_typecheck (p: Pos.pos)
                    (c: context)
                    (vs: Pos.var list)
                    (dup_var: string)
                    (bound_var: string)
-                   : (var list, Error.t) Result.t =
+                   : var list Error.result =
   let xs = List.filter_map ~f:varsof (List.map ~f:snd vs) in
   let disjoint = not (List.contains_dup xs) in
   let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c x)) in
@@ -290,7 +285,7 @@ let vars_typecheck (p: Pos.pos)
   | true, false -> Error (p, bound_var)
 
 let stmt_typecheck c rho s =
-  let rec (|-) (c, rho) (p, s) : (stmt * context, Error.t) Result.t =
+  let rec (|-) (c, rho) (p, s) : (stmt * context) Error.result =
     let err s = Error (p, s) in
     match s with
     | Block ss -> begin
@@ -370,7 +365,7 @@ let stmt_typecheck c rho s =
     end
     | Decl vs -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
-        Ok ((One, Decl vs'), bind_all c vs')
+        Ok ((One, Decl vs'), Context.bind_all c vs')
     end
     | DeclAsgn (vs, e) -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
@@ -378,11 +373,11 @@ let stmt_typecheck c rho s =
         match vs', fst e' with
         | _, TupleT ets' ->
             let vts' = List.map ~f:fst vs' in
-            expr_ts_typecheck p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
-            Ok ((One, DeclAsgn (vs', e')), bind_all c vs')
+            Expr.eqs p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
+            Ok ((One, DeclAsgn (vs', e')), Context.bind_all c vs')
         | [v'], _ ->
-            expr_ts_typecheck p [fst e'] [fst v'] num_decl_vars typ_decl_vars
-            >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), bind_all c vs')
+            Expr.eqs p [fst e'] [fst v'] num_decl_vars typ_decl_vars
+            >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all c vs')
         | _, _ -> err "Invalid declassign"
     end
   in

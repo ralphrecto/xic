@@ -4,39 +4,58 @@ open Ast.S
 (******************************************************************************)
 (* Types                                                                      *)
 (******************************************************************************)
-type expr_t =
-  | IntT
-  | BoolT
-  | UnitT
-  | ArrayT of expr_t
-  | TupleT of expr_t list (* len >= 2 *)
-  | EmptyArray
-[@@deriving sexp]
+module Expr = struct
+  type t =
+    | IntT
+    | BoolT
+    | UnitT
+    | ArrayT of t
+    | TupleT of t list (* len >= 2 *)
+    | EmptyArray
+  [@@deriving sexp]
 
-type stmt_t =
-  | One   (* unit *)
-  | Zero  (* void *)
-[@@deriving sexp]
+  let rec to_string t =
+    match t with
+    | IntT -> "int"
+    | BoolT -> "bool"
+    | UnitT -> "unit"
+    | ArrayT t' -> sprintf "%s[]" (to_string t')
+    | TupleT ts -> sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:to_string ts))
+    | EmptyArray -> "{}"
+end
 
-type sigma =
-  | Var of expr_t
-  | Function of expr_t * expr_t
-[@@deriving sexp]
+module Stmt = struct
+  type t =
+    | One  (* unit *)
+    | Zero (* void *)
+  [@@deriving sexp]
+end
+
+module Sigma = struct
+  type t =
+    | Var of Expr.t
+    | Function of Expr.t * Expr.t
+  [@@deriving sexp]
+end
+
+open Expr
+open Stmt
+open Sigma
 
 module Tags = struct
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
-  type c = expr_t * expr_t  [@@deriving sexp]
+  type c = Expr.t * Expr.t  [@@deriving sexp]
   type i = unit             [@@deriving sexp]
-  type a = expr_t           [@@deriving sexp]
-  type v = expr_t           [@@deriving sexp]
-  type s = stmt_t           [@@deriving sexp]
-  type e = expr_t           [@@deriving sexp]
-  type t = expr_t           [@@deriving sexp]
+  type a = Expr.t           [@@deriving sexp]
+  type v = Expr.t           [@@deriving sexp]
+  type s = Stmt.t           [@@deriving sexp]
+  type e = Expr.t           [@@deriving sexp]
+  type t = Expr.t           [@@deriving sexp]
 end
 include Ast.Make(Tags)
 
-type context = sigma String.Map.t
+type context = Sigma.t String.Map.t
 type error_msg = Pos.pos * string
 
 (******************************************************************************)
@@ -48,45 +67,33 @@ type error_msg = Pos.pos * string
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
-module Errors = struct
-  let num_f_args     = "Incorrect number of function arguments"
-  let typ_f_args     = "Ill typed function arguments"
-  let num_p_args     = "Incorrect number of procedure arguments"
-  let typ_p_args     = "Ill typed procedure arguments"
-  let num_ret_args   = "Incorrect number of return expressions"
-  let typ_ret_args   = "Ill typed return expressions"
-  let unbound_var x  = sprintf "Unbound variable %s" x
-  let unbound_call x = sprintf "Unbound callable %s" x
-  let dup_var_decl   = "Duplicate variable declaration"
-  let bound_var_decl = "Cannot rebind variable"
-  let num_decl_vars  = "Incorrect number of variables in declassign"
-  let typ_decl_vars  = "Ill typed variable declassign"
-end
-open Errors
-
-let rec string_of_expr_t t =
-  match t with
-  | IntT -> "int"
-  | BoolT -> "bool"
-  | UnitT -> "unit"
-  | ArrayT t' -> sprintf "%s[]" (string_of_expr_t t')
-  | TupleT ts ->
-      sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:string_of_expr_t ts))
-  | EmptyArray -> "{}"
+(* error messages *)
+let num_f_args     = "Incorrect number of function arguments"
+let typ_f_args     = "Ill typed function arguments"
+let num_p_args     = "Incorrect number of procedure arguments"
+let typ_p_args     = "Ill typed procedure arguments"
+let num_ret_args   = "Incorrect number of return expressions"
+let typ_ret_args   = "Ill typed return expressions"
+let unbound_var x  = sprintf "Unbound variable %s" x
+let unbound_call x = sprintf "Unbound callable %s" x
+let dup_var_decl   = "Duplicate variable declaration"
+let bound_var_decl = "Cannot rebind variable"
+let num_decl_vars  = "Incorrect number of variables in declassign"
+let typ_decl_vars  = "Ill typed variable declassign"
 
 let lookup_var (p: Pos.pos) (c: context) (x: string):
-               (expr_t, error_msg) Result.t =
+               (Expr.t, error_msg) Result.t =
   match String.Map.find c x with
   | Some (Var t) -> Ok t
   | _ -> Error (p, unbound_var x)
 
 let lookup_func (p: Pos.pos) (c: context) (x: string):
-                (expr_t * expr_t, error_msg) Result.t =
+                (Expr.t * Expr.t, error_msg) Result.t =
   match String.Map.find c x with
   | Some (Function (a, b)) -> Ok (a, b)
   | _ -> Error (p, unbound_var x)
 
-let (<=) (a: expr_t) (b: expr_t) : bool =
+let (<=) (a: Expr.t) (b: Expr.t) : bool =
   match a, b with
   | _, UnitT -> true
   | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
@@ -96,8 +103,8 @@ let (<=) (a: expr_t) (b: expr_t) : bool =
 (* expr                                                                       *)
 (******************************************************************************)
 let rec expr_ts_typecheck (p: Pos.pos)
-                          (xs: expr_t list)
-                          (ys: expr_t list)
+                          (xs: Expr.t list)
+                          (ys: Expr.t list)
                           (unequal_num: string)
                           (mistyped: string)
                           : (unit, error_msg) Result.t =
@@ -110,7 +117,7 @@ let rec expr_ts_typecheck (p: Pos.pos)
 
 and exprs_typecheck (p: Pos.pos)
                     (c: context)
-                    (ts: expr_t list)
+                    (ts: Expr.t list)
                     (args: Pos.expr list)
                     (unequal_num: string)
                     (mistyped: string)
@@ -219,7 +226,7 @@ let rec typ_typecheck c (p, t) =
 (******************************************************************************)
 (* avar                                                                       *)
 (******************************************************************************)
-let rec avar_typecheck c (p, a) =
+let avar_typecheck c (p, a) =
   match a with
   | AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', AId (((), x), t'))
   | AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', AUnderscore t')
@@ -227,7 +234,7 @@ let rec avar_typecheck c (p, a) =
 (******************************************************************************)
 (* var                                                                        *)
 (******************************************************************************)
-let rec var_typecheck c (p, v) =
+let var_typecheck c (p, v) =
   match v with
   | AVar a -> avar_typecheck c a >>= fun a' -> Ok (fst a', AVar a')
   | Underscore -> Ok (UnitT, Underscore)
@@ -262,7 +269,7 @@ let typeof v =
 let bind_all (c: context) (vs: var list) : context =
     List.fold_left vs ~init:c ~f:(fun c v ->
       match varsof (snd v) with
-      | Some x -> String.Map.add c x (Var (fst v))
+      | Some x -> String.Map.add c ~key:x ~data:(Var (fst v))
       | None -> c
     )
 
@@ -354,8 +361,8 @@ let stmt_typecheck c rho s =
             if fst l' = fst r'
               then Ok ((One, Asgn (l', r')), c)
               else
-                let ls = string_of_expr_t (fst l') in
-                let rs = string_of_expr_t (fst r') in
+                let ls = Expr.to_string (fst l') in
+                let rs = Expr.to_string (fst r') in
                 err (sprintf "Cannot assign type %s to type %s" ls rs)
         | _ -> err "Inalid left-hand side of assignment"
     end
@@ -384,7 +391,7 @@ let stmt_typecheck c rho s =
 (* callables                                                                  *)
 (******************************************************************************)
   (*
-let rec typ_to_expr_t ((_,typ): Pos.typ) : expr_t =
+let rec typ_to_expr_t ((_,typ): Pos.typ) : Expr.t =
     match typ with
     | TInt -> IntT
     | TBool -> BoolT
@@ -394,7 +401,7 @@ let rec typ_to_expr_t ((_,typ): Pos.typ) : expr_t =
       *)
 
   (*
-let avar_to_expr_t ((_, av): Pos.avar) : expr_t =
+let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   match av with
   | AId (_, typ) -> typ_to_expr_t typ
   | AUnderscore typ -> typ_to_expr_t typ

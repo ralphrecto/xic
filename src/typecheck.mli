@@ -39,6 +39,9 @@ type context = sigma String.Map.t
 val dummy: unit -> unit
 
 val expr_typecheck: context ->           Pos.expr     -> (expr,     error_msg) Result.t
+val typ_typecheck:  context ->           Pos.typ      -> (typ,      error_msg) Result.t
+val avar_typecheck: context ->           Pos.avar     -> (avar,     error_msg) Result.t
+val var_typecheck:  context ->           Pos.var      -> (var,      error_msg) Result.t
 val stmt_typecheck: context -> expr_t -> Pos.stmt     -> (stmt,     error_msg) Result.t
 val fst_func_pass:  context ->           Pos.callable -> (context,  error_msg) Result.t
 val snd_func_pass:  context ->           Pos.callable -> (callable, error_msg) Result.t

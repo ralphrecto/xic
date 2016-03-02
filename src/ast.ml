@@ -115,7 +115,7 @@ module S = struct
     | String   of string
     | Char     of char
     | Array    of ('i,'e) expr list
-    | Id       of string
+    | Id       of 'i id
     | BinOp    of ('i,'e) expr * binop_code * ('i,'e) expr
     | UnOp     of unop_code * ('i,'e) expr
     | Index    of ('i,'e) expr * ('i,'e) expr
@@ -133,25 +133,25 @@ end
 
 let string_of_binop_code (c: S.binop_code) : string =
   match c with
-  | MINUS    -> "-"
-  | STAR     -> "*"
-  | HIGHMULT -> "*>>"
-  | DIV      -> "/"
-  | MOD      -> "%"
-  | PLUS     -> "+"
-  | LT       -> "<"
-  | LTE      -> "<="
-  | GTE      -> ">="
-  | GT       -> ">"
-  | EQEQ     -> "=="
-  | NEQ      -> "!="
-  | AMP      -> "&"
-  | BAR      -> "|"
+  | S.MINUS    -> "-"
+  | S.STAR     -> "*"
+  | S.HIGHMULT -> "*>>"
+  | S.DIV      -> "/"
+  | S.MOD      -> "%"
+  | S.PLUS     -> "+"
+  | S.LT       -> "<"
+  | S.LTE      -> "<="
+  | S.GTE      -> ">="
+  | S.GT       -> ">"
+  | S.EQEQ     -> "=="
+  | S.NEQ      -> "!="
+  | S.AMP      -> "&"
+  | S.BAR      -> "|"
 
 let string_of_unop_code (c: S.unop_code) : string =
   match c with
-  | UMINUS -> "-"
-  | BANG   -> "!"
+  | S.UMINUS -> "-"
+  | S.BANG   -> "!"
 
 module type TAGS = sig
   type p [@@deriving sexp]

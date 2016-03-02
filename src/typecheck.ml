@@ -47,10 +47,61 @@ let dummy () = ()
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
+module Errors = struct
+  let num_f_args     = "Incorrect number of function arguments"
+  let typ_f_args     = "Ill typed function arguments"
+  let num_p_args     = "Incorrect number of procedure arguments"
+  let typ_p_args     = "Ill typed procedure arguments"
+  let num_ret_args   = "Incorrect number of return expressions"
+  let typ_ret_args   = "Ill typed return expressions"
+  let unbound_var x  = sprintf "Unbound variable %s" x
+  let unbound_call x = sprintf "Unbound callable %s" x
+  let dup_var_decl   = "Duplicate variable declaration"
+  let bound_var_decl = "Cannot rebind variable"
+end
+open Errors
+
+let rec string_of_expr_t t =
+  match t with
+  | IntT -> "int"
+  | BoolT -> "bool"
+  | UnitT -> "unit"
+  | ArrayT t' -> sprintf "%s[]" (string_of_expr_t t')
+  | TupleT ts ->
+      sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:string_of_expr_t ts))
+  | EmptyArray -> "{}"
+
+let lookup_var (p: Pos.pos) (c: context) (x: string):
+               (expr_t, error_msg) Result.t =
+  match String.Map.find c x with
+  | Some (Var t) -> Ok t
+  | _ -> Error (p, unbound_var x)
+
+let lookup_func (p: Pos.pos) (c: context) (x: string):
+                (expr_t * expr_t, error_msg) Result.t =
+  match String.Map.find c x with
+  | Some (Function (a, b)) -> Ok (a, b)
+  | _ -> Error (p, unbound_var x)
+
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)
-let rec expr_typecheck c (p, expr) =
+let rec exprs_typecheck (p: Pos.pos)
+                       (c: context)
+                       (ts: expr_t list)
+                       (args: Pos.expr list)
+                       (unequal_num: string)
+                       (mistyped: string)
+                       : (expr list, error_msg) Result.t =
+  Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
+  match List.zip ts args' with
+  | Some zipped ->
+      if List.for_all ~f:(fun (t1, (t2, _)) -> t1 = t2) zipped
+        then Ok args'
+        else Error (p, mistyped)
+  | None -> Error (p, unequal_num)
+
+and expr_typecheck c (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
   | Bool b -> Ok (BoolT, Bool b)
@@ -70,11 +121,7 @@ let rec expr_typecheck c (p, expr) =
       then Ok (ArrayT t, Array ((t,e)::es))
       else Error (p, "Array elements have different types")
   end
-  | Id s -> begin
-    match String.Map.find c s with
-    | Some (Var typ) -> Ok (typ, Id s)
-    | _ -> Error (p, Printf.sprintf "Variable %s unbound" s)
-  end
+  | Id (_, s) -> lookup_var p c s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
     expr_typecheck c l >>= fun (lt, l) ->
     expr_typecheck c r >>= fun (rt, r) ->
@@ -120,39 +167,83 @@ let rec expr_typecheck c (p, expr) =
       | EmptyArray -> Ok (IntT, Length (t, e))
       | _ -> Error (p, "Using length() on a non-array expr")
   end
-  | FuncCall ((_, name), args) -> begin
-    match String.Map.find c name, args with
-    | Some (Function (UnitT, t)), [] when t <> UnitT ->
-        Ok (t, FuncCall (((), name), []))
-    | Some (Function (TupleT argst, t)), _::_::_ when t <> UnitT -> begin
-      Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args ->
-      match List.zip argst args with
-      | Some zipped ->
-          if List.for_all ~f:(fun (t1, (t2, _)) -> t1 = t2) zipped
-            then Ok (t, FuncCall (((), name), args))
-            else Error (p, "Function args do not match parameter type")
-      | None -> Error (p, "Incorrect number of arguments")
-    end
-    | Some (Function (t1, t2)), [arg] when t2 <> UnitT -> begin
-      expr_typecheck c arg >>= function
-      | (argt, arg) when argt = t1 -> Ok (t2, FuncCall (((), name), [(argt, arg)]))
-      | _ -> Error (p, "Function arg does not match parameter type")
-    end
-    | None, _ -> Error (p, Printf.sprintf "Variable %s not in scope" name)
+  | FuncCall ((_, f), args) -> begin
+    lookup_func p c f >>= fun (a, b) ->
+    match (a, b), args with
+    | (UnitT, t), [] when t <> UnitT -> Ok (t, FuncCall (((), f), []))
+    | (TupleT t1, t2), _::_::_ when t2 <> UnitT ->
+        exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
+        Ok (t2, FuncCall (((), f), args'))
+    | (t1, t2), [arg] when t2 <> UnitT ->
+        exprs_typecheck p c [t1] [arg] num_f_args typ_f_args >>= fun args' ->
+        Ok (t2, FuncCall (((), f), args'))
     | _ -> Error (p, "Function call type error")
   end
 
 (******************************************************************************)
+(* typ                                                                        *)
+(******************************************************************************)
+let rec typ_typecheck c (p, t) =
+  match t with
+  | TInt -> Ok (IntT, TInt)
+  | TBool -> Ok (BoolT, TBool)
+  | TArray (t, None) ->
+      typ_typecheck c t >>= fun t' ->
+      Ok (ArrayT (fst t'), TArray (t', None))
+  | TArray (t, Some e) -> begin
+      typ_typecheck c t >>= fun t' ->
+      expr_typecheck c e >>= fun e' ->
+      match fst e' with
+      | IntT -> Ok (ArrayT (fst t'), TArray (t', Some e'))
+      | _ -> Error (p, "Array size is not an int")
+  end
+
+(******************************************************************************)
+(* avar                                                                       *)
+(******************************************************************************)
+let rec avar_typecheck c (p, a) =
+  match a with
+  | AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', AId (((), x), t'))
+  | AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', AUnderscore t')
+
+(******************************************************************************)
+(* var                                                                        *)
+(******************************************************************************)
+let rec var_typecheck c (p, v) =
+  match v with
+  | AVar a -> avar_typecheck c a >>= fun a' -> Ok (fst a', AVar a')
+  | Underscore -> Ok (UnitT, Underscore)
+
+(******************************************************************************)
 (* stmt                                                                       *)
 (******************************************************************************)
+let rec expr_t_of_typ t =
+  match t with
+  | TInt -> IntT
+  | TBool -> BoolT
+  | TArray ((_, t), _) -> ArrayT (expr_t_of_typ t)
+
 let lub a b =
   match a, b with
   | One, _
   | _, One -> One
   | Zero, Zero -> Zero
 
+let varsof v =
+  match v with
+  | AVar (_, AId  ((_, x), _)) -> [x]
+  | AVar (_, AUnderscore _)
+  | Underscore -> []
+
+let typeof v =
+  match v with
+  | AVar (_, AId  ((_, _), (_, t))) -> expr_t_of_typ t
+  | AVar (_, AUnderscore (_, t)) -> expr_t_of_typ t
+  | Underscore -> UnitT
+
 let stmt_typecheck c rho s =
   let rec (|-) (c, rho) (p, s) : (stmt * context, error_msg) Result.t =
+    let err s = Error (p, s) in
     match s with
     | Block ss -> begin
         (* iteratively typecheck all the statements in the block *)
@@ -170,14 +261,14 @@ let stmt_typecheck c rho s =
             | Some (r, sn) -> Ok ((r, (Block ss)), c)
             | None -> Ok ((One, Block ss), c)
           end
-          else Error (p, "Unreachable code")
+          else err "Unreachable code"
     end
     | If (b, t) -> begin
         expr_typecheck c b >>= fun b' ->
         (c, rho) |- t >>= fun (t', _) ->
         match fst b'  with
         | BoolT -> Ok ((One, If (b', t')), c)
-        | _ -> Error (p, "If conditional not a boolean.")
+        | _ -> err "If conditional not a boolean."
     end
     | IfElse (b, t, f) -> begin
       expr_typecheck c b >>= fun b' ->
@@ -185,53 +276,60 @@ let stmt_typecheck c rho s =
       (c, rho) |- f >>= fun (f', _) ->
       match fst b'  with
       | BoolT -> Ok ((lub (fst t') (fst f'), IfElse (b', t', f')), c)
-      | _ -> Error (p, "If conditional not a boolean.")
+      | _ -> err "If conditional not a boolean."
     end
     | While (b, s) ->
         expr_typecheck c b >>= fun b' ->
         (c, rho) |- s >>= fun (s', _) ->
         Ok ((One, While (b', s')), c)
     | ProcCall ((_, f), args) -> begin
-      match String.Map.find c f, args with
-      (* f() *)
-      | Some (Function (UnitT, UnitT)), [] ->
-          Ok ((One, ProcCall (((), f), [])), c)
-      (* f(e1, ..., en) *)
-      | Some (Function (TupleT arg_types, UnitT)), _::_::_ -> begin
-          Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
-          match List.zip arg_types args' with
-          | Some zipped ->
-            if List.for_all ~f:(fun (t1, (t2, _)) -> t1 = t2) zipped
-              then Ok ((One, ProcCall (((), f), args')), c)
-              else Error (p, "Function args do not match parameter type")
-          | None -> Error (p, "Incorrect number of arguments")
-      end
-      (* f(e) *)
-      | Some (Function (arg_t, UnitT)), [arg] ->
-          expr_typecheck c arg >>= fun arg' ->
-          if arg_t = fst arg'
-            then Ok ((One, ProcCall (((), f), [arg'])), c)
-            else Error (p, "Procedure arg does not match parameter type")
-      | None, _ -> Error (p, Printf.sprintf "Function %s not defined" f)
-      | _, _ -> Error (p, "Procedure call type error")
+      lookup_func p c f >>= fun (a, b) ->
+      match (a, b), args with
+      | (UnitT, UnitT), [] -> Ok ((One, ProcCall (((), f), [])), c)
+      | (TupleT arg_types, UnitT), _::_::_ ->
+          exprs_typecheck p c arg_types args num_p_args typ_p_args >>= fun args' ->
+          Ok ((One, ProcCall (((), f), args')), c)
+      | (arg_t, UnitT), [arg] ->
+          exprs_typecheck p c [arg_t] [arg] num_p_args typ_p_args >>= fun args' ->
+          Ok ((One, ProcCall (((), f), args')), c)
+      | _, _ -> err "Procedure call type error"
     end
     | Return es -> begin
         match rho, es with
         | UnitT, [] -> Ok ((Zero, Return []), c)
-        | UnitT, _ -> Error (p, "Non-empty return inside procedure call")
+        | UnitT, _ -> err "Non-empty return inside procedure call"
         | TupleT ts, es ->
-            Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es' ->
+            exprs_typecheck p c ts es num_ret_args typ_ret_args >>= fun es' ->
             Ok ((Zero, Return es'), c)
         | t, [e] ->
-            expr_typecheck c e >>= fun e' ->
-            if fst e' = t
-              then Ok ((Zero, Return [e']), c)
-              else Error (p, "Invalid return type")
-        | t, _ -> Error (p, "Too many return expressions")
+            exprs_typecheck p c [t] [e] num_ret_args typ_ret_args >>= fun es' ->
+            Ok ((Zero, Return es'), c)
+        | t, _ -> err num_ret_args
     end
-    | Decl vs -> failwith "a"
-    | DeclAsgn (vs, e) ->failwith "a"
-    | Asgn     (l, r) ->failwith "a"
+    | Asgn (l, r) -> begin
+        match snd l with
+        | Id (_, _)
+        | Index (_, _) ->
+            expr_typecheck c l >>= fun l' ->
+            expr_typecheck c r >>= fun r' ->
+            if fst l' = fst r'
+              then Ok ((One, Asgn (l', r')), c)
+              else
+                let ls = string_of_expr_t (fst l') in
+                let rs = string_of_expr_t (fst r') in
+                err (sprintf "Cannot assign type %s to type %s" ls rs)
+        | _ -> err "Inalid left-hand side of assignment"
+    end
+    | Decl vs -> begin
+        let xs = List.concat_map ~f:varsof (List.map ~f:snd vs) in
+        let disjoint = not (List.contains_dup xs) in
+        let unbound = List.for_all xs ~f:(fun x -> not (String.Map.mem c x)) in
+        match disjoint, unbound with
+        | true, true -> failwith ""
+        | false, _ -> err dup_var_decl
+        | true, false -> err bound_var_decl
+    end
+    | DeclAsgn (vs, e) -> failwith "a"
   in
 
   (c, rho) |- s >>| fst

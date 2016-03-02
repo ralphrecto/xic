@@ -366,7 +366,7 @@ let stmt_typecheck c rho s =
                 let ls = Expr.to_string (fst l') in
                 let rs = Expr.to_string (fst r') in
                 err (sprintf "Cannot assign type %s to type %s" ls rs)
-        | _ -> err "Inalid left-hand side of assignment"
+        | _ -> err "Invalid left-hand side of assignment"
     end
     | Decl vs -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
@@ -483,7 +483,7 @@ let snd_func_pass c (p, call) =
   failwith "yolo"
   (*
     match call with
-    | Func (_, args, rets, s) ->
+    | Func (p, args, rets, s) ->
       begin
         match args, rets with
         | [], [ret_typ] ->
@@ -494,10 +494,10 @@ let snd_func_pass c (p, call) =
             | Void -> Ok ()
             | _ -> Error (p, "Missing return")
           end
-        | [arg_avar], [ret_typ] ->
+        | [args'], [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c s ret_t >>= fun r ->
-          check_var_shadow c arg_avar >>= fun _ ->
+          vars_typecheck p c [args'] dup_var_decl bound_var_decl >>= fun _ ->
           begin
             match r with
             | Void -> Ok ()
@@ -506,7 +506,7 @@ let snd_func_pass c (p, call) =
         | _::_, [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c s ret_t >>= fun r ->
-          check_varlist_shadow c args >>= fun _ ->
+          vars_typecheck p c args dup_var_decl bound_var_decl >>= fun _ ->
           begin
             match r with
             | Void -> Ok ()
@@ -520,10 +520,10 @@ let snd_func_pass c (p, call) =
             | Void -> Ok ()
             | _ -> Error (p, "Missing return")
           end
-        | [arg_avar], _::_ ->
+        | [args'], _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c s rets_t >>= fun r ->
-          check_var_shadow c arg_avar >>= fun _ ->
+          vars_typecheck p c args' dup_var_decl bound_var_decl >>= fun _ ->
           begin
             match r with
             | Void -> Ok ()
@@ -532,7 +532,7 @@ let snd_func_pass c (p, call) =
         | _::_, _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c s rets_t >>= fun r ->
-          check_varlist_shadow c args >>= fun _ ->
+          vars_typecheck p c args dup_var_decl bound_var_decl >>= fun _ ->
           begin
             match r with
             | Void -> Ok ()
@@ -546,13 +546,9 @@ let snd_func_pass c (p, call) =
         | [] ->
           stmt_typecheck c s UnitT >>= fun _ ->
           Ok ()
-        | [arg_avar] ->
+        | _ ->
           stmt_typecheck c s UnitT >>= fun _ ->
-          check_var_shadow c arg_avar >>= fun _ ->
-          Ok ()
-        | _::_ ->
-          stmt_typecheck c s UnitT >>= fun _ ->
-          check_varlist_shadow c args >>= fun _ ->
+          vars_typecheck p c args dup_var_decl bound_var_decl >>= fun _ ->
           Ok ()
       end
 *)

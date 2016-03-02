@@ -143,6 +143,7 @@ let (>>|) = Result.map
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)
+(* see Expr.eqs *)
 let rec exprs_typecheck (p: Pos.pos)
                         (c: context)
                         (ts: Expr.t list)
@@ -270,6 +271,7 @@ let var_typecheck c (p, v) =
 (******************************************************************************)
 (* stmt                                                                       *)
 (******************************************************************************)
+(* see Expr.eqs *)
 let vars_typecheck (p: Pos.pos)
                    (c: context)
                    (vs: Pos.var list)
@@ -388,20 +390,10 @@ let stmt_typecheck c rho s =
 (* callables                                                                  *)
 (******************************************************************************)
   (*
-let rec typ_to_expr_t ((_,typ): Pos.typ) : Expr.t =
-    match typ with
-    | TInt -> IntT
-    | TBool -> BoolT
-    | TArray (typ', _) ->
-      let t' = typ_to_expr_t typ' in
-      ArrayT t'
-      *)
-
-  (*
 let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   match av with
-  | AId (_, typ) -> typ_to_expr_t typ
-  | AUnderscore typ -> typ_to_expr_t typ
+  | AId (_, typ) -> Expr.of_typ typ
+  | AUnderscore typ -> Expr.of_typ typ
   *)
 
 let fst_func_pass c (p, call) =
@@ -415,31 +407,31 @@ let fst_func_pass c (p, call) =
       else
         match args, rets with
         | [], [ret_typ] ->
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           let c' = Context.add c ~key:id ~data:(Function (UnitT, ret_t)) in
           Ok c'
         | [arg_avar], [ret_typ] ->
           let arg_t = avar_to_expr_t arg_avar in
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           let c' = Context.add c ~key:id ~data:(Function (arg_t, ret_t)) in
           Ok c'
         | _::_, [ret_typ] ->
           let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           let c' = Context.add c ~key:id ~data:(Function (args_t, ret_t)) in
           Ok c'
         | [], _::_ ->
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           let c' = Context.add c ~key:id ~data:(Function (UnitT, rets_t)) in
           Ok c'
         | [arg_avar], _::_ ->
           let arg_t = avar_to_expr_t arg_avar in
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           let c' = Context.add c ~key:id ~data:(Function (arg_t, rets_t)) in
           Ok c'
         | _::_, _::_ ->
           let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           let c' = Context.add c ~key:id ~data:(Function (args_t, rets_t)) in
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
@@ -492,7 +484,7 @@ let snd_func_pass c (p, call) =
       begin
         match args, rets with
         | [], [ret_typ] ->
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c s ret_t >>= fun r ->
           begin
             match r with
@@ -500,7 +492,7 @@ let snd_func_pass c (p, call) =
             | _ -> Error (p, "Missing return")
           end
         | [arg_avar], [ret_typ] ->
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c s ret_t >>= fun r ->
           check_var_shadow c arg_avar >>= fun _ ->
           begin
@@ -509,7 +501,7 @@ let snd_func_pass c (p, call) =
             | _ -> Error (p, "Missing return")
           end
         | _::_, [ret_typ] ->
-          let ret_t = typ_to_expr_t ret_typ in
+          let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c s ret_t >>= fun r ->
           check_varlist_shadow c args >>= fun _ ->
           begin
@@ -518,7 +510,7 @@ let snd_func_pass c (p, call) =
             | _ -> Error (p, "Missing return")
           end
         | [], _::_ ->
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c s rets_t >>= fun r ->
           begin
             match r with
@@ -526,7 +518,7 @@ let snd_func_pass c (p, call) =
             | _ -> Error (p, "Missing return")
           end
         | [arg_avar], _::_ ->
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c s rets_t >>= fun r ->
           check_var_shadow c arg_avar >>= fun _ ->
           begin
@@ -535,7 +527,7 @@ let snd_func_pass c (p, call) =
             | _ -> Error (p, "Missing return")
           end
         | _::_, _::_ ->
-          let rets_t = TupleT (List.map ~f:typ_to_expr_t rets) in
+          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c s rets_t >>= fun r ->
           check_varlist_shadow c args >>= fun _ ->
           begin

@@ -58,6 +58,8 @@ module Errors = struct
   let unbound_call x = sprintf "Unbound callable %s" x
   let dup_var_decl   = "Duplicate variable declaration"
   let bound_var_decl = "Cannot rebind variable"
+  let num_decl_vars  = "Incorrect number of variables in declassign"
+  let typ_decl_vars  = "Ill typed variable declassign"
 end
 open Errors
 
@@ -83,23 +85,38 @@ let lookup_func (p: Pos.pos) (c: context) (x: string):
   | Some (Function (a, b)) -> Ok (a, b)
   | _ -> Error (p, unbound_var x)
 
+let (<=) (a: expr_t) (b: expr_t) : bool =
+  match a, b with
+  | _, UnitT -> true
+  | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
+  | _ -> a = b
+
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)
-let rec exprs_typecheck (p: Pos.pos)
-                       (c: context)
-                       (ts: expr_t list)
-                       (args: Pos.expr list)
-                       (unequal_num: string)
-                       (mistyped: string)
-                       : (expr list, error_msg) Result.t =
-  Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
-  match List.zip ts args' with
+let rec expr_ts_typecheck (p: Pos.pos)
+                          (xs: expr_t list)
+                          (ys: expr_t list)
+                          (unequal_num: string)
+                          (mistyped: string)
+                          : (unit, error_msg) Result.t =
+  match List.zip xs ys with
   | Some zipped ->
-      if List.for_all ~f:(fun (t1, (t2, _)) -> t1 = t2) zipped
-        then Ok args'
+      if List.for_all ~f:(fun (x, y) -> x <= y) zipped
+        then Ok ()
         else Error (p, mistyped)
   | None -> Error (p, unequal_num)
+
+and exprs_typecheck (p: Pos.pos)
+                    (c: context)
+                    (ts: expr_t list)
+                    (args: Pos.expr list)
+                    (unequal_num: string)
+                    (mistyped: string)
+                    : (expr list, error_msg) Result.t =
+  Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
+  expr_ts_typecheck p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
+  Ok args'
 
 and expr_typecheck c (p, expr) =
   match expr with
@@ -231,15 +248,36 @@ let lub a b =
 
 let varsof v =
   match v with
-  | AVar (_, AId  ((_, x), _)) -> [x]
+  | AVar (_, AId  ((_, x), _)) -> Some x
   | AVar (_, AUnderscore _)
-  | Underscore -> []
+  | Underscore -> None
 
 let typeof v =
   match v with
   | AVar (_, AId  ((_, _), (_, t))) -> expr_t_of_typ t
   | AVar (_, AUnderscore (_, t)) -> expr_t_of_typ t
   | Underscore -> UnitT
+
+let bind_all (c: context) (vs: var list) : context =
+    List.fold_left vs ~init:c ~f:(fun c v ->
+      match varsof (snd v) with
+      | Some x -> String.Map.add c x (Var (fst v))
+      | None -> c
+    )
+
+let vars_typecheck (p: Pos.pos)
+                   (c: context)
+                   (vs: Pos.var list)
+                   (dup_var: string)
+                   (bound_var: string)
+                   : (var list, error_msg) Result.t =
+  let xs = List.filter_map ~f:varsof (List.map ~f:snd vs) in
+  let disjoint = not (List.contains_dup xs) in
+  let unbound = List.for_all xs ~f:(fun x -> not (String.Map.mem c x)) in
+  match disjoint, unbound with
+  | true, true -> Result.all (List.map ~f:(var_typecheck c) vs)
+  | false, _ -> Error (p, dup_var)
+  | true, false -> Error (p, bound_var)
 
 let stmt_typecheck c rho s =
   let rec (|-) (c, rho) (p, s) : (stmt * context, error_msg) Result.t =
@@ -321,15 +359,22 @@ let stmt_typecheck c rho s =
         | _ -> err "Inalid left-hand side of assignment"
     end
     | Decl vs -> begin
-        let xs = List.concat_map ~f:varsof (List.map ~f:snd vs) in
-        let disjoint = not (List.contains_dup xs) in
-        let unbound = List.for_all xs ~f:(fun x -> not (String.Map.mem c x)) in
-        match disjoint, unbound with
-        | true, true -> failwith ""
-        | false, _ -> err dup_var_decl
-        | true, false -> err bound_var_decl
+        vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
+        Ok ((One, Decl vs'), bind_all c vs')
     end
-    | DeclAsgn (vs, e) -> failwith "a"
+    | DeclAsgn (vs, e) -> begin
+        vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
+        expr_typecheck c e >>= fun e' ->
+        match vs', fst e' with
+        | _, TupleT ets' ->
+            let vts' = List.map ~f:fst vs' in
+            expr_ts_typecheck p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
+            Ok ((One, DeclAsgn (vs', e')), bind_all c vs')
+        | [v'], _ ->
+            expr_ts_typecheck p [fst e'] [fst v'] num_decl_vars typ_decl_vars
+            >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), bind_all c vs')
+        | _, _ -> err "Invalid declassign"
+    end
   in
 
   (c, rho) |- s >>| fst

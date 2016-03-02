@@ -1,6 +1,9 @@
 open Core.Std
 open Ast.S
 
+(******************************************************************************)
+(* Types                                                                      *)
+(******************************************************************************)
 type expr_t =
   | IntT
   | BoolT
@@ -41,6 +44,9 @@ let dummy () = ()
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
+(******************************************************************************)
+(* expr                                                                       *)
+(******************************************************************************)
 let rec expr_typecheck c (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
@@ -133,13 +139,14 @@ let rec expr_typecheck c (p, expr) =
     | _ -> Error (p, "Function call type error")
   end
 
-
-(* init [] = []
- * init [a, b, ..., y, z] = [a, b, ..., y] *)
-let init xs =
-  match List.rev xs with
-  | [] -> []
-  | y::ys -> List.rev ys
+(******************************************************************************)
+(* stmt                                                                       *)
+(******************************************************************************)
+let lub a b =
+  match a, b with
+  | One, _
+  | _, One -> One
+  | Zero, Zero -> Zero
 
 let stmt_typecheck c rho s =
   let rec (|-) (c, rho) (p, s) : (stmt * context, error_msg) Result.t =
@@ -154,7 +161,7 @@ let stmt_typecheck c rho s =
         List.fold_right ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
 
         (* make sure that all but the last stmt is of type One *)
-        if List.for_all (init ss) ~f:(fun (t, _) -> t = One)
+        if List.for_all (Util.init ss) ~f:(fun (t, _) -> t = One)
           then begin
             match List.last ss with
             | Some (r, sn) -> Ok ((r, (Block ss)), c)
@@ -163,23 +170,72 @@ let stmt_typecheck c rho s =
           else Error (p, "Unreachable code")
     end
     | If (b, t) -> begin
-        expr_typecheck c b >>= fun (b't, b') ->
-        (c, rho) |- t >>= fun ((t't, t'), _) ->
-        match b't  with
-        | BoolT -> Ok ((One, If ((b't, b'), (t't, t'))), c)
+        expr_typecheck c b >>= fun b' ->
+        (c, rho) |- t >>= fun (t', _) ->
+        match fst b'  with
+        | BoolT -> Ok ((One, If (b', t')), c)
         | _ -> Error (p, "If conditional not a boolean.")
     end
-    | Decl     vs -> failwith "a"
+    | IfElse (b, t, f) -> begin
+      expr_typecheck c b >>= fun b' ->
+      (c, rho) |- t >>= fun (t', _) ->
+      (c, rho) |- f >>= fun (f', _) ->
+      match fst b'  with
+      | BoolT -> Ok ((lub (fst t') (fst f'), IfElse (b', t', f')), c)
+      | _ -> Error (p, "If conditional not a boolean.")
+    end
+    | While (b, s) ->
+        expr_typecheck c b >>= fun b' ->
+        (c, rho) |- s >>= fun (s', _) ->
+        Ok ((One, While (b', s')), c)
+    | ProcCall ((_, f), args) -> begin
+      match String.Map.find c f, args with
+      (* f() *)
+      | Some (Function (UnitT, UnitT)), [] ->
+          Ok ((One, ProcCall (((), f), [])), c)
+      (* f(e1, ..., en) *)
+      | Some (Function (TupleT arg_types, UnitT)), _::_::_ -> begin
+          Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
+          match List.zip arg_types args' with
+          | Some zipped ->
+            if List.for_all ~f:(fun (t1, (t2, _)) -> t1 = t2) zipped
+              then Ok ((One, ProcCall (((), f), args')), c)
+              else Error (p, "Function args do not match parameter type")
+          | None -> Error (p, "Incorrect number of arguments")
+      end
+      (* f(e) *)
+      | Some (Function (arg_t, UnitT)), [arg] ->
+          expr_typecheck c arg >>= fun arg' ->
+          if arg_t = fst arg'
+            then Ok ((One, ProcCall (((), f), [arg'])), c)
+            else Error (p, "Procedure arg does not match parameter type")
+      | None, _ -> Error (p, Printf.sprintf "Function %s not defined" f)
+      | _, _ -> Error (p, "Procedure call type error")
+    end
+    | Return es -> begin
+        match rho, es with
+        | UnitT, [] -> Ok ((Zero, Return []), c)
+        | UnitT, _ -> Error (p, "Non-empty return inside procedure call")
+        | TupleT ts, es ->
+            Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es' ->
+            Ok ((Zero, Return es'), c)
+        | t, [e] ->
+            expr_typecheck c e >>= fun e' ->
+            if fst e' = t
+              then Ok ((Zero, Return [e']), c)
+              else Error (p, "Invalid return type")
+        | t, _ -> Error (p, "Too many return expressions")
+    end
+    | Decl vs -> failwith "a"
     | DeclAsgn (vs, e) ->failwith "a"
     | Asgn     (l, r) ->failwith "a"
-    | IfElse   (b, t, f) -> failwith "a"
-    | While    (b, s) -> failwith "a"
-    | ProcCall ((_, f), es) -> failwith "a"
-    | _ -> failwith "a"
   in
 
   (c, rho) |- s >>| fst
 
+(******************************************************************************)
+(* callables                                                                  *)
+(******************************************************************************)
   (*
 let rec typ_to_expr_t ((_,typ): Pos.typ) : expr_t =
     match typ with
@@ -355,6 +411,9 @@ let snd_func_pass c (p, call) =
       end
 *)
 
+(******************************************************************************)
+(* prog                                                                       *)
+(******************************************************************************)
 let prog_typecheck (_, Prog(_, funcs)) =
   failwith "a"
   (*

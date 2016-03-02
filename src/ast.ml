@@ -85,7 +85,7 @@ module S = struct
     | If       of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
     | IfElse   of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt * ('i,'a,'v,'s,'e,'t) stmt
     | While    of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
-    | ProcCall of 'a id * ('i,'e) expr list
+    | ProcCall of 'i id * ('i,'e) expr list
 
   (* expressions *)
   and binop_code =

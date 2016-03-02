@@ -47,10 +47,6 @@ let dummy () = ()
 let (>>=) = Result.bind
 let (>>|) = Result.map
 
-(* `all_unique xs` returns whether every element in `xs` is unique. *)
-let all_unique (xs: string list) : bool =
-  List.length xs = List.length (List.dedup xs)
-
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)

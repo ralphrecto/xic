@@ -12,6 +12,7 @@ module Expr: sig
   [@@deriving sexp]
 
   val to_string: t -> string
+  val of_typ: Pos.typ -> t
 end
 
 module Stmt: sig
@@ -28,6 +29,17 @@ module Sigma: sig
   [@@deriving sexp]
 end
 
+module Error: sig
+  type t = Pos.pos * string
+end
+
+type context = Sigma.t String.Map.t
+module Context: sig
+  include (module type of String.Map)
+  val var:  Pos.pos -> context -> string -> (Expr.t, Error.t) Result.t
+  val func: Pos.pos -> context -> string -> (Expr.t * Expr.t, Error.t) Result.t
+end
+
 module Tags: sig
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
@@ -41,14 +53,11 @@ module Tags: sig
 end
 include (module type of Ast.Make(Tags))
 
-type error_msg = Pos.pos * string
-type context = Sigma.t String.Map.t
-
-val expr_typecheck: context ->           Pos.expr     -> (expr,     error_msg) Result.t
-val typ_typecheck:  context ->           Pos.typ      -> (typ,      error_msg) Result.t
-val avar_typecheck: context ->           Pos.avar     -> (avar,     error_msg) Result.t
-val var_typecheck:  context ->           Pos.var      -> (var,      error_msg) Result.t
-val stmt_typecheck: context -> Expr.t -> Pos.stmt     -> (stmt,     error_msg) Result.t
-val fst_func_pass:  context ->           Pos.callable -> (context,  error_msg) Result.t
-val snd_func_pass:  context ->           Pos.callable -> (callable, error_msg) Result.t
-val prog_typecheck:                      Pos.prog     -> (prog,     error_msg) Result.t
+val expr_typecheck: context ->           Pos.expr     -> (expr,     Error.t) Result.t
+val typ_typecheck:  context ->           Pos.typ      -> (typ,      Error.t) Result.t
+val avar_typecheck: context ->           Pos.avar     -> (avar,     Error.t) Result.t
+val var_typecheck:  context ->           Pos.var      -> (var,      Error.t) Result.t
+val stmt_typecheck: context -> Expr.t -> Pos.stmt     -> (stmt,     Error.t) Result.t
+val fst_func_pass:  context ->           Pos.callable -> (context,  Error.t) Result.t
+val snd_func_pass:  context ->           Pos.callable -> (callable, Error.t) Result.t
+val prog_typecheck:                      Pos.prog     -> (prog,     Error.t) Result.t

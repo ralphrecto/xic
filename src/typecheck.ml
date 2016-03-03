@@ -572,15 +572,15 @@ let snd_func_pass c (p, call) =
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (_, Prog(_, funcs)) =
-  failwith "a"
-  (*
+let prog_typecheck (_, Prog(uses, funcs)) =
   let fst_func_fold acc e =
     acc >>= fun g -> fst_func_pass g e
   in
   List.fold_left ~init: (Ok Context.empty) ~f:fst_func_fold funcs >>= fun gamma ->
-  let snd_func_fold acc e =
-    acc >>= fun _ -> snd_func_pass gamma e
-  in
-  List.fold_left ~init: (Ok ()) ~f: snd_func_fold funcs
-  *)
+	Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
+	let use_typecheck use = 
+		match snd use with
+		|Use (_, id) -> ((), Use ((), id))
+	in
+	let use_list = List.map ~f: use_typecheck uses in
+	Ok ((), Prog (use_list, func_list))	

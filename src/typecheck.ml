@@ -8,6 +8,9 @@ module Error = struct
   type t = Pos.pos * string
   type 'a result = ('a, t) Result.t
 end
+
+let num_e_args     = "Incorrect number of expressions"
+let typ_e_args     = "Ill typed expression"
 let num_f_args     = "Incorrect number of function arguments"
 let typ_f_args     = "Ill typed function arguments"
 let num_p_args     = "Incorrect number of procedure arguments"

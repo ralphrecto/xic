@@ -24,8 +24,11 @@ DOC   = doc
 JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
-OCAML_MAIN = src/main
-OCAML_BIN = $(OCAML_MAIN).byte
+OCAML_MAIN  = src/main
+OCAML_SRCS  = $(OCAML_MAIN).ml             
+OCAML_TESTS = $(shell find test -name '*Test.ml')
+OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
+OCAML_TESTS_BIN   = $(OCAML_TESTS:.ml=.byte)
 
 default: clean src test doc publish
 
@@ -42,15 +45,17 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						$<
 
 .PHONY: src
-src: $(SRCS) $(OCAML_BIN)
+src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make src                                                         *"
 	@echo "********************************************************************"
 	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
 	@echo
 
-$(OCAML_BIN): $(OCAML_MAIN).ml
-	corebuild -pkgs async $@
+%.byte: %.ml
+	corebuild -pkgs async,oUnit,pa_ounit,pa_ounit.syntax \
+			  -Is   src,test $@
+
 
 .PHONY: doc
 doc:
@@ -66,6 +71,9 @@ test: src
 	@echo "* make test                                                        *"
 	@echo "********************************************************************"
 	java -cp $(BIN):$(CP) org.junit.runner.JUnitCore $(TESTS)
+	for t in $(OCAML_TESTS_BIN); do \
+         $$t inline-test-runner dummy -verbose; \
+    done
 	@echo
 
 .PHONY: publish

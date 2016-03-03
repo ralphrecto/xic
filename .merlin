@@ -1,2 +1,2 @@
-PKG core async
+PKG core async oUnit
 B _build/src

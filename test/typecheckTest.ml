@@ -225,7 +225,7 @@ module TestStmt = struct
       let t' = fst s' in
       if t' <> t then begin
         printf ">>> %s : %s != %s\n"
-          (Sexp.to_string (Pos.sexp_of_stmt s))
+          (Ast.string_of_stmt s)
           (Sexp.to_string (Stmt.sexp_of_t t'))
           (Sexp.to_string (Stmt.sexp_of_t t));
         assert_true false
@@ -233,7 +233,7 @@ module TestStmt = struct
     end
     | Error (_, msg) -> begin
         printf ">>> %s =: %s errored with %s\n"
-          (Sexp.to_string (Pos.sexp_of_stmt s))
+          (Ast.string_of_stmt s)
           (Sexp.to_string (Stmt.sexp_of_t t))
           msg;
         assert_true false

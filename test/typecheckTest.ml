@@ -23,6 +23,153 @@ let vars (vs: (string * Expr.t) list) =
 let funcs (fs: (string * Expr.t * Expr.t) list) =
   gam (List.map fs ~f:(fun (v, a, b) -> (v, Function (a, b))))
 
+module Vars = struct
+  open Pos
+  let a = id "a"
+  let b = id "b"
+  let c = id "c"
+  let x = id "x"
+  let y = id "y"
+  let z = id "z"
+
+  (* 0 -> 0/1 *)
+  let u2u  = ("u2u", UnitT, UnitT)
+  let u2i  = ("u2i", UnitT, IntT)
+  let u2b  = ("u2b", UnitT, BoolT)
+  let u2ia = ("u2ia", UnitT, ArrayT IntT)
+
+  (* 1 -> 0/1 *)
+  let i2u   = ("i2u",   IntT,        UnitT)
+  let i2i   = ("i2i",   IntT,        IntT)
+  let i2b   = ("i2b",   IntT,        BoolT)
+  let i2ia  = ("i2ia",  IntT,        ArrayT IntT)
+  let b2u   = ("b2u",   BoolT,       UnitT)
+  let b2i   = ("b2i",   BoolT,       IntT)
+  let b2b   = ("b2b",   BoolT,       BoolT)
+  let b2ia  = ("b2ia",  BoolT,       ArrayT IntT)
+  let ia2u  = ("ia2u",  ArrayT IntT, UnitT)
+  let ia2i  = ("ia2i",  ArrayT IntT, IntT)
+  let ia2b  = ("ia2b",  ArrayT IntT, BoolT)
+  let ia2ia = ("ia2ia", ArrayT IntT, ArrayT IntT)
+
+  (* 2 -> 0/1 *)
+  let ii2u   = ("ii2u",   TupleT [IntT; IntT],        UnitT)
+  let ii2i   = ("ii2i",   TupleT [IntT; IntT],        IntT)
+  let ii2b   = ("ii2b",   TupleT [IntT; IntT],        BoolT)
+  let ii2ia  = ("ii2ia",  TupleT [IntT; IntT],        ArrayT IntT)
+  let ib2u   = ("ib2u",   TupleT [IntT; BoolT],       UnitT)
+  let ib2i   = ("ib2i",   TupleT [IntT; BoolT],       IntT)
+  let ib2b   = ("ib2b",   TupleT [IntT; BoolT],       BoolT)
+  let ib2ia  = ("ib2ia",  TupleT [IntT; BoolT],       ArrayT IntT)
+  let iia2u  = ("iia2u",  TupleT [IntT; ArrayT IntT], UnitT)
+  let iia2i  = ("iia2i",  TupleT [IntT; ArrayT IntT], IntT)
+  let iia2b  = ("iia2b",  TupleT [IntT; ArrayT IntT], BoolT)
+  let iia2ia = ("iia2ia", TupleT [IntT; ArrayT IntT], ArrayT IntT)
+
+  let bi2u   = ("bi2u",   TupleT [BoolT; IntT],        UnitT)
+  let bi2i   = ("bi2i",   TupleT [BoolT; IntT],        IntT)
+  let bi2b   = ("bi2b",   TupleT [BoolT; IntT],        BoolT)
+  let bi2ia  = ("bi2ia",  TupleT [BoolT; IntT],        ArrayT IntT)
+  let bb2u   = ("bb2u",   TupleT [BoolT; BoolT],       UnitT)
+  let bb2i   = ("bb2i",   TupleT [BoolT; BoolT],       IntT)
+  let bb2b   = ("bb2b",   TupleT [BoolT; BoolT],       BoolT)
+  let bb2ia  = ("bb2ia",  TupleT [BoolT; BoolT],       ArrayT IntT)
+  let bia2u  = ("bia2u",  TupleT [BoolT; ArrayT IntT], UnitT)
+  let bia2i  = ("bia2i",  TupleT [BoolT; ArrayT IntT], IntT)
+  let bia2b  = ("bia2b",  TupleT [BoolT; ArrayT IntT], BoolT)
+  let bia2ia = ("bia2ia", TupleT [BoolT; ArrayT IntT], ArrayT IntT)
+
+  let iai2u   = ("iai2u",   TupleT [ArrayT IntT; IntT],        UnitT)
+  let iai2i   = ("iai2i",   TupleT [ArrayT IntT; IntT],        IntT)
+  let iai2b   = ("iai2b",   TupleT [ArrayT IntT; IntT],        BoolT)
+  let iai2ia  = ("iai2ia",  TupleT [ArrayT IntT; IntT],        ArrayT IntT)
+  let iab2u   = ("iab2u",   TupleT [ArrayT IntT; BoolT],       UnitT)
+  let iab2i   = ("iab2i",   TupleT [ArrayT IntT; BoolT],       IntT)
+  let iab2b   = ("iab2b",   TupleT [ArrayT IntT; BoolT],       BoolT)
+  let iab2ia  = ("iab2ia",  TupleT [ArrayT IntT; BoolT],       ArrayT IntT)
+  let iaia2u  = ("iaia2u",  TupleT [ArrayT IntT; ArrayT IntT], UnitT)
+  let iaia2i  = ("iaia2i",  TupleT [ArrayT IntT; ArrayT IntT], IntT)
+  let iaia2b  = ("iaia2b",  TupleT [ArrayT IntT; ArrayT IntT], BoolT)
+  let iaia2ia = ("iaia2ia", TupleT [ArrayT IntT; ArrayT IntT], ArrayT IntT)
+
+  (* 1 -> 2 *)
+  let i2ii   = ("i2ii",   IntT,        TupleT [IntT; IntT])
+  let i2ib   = ("i2ib",   IntT,        TupleT [IntT; BoolT])
+  let i2iia  = ("i2iia",  IntT,        TupleT [IntT; ArrayT IntT])
+  let b2ii   = ("b2ii",   BoolT,       TupleT [IntT; IntT])
+  let b2ib   = ("b2ib",   BoolT,       TupleT [IntT; BoolT])
+  let b2iia  = ("b2iia",  BoolT,       TupleT [IntT; ArrayT IntT])
+  let ia2ii  = ("ia2ii",  ArrayT IntT, TupleT [IntT; IntT])
+  let ia2ib  = ("ia2ib",  ArrayT IntT, TupleT [IntT; BoolT])
+  let ia2iia = ("ia2iia", ArrayT IntT, TupleT [IntT; ArrayT IntT])
+
+  let i2bi   = ("i2bi",   IntT,        TupleT [BoolT; IntT])
+  let i2bb   = ("i2bb",   IntT,        TupleT [BoolT; BoolT])
+  let i2bia  = ("i2bia",  IntT,        TupleT [BoolT; ArrayT IntT])
+  let b2bi   = ("b2bi",   BoolT,       TupleT [BoolT; IntT])
+  let b2bb   = ("b2bb",   BoolT,       TupleT [BoolT; BoolT])
+  let b2bia  = ("b2bia",  BoolT,       TupleT [BoolT; ArrayT IntT])
+  let ia2bi  = ("ia2bi",  ArrayT IntT, TupleT [BoolT; IntT])
+  let ia2bb  = ("ia2bb",  ArrayT IntT, TupleT [BoolT; BoolT])
+  let ia2bia = ("ia2bia", ArrayT IntT, TupleT [BoolT; ArrayT IntT])
+
+  let i2iai   = ("i2iai",   IntT,        TupleT [ArrayT IntT; IntT])
+  let i2iab   = ("i2iab",   IntT,        TupleT [ArrayT IntT; BoolT])
+  let i2iaia  = ("i2iaia",  IntT,        TupleT [ArrayT IntT; ArrayT IntT])
+  let b2iai   = ("b2iai",   BoolT,       TupleT [ArrayT IntT; IntT])
+  let b2iab   = ("b2iab",   BoolT,       TupleT [ArrayT IntT; BoolT])
+  let b2iaia  = ("b2iaia",  BoolT,       TupleT [ArrayT IntT; ArrayT IntT])
+  let ia2iai  = ("ia2iai",  ArrayT IntT, TupleT [ArrayT IntT; IntT])
+  let ia2iab  = ("ia2iab",  ArrayT IntT, TupleT [ArrayT IntT; BoolT])
+  let ia2iaia = ("ia2iaia", ArrayT IntT, TupleT [ArrayT IntT; ArrayT IntT])
+
+  (* 2 -> 2 *)
+  let ii2ii   = ("ii2ii",   TupleT [IntT; IntT],        TupleT [IntT; IntT])
+  let ii2ib   = ("ii2ib",   TupleT [IntT; IntT],        TupleT [IntT; BoolT])
+  let ii2iia  = ("ii2iia",  TupleT [IntT; IntT],        TupleT [IntT; ArrayT IntT])
+  let ib2ii   = ("ib2ii",   TupleT [IntT; BoolT],       TupleT [IntT; IntT])
+  let ib2ib   = ("ib2ib",   TupleT [IntT; BoolT],       TupleT [IntT; BoolT])
+  let ib2iia  = ("ib2iia",  TupleT [IntT; BoolT],       TupleT [IntT; ArrayT IntT])
+  let iia2ii  = ("iia2ii",  TupleT [IntT; ArrayT IntT], TupleT [IntT; IntT])
+  let iia2ib  = ("iia2ib",  TupleT [IntT; ArrayT IntT], TupleT [IntT; BoolT])
+  let iia2iia = ("iia2iia", TupleT [IntT; ArrayT IntT], TupleT [IntT; ArrayT IntT])
+
+  let bi2bi   = ("bi2bi",   TupleT [BoolT; IntT],        TupleT [BoolT; IntT])
+  let bi2bb   = ("bi2bb",   TupleT [BoolT; IntT],        TupleT [BoolT; BoolT])
+  let bi2bia  = ("bi2bia",  TupleT [BoolT; IntT],        TupleT [BoolT; ArrayT IntT])
+  let bb2bi   = ("bb2bi",   TupleT [BoolT; BoolT],       TupleT [BoolT; IntT])
+  let bb2bb   = ("bb2bb",   TupleT [BoolT; BoolT],       TupleT [BoolT; BoolT])
+  let bb2bia  = ("bb2bia",  TupleT [BoolT; BoolT],       TupleT [BoolT; ArrayT IntT])
+  let bia2bi  = ("bia2bi",  TupleT [BoolT; ArrayT IntT], TupleT [BoolT; IntT])
+  let bia2bb  = ("bia2bb",  TupleT [BoolT; ArrayT IntT], TupleT [BoolT; BoolT])
+  let bia2bia = ("bia2bia", TupleT [BoolT; ArrayT IntT], TupleT [BoolT; ArrayT IntT])
+
+  let iai2iai   = ("iai2iai",   TupleT [ArrayT IntT; IntT],        TupleT [ArrayT IntT; IntT])
+  let iai2iab   = ("iai2iab",   TupleT [ArrayT IntT; IntT],        TupleT [ArrayT IntT; BoolT])
+  let iai2iaia  = ("iai2iaia",  TupleT [ArrayT IntT; IntT],        TupleT [ArrayT IntT; ArrayT IntT])
+  let iab2iai   = ("iab2iai",   TupleT [ArrayT IntT; BoolT],       TupleT [ArrayT IntT; IntT])
+  let iab2iab   = ("iab2iab",   TupleT [ArrayT IntT; BoolT],       TupleT [ArrayT IntT; BoolT])
+  let iab2iaia  = ("iab2iaia",  TupleT [ArrayT IntT; BoolT],       TupleT [ArrayT IntT; ArrayT IntT])
+  let iaia2iai  = ("iaia2iai",  TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; IntT])
+  let iaia2iab  = ("iaia2iab",  TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; BoolT])
+  let iaia2iaia = ("iaia2iaia", TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; ArrayT IntT])
+
+
+  let fgam = funcs [
+    u2u; u2i; u2b; u2ia; i2u; i2i; i2b; i2ia; b2u; b2i; b2b; b2ia; ia2u; ia2i;
+    ia2b; ia2ia; ii2u; ii2i; ii2b; ii2ia; ib2u; ib2i; ib2b; ib2ia; iia2u;
+    iia2i; iia2b; iia2ia; bi2u; bi2i; bi2b; bi2ia; bb2u; bb2i; bb2b; bb2ia;
+    bia2u; bia2i; bia2b; bia2ia; iai2u; iai2i; iai2b; iai2ia; iab2u; iab2i;
+    iab2b; iab2ia; iaia2u; iaia2i; iaia2b; iaia2ia; i2ii; i2ib; i2iia; b2ii;
+    b2ib; b2iia; ia2ii; ia2ib; ia2iia; i2bi; i2bb; i2bia; b2bi; b2bb; b2bia;
+    ia2bi; ia2bb; ia2bia; i2iai; i2iab; i2iaia; b2iai; b2iab; b2iaia; ia2iai;
+    ia2iab; ia2iaia; ii2ii; ii2ib; ii2iia; ib2ii; ib2ib; ib2iia; iia2ii;
+    iia2ib; iia2iia; bi2bi; bi2bb; bi2bia; bb2bi; bb2bb; bb2bia; bia2bi;
+    bia2bb; bia2bia; iai2iai; iai2iab; iai2iaia; iab2iai; iab2iab; iab2iaia;
+    iaia2iai; iaia2iab; iaia2iaia;
+  ]
+end
+
 let (|-) c e = (c, e)
 
 module TestExpr = struct
@@ -114,6 +261,7 @@ let fls   = Pos.(bool false)
 
 let test_expr () =
     let open Pos in
+    let open Vars in
     let open TestExpr in
 
     empty |- (one) =: IntT;
@@ -316,7 +464,146 @@ let test_expr () =
     empty =/= (arr[arr[one]] + arr[arr[arr[tru]]]);
     empty =/= (arr[arr[arr[one]]] + arr[arr[arr[tru]]]);
 
-    vars["x",IntT] |- (id "x") =: IntT;
+    vars["x",IntT] |- (x) =: IntT;
+    vars["x",BoolT] |- (x) =: BoolT;
+    vars["x",EmptyArray] |- (x) =: EmptyArray;
+    vars["x",ArrayT IntT] |- (x) =: ArrayT IntT;
+    vars["x",ArrayT (ArrayT IntT)] |- (x) =: ArrayT (ArrayT IntT);
+    vars["x",ArrayT (ArrayT BoolT)] |- (x) =: ArrayT (ArrayT BoolT);
+    vars["x",ArrayT (ArrayT EmptyArray)] |- (x) =: ArrayT (ArrayT EmptyArray);
+    vars["x",IntT; "y",IntT] |- (x) =: IntT;
+    vars["x",BoolT; "y",IntT] |- (x) =: BoolT;
+    vars["x",EmptyArray; "y",IntT] |- (x) =: EmptyArray;
+    vars["x",ArrayT IntT; "y",IntT] |- (x) =: ArrayT IntT;
+    vars["x",IntT; "y",BoolT] |- (x) =: IntT;
+    vars["x",BoolT; "y",BoolT] |- (x) =: BoolT;
+    vars["x",EmptyArray; "y",BoolT] |- (x) =: EmptyArray;
+    vars["x",ArrayT IntT; "y",BoolT] |- (x) =: ArrayT IntT;
+    vars["x",IntT; "y",IntT] |- (y) =: IntT;
+    vars["x",BoolT; "y",IntT] |- (y) =: IntT;
+    vars["x",EmptyArray; "y",IntT] |- (y) =: IntT;
+    vars["x",ArrayT IntT; "y",IntT] |- (y) =: IntT;
+    vars["x",IntT; "y",BoolT] |- (y) =: BoolT;
+    vars["x",BoolT; "y",BoolT] |- (y) =: BoolT;
+    vars["x",EmptyArray; "y",BoolT] |- (y) =: BoolT;
+    vars["x",ArrayT IntT; "y",BoolT] |- (y) =: BoolT;
+    vars["x",IntT; "y",BoolT; "z",EmptyArray] |- (x) =: IntT;
+    vars["x",IntT; "y",BoolT; "z",EmptyArray] |- (y) =: BoolT;
+    vars["x",IntT; "y",BoolT; "z",EmptyArray] |- (z) =: EmptyArray;
+
+    empty =/= (x);
+    empty =/= (y);
+    vars["x",BoolT] =/= (x + one);
+    vars["x",BoolT] =/= (x - one);
+    vars["x",BoolT] =/= (x / one);
+
+    fgam |- (funccall "u2i" []) =: IntT;
+    fgam |- (funccall "u2b" []) =: BoolT;
+    fgam |- (funccall "u2ia" []) =: ArrayT IntT;
+    fgam |- (funccall "i2i" [one]) =: IntT;
+    fgam |- (funccall "i2b" [one]) =: BoolT;
+    fgam |- (funccall "i2ia" [one]) =: ArrayT IntT;
+    fgam |- (funccall "b2i" [tru]) =: IntT;
+    fgam |- (funccall "b2b" [tru]) =: BoolT;
+    fgam |- (funccall "b2ia" [tru]) =: ArrayT IntT;
+    fgam |- (funccall "ia2i" [arr[one]]) =: IntT;
+    fgam |- (funccall "ia2b" [arr[one]]) =: BoolT;
+    fgam |- (funccall "ia2ia" [arr[one]]) =: ArrayT IntT;
+    fgam |- (funccall "ii2i" [one;one]) =: IntT;
+    fgam |- (funccall "ii2b" [one;one]) =: BoolT;
+    fgam |- (funccall "ii2ia" [one;one]) =: ArrayT IntT;
+    fgam |- (funccall "ib2i" [one;tru]) =: IntT;
+    fgam |- (funccall "ib2b" [one;tru]) =: BoolT;
+    fgam |- (funccall "ib2ia" [one;tru]) =: ArrayT IntT;
+    fgam |- (funccall "iia2i" [one;arr[one]]) =: IntT;
+    fgam |- (funccall "iia2b" [one;arr[one]]) =: BoolT;
+    fgam |- (funccall "iia2ia" [one;arr[one]]) =: ArrayT IntT;
+    fgam |- (funccall "bi2i" [tru;one]) =: IntT;
+    fgam |- (funccall "bi2b" [tru;one]) =: BoolT;
+    fgam |- (funccall "bi2ia" [tru;one]) =: ArrayT IntT;
+    fgam |- (funccall "bb2i" [tru;tru]) =: IntT;
+    fgam |- (funccall "bb2b" [tru;tru]) =: BoolT;
+    fgam |- (funccall "bb2ia" [tru;tru]) =: ArrayT IntT;
+    fgam |- (funccall "bia2i" [tru;arr[one]]) =: IntT;
+    fgam |- (funccall "bia2b" [tru;arr[one]]) =: BoolT;
+    fgam |- (funccall "bia2ia" [tru;arr[one]]) =: ArrayT IntT;
+    fgam |- (funccall "iai2i" [arr[one];one]) =: IntT;
+    fgam |- (funccall "iai2b" [arr[one];one]) =: BoolT;
+    fgam |- (funccall "iai2ia" [arr[one];one]) =: ArrayT IntT;
+    fgam |- (funccall "iab2i" [arr[one];tru]) =: IntT;
+    fgam |- (funccall "iab2b" [arr[one];tru]) =: BoolT;
+    fgam |- (funccall "iab2ia" [arr[one];tru]) =: ArrayT IntT;
+    fgam |- (funccall "iaia2i" [arr[one];arr[one]]) =: IntT;
+    fgam |- (funccall "iaia2b" [arr[one];arr[one]]) =: BoolT;
+    fgam |- (funccall "iaia2ia" [arr[one];arr[one]]) =: ArrayT IntT;
+    fgam |- (funccall "i2ii" [one]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "i2ib" [one]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "i2iia" [one]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "b2ii" [tru]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "b2ib" [tru]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "b2iia" [tru]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "ia2ii" [arr[one]]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "ia2ib" [arr[one]]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "ia2iia" [arr[one]]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "i2bi" [one]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "i2bb" [one]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "i2bia" [one]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "b2bi" [tru]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "b2bb" [tru]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "b2bia" [tru]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "ia2bi" [arr[one]]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "ia2bb" [arr[one]]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "ia2bia" [arr[one]]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "i2iai" [one]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "i2iab" [one]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "i2iaia" [one]) =: TupleT[ArrayT IntT;ArrayT IntT];
+    fgam |- (funccall "b2iai" [tru]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "b2iab" [tru]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "b2iaia" [tru]) =: TupleT[ArrayT IntT;ArrayT IntT];
+    fgam |- (funccall "ia2iai" [arr[one]]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "ia2iab" [arr[one]]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "ia2iaia" [arr[one]]) =: TupleT[ArrayT IntT;ArrayT IntT];
+    fgam |- (funccall "ii2ii" [one;one]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "ii2ib" [one;one]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "ii2iia" [one;one]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "ib2ii" [one;tru]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "ib2ib" [one;tru]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "ib2iia" [one;tru]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "iia2ii" [one;arr[one]]) =: TupleT[IntT;IntT];
+    fgam |- (funccall "iia2ib" [one;arr[one]]) =: TupleT[IntT;BoolT];
+    fgam |- (funccall "iia2iia" [one;arr[one]]) =: TupleT[IntT;ArrayT IntT];
+    fgam |- (funccall "bi2bi" [tru;one]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "bi2bb" [tru;one]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "bi2bia" [tru;one]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "bb2bi" [tru;tru]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "bb2bb" [tru;tru]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "bb2bia" [tru;tru]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "bia2bi" [tru;arr[one]]) =: TupleT[BoolT;IntT];
+    fgam |- (funccall "bia2bb" [tru;arr[one]]) =: TupleT[BoolT;BoolT];
+    fgam |- (funccall "bia2bia" [tru;arr[one]]) =: TupleT[BoolT;ArrayT IntT];
+    fgam |- (funccall "iai2iai" [arr[one];one]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "iai2iab" [arr[one];one]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "iai2iaia" [arr[one];one]) =: TupleT[ArrayT IntT;ArrayT IntT];
+    fgam |- (funccall "iab2iai" [arr[one];tru]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "iab2iab" [arr[one];tru]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "iab2iaia" [arr[one];tru]) =: TupleT[ArrayT IntT;ArrayT IntT];
+    fgam |- (funccall "iaia2iai" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;IntT];
+    fgam |- (funccall "iaia2iab" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;BoolT];
+    fgam |- (funccall "iaia2iaia" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;ArrayT IntT];
+
+    fgam =/= (funccall "u2u" []);
+    fgam =/= (funccall "i2u" [one]);
+    fgam =/= (funccall "b2u" [tru]);
+    fgam =/= (funccall "ia2u" [arr[one]]);
+    fgam =/= (funccall "ii2u" [one; one]);
+    fgam =/= (funccall "ib2u" [one; tru]);
+    fgam =/= (funccall "iia2u" [one; arr[one]]);
+    fgam =/= (funccall "bi2u" [tru; one]);
+    fgam =/= (funccall "bia2u" [tru; arr[one]]);
+    fgam =/= (funccall "bb2u" [tru; tru]);
+    fgam =/= (funccall "iai2u" [arr[one]; one]);
+    fgam =/= (funccall "iab2u" [arr[one]; tru]);
+    fgam =/= (funccall "iaia2u" [arr[one]; arr[one]]);
 
     ()
 

@@ -1283,22 +1283,36 @@ let test_callable () =
 	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
+	empty |- (func "f" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
+	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);	
 
 	(* _::_, [x] *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"])) 
+						=: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L])) 
+						=: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"])) 
+						=: (TupleT [IntT; IntT; IntT], IntT);
 
 	(* [], _::_ *)
 	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
+	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true])) 
+					  =: (UnitT, TupleT [IntT; IntT; BoolT]);
 
 	(* [x], _::_ *)
 	empty |- (func "f" [(aid "x" tint)] [tint; tint] (return [id "x"; id "x"])) =: (IntT, TupleT [IntT; IntT]);
+	empty |- (func "f" [(aid "x" tbool)] [tbool; tbool; tbool] (return [id "x"; id "x"; id "x"]))
+					  =: (BoolT, TupleT [BoolT; BoolT; BoolT]);
 
 	(* _::_, _::_ *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
+	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint] 
+					 (return [id "x"; id "x"; id "x"])) =: (TupleT [IntT; IntT; IntT], TupleT [IntT; IntT; IntT]);
 
 	(* recursion *)
 	empty |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
@@ -1320,9 +1334,13 @@ let test_callable () =
 
 	(* [x] *)
 	empty |- (proc "f" [aid "x" tint] (proccall "f" [id "x"])) =: (IntT, UnitT);
+	empty |- (proc "f" [aunderscore tint] (proccall "f" [int 3L])) =: (IntT, UnitT);
 
 	(* _::_ *)
-	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) =: (TupleT [IntT; IntT], UnitT);
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) 
+						=: (TupleT [IntT; IntT], UnitT);
+	empty |- (proc "f" [aunderscore tint; aunderscore tint] (proccall "f" [int 3L; int 3L]))
+						=: (TupleT [IntT; IntT], UnitT);
 
 	(* dup args *)
 	empty =/= (proc "f" [aid "x" tint; aid "x" tint] (proccall "f" []));

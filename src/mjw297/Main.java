@@ -363,6 +363,8 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
+            } else if (typecheckMode) {
+                doTypecheck(arguments);
             } else {
                 System.out.println("No options passed.");
                 printUsage();

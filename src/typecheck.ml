@@ -371,6 +371,7 @@ let stmt_typecheck c rho s =
     | ProcCall ((_, f), args) -> begin
       Context.func p c f >>= fun (a, b) ->
       match (a, b), args with
+      | (UnitT, _), _::_ -> Error (p, "Giving args to a proc with no params")
       | (UnitT, UnitT), [] -> Ok ((One, ProcCall (((), f), [])), c)
       | (TupleT arg_types, UnitT), _::_::_ ->
           exprs_typecheck p c arg_types args num_p_args typ_p_args >>= fun args' ->
@@ -416,10 +417,10 @@ let stmt_typecheck c rho s =
         match vs', fst e' with
         | _, TupleT ets' ->
             let vts' = List.map ~f:fst vs' in
-            Expr.eqs p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
+            Expr.eqs p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
             Ok ((One, DeclAsgn (vs', e')), Context.bind_all_vars c vs')
         | [v'], _ ->
-            Expr.eqs p [fst e'] [fst v'] num_decl_vars typ_decl_vars
+            Expr.eqs p [fst v'] [fst e'] num_decl_vars typ_decl_vars
             >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all_vars c vs')
         | _, _ -> err "Invalid declassign"
     end
@@ -499,7 +500,7 @@ let func_typecheck (c: context) ((p, call): Pos.callable) =
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
   let interface_map_fold (_, Interface l) =
-    let func_decl_fold acc e = 
+    let func_decl_fold acc e =
       acc >>= fun g -> func_decl_typecheck g e in
     List.fold_left ~init:(Ok Context.empty) ~f:func_decl_fold l in
   let inter_contexts =
@@ -610,7 +611,7 @@ let snd_func_pass c (p, call) =
 					stmt_typecheck c' UnitT s >>= fun stmt ->
 					let arg_t = typeofavar (snd arg_avar) in
 					let call_type = (arg_t, UnitT) in
-					Ok (call_type, Proc(((), id), avs, stmt))	
+					Ok (call_type, Proc(((), id), avs, stmt))
         | _ ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
          	let c' = Context.bind_all_avars c avs in

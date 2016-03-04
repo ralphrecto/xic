@@ -15,9 +15,9 @@ type flags = {
 let main flags filenames () : unit Deferred.t =
   print_endline (Sexp.to_string (sexp_of_flags flags));
   Deferred.List.iter filenames ~f:(fun filename ->
-    Reader.load_sexp_exn filename Pos.prog_of_sexp
-    >>| begin fun p -> 
-      match prog_typecheck (FullProg (p, [])) with
+    Reader.load_sexp_exn filename Pos.full_prog_of_sexp
+    >>| begin fun full_p -> 
+      match prog_typecheck full_p with
       | Ok _ -> "program typechecked!"
       | Error ((row,col), msg) ->
           Printf.sprintf "error: %s at row %d, col %d" msg row col

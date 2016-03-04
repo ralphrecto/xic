@@ -154,8 +154,41 @@ module Vars = struct
   let iaia2iab  = ("iaia2iab",  TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; BoolT])
   let iaia2iaia = ("iaia2iaia", TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; ArrayT IntT])
 
+  (* 3 -> 0 *)
+  let iii2u   = ("iii2u",   TupleT [IntT; IntT; IntT],               UnitT)
+  let iib2u   = ("iib2u",   TupleT [IntT; IntT; BoolT],              UnitT)
+  let iiia2u  = ("iiia2u",  TupleT [IntT; IntT; ArrayT IntT],        UnitT)
+  let ibi2u   = ("ibi2u",   TupleT [IntT; BoolT; IntT],              UnitT)
+  let ibb2u   = ("ibb2u",   TupleT [IntT; BoolT; BoolT],             UnitT)
+  let ibia2u  = ("ibia2u",  TupleT [IntT; BoolT; ArrayT IntT],       UnitT)
+  let iiai2u  = ("iiai2u",  TupleT [IntT; ArrayT IntT; IntT],        UnitT)
+  let iiab2u  = ("iiab2u",  TupleT [IntT; ArrayT IntT; BoolT],       UnitT)
+  let iiaia2u = ("iiaia2u", TupleT [IntT; ArrayT IntT; ArrayT IntT], UnitT)
+
+  let bii2u   = ("bii2u",   TupleT [BoolT; IntT; IntT],               UnitT)
+  let bib2u   = ("bib2u",   TupleT [BoolT; IntT; BoolT],              UnitT)
+  let biia2u  = ("biia2u",  TupleT [BoolT; IntT; ArrayT IntT],        UnitT)
+  let bbi2u   = ("bbi2u",   TupleT [BoolT; BoolT; IntT],              UnitT)
+  let bbb2u   = ("bbb2u",   TupleT [BoolT; BoolT; BoolT],             UnitT)
+  let bbia2u  = ("bbia2u",  TupleT [BoolT; BoolT; ArrayT IntT],       UnitT)
+  let biai2u  = ("biai2u",  TupleT [BoolT; ArrayT IntT; IntT],        UnitT)
+  let biab2u  = ("biab2u",  TupleT [BoolT; ArrayT IntT; BoolT],       UnitT)
+  let biaia2u = ("biaia2u", TupleT [BoolT; ArrayT IntT; ArrayT IntT], UnitT)
+
+  let iaii2u   = ("iaii2u",   TupleT [ArrayT IntT; IntT; IntT],               UnitT)
+  let iaib2u   = ("iaib2u",   TupleT [ArrayT IntT; IntT; BoolT],              UnitT)
+  let iaiia2u  = ("iaiia2u",  TupleT [ArrayT IntT; IntT; ArrayT IntT],        UnitT)
+  let iabi2u   = ("iabi2u",   TupleT [ArrayT IntT; BoolT; IntT],              UnitT)
+  let iabb2u   = ("iabb2u",   TupleT [ArrayT IntT; BoolT; BoolT],             UnitT)
+  let iabia2u  = ("iabia2u",  TupleT [ArrayT IntT; BoolT; ArrayT IntT],       UnitT)
+  let iaiai2u  = ("iaiai2u",  TupleT [ArrayT IntT; ArrayT IntT; IntT],        UnitT)
+  let iaiab2u  = ("iaiab2u",  TupleT [ArrayT IntT; ArrayT IntT; BoolT],       UnitT)
+  let iaiaia2u = ("iaiaia2u", TupleT [ArrayT IntT; ArrayT IntT; ArrayT IntT], UnitT)
+
   let iaup = ("iaup", TupleT [ArrayT IntT; ArrayT (ArrayT IntT); ArrayT (ArrayT (ArrayT IntT))], IntT)
   let iadown = ("iadown", TupleT [ArrayT (ArrayT (ArrayT IntT)); ArrayT (ArrayT IntT); ArrayT IntT], IntT)
+  let piaup = ("piaup", TupleT [ArrayT IntT; ArrayT (ArrayT IntT); ArrayT (ArrayT (ArrayT IntT))], UnitT)
+  let piadown = ("piadown", TupleT [ArrayT (ArrayT (ArrayT IntT)); ArrayT (ArrayT IntT); ArrayT IntT], UnitT)
 
   let fgam = funcs [
     u2u; u2i; u2b; u2ia; i2u; i2i; i2b; i2ia; b2u; b2i; b2b; b2ia; ia2u; ia2i;
@@ -168,9 +201,12 @@ module Vars = struct
     ia2iab; ia2iaia; ii2ii; ii2ib; ii2iia; ib2ii; ib2ib; ib2iia; iia2ii;
     iia2ib; iia2iia; bi2bi; bi2bb; bi2bia; bb2bi; bb2bb; bb2bia; bia2bi;
     bia2bb; bia2bia; iai2iai; iai2iab; iai2iaia; iab2iai; iab2iab; iab2iaia;
-    iaia2iai; iaia2iab; iaia2iaia;
+    iaia2iai; iaia2iab; iaia2iaia; iii2u; iib2u; iiia2u; ibi2u; ibb2u; ibia2u;
+    iiai2u; iiab2u; iiaia2u; bii2u; bib2u; biia2u; bbi2u; bbb2u; bbia2u;
+    biai2u; biab2u; biaia2u; iaii2u; iaib2u; iaiia2u; iabi2u; iabb2u; iabia2u;
+    iaiai2u; iaiab2u; iaiaia2u;
 
-    iaup; iadown
+    iaup; iadown; piaup; piadown
   ]
 end
 
@@ -238,6 +274,16 @@ module TestStmt = struct
           msg;
         assert_true false
     end
+
+  let (=/=) ((c, r): (context * Expr.t)) (s: Pos.stmt) : unit =
+    match stmt_typecheck c r s with
+    | Ok s' -> begin
+        printf ">>> %s : %s; expected error\n"
+          (Ast.string_of_stmt s')
+          (Sexp.to_string (Stmt.sexp_of_t (fst s')));
+        assert_true false
+    end
+    | Error _ -> ()
 end
 
 let one   = Pos.(int 1L)
@@ -744,6 +790,7 @@ let test_expr () =
 
 let test_stmt () =
     let open Pos in
+    let open Vars in
     let open TestStmt in
 
     (* Decl *)
@@ -796,7 +843,281 @@ let test_stmt () =
     (* If *)
     (* IfElse *)
     (* While *)
+
     (* ProcCall *)
+    (fgam, IntT) |- (proccall "u2u" []) =: One;
+
+    (fgam, IntT) |- (proccall "iii2u"    [one; one; one]) =: One;
+    (fgam, IntT) |- (proccall "iib2u"    [one; one; tru]) =: One;
+    (fgam, IntT) |- (proccall "iiia2u"   [one; one; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "ibi2u"    [one; tru; one]) =: One;
+    (fgam, IntT) |- (proccall "ibb2u"    [one; tru; tru]) =: One;
+    (fgam, IntT) |- (proccall "ibia2u"   [one; tru; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "iiai2u"   [one; arr[one]; one]) =: One;
+    (fgam, IntT) |- (proccall "iiab2u"   [one; arr[one]; tru]) =: One;
+    (fgam, IntT) |- (proccall "iiaia2u"  [one; arr[one]; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "bii2u"    [tru; one; one]) =: One;
+    (fgam, IntT) |- (proccall "bib2u"    [tru; one; tru]) =: One;
+    (fgam, IntT) |- (proccall "biia2u"   [tru; one; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "bbi2u"    [tru; tru; one]) =: One;
+    (fgam, IntT) |- (proccall "bbb2u"    [tru; tru; tru]) =: One;
+    (fgam, IntT) |- (proccall "bbia2u"   [tru; tru; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "biai2u"   [tru; arr[one]; one]) =: One;
+    (fgam, IntT) |- (proccall "biab2u"   [tru; arr[one]; tru]) =: One;
+    (fgam, IntT) |- (proccall "biaia2u"  [tru; arr[one]; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "iaii2u"   [arr[one]; one; one]) =: One;
+    (fgam, IntT) |- (proccall "iaib2u"   [arr[one]; one; tru]) =: One;
+    (fgam, IntT) |- (proccall "iaiia2u"  [arr[one]; one; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "iabi2u"   [arr[one]; tru; one]) =: One;
+    (fgam, IntT) |- (proccall "iabb2u"   [arr[one]; tru; tru]) =: One;
+    (fgam, IntT) |- (proccall "iabia2u"  [arr[one]; tru; arr[one]]) =: One;
+    (fgam, IntT) |- (proccall "iaiai2u"  [arr[one]; arr[one]; one]) =: One;
+    (fgam, IntT) |- (proccall "iaiab2u"  [arr[one]; arr[one]; tru]) =: One;
+    (fgam, IntT) |- (proccall "iaiaia2u" [arr[one]; arr[one]; arr[one]]) =: One;
+
+    (fgam, BoolT) |- (proccall "iii2u"    [one; one; one]) =: One;
+    (fgam, BoolT) |- (proccall "iib2u"    [one; one; tru]) =: One;
+    (fgam, BoolT) |- (proccall "iiia2u"   [one; one; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "ibi2u"    [one; tru; one]) =: One;
+    (fgam, BoolT) |- (proccall "ibb2u"    [one; tru; tru]) =: One;
+    (fgam, BoolT) |- (proccall "ibia2u"   [one; tru; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "iiai2u"   [one; arr[one]; one]) =: One;
+    (fgam, BoolT) |- (proccall "iiab2u"   [one; arr[one]; tru]) =: One;
+    (fgam, BoolT) |- (proccall "iiaia2u"  [one; arr[one]; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "bii2u"    [tru; one; one]) =: One;
+    (fgam, BoolT) |- (proccall "bib2u"    [tru; one; tru]) =: One;
+    (fgam, BoolT) |- (proccall "biia2u"   [tru; one; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "bbi2u"    [tru; tru; one]) =: One;
+    (fgam, BoolT) |- (proccall "bbb2u"    [tru; tru; tru]) =: One;
+    (fgam, BoolT) |- (proccall "bbia2u"   [tru; tru; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "biai2u"   [tru; arr[one]; one]) =: One;
+    (fgam, BoolT) |- (proccall "biab2u"   [tru; arr[one]; tru]) =: One;
+    (fgam, BoolT) |- (proccall "biaia2u"  [tru; arr[one]; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "iaii2u"   [arr[one]; one; one]) =: One;
+    (fgam, BoolT) |- (proccall "iaib2u"   [arr[one]; one; tru]) =: One;
+    (fgam, BoolT) |- (proccall "iaiia2u"  [arr[one]; one; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "iabi2u"   [arr[one]; tru; one]) =: One;
+    (fgam, BoolT) |- (proccall "iabb2u"   [arr[one]; tru; tru]) =: One;
+    (fgam, BoolT) |- (proccall "iabia2u"  [arr[one]; tru; arr[one]]) =: One;
+    (fgam, BoolT) |- (proccall "iaiai2u"  [arr[one]; arr[one]; one]) =: One;
+    (fgam, BoolT) |- (proccall "iaiab2u"  [arr[one]; arr[one]; tru]) =: One;
+    (fgam, BoolT) |- (proccall "iaiaia2u" [arr[one]; arr[one]; arr[one]]) =: One;
+
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[];arr[]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[arr[]];arr[]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[];arr[arr[]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[arr[]];arr[arr[]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[];arr[arr[arr[]]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[];arr[arr[]];arr[arr[arr[]]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[];arr[]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[arr[one]];arr[]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[];arr[arr[]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[arr[one]];arr[arr[]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[];arr[arr[arr[one]]]]) =: One;
+    (fgam, IntT) |- (proccall "piaup" [arr[one];arr[arr[one]];arr[arr[arr[one]]]]) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[];arr[]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[arr[]];arr[]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[];arr[arr[]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[arr[]];arr[arr[]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[];arr[arr[arr[]]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[];arr[arr[]];arr[arr[arr[]]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[];arr[]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[arr[one]];arr[]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[];arr[arr[]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[arr[one]];arr[arr[]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[];arr[arr[arr[one]]]])) =: One;
+    (fgam, IntT) |- (proccall "piadown" (List.rev [arr[one];arr[arr[one]];arr[arr[arr[one]]]])) =: One;
+
+    (fgam, IntT) =/= (proccall "iii2u"    [one; one; one; one]);
+    (fgam, IntT) =/= (proccall "iib2u"    [one; one; one; tru]);
+    (fgam, IntT) =/= (proccall "iiia2u"   [one; one; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "ibi2u"    [one; one; tru; one]);
+    (fgam, IntT) =/= (proccall "ibb2u"    [one; one; tru; tru]);
+    (fgam, IntT) =/= (proccall "ibia2u"   [one; one; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "iiai2u"   [one; one; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "iiab2u"   [one; one; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "iiaia2u"  [one; one; arr[one]; arr[one]]);
+    (fgam, IntT) =/= (proccall "bii2u"    [one; tru; one; one]);
+    (fgam, IntT) =/= (proccall "bib2u"    [one; tru; one; tru]);
+    (fgam, IntT) =/= (proccall "biia2u"   [one; tru; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "bbi2u"    [one; tru; tru; one]);
+    (fgam, IntT) =/= (proccall "bbb2u"    [one; tru; tru; tru]);
+    (fgam, IntT) =/= (proccall "bbia2u"   [one; tru; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "biai2u"   [one; tru; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "biab2u"   [one; tru; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "biaia2u"  [one; tru; arr[one]; arr[one]]);
+    (fgam, IntT) =/= (proccall "iaii2u"   [one; arr[one]; one; one]);
+    (fgam, IntT) =/= (proccall "iaib2u"   [one; arr[one]; one; tru]);
+    (fgam, IntT) =/= (proccall "iaiia2u"  [one; arr[one]; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "iabi2u"   [one; arr[one]; tru; one]);
+    (fgam, IntT) =/= (proccall "iabb2u"   [one; arr[one]; tru; tru]);
+    (fgam, IntT) =/= (proccall "iabia2u"  [one; arr[one]; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "iaiai2u"  [one; arr[one]; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "iaiab2u"  [one; arr[one]; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "iaiaia2u" [one; arr[one]; arr[one]; arr[one]]);
+
+    (fgam, IntT) =/= (proccall "iii2u"    [tru; one; one; one]);
+    (fgam, IntT) =/= (proccall "iib2u"    [tru; one; one; tru]);
+    (fgam, IntT) =/= (proccall "iiia2u"   [tru; one; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "ibi2u"    [tru; one; tru; one]);
+    (fgam, IntT) =/= (proccall "ibb2u"    [tru; one; tru; tru]);
+    (fgam, IntT) =/= (proccall "ibia2u"   [tru; one; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "iiai2u"   [tru; one; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "iiab2u"   [tru; one; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "iiaia2u"  [tru; one; arr[one]; arr[one]]);
+    (fgam, IntT) =/= (proccall "bii2u"    [tru; tru; one; one]);
+    (fgam, IntT) =/= (proccall "bib2u"    [tru; tru; one; tru]);
+    (fgam, IntT) =/= (proccall "biia2u"   [tru; tru; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "bbi2u"    [tru; tru; tru; one]);
+    (fgam, IntT) =/= (proccall "bbb2u"    [tru; tru; tru; tru]);
+    (fgam, IntT) =/= (proccall "bbia2u"   [tru; tru; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "biai2u"   [tru; tru; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "biab2u"   [tru; tru; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "biaia2u"  [tru; tru; arr[one]; arr[one]]);
+    (fgam, IntT) =/= (proccall "iaii2u"   [tru; arr[one]; one; one]);
+    (fgam, IntT) =/= (proccall "iaib2u"   [tru; arr[one]; one; tru]);
+    (fgam, IntT) =/= (proccall "iaiia2u"  [tru; arr[one]; one; arr[one]]);
+    (fgam, IntT) =/= (proccall "iabi2u"   [tru; arr[one]; tru; one]);
+    (fgam, IntT) =/= (proccall "iabb2u"   [tru; arr[one]; tru; tru]);
+    (fgam, IntT) =/= (proccall "iabia2u"  [tru; arr[one]; tru; arr[one]]);
+    (fgam, IntT) =/= (proccall "iaiai2u"  [tru; arr[one]; arr[one]; one]);
+    (fgam, IntT) =/= (proccall "iaiab2u"  [tru; arr[one]; arr[one]; tru]);
+    (fgam, IntT) =/= (proccall "iaiaia2u" [tru; arr[one]; arr[one]; arr[one]]);
+
+    (fgam, IntT) =/= (proccall "u2u" [one]);
+    (fgam, IntT) =/= (proccall "u2u" [tru]);
+    (fgam, IntT) =/= (proccall "u2u" [arr[]]);
+    (fgam, IntT) =/= (proccall "u2u" [arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "u2u" [arr[arr[arr[]]]]);
+
+    (fgam, IntT) =/= (proccall "u2i" []);
+    (fgam, IntT) =/= (proccall "u2b" []);
+    (fgam, IntT) =/= (proccall "u2ia" []);
+    (fgam, IntT) =/= (proccall "i2i" [one]);
+    (fgam, IntT) =/= (proccall "i2b" [one]);
+    (fgam, IntT) =/= (proccall "i2ia" [one]);
+    (fgam, IntT) =/= (proccall "b2i" [tru]);
+    (fgam, IntT) =/= (proccall "b2b" [tru]);
+    (fgam, IntT) =/= (proccall "b2ia" [tru]);
+    (fgam, IntT) =/= (proccall "ia2i" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2b" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2ia" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ii2i" [one;one]);
+    (fgam, IntT) =/= (proccall "ii2b" [one;one]);
+    (fgam, IntT) =/= (proccall "ii2ia" [one;one]);
+    (fgam, IntT) =/= (proccall "ib2i" [one;tru]);
+    (fgam, IntT) =/= (proccall "ib2b" [one;tru]);
+    (fgam, IntT) =/= (proccall "ib2ia" [one;tru]);
+    (fgam, IntT) =/= (proccall "iia2i" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "iia2b" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "iia2ia" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "bi2i" [tru;one]);
+    (fgam, IntT) =/= (proccall "bi2b" [tru;one]);
+    (fgam, IntT) =/= (proccall "bi2ia" [tru;one]);
+    (fgam, IntT) =/= (proccall "bb2i" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bb2b" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bb2ia" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bia2i" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "bia2b" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "bia2ia" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "iai2i" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iai2b" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iai2ia" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iab2i" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iab2b" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iab2ia" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iaia2i" [arr[one];arr[one]]);
+    (fgam, IntT) =/= (proccall "iaia2b" [arr[one];arr[one]]);
+    (fgam, IntT) =/= (proccall "iaia2ia" [arr[one];arr[one]]);
+    (fgam, IntT) =/= (proccall "i2ii" [one]);
+    (fgam, IntT) =/= (proccall "i2ib" [one]);
+    (fgam, IntT) =/= (proccall "i2iia" [one]);
+    (fgam, IntT) =/= (proccall "b2ii" [tru]);
+    (fgam, IntT) =/= (proccall "b2ib" [tru]);
+    (fgam, IntT) =/= (proccall "b2iia" [tru]);
+    (fgam, IntT) =/= (proccall "ia2ii" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2ib" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2iia" [arr[one]]);
+    (fgam, IntT) =/= (proccall "i2bi" [one]);
+    (fgam, IntT) =/= (proccall "i2bb" [one]);
+    (fgam, IntT) =/= (proccall "i2bia" [one]);
+    (fgam, IntT) =/= (proccall "b2bi" [tru]);
+    (fgam, IntT) =/= (proccall "b2bb" [tru]);
+    (fgam, IntT) =/= (proccall "b2bia" [tru]);
+    (fgam, IntT) =/= (proccall "ia2bi" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2bb" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2bia" [arr[one]]);
+    (fgam, IntT) =/= (proccall "i2iai" [one]);
+    (fgam, IntT) =/= (proccall "i2iab" [one]);
+    (fgam, IntT) =/= (proccall "i2iaia" [one]);
+    (fgam, IntT) =/= (proccall "b2iai" [tru]);
+    (fgam, IntT) =/= (proccall "b2iab" [tru]);
+    (fgam, IntT) =/= (proccall "b2iaia" [tru]);
+    (fgam, IntT) =/= (proccall "ia2iai" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2iab" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ia2iaia" [arr[one]]);
+    (fgam, IntT) =/= (proccall "ii2ii" [one;one]);
+    (fgam, IntT) =/= (proccall "ii2ib" [one;one]);
+    (fgam, IntT) =/= (proccall "ii2iia" [one;one]);
+    (fgam, IntT) =/= (proccall "ib2ii" [one;tru]);
+    (fgam, IntT) =/= (proccall "ib2ib" [one;tru]);
+    (fgam, IntT) =/= (proccall "ib2iia" [one;tru]);
+    (fgam, IntT) =/= (proccall "iia2ii" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "iia2ib" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "iia2iia" [one;arr[one]]);
+    (fgam, IntT) =/= (proccall "bi2bi" [tru;one]);
+    (fgam, IntT) =/= (proccall "bi2bb" [tru;one]);
+    (fgam, IntT) =/= (proccall "bi2bia" [tru;one]);
+    (fgam, IntT) =/= (proccall "bb2bi" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bb2bb" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bb2bia" [tru;tru]);
+    (fgam, IntT) =/= (proccall "bia2bi" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "bia2bb" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "bia2bia" [tru;arr[one]]);
+    (fgam, IntT) =/= (proccall "iai2iai" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iai2iab" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iai2iaia" [arr[one];one]);
+    (fgam, IntT) =/= (proccall "iab2iai" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iab2iab" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iab2iaia" [arr[one];tru]);
+    (fgam, IntT) =/= (proccall "iaia2iai" [arr[one];arr[one]]);
+    (fgam, IntT) =/= (proccall "iaia2iab" [arr[one];arr[one]]);
+
+    (fgam, IntT) =/= (proccall "iaia2i" [arr[];arr[one]]);
+    (fgam, IntT) =/= (proccall "iaia2i" [arr[one];arr[]]);
+    (fgam, IntT) =/= (proccall "iaia2i" [arr[];arr[]]);
+
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[]; arr[]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[]]; arr[]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[]; arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[]]; arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[]]; arr[arr[arr[]]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[]; arr[]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[arr[]]; arr[]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[]; arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[arr[]]; arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[arr[]]; arr[arr[arr[]]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[one]]; arr[]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[one]]; arr[arr[]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[one]]; arr[arr[arr[]]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[]; arr[arr[]]; arr[arr[arr[one]]]]);
+    (fgam, IntT) =/= (proccall "iaup" [arr[one]; arr[arr[one]]; arr[arr[arr[one]]]]);
+
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[]; arr[]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[]; arr[arr[]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[arr[]]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[]; arr[]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[]; arr[arr[]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[arr[]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[arr[arr[]]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[arr[]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[arr[arr[]]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[arr[one]]]]));
+    (fgam, IntT) =/= (proccall "iadown" (List.rev [arr[one]; arr[arr[one]]; arr[arr[arr[one]]]]));
 
     ()
 

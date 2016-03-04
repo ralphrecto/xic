@@ -287,6 +287,7 @@ public class Main {
             }
 
             Ast.Program<Position> prog = p.fst.prog.get();
+
             List<Tuple<Ast.Use<Position>, XiSource>> useFiles = null;
             try {
                 useFiles = Util.zip(prog.uses, XiSource.createMany(
@@ -298,7 +299,7 @@ public class Main {
                 System.exit(1);
             }
             List<Tuple<Ast.Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
-                    u -> Tuple.of(u.fst, Actions.parse(u.snd.reader))
+                    u -> Tuple.of(u.fst, Actions.parseInterface(u.snd.reader))
             );
 
             Optional<XicException> error = Optional.empty();
@@ -363,6 +364,8 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
+            } else if (typecheckMode) {
+                doTypecheck(arguments);
             } else {
                 System.out.println("No options passed.");
                 printUsage();

@@ -371,6 +371,7 @@ let stmt_typecheck c rho s =
     | ProcCall ((_, f), args) -> begin
       Context.func p c f >>= fun (a, b) ->
       match (a, b), args with
+      | (UnitT, _), _::_ -> Error (p, "Giving args to a proc with no params")
       | (UnitT, UnitT), [] -> Ok ((One, ProcCall (((), f), [])), c)
       | (TupleT arg_types, UnitT), _::_::_ ->
           exprs_typecheck p c arg_types args num_p_args typ_p_args >>= fun args' ->

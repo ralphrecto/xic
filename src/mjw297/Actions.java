@@ -79,16 +79,20 @@ public class Actions {
     public static Parsed parse(Reader r) {
         Parser parser = new Parser(new Lexer(r));
         try {
-            Object o = parser.parse().value;
-            if (o instanceof Ast.Program) {
-                @SuppressWarnings("unchecked")
-                Ast.Program<Position> prog = (Ast.Program<Position>) o;
-                return new Parsed(prog);
-            } else {
-                @SuppressWarnings("unchecked")
-                Ast.Interface<Position> inter = (Ast.Interface<Position>) o;
-                return new Parsed(inter);
-            }
+            @SuppressWarnings("unchecked")
+            Ast.Program<Position> prog = (Ast.Program<Position>) parser.parse().value;
+            return new Parsed(prog);
+        } catch (Exception e) {
+            return new Parsed(e);
+        }
+    }
+
+    public static Parsed parseInterface(Reader r) {
+        InterfaceParser parser = new InterfaceParser(new Lexer(r));
+        try {
+            @SuppressWarnings("unchecked")
+            Ast.Interface<Position> inter = (Ast.Interface<Position>) parser.parse().value;
+            return new Parsed(inter);
         } catch (Exception e) {
             return new Parsed(e);
         }

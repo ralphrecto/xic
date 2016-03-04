@@ -1,0 +1,2 @@
+factorial(a:int) : int;
+poop(p:bool, np:bool) : bool;

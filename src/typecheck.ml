@@ -56,7 +56,7 @@ module Expr = struct
     | ArrayT t1, ArrayT t2 -> t1 <= t2
     | _ -> a = b
 
-  let comparable t1 t2 = 
+  let comparable t1 t2 =
     t1 <= t2 || t2 <= t1
 
   let type_max p t1 t2 : t Error.result =
@@ -67,7 +67,7 @@ module Expr = struct
   let eqs p xs ys unequal_num mistyped =
     match List.zip xs ys with
     | Some zipped ->
-        if List.for_all ~f:(fun (x, y) -> x <= y) zipped
+        if List.for_all ~f:(fun (x, y) -> y <= x) zipped
           then Ok ()
           else Error (p, mistyped)
     | None -> Error (p, unequal_num)
@@ -148,7 +148,7 @@ module Context = struct
       | Some x -> bind c x (Var (fst v))
       | None -> c
     )
-	
+
 	let bind_all_avars c avs =
 		List.fold_left avs ~init:c ~f:(fun c av ->
 			match varsofavar (snd av) with
@@ -249,6 +249,8 @@ and expr_typecheck c (p, expr) =
   | FuncCall ((_, f), args) -> begin
     Context.func p c f >>= fun (a, b) ->
     match (a, b), args with
+    | (_, UnitT), _ -> Error (p, "Using proc call as an expr")
+    | (UnitT, _), _::_ -> Error (p, "Giving args to a function with no params")
     | (UnitT, t), [] when t <> UnitT -> Ok (t, FuncCall (((), f), []))
     | (TupleT t1, t2), _::_::_ when t2 <> UnitT ->
         exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
@@ -533,7 +535,7 @@ let snd_func_pass c (p, call) =
 				| _::_, [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-         	let c' = Context.bind_all_avars c avs in 
+         	let c' = Context.bind_all_avars c avs in
 					stmt_typecheck c' ret_t s >>= fun stmt ->
 					typ_typecheck c' ret_typ >>= fun ret ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
@@ -572,9 +574,16 @@ let snd_func_pass c (p, call) =
           stmt_typecheck c UnitT s >>= fun stmt ->
 					let call_type = (UnitT, UnitT) in
 					Ok (call_type, Proc(((), id), [], stmt))
+				| [arg_avar] ->
+					avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
+					let c' = Context.bind_all_avars c avs in
+					stmt_typecheck c' UnitT s >>= fun stmt ->
+					let arg_t = typeofavar (snd arg_avar) in
+					let call_type = (arg_t, UnitT) in
+					Ok (call_type, Proc(((), id), avs, stmt))	
         | _ ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-         	let c' = Context.bind_all_avars c avs in 
+         	let c' = Context.bind_all_avars c avs in
 					stmt_typecheck c' UnitT s >>= fun stmt ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
 					let call_type = (args_t, UnitT) in

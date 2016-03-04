@@ -154,6 +154,8 @@ module Vars = struct
   let iaia2iab  = ("iaia2iab",  TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; BoolT])
   let iaia2iaia = ("iaia2iaia", TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; ArrayT IntT])
 
+  let iaup = ("iaup", TupleT [ArrayT IntT; ArrayT (ArrayT IntT); ArrayT (ArrayT (ArrayT IntT))], IntT)
+  let iadown = ("iadown", TupleT [ArrayT (ArrayT (ArrayT IntT)); ArrayT (ArrayT IntT); ArrayT IntT], IntT)
 
   let fgam = funcs [
     u2u; u2i; u2b; u2ia; i2u; i2i; i2b; i2ia; b2u; b2i; b2b; b2ia; ia2u; ia2i;
@@ -167,6 +169,8 @@ module Vars = struct
     iia2ib; iia2iia; bi2bi; bi2bb; bi2bia; bb2bi; bb2bb; bb2bia; bia2bi;
     bia2bb; bia2bia; iai2iai; iai2iab; iai2iaia; iab2iai; iab2iab; iab2iaia;
     iaia2iai; iaia2iab; iaia2iaia;
+
+    iaup; iadown
   ]
 end
 
@@ -208,12 +212,9 @@ end
 module TestCallable = struct
 	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
 		let b = is_ok (fst_func_pass c e >>= fun gamma ->
-                                     match Result.error (snd_func_pass gamma e) with
-                                     |Some (_,s) -> printf "%s" s; Ok ()
-                                     |None -> Ok () ) in
-                                     (*
-									 snd_func_pass gamma e >>= fun (t,_) ->
-									 Ok (assert_equal t func_t)) in *)
+									 match snd_func_pass gamma e with
+									 | Ok (t, _) -> Ok (assert_equal t func_t)
+									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in 
 		assert_true b
 
   let (=/=) (c: context) (e: Pos.callable) : unit =
@@ -455,6 +456,9 @@ let test_expr () =
     empty |- (arr[arr[]] + arr[arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr[arr[]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr[arr[arr[]]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr[one] + arr[one;one]) =: ArrayT IntT;
+    empty |- (arr[arr[two];arr[one]] + arr[arr[one;one]]) =: ArrayT (ArrayT IntT);
+    empty |- (arr[arr[arr[two];arr[one]]] + arr[arr[arr[one;one]]]) =: ArrayT (ArrayT (ArrayT IntT));
 
     empty =/= (arr[one] + arr[tru]);
     empty =/= (arr[arr[one]] + arr[tru]);
@@ -589,7 +593,42 @@ let test_expr () =
     fgam |- (funccall "iab2iaia" [arr[one];tru]) =: TupleT[ArrayT IntT;ArrayT IntT];
     fgam |- (funccall "iaia2iai" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;IntT];
     fgam |- (funccall "iaia2iab" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;BoolT];
-    fgam |- (funccall "iaia2iaia" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;ArrayT IntT];
+
+    fgam |- (funccall "iaia2i" [arr[];arr[one]]) =: IntT;
+    fgam |- (funccall "iaia2i" [arr[one];arr[]]) =: IntT;
+    fgam |- (funccall "iaia2i" [arr[];arr[]]) =: IntT;
+
+    fgam |- (funccall "iaup" [arr[]; arr[]; arr[]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[]]; arr[]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[]; arr[arr[]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[]]; arr[arr[]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[]]; arr[arr[arr[]]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[]; arr[]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[arr[]]; arr[]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[]; arr[arr[]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[arr[]]; arr[arr[]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[arr[]]; arr[arr[arr[]]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[one]]; arr[]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[one]]; arr[arr[]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[one]]; arr[arr[arr[]]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[]; arr[arr[]]; arr[arr[arr[one]]]]) =: IntT;
+    fgam |- (funccall "iaup" [arr[one]; arr[arr[one]]; arr[arr[arr[one]]]]) =: IntT;
+
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[]; arr[]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[]; arr[arr[]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[arr[]]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[]; arr[]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[]; arr[arr[]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[arr[]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[arr[]]; arr[arr[arr[]]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[arr[]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[one]]; arr[arr[arr[]]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[]; arr[arr[]]; arr[arr[arr[one]]]])) =: IntT;
+    fgam |- (funccall "iadown" (List.rev [arr[one]; arr[arr[one]]; arr[arr[arr[one]]]])) =: IntT;
 
     fgam =/= (funccall "u2u" []);
     fgam =/= (funccall "i2u" [one]);
@@ -604,6 +643,116 @@ let test_expr () =
     fgam =/= (funccall "iai2u" [arr[one]; one]);
     fgam =/= (funccall "iab2u" [arr[one]; tru]);
     fgam =/= (funccall "iaia2u" [arr[one]; arr[one]]);
+    fgam =/= (funccall "u2u" [arr[]]);
+    fgam =/= (funccall "i2u" [arr[]]);
+    fgam =/= (funccall "i2u" [arr[arr[]]]);
+
+    fgam =/= (funccall "u2i" [one]);
+    fgam =/= (funccall "u2b" [one]);
+    fgam =/= (funccall "u2ia" [one]);
+    fgam =/= (funccall "i2i" [one; one]);
+    fgam =/= (funccall "i2b" [one; one]);
+    fgam =/= (funccall "i2ia" [one; one]);
+    fgam =/= (funccall "b2i" [one; tru]);
+    fgam =/= (funccall "b2b" [one; tru]);
+    fgam =/= (funccall "b2ia" [one; tru]);
+    fgam =/= (funccall "ia2i" [one; arr[one]]);
+    fgam =/= (funccall "ia2b" [one; arr[one]]);
+    fgam =/= (funccall "ia2ia" [one; arr[one]]);
+    fgam =/= (funccall "ii2i" [one; one;one]);
+    fgam =/= (funccall "ii2b" [one; one;one]);
+    fgam =/= (funccall "ii2ia" [one; one;one]);
+    fgam =/= (funccall "ib2i" [one; one;tru]);
+    fgam =/= (funccall "ib2b" [one; one;tru]);
+    fgam =/= (funccall "ib2ia" [one; one;tru]);
+    fgam =/= (funccall "iia2i" [one; one;arr[one]]);
+    fgam =/= (funccall "iia2b" [one; one;arr[one]]);
+    fgam =/= (funccall "iia2ia" [one; one;arr[one]]);
+    fgam =/= (funccall "bi2i" [one; tru;one]);
+    fgam =/= (funccall "bi2b" [one; tru;one]);
+    fgam =/= (funccall "bi2ia" [one; tru;one]);
+    fgam =/= (funccall "bb2i" [one; tru;tru]);
+    fgam =/= (funccall "bb2b" [one; tru;tru]);
+    fgam =/= (funccall "bb2ia" [one; tru;tru]);
+    fgam =/= (funccall "bia2i" [one; tru;arr[one]]);
+    fgam =/= (funccall "bia2b" [one; tru;arr[one]]);
+    fgam =/= (funccall "bia2ia" [one; tru;arr[one]]);
+    fgam =/= (funccall "iai2i" [one; arr[one];one]);
+    fgam =/= (funccall "iai2b" [one; arr[one];one]);
+    fgam =/= (funccall "iai2ia" [one; arr[one];one]);
+    fgam =/= (funccall "iab2i" [one; arr[one];tru]);
+    fgam =/= (funccall "iab2b" [one; arr[one];tru]);
+    fgam =/= (funccall "iab2ia" [one; arr[one];tru]);
+    fgam =/= (funccall "iaia2i" [one; arr[one];arr[one]]);
+    fgam =/= (funccall "iaia2b" [one; arr[one];arr[one]]);
+    fgam =/= (funccall "iaia2ia" [one; arr[one];arr[one]]);
+    fgam =/= (funccall "i2ii" [one; one]);
+    fgam =/= (funccall "i2ib" [one; one]);
+    fgam =/= (funccall "i2iia" [one; one]);
+    fgam =/= (funccall "b2ii" [one; tru]);
+    fgam =/= (funccall "b2ib" [one; tru]);
+    fgam =/= (funccall "b2iia" [one; tru]);
+    fgam =/= (funccall "ia2ii" [one; arr[one]]);
+    fgam =/= (funccall "ia2ib" [one; arr[one]]);
+    fgam =/= (funccall "ia2iia" [one; arr[one]]);
+    fgam =/= (funccall "i2bi" [one; one]);
+    fgam =/= (funccall "i2bb" [one; one]);
+    fgam =/= (funccall "i2bia" [one; one]);
+    fgam =/= (funccall "b2bi" [one; tru]);
+    fgam =/= (funccall "b2bb" [one; tru]);
+    fgam =/= (funccall "b2bia" [one; tru]);
+    fgam =/= (funccall "ia2bi" [one; arr[one]]);
+    fgam =/= (funccall "ia2bb" [one; arr[one]]);
+    fgam =/= (funccall "ia2bia" [one; arr[one]]);
+    fgam =/= (funccall "i2iai" [one; one]);
+    fgam =/= (funccall "i2iab" [one; one]);
+    fgam =/= (funccall "i2iaia" [one; one]);
+    fgam =/= (funccall "b2iai" [one; tru]);
+    fgam =/= (funccall "b2iab" [one; tru]);
+    fgam =/= (funccall "b2iaia" [one; tru]);
+    fgam =/= (funccall "ia2iai" [one; arr[one]]);
+    fgam =/= (funccall "ia2iab" [one; arr[one]]);
+    fgam =/= (funccall "ia2iaia" [one; arr[one]]);
+    fgam =/= (funccall "ii2ii" [one; one;one]);
+    fgam =/= (funccall "ii2ib" [one; one;one]);
+    fgam =/= (funccall "ii2iia" [one; one;one]);
+    fgam =/= (funccall "ib2ii" [one; one;tru]);
+    fgam =/= (funccall "ib2ib" [one; one;tru]);
+    fgam =/= (funccall "ib2iia" [one; one;tru]);
+    fgam =/= (funccall "iia2ii" [one; one;arr[one]]);
+    fgam =/= (funccall "iia2ib" [one; one;arr[one]]);
+    fgam =/= (funccall "iia2iia" [one; one;arr[one]]);
+    fgam =/= (funccall "bi2bi" [one; tru;one]);
+    fgam =/= (funccall "bi2bb" [one; tru;one]);
+    fgam =/= (funccall "bi2bia" [one; tru;one]);
+    fgam =/= (funccall "bb2bi" [one; tru;tru]);
+    fgam =/= (funccall "bb2bb" [one; tru;tru]);
+    fgam =/= (funccall "bb2bia" [one; tru;tru]);
+    fgam =/= (funccall "bia2bi" [one; tru;arr[one]]);
+    fgam =/= (funccall "bia2bb" [one; tru;arr[one]]);
+    fgam =/= (funccall "bia2bia" [one; tru;arr[one]]);
+    fgam =/= (funccall "iai2iai" [one; arr[one];one]);
+    fgam =/= (funccall "iai2iab" [one; arr[one];one]);
+    fgam =/= (funccall "iai2iaia" [one; arr[one];one]);
+    fgam =/= (funccall "iab2iai" [one; arr[one];tru]);
+    fgam =/= (funccall "iab2iab" [one; arr[one];tru]);
+    fgam =/= (funccall "iab2iaia" [one; arr[one];tru]);
+    fgam =/= (funccall "iaia2iai" [one; arr[one];arr[one]]);
+    fgam =/= (funccall "iaia2iab" [one; one; arr[one];arr[one]]);
+
+    fgam =/= (funccall "ib2i" [tru;one]);
+    fgam =/= (funccall "ib2i" [one;tru;tru]);
+    fgam =/= (funccall "ib2i" [one;one;tru]);
+    fgam =/= (funccall "ib2i" []);
+    fgam =/= (funccall "ib2i" [tru]);
+    fgam =/= (funccall "ib2i" [one]);
+    fgam =/= (funccall "ib2i" [arr[]; arr[]]);
+    fgam =/= (funccall "ib2i" [arr[]]);
+    fgam =/= (funccall "ib2i" [arr[]; arr[]; arr[]]);
+    fgam =/= (funccall "ib2i" [one; arr[]]);
+    fgam =/= (funccall "ib2i" [arr[]; tru]);
+    fgam =/= (funccall "ib2i" [one; arr[arr[]]]);
+    fgam =/= (funccall "ib2i" [arr[arr[]]; tru]);
 
     ()
 
@@ -627,7 +776,7 @@ let test_stmt () =
                             underscore;
                             avar (aunderscore tbool)] =: (One, empty);
     (empty, BoolT) |- decl [underscore; underscore; underscore] =: (One, empty);
-    
+
     (* DeclAsgn *)
     (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: (One, empty);
     (empty, UnitT) |- declasgn [avar (aid "y" tbool)] tru =: (One, empty);
@@ -668,35 +817,89 @@ let test_stmt () =
 let test_callable () =
 	let open Pos in
 	let open TestCallable in
+
+	(* empty context *)
+	(* Functions *)
+
+	(* [], [x] *)
+	empty |- (func "f" [] [tint] (return [int 3L])) =: (UnitT, IntT);
+	empty |- (func "f" [] [tint] (return [(funccall "f" [])])) =: (UnitT, IntT);
+	
+	(* [x], [x] *)
 	empty |- (func "id" [(aid "x" tint)] [tint] (return [id "x"])) =: (IntT, IntT);
 	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
+	
+	(* _::_, [x] *)	
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
+	
+	(* [], _::_ *)
+	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
+
+	(* [x], _::_ *)
+	empty |- (func "f" [(aid "x" tint)] [tint; tint] (return [id "x"; id "x"])) =: (IntT, TupleT [IntT; IntT]);
+
+	(* _::_, _::_ *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
+	
+	(* recursion *)	
 	empty |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
-	empty |- (func "f" [] [tint] (return [int 3L])) =: (UnitT, IntT);
-	empty |- (func "f" [] [tint] (return [(funccall "f" [])])) =: (UnitT, IntT);
-	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
-
+	
+	(* wrong return type *)
 	empty =/= (func "f" [aid "x" tint] [tbool] (return [id "x"]));
+	
+	(* dup args *)
 	empty =/= (func "has_dup" [(aid "x" tint); (aid "x" tint)] [tint] (return [id "x"]));
+	
+	(* unbound variable y *)
 	empty =/= (func "f" [aid "x" tint] [tint] (return [id "y"]));
 
+	(* procedures *)
+
+	(* [] *)
+	empty |- (proc "f" [] (proccall "f" [])) =: (UnitT, UnitT);
+
+	(* [x] *) 
+	empty |- (proc "f" [aid "x" tint] (proccall "f" [id "x"])) =: (IntT, UnitT);
+
+	(* _::_ *)
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) =: (TupleT [IntT; IntT], UnitT);
+
+	(* dup args *)
+	empty =/= (proc "f" [aid "x" tint; aid "x" tint] (proccall "f" []));
+
+	(* unbound variable y *)
+	empty =/= (proc "f" [] (proccall "y" []));
+	
+	(* non-empty context *)
 	let f_binded = Context.bind empty "f" (Function (IntT, IntT)) in
+	let g_binded = Context.bind empty "g" (Function (UnitT, UnitT)) in
+
+	(* dup func bind *)
 	f_binded =/= (func "f" [aid "x" tint] [tint] (return [id "x"]));
 	f_binded =/= (func "f" [aid "x" tbool] [tbool] (return [id "x"]));
 
+	(* [x], [x] *)
 	f_binded |- (func "g" [aid "x" tint] [tint] (return [id "x"])) =: (IntT, IntT);
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "f" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
+	
+	(* recursion *)
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
+
+	g_binded |- (proc "f" [] (proccall "g" [])) =: (UnitT, UnitT);
+
+	g_binded |- (proc "f" [aid "x" tint] (proccall "g" [])) =: (IntT, UnitT);
+
+	g_binded |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "g" [])) =: (TupleT [IntT; IntT], UnitT);
+
 	()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

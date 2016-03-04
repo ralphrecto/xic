@@ -10,9 +10,9 @@ open Async.Std
  * S defines the type of an AST and is parameterized on 9 types, each
  * corresponding to one type of AST node:
  *
- *     1. 'p: prog
+ *     1. 'p: prog and interface
  *     2. 'u: use
- *     3. 'c: callable
+ *     3. 'c: callable and callable_decl
  *     4. 'i: id
  *     5. 'a: avar
  *     6. 'v: var
@@ -47,7 +47,19 @@ open Async.Std
 module S = struct
 
   (* top level terms *)
-  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
+  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) full_prog =
+    FullProg of ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
+
+  and ('p,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('c,'i,'a,'v,'s,'e,'t) raw_interface
+  and ('c,'i,'a,'v,'s,'e,'t) raw_interface =
+    Interface of ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+
+  and ('c,'i,'a,'v,'s,'e,'t) callable_decl = 'c * ('i,'a,'v,'s,'e,'t) raw_callable_decl
+  and ('i,'a,'v,'s,'e,'t) raw_callable_decl =
+    | FuncDecl of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list
+    | ProcDecl of 'i id * ('i,'a,'e,'t) avar list
+
+  and ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
   and ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog =
     | Prog of ('u,'i) use list * ('c,'i,'a,'v,'s,'e,'t) callable list
 
@@ -184,13 +196,15 @@ end
 
 module Make(T: TAGS) = struct
   open T
-  type prog     = (p,u,c,i,a,v,s,e,t) S.prog     [@@deriving sexp]
-  type use      = (  u,  i          ) S.use      [@@deriving sexp]
-  type callable = (    c,i,a,v,s,e,t) S.callable [@@deriving sexp]
-  type id       =        i            S.id       [@@deriving sexp]
-  type avar     = (      i,a,    e,t) S.avar     [@@deriving sexp]
-  type var      = (      i,a,v,  e,t) S.var      [@@deriving sexp]
-  type stmt     = (      i,a,v,s,e,t) S.stmt     [@@deriving sexp]
-  type expr     = (      i,      e  ) S.expr     [@@deriving sexp]
-  type typ      = (      i,      e,t) S.typ      [@@deriving sexp]
+  type full_prog = (p,u,c,i,a,v,s,e,t) S.full_prog  [@@deriving sexp]
+  type interface = (p,  c,i,a,v,s,e,t) S.interface  [@@deriving sexp]
+  type prog      = (p,u,c,i,a,v,s,e,t) S.prog       [@@deriving sexp]
+  type use       = (  u,  i          ) S.use        [@@deriving sexp]
+  type callable  = (    c,i,a,v,s,e,t) S.callable   [@@deriving sexp]
+  type id        =        i            S.id         [@@deriving sexp]
+  type avar      = (      i,a,    e,t) S.avar       [@@deriving sexp]
+  type var       = (      i,a,v,  e,t) S.var        [@@deriving sexp]
+  type stmt      = (      i,a,v,s,e,t) S.stmt       [@@deriving sexp]
+  type expr      = (      i,      e  ) S.expr       [@@deriving sexp]
+  type typ       = (      i,      e,t) S.typ        [@@deriving sexp]
 end

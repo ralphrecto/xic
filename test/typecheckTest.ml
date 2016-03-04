@@ -212,8 +212,9 @@ end
 module TestCallable = struct
 	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
 		let b = is_ok (fst_func_pass c e >>= fun gamma ->
-									 snd_func_pass gamma e >>= fun (t,_) ->
-									 Ok (assert_equal t func_t)) in 
+									 match snd_func_pass gamma e with
+									 | Ok (t, _) -> Ok (assert_equal t func_t)
+									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in 
 		assert_true b
 
   let (=/=) (c: context) (e: Pos.callable) : unit =
@@ -696,10 +697,20 @@ let test_callable () =
 	empty |- (proc "f" [] (proccall "f" [])) =: (UnitT, UnitT);
 
 	(* [x] *) 
-	empty |- (proc "f" [aid "x" tint] (proccall "f" [])) =: (IntT, UnitT);
+	empty |- (proc "f" [aid "x" tint] (proccall "f" [id "x"])) =: (IntT, UnitT);
+
+	(* _::_ *)
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) =: (TupleT [IntT; IntT], UnitT);
+
+	(* dup args *)
+	empty =/= (proc "f" [aid "x" tint; aid "x" tint] (proccall "f" []));
+
+	(* unbound variable y *)
+	empty =/= (proc "f" [] (proccall "y" []));
 	
 	(* non-empty context *)
 	let f_binded = Context.bind empty "f" (Function (IntT, IntT)) in
+	let g_binded = Context.bind empty "g" (Function (UnitT, UnitT)) in
 
 	(* dup func bind *)
 	f_binded =/= (func "f" [aid "x" tint] [tint] (return [id "x"]));
@@ -713,6 +724,13 @@ let test_callable () =
 	(* recursion *)
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
+
+	g_binded |- (proc "f" [] (proccall "g" [])) =: (UnitT, UnitT);
+
+	g_binded |- (proc "f" [aid "x" tint] (proccall "g" [])) =: (IntT, UnitT);
+
+	g_binded |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "g" [])) =: (TupleT [IntT; IntT], UnitT);
+
 	()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

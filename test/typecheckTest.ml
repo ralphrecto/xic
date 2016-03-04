@@ -13,18 +13,27 @@ let assert_true (b: bool) : unit =
   assert_equal b true
 
 (* Dummy pos *)
-let p = (-1, -1)
 let empty = Context.empty
 
 let (|-) c e = (c, e)
 
-(* If <: is subtype, then =: is equal type. *)
-let (e=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
-  let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
-  assert_true b
+module TestExpr = struct
+  (* If <: is subtype, then =: is equal type. *)
+  let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
+    let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
+    assert_true b
+end
+
+module TestCallable = struct
+	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
+		let b = is_ok (fst_func_pass c e >>= fun gamma ->
+									 snd_func_pass gamma e >>= fun (t,_) -> Ok (assert_equal t func_t)) in
+		assert_true b
+end
 
 let test_expr () =
     let open Pos in
+    let open TestExpr in
     let one = int 1L in
     let two = int 1L in
     let tru = bool true in
@@ -55,13 +64,16 @@ let test_expr () =
     empty |- (tru || fls) =: BoolT;
     ()
 
-let (f=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
-	let b = is_ok (fst_func_pass c e >>= fun gamma ->
-								 snd_func_pass gamma e >>= fun (t,_) -> Ok (assert_equal t func_t)) in
-	assert_true b
-
 let test_callable () =
-	empty 		
+	let open Pos in
+	let open TestCallable in
+	let id_int = func "id" [(aid "x" tint)] [tint] (return [id "x"]) in
+	empty |- id_int =: (IntT, IntT);
+	let id_bool = func "id" [(aid "x" tbool)] [tbool] (return [id "x"]) in
+	empty |- id_bool =: (BoolT, BoolT);
+	let id_array = func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]) in
+	empty |- id_array =: (ArrayT IntT, ArrayT IntT);
+	()
  
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

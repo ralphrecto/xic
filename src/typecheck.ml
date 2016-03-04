@@ -285,11 +285,11 @@ let var_typecheck c (_, v) =
 (******************************************************************************)
 (* see Expr.eqs *)
 let avars_typecheck (p: Pos.pos)
-										(c: context)
-										(avs: Pos.avar list)
-										(dup_var: string)
-										(bound_var: string)
-										: avar list Error.result =
+					(c: context)
+					(avs: Pos.avar list)
+					(dup_var: string)
+					(bound_var: string)
+					: avar list Error.result =
 	let xs = List.filter_map ~f:varsofavar (List.map ~f:snd avs) in
 	let disjoint = not (List.contains_dup xs) in
 	let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c x)) in

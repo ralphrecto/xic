@@ -25,7 +25,7 @@ module Expr: sig
   (* `eqs p xs ys num type` checks that
    *
    *     (1) len(xs) == len(ys), and
-   *     (2) for all xi and yi, xi <= yi.
+   *     (2) for all xi and yi, xi >= yi.
    *
    * If (1) fails, `Error (p, num)` is returned. If (2) fails, `Error (p,
    * type)` is returned. *)
@@ -81,7 +81,7 @@ module Context: sig
   (* For every annotated variable `x:t` in `vs`, `bind_all c vs` binds `x` to
    * `t`. underscores and annotated underscores are ignored. *)
   val bind_all_vars: context -> var list -> context
-  
+
 	val bind_all_avars: context -> avar list -> context
 end
 

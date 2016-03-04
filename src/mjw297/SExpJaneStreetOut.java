@@ -154,7 +154,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         posPrinter(i.a);
         printer.startList();
         printer.printAtom("Id");
-        printer.printAtom(i.x);
+        rawIdPrinter(i);
         printer.endList();
         printer.endList();
 
@@ -355,27 +355,33 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.Block<Position> b) {
         printer.startList();
         posPrinter(b.a);
+
         printer.startList();
         printer.printAtom("Block");
 
+        /* stmt list */
         printer.startList();
         b.ss.forEach(s -> s.accept(this));
-        printer.endList();
-
         if (b.ret.isPresent()) {
             printer.startList();
+            /* todo: fix this */
+            posPrinter(new Position(-1, -1));
+
+            printer.startList();
+            printer.printAtom("Return");
 
             printer.startList();
             b.ret.get().forEach(e -> e.accept(this));
             printer.endList();
 
             printer.endList();
-        } else {
-            printer.startList();
+
             printer.endList();
         }
+        printer.endList();
 
         printer.endList();
+
         printer.endList();
         return null;
     }

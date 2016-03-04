@@ -16,9 +16,14 @@ let main flags filenames () : unit Deferred.t =
   print_endline (Sexp.to_string (sexp_of_flags flags));
   Deferred.List.iter filenames ~f:(fun filename ->
     Reader.load_sexp_exn filename Pos.prog_of_sexp
-    >>| Pos.sexp_of_prog
-    >>| ignore
-  ) >>| fun _ -> print_endline "parsed all ASTs"
+    >>| begin fun p -> 
+      match prog_typecheck p with
+      | Ok _ -> "program typechecked!"
+      | Error ((row,col), msg) ->
+          Printf.sprintf "error: %s at row %d, col %d" msg row col
+    end
+    >>| print_endline
+  ) 
 
 let () =
   Command.async

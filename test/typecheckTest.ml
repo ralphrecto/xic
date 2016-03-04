@@ -806,6 +806,7 @@ let test_callable () =
 	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
+	empty |- (func "id" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
 	
 	(* _::_, [x] *)	
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);

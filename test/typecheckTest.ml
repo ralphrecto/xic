@@ -137,18 +137,18 @@ let test_expr () =
     empty |- (arr[]    != arr[one]) =: BoolT;
     empty |- (arr[one] != arr[one]) =: BoolT;
 
-    (* empty =/= (arr[one] == arr[tru]); *)
-    (* empty =/= (arr[tru] == arr[one]); *)
-    (* empty =/= (arr[one] == arr[arr[one]]); *)
-    (* empty =/= (arr[arr[one]] == arr[one]); *)
-    (* empty =/= (arr[tru] == arr[arr[one]]); *)
-    (* empty =/= (arr[arr[tru]] == arr[one]); *)
-    (* empty =/= (arr[one] != arr[tru]); *)
-    (* empty =/= (arr[tru] != arr[one]); *)
-    (* empty =/= (arr[one] != arr[arr[one]]); *)
-    (* empty =/= (arr[arr[one]] != arr[one]); *)
-    (* empty =/= (arr[tru] != arr[arr[one]]); *)
-    (* empty =/= (arr[arr[tru]] != arr[one]); *)
+    empty =/= (arr[one] == arr[tru]);
+    empty =/= (arr[tru] == arr[one]);
+    empty =/= (arr[one] == arr[arr[one]]);
+    empty =/= (arr[arr[one]] == arr[one]);
+    empty =/= (arr[tru] == arr[arr[one]]);
+    empty =/= (arr[arr[tru]] == arr[one]);
+    empty =/= (arr[one] != arr[tru]);
+    empty =/= (arr[tru] != arr[one]);
+    empty =/= (arr[one] != arr[arr[one]]);
+    empty =/= (arr[arr[one]] != arr[one]);
+    empty =/= (arr[tru] != arr[arr[one]]);
+    empty =/= (arr[arr[tru]] != arr[one]);
 
     empty |- (length (arr[])) =: IntT;
     empty |- (length (arr[one])) =: IntT;

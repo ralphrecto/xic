@@ -960,6 +960,9 @@ let test_stmt () =
     (vars["x", IntT], UnitT) |- if_ tru (while_ fls (asgn x two)) =: One;
     (fgam, UnitT) |- if_ tru (proccall "i2u" []) =: One;
 
+    (empty, UnitT) =/= (if_ one (block []));
+    (empty, UnitT) =/= (if_ tru (return [one]));
+
     (* IfElse *)
     
     (* While *)

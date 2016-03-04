@@ -181,9 +181,11 @@ and expr_typecheck c (p, expr) =
       | EmptyArray, ArrayT _ -> true
       | _ -> t' = t
     in
-    if List.for_all ~f:array_eq es
-      then Ok (ArrayT t, Array ((t,e)::es))
-      else Error (p, "Array elements have different types")
+    if List.for_all ~f:array_eq es then
+      let f acc (x, _) = if acc = EmptyArray then x else acc in
+      let t' = List.fold_left es ~f ~init:t in
+      Ok (ArrayT t', Array ((t, e)::es))
+    else Error (p, "Array elements have different types")
   end
   | Id (_, s) -> Context.var p c s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
@@ -316,12 +318,13 @@ let stmt_typecheck c rho s =
     match s with
     | Block ss -> begin
         (* iteratively typecheck all the statements in the block *)
-        let f s ssc =
+        let f ssc s =
           ssc >>= fun (ss, c) ->
           (c, rho) |- s >>= fun (s', c') ->
           Ok (s'::ss, c')
         in
-        List.fold_right ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+        List.fold_left ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+        let ss = List.rev ss in
 
         (* make sure that all but the last stmt is of type One *)
         if List.for_all (Util.init ss) ~f:(fun (t, _) -> t = One)
@@ -340,8 +343,7 @@ let stmt_typecheck c rho s =
         | _ -> err "If conditional not a boolean."
     end
     | IfElse (b, t, f) -> begin
-      expr_typecheck c b >>= fun b' ->
-      (c, rho) |- t >>= fun (t', _) ->
+      expr_typecheck c b >>= fun b' -> (c, rho) |- t >>= fun (t', _) ->
       (c, rho) |- f >>= fun (f', _) ->
       match fst b'  with
       | BoolT -> Ok ((lub (fst t') (fst f'), IfElse (b', t', f')), c)

@@ -1,0 +1,66 @@
+((0 0)
+ (Prog
+  ()
+  (((1 1)
+    (Func
+     ((1 1) foo)
+     ()
+     (((1 8) TBool)
+      ((1 14) TInt))
+     ((1 18)
+      (Block
+       (((2 11)
+         (DeclAsgn
+          (((2 5) (AVar ((2 5) (AId ((2 5) expr) ((2 11) TInt))))))
+          ((2 30)
+           (BinOp
+            ((2 17) (Int 1))
+            MINUS
+            ((2 30)
+             (BinOp ((2 25) (BinOp ((2 21) (Int 2)) STAR ((2 25) (Int 3)))) STAR
+              ((2 29) (UnOp UMINUS ((2 30) (Int 4))))))))))
+        ((3 11)
+         (DeclAsgn
+          (((3 5) (AVar ((3 5) (AId ((3 5) pred) ((3 11) TBool))))))
+          ((3 25)
+           (BinOp ((3 18) (BinOp ((3 18) (Bool true)) AMP ((3 25) (Bool true))))
+            BAR ((3 32) (Bool false))))))
+        ((4 5)
+         (IfElse
+          ((4 9) (BinOp ((4 9) (Id ((4 9) expr))) LTE ((4 17) (Int 47))))
+          ((4 21)
+           (Block ()))
+          ((5 10)
+           (Asgn ((5 10) (Id ((5 10) pred)))
+            ((5 17) (UnOp BANG ((5 18) (Id ((5 18) pred)))))))))
+        ((6 5)
+         (If
+          ((6 9) (Id ((6 9) pred)))
+          ((6 15)
+           (Block
+            (((6 17) (Asgn ((6 17) (Id ((6 17) expr))) ((6 24) (Int 59)))))))))
+        ((-1 -1) (Return (((7 12) (Bool true)) ((7 18) (Int 5))))))))))
+   ((10 1)
+    (Proc
+     ((10 1) bar)
+     ()
+     ((10 7)
+      (Block
+       (((11 11)
+         (DeclAsgn
+          (((11 5) Underscore)
+           ((11 8) (AVar ((11 8) (AId ((11 8) i) ((11 11) TInt))))))
+          ((11 17) (FuncCall ((11 17) foo) ()))))
+        ((12 15)
+         (Decl
+          (((12 5)
+            (AVar
+             ((12 5)
+              (AId
+               ((12 5) b)
+               ((12 8)
+                (TArray ((12 8) (TArray ((12 8) TInt) ()))
+                 (((12 12) (Id ((12 12) i)))))))))))))
+        ((13 5)
+         (Asgn ((13 5) (Index ((13 5) (Id ((13 5) b))) ((13 7) (Int 0))))
+          ((13 12) (Array (((13 13) (Int 1)) ((13 16) (Int 0)))))))))))))))

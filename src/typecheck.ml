@@ -572,6 +572,15 @@ let snd_func_pass c (p, call) =
           stmt_typecheck c UnitT s >>= fun stmt ->
 					let call_type = (UnitT, UnitT) in
 					Ok (call_type, Proc(((), id), [], stmt))
+				| [arg_avar] ->
+					avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
+					let c' = Context.bind_all_avars c avs in
+					printf "helloooo\n";
+					stmt_typecheck c' UnitT s >>= fun stmt ->
+					let arg_t = typeofavar (snd arg_avar) in
+					printf "hello\n";
+					let call_type = (arg_t, UnitT) in
+					Ok (call_type, Proc(((), id), avs, stmt))	
         | _ ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
          	let c' = Context.bind_all_avars c avs in 

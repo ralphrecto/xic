@@ -196,13 +196,15 @@ end
 
 module Make(T: TAGS) = struct
   open T
-  type prog     = (p,u,c,i,a,v,s,e,t) S.prog     [@@deriving sexp]
-  type use      = (  u,  i          ) S.use      [@@deriving sexp]
-  type callable = (    c,i,a,v,s,e,t) S.callable [@@deriving sexp]
-  type id       =        i            S.id       [@@deriving sexp]
-  type avar     = (      i,a,    e,t) S.avar     [@@deriving sexp]
-  type var      = (      i,a,v,  e,t) S.var      [@@deriving sexp]
-  type stmt     = (      i,a,v,s,e,t) S.stmt     [@@deriving sexp]
-  type expr     = (      i,      e  ) S.expr     [@@deriving sexp]
-  type typ      = (      i,      e,t) S.typ      [@@deriving sexp]
+  type full_prog = (p,u,c,i,a,v,s,e,t) S.full_prog  [@@deriving sexp]
+  type interface = (p,  c,i,a,v,s,e,t) S.interface  [@@deriving sexp]
+  type prog      = (p,u,c,i,a,v,s,e,t) S.prog       [@@deriving sexp]
+  type use       = (  u,  i          ) S.use        [@@deriving sexp]
+  type callable  = (    c,i,a,v,s,e,t) S.callable   [@@deriving sexp]
+  type id        =        i            S.id         [@@deriving sexp]
+  type avar      = (      i,a,    e,t) S.avar       [@@deriving sexp]
+  type var       = (      i,a,v,  e,t) S.var        [@@deriving sexp]
+  type stmt      = (      i,a,v,s,e,t) S.stmt       [@@deriving sexp]
+  type expr      = (      i,      e  ) S.expr       [@@deriving sexp]
+  type typ       = (      i,      e,t) S.typ        [@@deriving sexp]
 end

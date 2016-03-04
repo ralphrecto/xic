@@ -577,6 +577,24 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.FullProgram<Position> p) {
+        printer.startList();
+        posPrinter(p.a);
+
+        printer.startList();
+        printer.printAtom("FullProg");
+
+        p.prog.accept(this);
+
+        printer.startList();
+        p.inters.forEach(i -> i.accept(this));
+        printer.endList();
+
+        printer.endList();
+        printer.endList();
+        return null;
+    }
+
     public void flush() {
         printer.flush();
     }

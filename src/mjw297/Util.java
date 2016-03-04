@@ -14,7 +14,7 @@ import lombok.ToString;
  * Created by ralphrecto on 2/14/16.
  */
 public class Util {
-    @AllArgsConstructor()
+    @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
     public static class Tuple<S,T> {

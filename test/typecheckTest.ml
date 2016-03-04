@@ -306,14 +306,26 @@ let test_stmt () =
     let open Pos in
     let open TestStmt in
 
-    (* One is unit, Zero is void *)
     (* Decl *)
     (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
     (empty, UnitT) |- decl [avar (aid "y" tbool)] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: (One, empty);
     (empty, UnitT) |- decl [underscore] =: (One, empty);
     (empty, UnitT) |- decl [avar (aunderscore tint)] =: (One, empty);
     (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) None))] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "x" tint);
+                            avar (aid "y" tbool);
+                            avar (aid "z" (tarray tint None))] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "x" tint);
+                            underscore;
+                            avar (aunderscore tbool)] =: (One, empty);
+    (empty, BoolT) |- decl [underscore; underscore; underscore] =: (One, empty);
+    
     (* DeclAsgn *)
+(*    (empty, UnitT) |- declasgn () *)
+
     (* Asgn *)
     (* Block *)
     (* Return *)

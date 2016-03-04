@@ -25,7 +25,34 @@ let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
 
 let test_expr () =
     let open Pos in
-    empty |- int 42L =: IntT;
+    let one = int 1L in
+    let two = int 1L in
+    let tru = bool true in
+    let fls = bool false in
+
+    empty |- one =: IntT;
+    empty |- tru =: BoolT;
+    empty |- fls =: BoolT;
+    empty |- string "a" =: ArrayT IntT;
+    empty |- char 'c' =: IntT;
+    empty |- (one + two) =: IntT;
+    empty |- (one - two) =: IntT;
+    empty |- (one * two) =: IntT;
+    empty |- (one *>> two) =: IntT;
+    empty |- (one / two) =: IntT;
+    empty |- (one % two) =: IntT;
+    empty |- (~~ one) =: IntT;
+    empty |- (one == two) =: BoolT;
+    empty |- (one != two) =: BoolT;
+    empty |- (one < two) =: BoolT;
+    empty |- (one <= two) =: BoolT;
+    empty |- (one > two) =: BoolT;
+    empty |- (one >= two) =: BoolT;
+    empty |- (!tru) =: BoolT;
+    empty |- (tru == fls) =: BoolT;
+    empty |- (tru != fls) =: BoolT;
+    empty |- (tru & fls) =: BoolT;
+    empty |- (tru || fls) =: BoolT;
     ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

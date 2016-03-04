@@ -13,18 +13,20 @@ let assert_true (b: bool) : unit =
   assert_equal b true
 
 (* Dummy pos *)
-let p = (-1, -1)
 let empty = Context.empty
 
 let (|-) c e = (c, e)
 
-(* If <: is subtype, then =: is equal type. *)
-let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
-  let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
-  assert_true b
+module TestExpr = struct
+  (* If <: is subtype, then =: is equal type. *)
+  let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
+    let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
+    assert_true b
+end
 
 let test_expr () =
     let open Pos in
+    let open TestExpr in
     let one = int 1L in
     let two = int 1L in
     let tru = bool true in

@@ -9,8 +9,6 @@ module Error = struct
   type 'a result = ('a, t) Result.t
 end
 
-let num_e_args     = "Incorrect number of expressions"
-let typ_e_args     = "Ill typed expression"
 let num_f_args     = "Incorrect number of function arguments"
 let typ_f_args     = "Ill typed function arguments"
 let num_p_args     = "Incorrect number of procedure arguments"
@@ -118,12 +116,6 @@ let typeofavar av =
 	| AId (_, t)
 	| AUnderscore t -> Expr.of_typ t
 
-let typeofvar v =
-  match v with
-  | AVar (_, AId  ((_, _), t)) -> Expr.of_typ t
-  | AVar (_, AUnderscore t) -> Expr.of_typ t
-  | Underscore -> UnitT
-
 type context = Sigma.t String.Map.t
 module Context = struct
   include String.Map
@@ -139,7 +131,7 @@ module Context = struct
     | _ -> Error (p, unbound_call x)
 
   let bind c x t =
-    add c x t
+    add c ~key:x ~data:t
 
   let bind_all c vs =
     List.fold_left vs ~init:c ~f:(fun c v ->
@@ -155,8 +147,8 @@ end
 (* Ok and Error constructors are defined in Core.Std. If we open Result, we get
  * shadowed constructor warnings. We manually "open" map and bind to avoid the
  * warnings. *)
-let (>>=) = Result.bind
-let (>>|) = Result.map
+let (>>=) = Result.(>>=)
+let (>>|) = Result.(>>|)
 
 (******************************************************************************)
 (* expr                                                                       *)
@@ -273,7 +265,7 @@ let rec typ_typecheck c (p, t) =
 (******************************************************************************)
 (* avar                                                                       *)
 (******************************************************************************)
-let avar_typecheck c (p, a) =
+let avar_typecheck c (_, a) =
   match a with
   | AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', AId (((), x), t'))
   | AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', AUnderscore t')
@@ -281,7 +273,7 @@ let avar_typecheck c (p, a) =
 (******************************************************************************)
 (* var                                                                        *)
 (******************************************************************************)
-let var_typecheck c (p, v) =
+let var_typecheck c (_, v) =
   match v with
   | AVar a -> avar_typecheck c a >>= fun a' -> Ok (fst a', AVar a')
   | Underscore -> Ok (UnitT, Underscore)
@@ -295,7 +287,7 @@ let avars_typecheck (p: Pos.pos)
 										(avs: Pos.avar list)
 										(dup_var: string)
 										(bound_var: string)
-										: avar list Error.result = 
+										: avar list Error.result =
 	let xs = List.filter_map ~f:varsofavar (List.map ~f:snd avs) in
 	let disjoint = not (List.contains_dup xs) in
 	let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c x)) in
@@ -335,7 +327,7 @@ let stmt_typecheck c rho s =
         if List.for_all (Util.init ss) ~f:(fun (t, _) -> t = One)
           then begin
             match List.last ss with
-            | Some (r, sn) -> Ok ((r, (Block ss)), c)
+            | Some (r, _) -> Ok ((r, (Block ss)), c)
             | None -> Ok ((One, Block ss), c)
           end
           else err "Unreachable code"
@@ -381,7 +373,7 @@ let stmt_typecheck c rho s =
         | t, [e] ->
             exprs_typecheck p c [t] [e] num_ret_args typ_ret_args >>= fun es' ->
             Ok ((Zero, Return es'), c)
-        | t, _ -> err num_ret_args
+        | _, _ -> err num_ret_args
     end
     | Asgn (l, r) -> begin
         match snd l with
@@ -484,13 +476,13 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
     end
 (*
 let check_var_shadow c ((_, av): Pos.avar) =
-  match av with 
+  match av with
   | AId ((p, id), _) ->
-    if Context.mem c id then 
-      Error (p, (Printf.sprintf "Variable %s has already been defined" id)) 
-    else 
-      Ok () 
-  | _ -> Ok () 
+    if Context.mem c id then
+      Error (p, (Printf.sprintf "Variable %s has already been defined" id))
+    else
+      Ok ()
+  | _ -> Ok ()
 *)
 (* let check_varlist_shadow c args = *)
   (* let fold acc e = *)
@@ -551,7 +543,7 @@ let snd_func_pass c (p, call) =
 					Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
 					let call_type = (args_t, rets_t) in
-					Ok (call_type, Func(((), id), avs, ret_list, stmt))	
+					Ok (call_type, Func(((), id), avs, ret_list, stmt))
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
       end
     | Proc ((_,id), args, s) ->
@@ -578,9 +570,9 @@ let prog_typecheck (_, Prog(uses, funcs)) =
   in
   List.fold_left ~init: (Ok Context.empty) ~f:fst_func_fold funcs >>= fun gamma ->
 	Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
-	let use_typecheck use = 
+	let use_typecheck use =
 		match snd use with
 		|Use (_, id) -> ((), Use ((), id))
 	in
 	let use_list = List.map ~f: use_typecheck uses in
-	Ok ((), Prog (use_list, func_list))	
+	Ok ((), Prog (use_list, func_list))

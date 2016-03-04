@@ -1,5 +1,5 @@
 let init xs =
   match List.rev xs with
   | [] -> []
-  | y::ys -> List.rev ys
+  | _::ys -> List.rev ys
 

@@ -745,6 +745,7 @@ let test_expr () =
 let test_stmt () =
     let open Pos in
     let open TestStmt in
+    let open Vars in
 
     (* Decl *)
     (empty, UnitT) |- decl [avar (aid "x" tint)] =: One;
@@ -795,10 +796,19 @@ let test_stmt () =
     (* Return *)
 
     (* If *)
-    (empty, UnitT) |- if_ tru (block []) =: (One, empty);
-    (empty, UnitT) |- if_ fls (block []) =: (One, empty);
-    (empty, UnitT) |- if_ ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) =: (One, empty);
-    (empty, UnitT) |- if_ tru (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: (One, empty);
+    (empty, UnitT) |- if_ tru (block []) =: One;
+    (empty, UnitT) |- if_ fls (block []) =: One;
+    (empty, UnitT) |- if_ ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) =: One;
+    (empty, UnitT) |- if_ tru (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: One;
+    (empty, UnitT) |- if_ tru (decl [avar (aid "x" tint)]) =: One;
+    (empty, UnitT) |- if_ tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (asgn x two) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (block [asgn x two]) =: One;
+    (vars["x", IntT], IntT) |- if_ tru (block [return [x]]) =: Zero;
+    (vars["x", IntT], UnitT) |- if_ tru (if_ fls (asgn x two)) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (ifelse fls (asgn x two) (asgn x three)) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (while_ fls (asgn x two)) =: One;
+    (fgam, UnitT) |- if_ tru (proccall "i2u" []) =: One;
 
     (* IfElse *)
     

@@ -21,7 +21,9 @@ public abstract class XicException extends Exception {
 		INVALID_TOKEN,
 		UNCLOSED_STRING_LITERAL,
 		UNCLOSED_CHAR_LITERAL,
-        SYNTAX
+        SYNTAX,
+		IOERROR,
+		USEERROR
     }
 
     public final ErrorCode code;
@@ -109,4 +111,18 @@ public abstract class XicException extends Exception {
                   "%d:%d error:Unexpected token %s", row, column, symbol));
         }
     }
+
+	public static class XiIOException extends XicException {
+		public XiIOException(String msg) {
+			super(ErrorCode.IOERROR, -1, -1, msg);
+		}
+	}
+
+	public static class XiUseException extends XicException {
+		public XiUseException(int row, int col, String msg) {
+			super(ErrorCode.USEERROR, row, col, String.format(
+				"%d:%d error: Use error: %s", row, col, msg
+            ));
+		}
+	}
 }

@@ -56,8 +56,13 @@ module Expr = struct
     | ArrayT t1, ArrayT t2 -> t1 <= t2
     | _ -> a = b
 
-  let type_max t1 t2 =
-    if t1 <= t2 then t2 else t1
+  let comparable t1 t2 = 
+    t1 <= t2 || t2 <= t1
+
+  let type_max p t1 t2 : t Error.result =
+    if t1 <= t2 then Ok t2
+    else if t2 <= t1 then Ok t1
+    else Error (p, "Incomparable types")
 
   let eqs p xs ys unequal_num mistyped =
     match List.zip xs ys with
@@ -179,11 +184,10 @@ and expr_typecheck c (p, expr) =
   | Array (e::es) -> begin
     expr_typecheck c e >>= fun (t, e) ->
     Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-    if List.for_all ~f:(fun (t1,_) -> t1 <= t) es then
-      let f acc (t1, _) = type_max t1 acc in
-      let t' = List.fold_left es ~f ~init:t in
-      Ok (ArrayT t', Array ((t, e)::es))
-    else Error (p, "Array elements have different types")
+    let f acc (t1, _) = acc >>= type_max p t1 in
+    match List.fold_left es ~f ~init:(Ok t) with
+      | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
+      | Error _ -> Error (p, "Array elements have different types")
   end
   | Id (_, s) -> Context.var p c s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
@@ -194,13 +198,13 @@ and expr_typecheck c (p, expr) =
     | IntT, IntT, (MINUS|STAR|HIGHMULT|DIV|MOD) -> Ok (IntT, e)
     | IntT, IntT, (LT|LTE|GTE|GT|EQEQ|NEQ) -> Ok (BoolT, e)
     | BoolT, BoolT, (AMP|BAR|EQEQ|NEQ) -> Ok (BoolT, e)
-    | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when t1 <= t2 || t2 <= t1 -> Ok (BoolT, e)
+    | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when comparable t1 t2 -> Ok (BoolT, e)
     | EmptyArray, ArrayT _, (EQEQ|NEQ)
     | ArrayT _, EmptyArray, (EQEQ|NEQ)
     | EmptyArray, EmptyArray, (EQEQ|NEQ) -> Ok (BoolT, e)
     | IntT, IntT, PLUS -> Ok (IntT, e)
-    | ArrayT t1, ArrayT t2, PLUS when t1 <= t2 || t2 <= t1 ->
-        Ok (ArrayT (type_max t1 t2), e)
+    | ArrayT t1, ArrayT t2, PLUS when comparable t1 t2 ->
+        type_max p t1 t2 >>= fun max_t -> Ok (ArrayT max_t, e)
     | ArrayT t, EmptyArray, PLUS
     | EmptyArray, ArrayT t, PLUS -> Ok (ArrayT t, e)
     | EmptyArray, EmptyArray, PLUS -> Ok (EmptyArray, e)

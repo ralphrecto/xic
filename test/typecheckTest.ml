@@ -179,47 +179,39 @@ let (|-) c e = (c, e)
 module TestExpr = struct
   (* If <: is subtype, then =: is equal type. *)
   let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
-    let err = begin
-      expr_typecheck c e >>| fun e' ->
+    match expr_typecheck c e with
+    | Ok e' -> begin
       let t' = fst e' in
-      if t' = t then
-        ()
-      else begin
-        printf ">>> %s : %s != %s\n" (Ast.string_of_expr e')
-                                     (to_string t')
-                                     (to_string t);
-        assert_equal t' t
+      if t' <> t then begin
+        printf ">>> %s : %s != %s\n" (Ast.string_of_expr e') (to_string t') (to_string t);
+        assert_true false
       end
-    end in
-    match err with
-    | Ok _ -> ()
+    end
     | Error (_, s) -> begin
         printf ">>> %s =: %s errored with %s\n" (Ast.string_of_expr e) (to_string t) s;
         assert_true false
     end
 
   let (=/=) (c: context) (e: Pos.expr) : unit =
-    begin
-      expr_typecheck c e >>| fun e' ->
-      printf ">>> %s : %s; expected error\n" (Ast.string_of_expr e')
-                                             (to_string (fst e'));
-      assert_true false
+    match expr_typecheck c e with
+    | Ok e' -> begin
+        printf ">>> %s : %s; expected error\n" (Ast.string_of_expr e') (to_string (fst e'));
+        assert_true false
     end
-    |> is_error
-    |> assert_true
+    | Error _ -> ()
 end
 
 module TestCallable = struct
 	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
-		let b = is_ok (fst_func_pass c e >>= fun gamma ->
+		let b = is_ok (func_typecheck c e >>= fun gamma ->
 									 match snd_func_pass gamma e with
 									 | Ok (t, _) -> Ok (assert_equal t func_t)
-									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in 
+									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in
 		assert_true b
 
   let (=/=) (c: context) (e: Pos.callable) : unit =
     begin
-      fst_func_pass c e >>= fun gamma ->
+      func_typecheck c e >>= fun gamma ->
 			snd_func_pass gamma e
     end
     |> is_error
@@ -227,31 +219,25 @@ module TestCallable = struct
 end
 
 module TestStmt = struct
-  let is_equal c c' =
-    let is_subset c c' =
-        Context.fold c' ~init:true ~f:(fun ~key:k ~data:v a ->
-            match Context.find c k with
-            | None    -> false
-            | Some v' -> (v = v') && a)
-    in
-    is_subset c c' && is_subset c' c
-
-  let (=:) ((c, r), s: (context * Expr.t) * Pos.stmt) (t, c': Stmt.t * context) : unit =
-    begin
-      stmt_typecheck c r s >>| fun s' ->
+  let (=:) (((c, r), s): (context * Expr.t) * Pos.stmt) (t: Stmt.t) : unit =
+    match stmt_typecheck c r s with
+    | Ok s' -> begin
       let t' = fst s' in
-      match (t' = t), (is_equal c c') with
-      | true, true -> ()
-      | true, false -> printf ">>> The same context is not returned for a stmt"
-      | false, _ -> begin
-          printf ">>> Error T_T\n"; (* TODO: string_of_stmt *)
-                                   (*(to_string t)
-                                   (to_string t');*)
-          assert_equal t' t
-        end
+      if t' <> t then begin
+        printf ">>> %s : %s != %s\n"
+          (Ast.string_of_stmt s)
+          (Sexp.to_string (Stmt.sexp_of_t t'))
+          (Sexp.to_string (Stmt.sexp_of_t t));
+        assert_true false
+      end
     end
-    |> is_ok
-    |> assert_true
+    | Error (_, msg) -> begin
+        printf ">>> %s =: %s errored with %s\n"
+          (Ast.string_of_stmt s)
+          (Sexp.to_string (Stmt.sexp_of_t t))
+          msg;
+        assert_true false
+    end
 end
 
 let one   = Pos.(int 1L)
@@ -761,24 +747,48 @@ let test_stmt () =
     let open TestStmt in
 
     (* Decl *)
-    (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "y" tbool)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: (One, empty);
-    (empty, UnitT) |- decl [underscore] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aunderscore tint)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) None))] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "x" tint)] =: One;
+    (empty, UnitT) |- decl [avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: One;
+    (empty, UnitT) |- decl [underscore] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore tint)] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) None))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" tint);
                             avar (aid "y" tbool);
-                            avar (aid "z" (tarray tint None))] =: (One, empty);
+                            avar (aid "z" (tarray tint None))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" tint);
                             underscore;
-                            avar (aunderscore tbool)] =: (One, empty);
-    (empty, BoolT) |- decl [underscore; underscore; underscore] =: (One, empty);
+                            avar (aunderscore tbool)] =: One;
+    (empty, BoolT) |- decl [underscore; underscore; underscore] =: One;
 
     (* DeclAsgn *)
-(*    (empty, UnitT) |- declasgn () *)
+    (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: One;
+    (empty, UnitT) |- declasgn [avar (aid "y" tbool)] tru =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tbool None))]
+                               (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[one]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[one; two]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
+                               (arr[arr[one]; arr[two]; arr[one;two]; arr[]])
+                               =: One;
+    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
+                               (arr[arr[]]) =: One;
+
+    (empty, UnitT) |- declasgn [avar (aunderscore tbool)] fls =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
+                               (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
+                               (arr[fls]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
+                               (arr[arr[]]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
+                               (arr[arr[fls]]) =: One;
 
     (* Asgn *)
     (* Block *)
@@ -800,40 +810,53 @@ let test_callable () =
 	(* [], [x] *)
 	empty |- (func "f" [] [tint] (return [int 3L])) =: (UnitT, IntT);
 	empty |- (func "f" [] [tint] (return [(funccall "f" [])])) =: (UnitT, IntT);
-	
+
 	(* [x], [x] *)
 	empty |- (func "id" [(aid "x" tint)] [tint] (return [id "x"])) =: (IntT, IntT);
 	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
-	empty |- (func "id" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
-	
-	(* _::_, [x] *)	
+	empty |- (func "f" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
+	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);	
+
+	(* _::_, [x] *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
-	
+	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"])) 
+						=: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L])) 
+						=: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"])) 
+						=: (TupleT [IntT; IntT; IntT], IntT);
+
 	(* [], _::_ *)
 	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
+	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true])) 
+					  =: (UnitT, TupleT [IntT; IntT; BoolT]);
 
 	(* [x], _::_ *)
 	empty |- (func "f" [(aid "x" tint)] [tint; tint] (return [id "x"; id "x"])) =: (IntT, TupleT [IntT; IntT]);
+	empty |- (func "f" [(aid "x" tbool)] [tbool; tbool; tbool] (return [id "x"; id "x"; id "x"]))
+					  =: (BoolT, TupleT [BoolT; BoolT; BoolT]);
 
 	(* _::_, _::_ *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
-	
-	(* recursion *)	
+	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint] 
+					 (return [id "x"; id "x"; id "x"])) =: (TupleT [IntT; IntT; IntT], TupleT [IntT; IntT; IntT]);
+
+	(* recursion *)
 	empty |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
-	
+
 	(* wrong return type *)
 	empty =/= (func "f" [aid "x" tint] [tbool] (return [id "x"]));
-	
+
 	(* dup args *)
 	empty =/= (func "has_dup" [(aid "x" tint); (aid "x" tint)] [tint] (return [id "x"]));
-	
+
 	(* unbound variable y *)
 	empty =/= (func "f" [aid "x" tint] [tint] (return [id "y"]));
 
@@ -842,18 +865,22 @@ let test_callable () =
 	(* [] *)
 	empty |- (proc "f" [] (proccall "f" [])) =: (UnitT, UnitT);
 
-	(* [x] *) 
+	(* [x] *)
 	empty |- (proc "f" [aid "x" tint] (proccall "f" [id "x"])) =: (IntT, UnitT);
+	empty |- (proc "f" [aunderscore tint] (proccall "f" [int 3L])) =: (IntT, UnitT);
 
 	(* _::_ *)
-	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) =: (TupleT [IntT; IntT], UnitT);
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) 
+						=: (TupleT [IntT; IntT], UnitT);
+	empty |- (proc "f" [aunderscore tint; aunderscore tint] (proccall "f" [int 3L; int 3L]))
+						=: (TupleT [IntT; IntT], UnitT);
 
 	(* dup args *)
 	empty =/= (proc "f" [aid "x" tint; aid "x" tint] (proccall "f" []));
 
 	(* unbound variable y *)
 	empty =/= (proc "f" [] (proccall "y" []));
-	
+
 	(* non-empty context *)
 	let f_binded = Context.bind empty "f" (Function (IntT, IntT)) in
 	let g_binded = Context.bind empty "g" (Function (UnitT, UnitT)) in
@@ -866,7 +893,7 @@ let test_callable () =
 	f_binded |- (func "g" [aid "x" tint] [tint] (return [id "x"])) =: (IntT, IntT);
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "f" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
-	
+
 	(* recursion *)
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);

@@ -85,11 +85,13 @@ module Context: sig
 	val bind_all_avars: context -> avar list -> context
 end
 
-val expr_typecheck: context ->           Pos.expr     -> expr     Error.result
-val typ_typecheck:  context ->           Pos.typ      -> typ      Error.result
-val avar_typecheck: context ->           Pos.avar     -> avar     Error.result
-val var_typecheck:  context ->           Pos.var      -> var      Error.result
-val stmt_typecheck: context -> Expr.t -> Pos.stmt     -> stmt     Error.result
-val fst_func_pass:  context ->           Pos.callable -> context  Error.result
-val snd_func_pass:  context ->           Pos.callable -> callable Error.result
-val prog_typecheck:                      Pos.prog     -> prog     Error.result
+val expr_typecheck: context -> Pos.expr -> expr Error.result
+val typ_typecheck: context -> Pos.typ -> typ Error.result
+val avar_typecheck: context -> Pos.avar -> avar Error.result
+val var_typecheck: context -> Pos.var -> var Error.result
+val stmt_typecheck: context -> Expr.t -> Pos.stmt -> stmt Error.result
+val func_decl_typecheck: context -> Pos.callable_decl -> context Error.result
+val func_typecheck: context -> Pos.callable -> context Error.result
+val fst_func_pass: Pos.callable list -> Pos.interface list -> context Error.result
+val snd_func_pass: context -> Pos.callable -> callable Error.result
+val prog_typecheck: Pos.full_prog -> prog Error.result

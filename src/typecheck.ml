@@ -22,7 +22,7 @@ let bound_var_decl = "Cannot rebind variable"
 let num_decl_vars  = "Incorrect number of variables in declassign"
 let typ_decl_vars  = "Ill typed variable declassign"
 let dup_func_decl x = sprintf "Function %s has already been declared" x
-
+let no_return = "Function is missing return"
 
 module Expr = struct
   type t =
@@ -249,6 +249,8 @@ and expr_typecheck c (p, expr) =
   | FuncCall ((_, f), args) -> begin
     Context.func p c f >>= fun (a, b) ->
     match (a, b), args with
+    | (_, UnitT), _ -> Error (p, "Using proc call as an expr")
+    | (UnitT, _), _::_ -> Error (p, "Giving args to a function with no params")
     | (UnitT, t), [] when t <> UnitT -> Ok (t, FuncCall (((), f), []))
     | (TupleT t1, t2), _::_::_ when t2 <> UnitT ->
         exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
@@ -414,10 +416,10 @@ let stmt_typecheck c rho s =
         match vs', fst e' with
         | _, TupleT ets' ->
             let vts' = List.map ~f:fst vs' in
-            Expr.eqs p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
+            Expr.eqs p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
             Ok ((One, DeclAsgn (vs', e')), Context.bind_all_vars c vs')
         | [v'], _ ->
-            Expr.eqs p [fst e'] [fst v'] num_decl_vars typ_decl_vars
+            Expr.eqs p [fst v'] [fst e'] num_decl_vars typ_decl_vars
             >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all_vars c vs')
         | _, _ -> err "Invalid declassign"
     end
@@ -433,9 +435,8 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AId (_, typ) -> Expr.of_typ typ
   | AUnderscore typ -> Expr.of_typ typ
 
-let fst_func_pass (c: context) ((p, call): Pos.callable) =
-  match call with
-  | Func ((_, id), args, rets, _) ->
+let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
+  match call with | FuncDecl ((_, id), args, rets) ->
     begin
       if Context.mem c id then
         Error (p, dup_func_decl id)
@@ -471,7 +472,7 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
-  | Proc ((_, id), args, _) ->
+  | ProcDecl ((_, id), args) ->
     begin
       if Context.mem c id then
         Error (p, dup_func_decl id)
@@ -489,23 +490,38 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
           let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
           Ok c'
     end
-(*
-let check_var_shadow c ((_, av): Pos.avar) =
-  match av with
-  | AId ((p, id), _) ->
-    if Context.mem c id then
-      Error (p, (Printf.sprintf "Variable %s has already been defined" id))
-    else
-      Ok ()
-  | _ -> Ok ()
-*)
-(* let check_varlist_shadow c args = *)
-  (* let fold acc e = *)
-    (* acc >>= fun _ -> check_var_shadow c e *)
-  (* in *)
-  (* List.fold_left ~f:fold ~init:(Ok ()) args *)
 
-  (*
+let func_typecheck (c: context) ((p, call): Pos.callable) =
+  let call' = match call with
+  | Func (i, args, rets, _) -> FuncDecl (i, args, rets)
+  | Proc (i, args, _) -> ProcDecl (i, args) in
+  func_decl_typecheck c (p, call')
+
+let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
+  let interface_map_fold (_, Interface l) =
+    let func_decl_fold acc e =
+      acc >>= fun g -> func_decl_typecheck g e in
+    List.fold_left ~init:(Ok Context.empty) ~f:func_decl_fold l in
+  let inter_contexts =
+    List.map ~f:interface_map_fold interfaces in
+  let func_fold acc e =
+    acc >>= fun g -> func_typecheck g e in
+  let prog_context =
+    List.fold_left ~init:(Ok Context.empty) ~f:func_fold prog_funcs in
+  prog_context::inter_contexts |> Result.all >>= fun contexts ->
+    let context_fold big_context next_context =
+      let context_union ~key ~data unified_res =
+        unified_res >>= fun unified ->
+        match String.Map.find unified key with
+        | Some data' ->
+            if data' = data then Ok unified
+            else
+              Error ((-1, -1), sprintf "function %s has inconsistent type declarations" key)
+        | None -> Ok (Context.bind unified key data) in
+      String.Map.fold ~init:big_context ~f:context_union next_context in
+    List.fold_left ~init:(Ok Context.empty) ~f:context_fold contexts
+
+(*
 TODO: should the position of the errors be more accurate? i.e. the actual
  position of the arg that was already defined
 Ensures parameters do not shadow and body is well-typed
@@ -519,50 +535,74 @@ let snd_func_pass c (p, call) =
         | [], [ret_typ] ->
 					let ret_t = Expr.of_typ ret_typ in
           stmt_typecheck c ret_t s >>= fun stmt ->
-					typ_typecheck c ret_typ >>= fun ret ->
-					let call_type = (UnitT, ret_t) in
-					Ok (call_type, Func (((), id), [], [ret], stmt))
+					begin
+						match stmt with
+						| Zero, _ -> typ_typecheck c ret_typ >>= fun ret ->
+												let call_type = (UnitT, ret_t) in
+												Ok (call_type, Func (((), id), [], [ret], stmt))
+						| One, _ -> Error (p, no_return) 
+					end
         | [args'], [ret_typ] ->
 					let ret_t = Expr.of_typ ret_typ in
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
 					let c' = Context.bind_all_avars c avs in
           stmt_typecheck c' ret_t s >>= fun stmt ->
-					typ_typecheck c' ret_typ >>= fun ret ->
-					let call_type = (typeofavar (snd args'), ret_t) in
-        	Ok (call_type, Func (((), id), avs, [ret], stmt))
+					begin
+						match fst stmt with
+						| Zero -> typ_typecheck c' ret_typ >>= fun ret ->
+												let call_type = (typeofavar (snd args'), ret_t) in
+ 		       							Ok (call_type, Func (((), id), avs, [ret], stmt))
+						| One -> Error (p, no_return)
+					end
 				| _::_, [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
          	let c' = Context.bind_all_avars c avs in
 					stmt_typecheck c' ret_t s >>= fun stmt ->
-					typ_typecheck c' ret_typ >>= fun ret ->
-					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
-					let call_type = (args_t, ret_t) in
-					Ok (call_type, Func (((), id), avs, [ret], stmt))
+					begin
+						match fst stmt with
+						| Zero -> typ_typecheck c' ret_typ >>= fun ret ->
+											let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
+											let call_type = (args_t, ret_t) in
+											Ok (call_type, Func (((), id), avs, [ret], stmt))
+						| One -> Error (p, no_return)
+					end
         | [], _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           stmt_typecheck c rets_t s >>= fun stmt ->
-					Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
-					let call_type = (UnitT, rets_t) in
-					Ok (call_type, Func (((), id), [], ret_list, stmt))
+					begin
+						match fst stmt with
+						| Zero -> Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
+											let call_type = (UnitT, rets_t) in
+											Ok (call_type, Func (((), id), [], ret_list, stmt))
+						| One -> Error (p, no_return)
+					end
         | [args'], _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
           let c' = Context.bind_all_avars c avs in
 					stmt_typecheck c' rets_t s >>= fun stmt ->
-					Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
-					let arg_t = typeofavar (snd args') in
-					let call_type = (arg_t, rets_t) in
-					Ok (call_type, Func(((), id), avs, ret_list, stmt))
+					begin
+						match fst stmt with
+						| Zero ->	Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
+											let arg_t = typeofavar (snd args') in
+											let call_type = (arg_t, rets_t) in
+											Ok (call_type, Func(((), id), avs, ret_list, stmt))
+						| One -> Error (p, no_return)
+					end
         | _::_, _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
          	let c' = Context.bind_all_avars c avs in
 					stmt_typecheck c' rets_t s >>= fun stmt ->
-					Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
-					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
-					let call_type = (args_t, rets_t) in
-					Ok (call_type, Func(((), id), avs, ret_list, stmt))
+					begin
+						match fst stmt with
+						| Zero -> Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
+											let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
+											let call_type = (args_t, rets_t) in
+											Ok (call_type, Func(((), id), avs, ret_list, stmt))
+						| One -> Error (p, no_return)
+					end
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
       end
     | Proc ((_,id), args, s) ->
@@ -578,7 +618,7 @@ let snd_func_pass c (p, call) =
 					stmt_typecheck c' UnitT s >>= fun stmt ->
 					let arg_t = typeofavar (snd arg_avar) in
 					let call_type = (arg_t, UnitT) in
-					Ok (call_type, Proc(((), id), avs, stmt))	
+					Ok (call_type, Proc(((), id), avs, stmt))
         | _ ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
          	let c' = Context.bind_all_avars c avs in
@@ -591,11 +631,8 @@ let snd_func_pass c (p, call) =
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (_, Prog(uses, funcs)) =
-  let fst_func_fold acc e =
-    acc >>= fun g -> fst_func_pass g e
-  in
-  List.fold_left ~init: (Ok Context.empty) ~f:fst_func_fold funcs >>= fun gamma ->
+let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
+  fst_func_pass funcs interfaces >>= fun gamma ->
 	Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
 	let use_typecheck use =
 		match snd use with

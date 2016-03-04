@@ -154,6 +154,8 @@ module Vars = struct
   let iaia2iab  = ("iaia2iab",  TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; BoolT])
   let iaia2iaia = ("iaia2iaia", TupleT [ArrayT IntT; ArrayT IntT], TupleT [ArrayT IntT; ArrayT IntT])
 
+  let iaup = ("iaup", TupleT [ArrayT IntT; ArrayT (ArrayT IntT); ArrayT (ArrayT (ArrayT IntT))], IntT)
+  let iadown = ("iadown", TupleT [ArrayT (ArrayT (ArrayT IntT)); ArrayT (ArrayT IntT); ArrayT IntT], IntT)
 
   let fgam = funcs [
     u2u; u2i; u2b; u2ia; i2u; i2i; i2b; i2ia; b2u; b2i; b2b; b2ia; ia2u; ia2i;
@@ -167,6 +169,8 @@ module Vars = struct
     iia2ib; iia2iia; bi2bi; bi2bb; bi2bia; bb2bi; bb2bb; bb2bia; bia2bi;
     bia2bb; bia2bia; iai2iai; iai2iab; iai2iaia; iab2iai; iab2iab; iab2iaia;
     iaia2iai; iaia2iab; iaia2iaia;
+
+    iaup; iadown
   ]
 end
 
@@ -589,7 +593,10 @@ let test_expr () =
     fgam |- (funccall "iab2iaia" [arr[one];tru]) =: TupleT[ArrayT IntT;ArrayT IntT];
     fgam |- (funccall "iaia2iai" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;IntT];
     fgam |- (funccall "iaia2iab" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;BoolT];
-    fgam |- (funccall "iaia2iaia" [arr[one];arr[one]]) =: TupleT[ArrayT IntT;ArrayT IntT];
+
+    fgam |- (funccall "iaia2i" [arr[];arr[one]]) =: IntT;
+    fgam |- (funccall "iaia2i" [arr[one];arr[]]) =: IntT;
+    fgam |- (funccall "iaia2i" [arr[];arr[]]) =: IntT;
 
     fgam =/= (funccall "u2u" []);
     fgam =/= (funccall "i2u" [one]);
@@ -627,7 +634,7 @@ let test_stmt () =
                             underscore;
                             avar (aunderscore tbool)] =: (One, empty);
     (empty, BoolT) |- decl [underscore; underscore; underscore] =: (One, empty);
-    
+
     (* DeclAsgn *)
 (*    (empty, UnitT) |- declasgn () *)
 

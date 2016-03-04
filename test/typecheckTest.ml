@@ -807,8 +807,15 @@ let test_stmt () =
     (* Asgn *)
     (* Block *)
     (* Return *)
+
     (* If *)
+    (empty, UnitT) |- if_ tru (block []) =: (One, empty);
+    (empty, UnitT) |- if_ fls (block []) =: (One, empty);
+    (empty, UnitT) |- if_ ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) =: (One, empty);
+    (empty, UnitT) |- if_ tru (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: (One, empty);
+
     (* IfElse *)
+    
     (* While *)
     (* ProcCall *)
 

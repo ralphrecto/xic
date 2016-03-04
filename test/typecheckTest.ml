@@ -34,6 +34,15 @@ module TestExpr = struct
     end
     |> is_ok
     |> assert_true
+
+  let (=/=) (c: context) (e: Pos.expr) : unit =
+    begin
+      expr_typecheck c e >>| fun e' ->
+      printf ">>> %s : %s; expected error" (Ast.string_of_expr e')
+                                           (to_string (fst e'))
+    end
+    |> is_error
+    |> assert_true
 end
 
 let one   = Pos.(int 1L)
@@ -51,6 +60,7 @@ let test_expr () =
     empty |- (fls) =: BoolT;
     empty |- (string "a") =: ArrayT IntT;
     empty |- (char 'c') =: IntT;
+
     empty |- (one + two) =: IntT;
     empty |- (one - two) =: IntT;
     empty |- (one * two) =: IntT;
@@ -58,6 +68,27 @@ let test_expr () =
     empty |- (one / two) =: IntT;
     empty |- (one % two) =: IntT;
     empty |- (~~ one) =: IntT;
+
+    empty =/= (tru + two);
+    empty =/= (tru - two);
+    empty =/= (tru * two);
+    empty =/= (tru *>> two);
+    empty =/= (tru / two);
+    empty =/= (tru % two);
+    empty =/= (one + tru);
+    empty =/= (one - tru);
+    empty =/= (one * tru);
+    empty =/= (one *>> tru);
+    empty =/= (one / tru);
+    empty =/= (one % tru);
+    empty =/= (tru + tru);
+    empty =/= (tru - tru);
+    empty =/= (tru * tru);
+    empty =/= (tru *>> tru);
+    empty =/= (tru / tru);
+    empty =/= (tru % tru);
+    empty =/= (~~ tru);
+
     empty |- (one == two) =: BoolT;
     empty |- (one != two) =: BoolT;
     empty |- (one < two) =: BoolT;
@@ -65,10 +96,33 @@ let test_expr () =
     empty |- (one > two) =: BoolT;
     empty |- (one >= two) =: BoolT;
     empty |- (!tru) =: BoolT;
+
+    empty =/= (tru < two);
+    empty =/= (tru <= two);
+    empty =/= (tru > two);
+    empty =/= (tru >= two);
+    empty =/= (one < tru);
+    empty =/= (one <= tru);
+    empty =/= (one > tru);
+    empty =/= (one >= tru);
+    empty =/= (tru < tru);
+    empty =/= (tru <= tru);
+    empty =/= (tru > tru);
+    empty =/= (tru >= tru);
+    empty =/= (!one);
+
     empty |- (tru == fls) =: BoolT;
     empty |- (tru != fls) =: BoolT;
     empty |- (tru & fls) =: BoolT;
     empty |- (tru || fls) =: BoolT;
+
+    empty =/= (one & fls);
+    empty =/= (one || fls);
+    empty =/= (tru & one);
+    empty =/= (tru || one);
+    empty =/= (one & one);
+    empty =/= (one || one);
+
     empty |- (arr[]    == arr[]) =: BoolT;
     empty |- (arr[one] == arr[]) =: BoolT;
     empty |- (arr[]    == arr[one]) =: BoolT;
@@ -77,6 +131,7 @@ let test_expr () =
     empty |- (arr[one] != arr[]) =: BoolT;
     empty |- (arr[]    != arr[one]) =: BoolT;
     empty |- (arr[one] != arr[one]) =: BoolT;
+
     empty |- (length (arr[])) =: IntT;
     empty |- (length (arr[one])) =: IntT;
     empty |- (arr []) =: EmptyArray;
@@ -84,12 +139,10 @@ let test_expr () =
     empty |- (arr [one; two]) =: ArrayT IntT;
     empty |- (arr [one; two; three]) =: ArrayT IntT;
     empty |- (arr [one; two; three; one]) =: ArrayT IntT;
-
     empty |- (arr [tru]) =: ArrayT BoolT;
     empty |- (arr [tru; fls]) =: ArrayT BoolT;
     empty |- (arr [tru; fls; tru]) =: ArrayT BoolT;
     empty |- (arr [tru; fls; tru; fls]) =: ArrayT BoolT;
-
     empty |- (arr [arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
@@ -97,7 +150,6 @@ let test_expr () =
     empty |- (arr [arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
-
     empty |- (arr [arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
@@ -105,7 +157,6 @@ let test_expr () =
     empty |- (arr [arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr [arr[tru]; arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
-
     empty |- (arr [arr [arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[tru]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
@@ -113,6 +164,13 @@ let test_expr () =
     empty |- (arr [arr [arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[tru]; arr[]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[tru]; arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+
+    empty |- (index (arr[one]) one) =: IntT;
+    empty |- (index (arr[tru]) one) =: BoolT;
+    empty |- (index (arr[arr[one]]) one) =: ArrayT IntT;
+    empty |- (index (arr[arr[one]]) one) =: ArrayT IntT;
+    empty |- (index (arr[arr[arr[tru]]]) one) =: ArrayT (ArrayT BoolT);
+    empty |- (index (arr[arr[arr[tru]]]) one) =: ArrayT (ArrayT BoolT);
 
     ()
 

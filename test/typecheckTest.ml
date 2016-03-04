@@ -629,7 +629,31 @@ let test_stmt () =
     (empty, BoolT) |- decl [underscore; underscore; underscore] =: (One, empty);
     
     (* DeclAsgn *)
-(*    (empty, UnitT) |- declasgn () *)
+    (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "y" tbool)] tru =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tbool None))]
+                               (arr[]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[one]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
+                               (arr[one; two]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
+                               (arr[arr[one]; arr[two]; arr[one;two]; arr[]])
+                               =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
+                               (arr[arr[]]) =: (One, empty);
+
+    (empty, UnitT) |- declasgn [avar (aunderscore tbool)] fls =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
+                               (arr[]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
+                               (arr[fls]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
+                               (arr[arr[]]) =: (One, empty);
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
+                               (arr[arr[fls]]) =: (One, empty);
 
     (* Asgn *)
     (* Block *)

@@ -38,8 +38,8 @@ module TestExpr = struct
   let (=/=) (c: context) (e: Pos.expr) : unit =
     begin
       expr_typecheck c e >>| fun e' ->
-      printf ">>> %s : %s; expected error" (Ast.string_of_expr e')
-                                           (to_string (fst e'))
+      printf ">>> %s : %s; expected error\n" (Ast.string_of_expr e')
+                                             (to_string (fst e'))
     end
     |> is_error
     |> assert_true
@@ -132,8 +132,24 @@ let test_expr () =
     empty |- (arr[]    != arr[one]) =: BoolT;
     empty |- (arr[one] != arr[one]) =: BoolT;
 
+    empty =/= (arr[one] == arr[tru]);
+    empty =/= (arr[tru] == arr[one]);
+    empty =/= (arr[one] == arr[arr[one]]);
+    empty =/= (arr[arr[one]] == arr[one]);
+    empty =/= (arr[tru] == arr[arr[one]]);
+    empty =/= (arr[arr[tru]] == arr[one]);
+    empty =/= (arr[one] != arr[tru]);
+    empty =/= (arr[tru] != arr[one]);
+    empty =/= (arr[one] != arr[arr[one]]);
+    empty =/= (arr[arr[one]] != arr[one]);
+    empty =/= (arr[tru] != arr[arr[one]]);
+    empty =/= (arr[arr[tru]] != arr[one]);
+
     empty |- (length (arr[])) =: IntT;
     empty |- (length (arr[one])) =: IntT;
+    empty =/= (length one);
+    empty =/= (length tru);
+
     empty |- (arr []) =: EmptyArray;
     empty |- (arr [one]) =: ArrayT IntT;
     empty |- (arr [one; two]) =: ArrayT IntT;
@@ -164,6 +180,19 @@ let test_expr () =
     empty |- (arr [arr [arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[tru]; arr[]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr [arr [arr[tru]; arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+
+    empty =/= (arr[one;tru]);
+    empty =/= (arr[tru;one]);
+    empty =/= (arr[one;tru;one]);
+    empty =/= (arr[tru;one;tru]);
+    empty =/= (arr[one;one;tru]);
+    empty =/= (arr[tru;tru;one]);
+    empty =/= (arr[one;arr[]]);
+    empty =/= (arr[arr[];one]);
+    empty =/= (arr[one;arr[];one]);
+    empty =/= (arr[arr[];one;arr[]]);
+    empty =/= (arr[one;one;arr[]]);
+    empty =/= (arr[one;arr[];arr[]]);
 
     empty |- (index (arr[one]) one) =: IntT;
     empty |- (index (arr[tru]) one) =: BoolT;

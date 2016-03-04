@@ -357,7 +357,6 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
 
     public Void visit(Ast.Interface<Position> i) {
         printer.startList();
-        i.uses.forEach(u -> u.accept(this));
         i.fs.forEach(f -> f.accept(this));
         printer.endList();
         return null;

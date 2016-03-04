@@ -493,8 +493,8 @@ func_def_plus ::= func_def:f
 
 prog ::= use_def_star:us func_def_plus:fs
     {: RESULT = Program.of(new Position(usleft, usright), us, fs); :}
-    | use_def_star:us callable_decl_plus:cs
-    {: RESULT = Interface.of(new Position(usleft, usright), us, cs); :}
+    | callable_decl_plus:cs
+    {: RESULT = Interface.of(new Position(csleft, csright), cs); :}
 	;
 
 

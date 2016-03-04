@@ -1,0 +1,2 @@
+factorial(a:int) : int
+p_or_np(p:bool, np:bool) : bool

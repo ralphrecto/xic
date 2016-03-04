@@ -435,9 +435,8 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AId (_, typ) -> Expr.of_typ typ
   | AUnderscore typ -> Expr.of_typ typ
 
-let fst_func_pass (c: context) ((p, call): Pos.callable) =
-  match call with
-  | Func ((_, id), args, rets, _) ->
+let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
+  match call with | FuncDecl ((_, id), args, rets) ->
     begin
       if Context.mem c id then
         Error (p, dup_func_decl id)
@@ -473,7 +472,7 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
-  | Proc ((_, id), args, _) ->
+  | ProcDecl ((_, id), args) ->
     begin
       if Context.mem c id then
         Error (p, dup_func_decl id)
@@ -491,6 +490,37 @@ let fst_func_pass (c: context) ((p, call): Pos.callable) =
           let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
           Ok c'
     end
+
+let func_typecheck (c: context) ((p, call): Pos.callable) =
+  let call' = match call with
+  | Func (i, args, rets, _) -> FuncDecl (i, args, rets)
+  | Proc (i, args, _) -> ProcDecl (i, args) in
+  func_decl_typecheck c (p, call')
+
+let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
+  let interface_map_fold (_, Interface l) =
+    let func_decl_fold acc e = 
+      acc >>= fun g -> func_decl_typecheck g e in
+    List.fold_left ~init:(Ok Context.empty) ~f:func_decl_fold l in
+  let inter_contexts =
+    List.map ~f:interface_map_fold interfaces in
+  let func_fold acc e =
+    acc >>= fun g -> func_typecheck g e in
+  let prog_context =
+    List.fold_left ~init:(Ok Context.empty) ~f:func_fold prog_funcs in
+  prog_context::inter_contexts |> Result.all >>= fun contexts ->
+    let context_fold big_context next_context =
+      let context_union ~key ~data unified_res =
+        unified_res >>= fun unified ->
+        match String.Map.find unified key with
+        | Some data' ->
+            if data' = data then Ok unified
+            else
+              Error ((-1, -1), sprintf "function %s has inconsistent type declarations" key)
+        | None -> Ok (Context.bind unified key data) in
+      String.Map.fold ~init:big_context ~f:context_union next_context in
+    List.fold_left ~init:(Ok Context.empty) ~f:context_fold contexts
+
 (*
 let check_var_shadow c ((_, av): Pos.avar) =
   match av with
@@ -593,11 +623,8 @@ let snd_func_pass c (p, call) =
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (_, Prog(uses, funcs)) =
-  let fst_func_fold acc e =
-    acc >>= fun g -> fst_func_pass g e
-  in
-  List.fold_left ~init: (Ok Context.empty) ~f:fst_func_fold funcs >>= fun gamma ->
+let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
+  fst_func_pass funcs interfaces >>= fun gamma ->
 	Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
 	let use_typecheck use =
 		match snd use with

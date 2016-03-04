@@ -203,7 +203,7 @@ end
 
 module TestCallable = struct
 	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
-		let b = is_ok (fst_func_pass c e >>= fun gamma ->
+		let b = is_ok (func_typecheck c e >>= fun gamma ->
 									 match snd_func_pass gamma e with
 									 | Ok (t, _) -> Ok (assert_equal t func_t)
 									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in
@@ -211,7 +211,7 @@ module TestCallable = struct
 
   let (=/=) (c: context) (e: Pos.callable) : unit =
     begin
-      fst_func_pass c e >>= fun gamma ->
+      func_typecheck c e >>= fun gamma ->
 			snd_func_pass gamma e
     end
     |> is_error

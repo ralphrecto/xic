@@ -49,11 +49,15 @@ module Expr = struct
     | TBool -> BoolT
     | TArray (t, _) -> ArrayT (of_typ t)
 
-  let (<=) a b =
+  let rec (<=) a b =
     match a, b with
     | _, UnitT -> true
     | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
+    | ArrayT t1, ArrayT t2 -> t1 <= t2
     | _ -> a = b
+
+  let type_max t1 t2 =
+    if t1 <= t2 then t2 else t1
 
   let eqs p xs ys unequal_num mistyped =
     match List.zip xs ys with
@@ -175,14 +179,8 @@ and expr_typecheck c (p, expr) =
   | Array (e::es) -> begin
     expr_typecheck c e >>= fun (t, e) ->
     Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-    let array_eq (t', _) =
-      match t', t with
-      | ArrayT _, EmptyArray
-      | EmptyArray, ArrayT _ -> true
-      | _ -> t' = t
-    in
-    if List.for_all ~f:array_eq es then
-      let f acc (x, _) = if acc = EmptyArray then x else acc in
+    if List.for_all ~f:(fun (t1,_) -> t1 <= t) es then
+      let f acc (t1, _) = type_max t1 acc in
       let t' = List.fold_left es ~f ~init:t in
       Ok (ArrayT t', Array ((t, e)::es))
     else Error (p, "Array elements have different types")
@@ -196,9 +194,13 @@ and expr_typecheck c (p, expr) =
     | IntT, IntT, (MINUS|STAR|HIGHMULT|DIV|MOD) -> Ok (IntT, e)
     | IntT, IntT, (LT|LTE|GTE|GT|EQEQ|NEQ) -> Ok (BoolT, e)
     | BoolT, BoolT, (AMP|BAR|EQEQ|NEQ) -> Ok (BoolT, e)
-    | (ArrayT _ | EmptyArray), (ArrayT _ | EmptyArray), (EQEQ|NEQ) -> Ok (BoolT, e)
+    | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when t1 <= t2 || t2 <= t1 -> Ok (BoolT, e)
+    | EmptyArray, ArrayT _, (EQEQ|NEQ)
+    | ArrayT _, EmptyArray, (EQEQ|NEQ)
+    | EmptyArray, EmptyArray, (EQEQ|NEQ) -> Ok (BoolT, e)
     | IntT, IntT, PLUS -> Ok (IntT, e)
-    | ArrayT t1, ArrayT t2, PLUS when t1 = t2 -> Ok (ArrayT t1, e)
+    | ArrayT t1, ArrayT t2, PLUS when t1 <= t2 || t2 <= t1 ->
+        Ok (ArrayT (type_max t1 t2), e)
     | ArrayT t, EmptyArray, PLUS
     | EmptyArray, ArrayT t, PLUS -> Ok (ArrayT t, e)
     | EmptyArray, EmptyArray, PLUS -> Ok (EmptyArray, e)

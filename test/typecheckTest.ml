@@ -643,6 +643,9 @@ let test_expr () =
     fgam =/= (funccall "iai2u" [arr[one]; one]);
     fgam =/= (funccall "iab2u" [arr[one]; tru]);
     fgam =/= (funccall "iaia2u" [arr[one]; arr[one]]);
+    fgam =/= (funccall "u2u" [arr[]]);
+    fgam =/= (funccall "i2u" [arr[]]);
+    fgam =/= (funccall "i2u" [arr[arr[]]]);
 
     fgam =/= (funccall "u2i" [one]);
     fgam =/= (funccall "u2b" [one]);

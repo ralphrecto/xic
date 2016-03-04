@@ -20,23 +20,37 @@ let (|-) c e = (c, e)
 module TestExpr = struct
   (* If <: is subtype, then =: is equal type. *)
   let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
-    let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
-    assert_true b
+    begin
+      expr_typecheck c e >>| fun e' ->
+      let t' = fst e' in
+      if t' = t then
+        ()
+      else begin
+        printf ">>> %s : %s != %s\n" (Ast.string_of_expr e')
+                                     (to_string t')
+                                     (to_string t);
+        assert_equal t' t
+      end
+    end
+    |> is_ok
+    |> assert_true
 end
+
+let one   = Pos.(int 1L)
+let two   = Pos.(int 1L)
+let three = Pos.(int 1L)
+let tru   = Pos.(bool true)
+let fls   = Pos.(bool false)
 
 let test_expr () =
     let open Pos in
     let open TestExpr in
-    let one = int 1L in
-    let two = int 1L in
-    let tru = bool true in
-    let fls = bool false in
 
-    empty |- one =: IntT;
-    empty |- tru =: BoolT;
-    empty |- fls =: BoolT;
-    empty |- string "a" =: ArrayT IntT;
-    empty |- char 'c' =: IntT;
+    empty |- (one) =: IntT;
+    empty |- (tru) =: BoolT;
+    empty |- (fls) =: BoolT;
+    empty |- (string "a") =: ArrayT IntT;
+    empty |- (char 'c') =: IntT;
     empty |- (one + two) =: IntT;
     empty |- (one - two) =: IntT;
     empty |- (one * two) =: IntT;
@@ -55,6 +69,51 @@ let test_expr () =
     empty |- (tru != fls) =: BoolT;
     empty |- (tru & fls) =: BoolT;
     empty |- (tru || fls) =: BoolT;
+    empty |- (arr[]    == arr[]) =: BoolT;
+    empty |- (arr[one] == arr[]) =: BoolT;
+    empty |- (arr[]    == arr[one]) =: BoolT;
+    empty |- (arr[one] == arr[one]) =: BoolT;
+    empty |- (arr[]    != arr[]) =: BoolT;
+    empty |- (arr[one] != arr[]) =: BoolT;
+    empty |- (arr[]    != arr[one]) =: BoolT;
+    empty |- (arr[one] != arr[one]) =: BoolT;
+    empty |- (length (arr[])) =: IntT;
+    empty |- (length (arr[one])) =: IntT;
+    empty |- (arr []) =: EmptyArray;
+    empty |- (arr [one]) =: ArrayT IntT;
+    empty |- (arr [one; two]) =: ArrayT IntT;
+    empty |- (arr [one; two; three]) =: ArrayT IntT;
+    empty |- (arr [one; two; three; one]) =: ArrayT IntT;
+
+    empty |- (arr [tru]) =: ArrayT BoolT;
+    empty |- (arr [tru; fls]) =: ArrayT BoolT;
+    empty |- (arr [tru; fls; tru]) =: ArrayT BoolT;
+    empty |- (arr [tru; fls; tru; fls]) =: ArrayT BoolT;
+
+    empty |- (arr [arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[]; arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
+
+    empty |- (arr [arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[]; arr[tru]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[]; arr[tru]]) =: ArrayT (ArrayT BoolT);
+    empty |- (arr [arr[tru]; arr[tru]; arr[]]) =: ArrayT (ArrayT BoolT);
+
+    empty |- (arr [arr [arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[tru]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[]; arr[tru]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[tru]; arr[]; arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr [arr [arr[tru]; arr[tru]; arr[]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+
     ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

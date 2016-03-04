@@ -153,6 +153,23 @@ let string_of_unop_code (c: S.unop_code) : string =
   | S.UMINUS -> "-"
   | S.BANG   -> "!"
 
+let rec string_of_expr (_, e) : string =
+  let soe = string_of_expr in
+  match e with
+  | S.Int i -> sprintf "%s" (Int64.to_string_hum i)
+  | S.Bool b -> sprintf "%b" b
+  | S.String s -> sprintf "\"%s\"" s
+  | S.Char c -> sprintf "'%c'" c
+  | S.Array es -> sprintf "{%s}" (Util.commas (List.map ~f:soe es))
+  | S.Id (_, x) -> x
+  | S.BinOp (lhs, c, rhs) -> sprintf "%s%s%s" (soe lhs)
+                                              (string_of_binop_code c)
+                                              (soe rhs)
+  | S.UnOp (c, e) -> sprintf "%s%s" (string_of_unop_code c) (soe e)
+  | S.Index (a, i) -> sprintf "%s[%s]" (soe a) (soe i)
+  | S.Length e -> sprintf "length(%s)" (soe e)
+  | S.FuncCall ((_, f), args) -> sprintf "%s(%s)" f (Util.commas (List.map ~f:soe args))
+
 module type TAGS = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]

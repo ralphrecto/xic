@@ -6,9 +6,6 @@ open Stmt
 open Sigma
 open Ast.S
 
-(* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
-(* ! ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TEST *)
-(* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
@@ -17,7 +14,7 @@ let assert_true (b: bool) : unit =
 
 (* Dummy pos *)
 let p = (-1, -1)
-let empty_c = Context.empty
+let empty = Context.empty
 
 let (|-) c e = (c, e)
 
@@ -27,11 +24,12 @@ let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
   assert_true b
 
 let test_expr () =
-    empty_c |- (p, Int 42L) =: IntT;
+    let open Pos in
+    empty |- int 42L =: IntT;
     ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
-(* ! ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TEST *)
+(* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [

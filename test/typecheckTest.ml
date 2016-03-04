@@ -839,7 +839,111 @@ let test_stmt () =
 
     (* Asgn *)
     (* Block *)
+
     (* Return *)
+    (empty, UnitT) |- (return []) =: Zero;
+
+    (empty, IntT) =/= (return []);
+    (empty, BoolT) =/= (return []);
+    (empty, ArrayT IntT) =/= (return []);
+
+    (empty, ArrayT (ArrayT IntT)) =/= (return []);
+    (empty, IntT) |- (return [one]) =: Zero;
+    (empty, BoolT) |- (return [tru]) =: Zero;
+    (empty, ArrayT BoolT) |- (return [arr[tru]]) =: Zero;
+    (empty, ArrayT IntT) |- (return [arr[one]]) =: Zero;
+    (empty, ArrayT IntT) |- (return [arr[]]) =: Zero;
+    (empty, ArrayT (ArrayT IntT)) |- (return [arr[]]) =: Zero;
+    (empty, ArrayT (ArrayT IntT)) |- (return [arr[arr[]]]) =: Zero;
+    (empty, ArrayT (ArrayT (ArrayT IntT))) |- (return [arr[]]) =: Zero;
+    (empty, ArrayT (ArrayT (ArrayT IntT))) |- (return [arr[arr[]]]) =: Zero;
+    (empty, ArrayT (ArrayT (ArrayT IntT))) |- (return [arr[arr[arr[]]]]) =: Zero;
+
+    (empty, IntT) =/= (return [tru]);
+    (empty, BoolT) =/= (return [one]);
+    (empty, ArrayT IntT) =/= (return [one]);
+    (empty, ArrayT IntT) =/= (return [tru]);
+    (empty, ArrayT IntT) =/= (return [arr[tru]]);
+    (empty, ArrayT BoolT) =/= (return [arr[one]]);
+
+    (empty, TupleT [IntT; IntT]) |- (return [one; one]) =: Zero;
+    (empty, TupleT [IntT; BoolT]) |- (return [one; tru]) =: Zero;
+    (empty, TupleT [BoolT; IntT]) |- (return [tru; one]) =: Zero;
+    (empty, TupleT [BoolT; BoolT]) |- (return [tru; tru]) =: Zero;
+    (empty, TupleT [IntT; IntT; IntT]) |- (return [one; one; one]) =: Zero;
+    (empty, TupleT [IntT; IntT; BoolT]) |- (return [one; one; tru]) =: Zero;
+    (empty, TupleT [IntT; BoolT; IntT]) |- (return [one; tru; one]) =: Zero;
+    (empty, TupleT [IntT; BoolT; BoolT]) |- (return [one; tru; tru]) =: Zero;
+    (empty, TupleT [BoolT; IntT; IntT]) |- (return [tru; one; one]) =: Zero;
+    (empty, TupleT [BoolT; IntT; BoolT]) |- (return [tru; one; tru]) =: Zero;
+    (empty, TupleT [BoolT; BoolT; IntT]) |- (return [tru; tru; one]) =: Zero;
+    (empty, TupleT [BoolT; BoolT; BoolT]) |- (return [tru; tru; tru]) =: Zero;
+
+    (empty, TupleT [ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[one]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[one]; arr[arr[]]]) =: Zero;
+    (empty, TupleT [ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[arr[one]]]) =: Zero;
+    (empty, TupleT [ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[one]; arr[arr[one]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[one]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[one]; arr[arr[]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[]; arr[arr[one]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[]; arr[one]; arr[arr[one]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[tru]; arr[]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[tru]; arr[one]; arr[]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[tru]; arr[one]; arr[arr[]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[tru]; arr[]; arr[arr[one]]]) =: Zero;
+    (empty, TupleT [ArrayT BoolT; ArrayT IntT; ArrayT (ArrayT IntT)]) |- (return [arr[tru]; arr[one]; arr[arr[one]]]) =: Zero;
+
+    (empty, TupleT [IntT; IntT])          =/= (return []);
+    (empty, TupleT [IntT; BoolT])         =/= (return []);
+    (empty, TupleT [BoolT; IntT])         =/= (return []);
+    (empty, TupleT [BoolT; BoolT])        =/= (return []);
+    (empty, TupleT [IntT; IntT; IntT])    =/= (return []);
+    (empty, TupleT [IntT; IntT; BoolT])   =/= (return []);
+    (empty, TupleT [IntT; BoolT; IntT])   =/= (return []);
+    (empty, TupleT [IntT; BoolT; BoolT])  =/= (return []);
+    (empty, TupleT [BoolT; IntT; IntT])   =/= (return []);
+    (empty, TupleT [BoolT; IntT; BoolT])  =/= (return []);
+    (empty, TupleT [BoolT; BoolT; IntT])  =/= (return []);
+    (empty, TupleT [BoolT; BoolT; BoolT]) =/= (return []);
+    (empty, TupleT [IntT; IntT])          =/= (return [one]);
+    (empty, TupleT [IntT; BoolT])         =/= (return [one]);
+    (empty, TupleT [BoolT; IntT])         =/= (return [one]);
+    (empty, TupleT [BoolT; BoolT])        =/= (return [one]);
+    (empty, TupleT [IntT; IntT; IntT])    =/= (return [one]);
+    (empty, TupleT [IntT; IntT; BoolT])   =/= (return [one]);
+    (empty, TupleT [IntT; BoolT; IntT])   =/= (return [one]);
+    (empty, TupleT [IntT; BoolT; BoolT])  =/= (return [one]);
+    (empty, TupleT [BoolT; IntT; IntT])   =/= (return [one]);
+    (empty, TupleT [BoolT; IntT; BoolT])  =/= (return [one]);
+    (empty, TupleT [BoolT; BoolT; IntT])  =/= (return [one]);
+    (empty, TupleT [BoolT; BoolT; BoolT]) =/= (return [one]);
+    (empty, TupleT [IntT; IntT])          =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; BoolT])         =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; IntT])         =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; BoolT])        =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; IntT; IntT])    =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; IntT; BoolT])   =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; BoolT; IntT])   =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; BoolT; BoolT])  =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; IntT; IntT])   =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; IntT; BoolT])  =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; BoolT; IntT])  =/= (return [one; one; one; one]);
+    (empty, TupleT [BoolT; BoolT; BoolT]) =/= (return [one; one; one; one]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [one; one]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [tru; tru]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [tru; one]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [one; tru; tru]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [one; one; tru]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [tru; one; one; tru]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [tru; one; one; tru; one]);
+    (empty, TupleT [IntT; BoolT]) =/= (return [one; tru; one; one; tru; one]);
+    (empty, TupleT [ArrayT IntT; ArrayT BoolT]) =/= (return [arr[one]; arr[one]]);
+    (empty, TupleT [ArrayT IntT; ArrayT BoolT]) =/= (return [arr[tru]; arr[tru]]);
+    (empty, TupleT [ArrayT IntT; ArrayT BoolT]) =/= (return [arr[tru]; arr[one]]);
+    (empty, TupleT [ArrayT IntT; ArrayT BoolT]) =/= (return [arr[arr[tru]]; arr[arr[one]]]);
+
     (* If *)
     (* IfElse *)
     (* While *)

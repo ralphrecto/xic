@@ -80,7 +80,9 @@ module Context: sig
 
   (* For every annotated variable `x:t` in `vs`, `bind_all c vs` binds `x` to
    * `t`. underscores and annotated underscores are ignored. *)
-  val bind_all: context -> var list -> context
+  val bind_all_vars: context -> var list -> context
+  
+	val bind_all_avars: context -> avar list -> context
 end
 
 val expr_typecheck: context ->           Pos.expr     -> expr     Error.result

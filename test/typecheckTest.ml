@@ -53,11 +53,8 @@ end
 module TestCallable = struct
 	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
 		let b = is_ok (fst_func_pass c e >>= fun gamma ->
-									 match Result.error (snd_func_pass gamma e) with
-									 |Some (e,s) -> let _ = printf "%s" s in Error (e,s)
-									 | None -> Ok ()
-									 (*>>= fun (t,_) -> 
-									 Ok (assert_equal t func_t)*)) in
+									 snd_func_pass gamma e >>= fun (t,_) -> 
+									 Ok (assert_equal t func_t)) in
 		assert_true b
 
   let (=/=) (c: context) (e: Pos.callable) : unit =
@@ -276,12 +273,36 @@ let test_expr () =
 let test_callable () =
 	let open Pos in
 	let open TestCallable in
-	empty =/= (func "id" [(aid "x" tint)] [tint] (return [id "x"]));
 	empty |- (func "id" [(aid "x" tint)] [tint] (return [id "x"])) =: (IntT, IntT);
-	(*empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
+	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))  
 						=: (ArrayT IntT, ArrayT IntT);
-	empty =/= (func "has_dup" [(aid "x" tint); (aid "x" tint)] [tint] (return [id "x"]));*)
+	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
+	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint;tint] (return [(id "y"); (id "x")]))
+						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
+	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
+						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
+	empty |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
+							=: (IntT, IntT);		
+	empty |- (func "f" [] [tint] (return [int 3L])) =: (UnitT, IntT);
+	empty |- (func "f" [] [tint] (return [(funccall "f" [])])) =: (UnitT, IntT);
+	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
+	empty |- (func "f" [] [tint; tint] (return [funccall "f" []])) =: (UnitT, TupleT [IntT; IntT]);
+
+	empty =/= (func "f" [aid "x" tint] [tbool] (return [id "x"]));
+	empty =/= (func "has_dup" [(aid "x" tint); (aid "x" tint)] [tint] (return [id "x"]));
+	empty =/= (func "f" [aid "x" tint] [tint] (return [id "y"]));
+
+	let f_binded = Context.bind empty "f" (Function (IntT, IntT)) in
+	f_binded =/= (func "f" [aid "x" tint] [tint] (return [id "x"]));
+	f_binded =/= (func "f" [aid "x" tbool] [tbool] (return [id "x"]));
+
+	f_binded |- (func "g" [aid "x" tint] [tint] (return [id "x"])) =: (IntT, IntT);
+	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "f" [id "x"])); (return [id "x"])]))
+							=: (IntT, IntT);
+	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
+							=: (IntT, IntT);	
 	()
  
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

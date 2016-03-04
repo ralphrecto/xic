@@ -142,12 +142,19 @@ module Context = struct
   let bind c x t =
     add c ~key:x ~data:t
 
-  let bind_all c vs =
+  let bind_all_vars c vs =
     List.fold_left vs ~init:c ~f:(fun c v ->
       match varsofvar (snd v) with
       | Some x -> bind c x (Var (fst v))
       | None -> c
     )
+	
+	let bind_all_avars c avs =
+		List.fold_left avs ~init:c ~f:(fun c av ->
+			match varsofavar (snd av) with
+			| Some x -> bind c x (Var (fst av))
+			| None -> c
+	 )
 end
 
 (******************************************************************************)
@@ -399,7 +406,7 @@ let stmt_typecheck c rho s =
     end
     | Decl vs -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
-        Ok ((One, Decl vs'), Context.bind_all c vs')
+        Ok ((One, Decl vs'), Context.bind_all_vars c vs')
     end
     | DeclAsgn (vs, e) -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
@@ -408,10 +415,10 @@ let stmt_typecheck c rho s =
         | _, TupleT ets' ->
             let vts' = List.map ~f:fst vs' in
             Expr.eqs p ets' vts' num_decl_vars typ_decl_vars >>= fun () ->
-            Ok ((One, DeclAsgn (vs', e')), Context.bind_all c vs')
+            Ok ((One, DeclAsgn (vs', e')), Context.bind_all_vars c vs')
         | [v'], _ ->
             Expr.eqs p [fst e'] [fst v'] num_decl_vars typ_decl_vars
-            >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all c vs')
+            >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all_vars c vs')
         | _, _ -> err "Invalid declassign"
     end
   in
@@ -517,16 +524,18 @@ let snd_func_pass c (p, call) =
 					Ok (call_type, Func (((), id), [], [ret], stmt))
         | [args'], [ret_typ] ->
 					let ret_t = Expr.of_typ ret_typ in
-          stmt_typecheck c ret_t s >>= fun stmt ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-					typ_typecheck c ret_typ >>= fun ret ->
+					let c' = Context.bind_all_avars c avs in
+          stmt_typecheck c' ret_t s >>= fun stmt ->
+					typ_typecheck c' ret_typ >>= fun ret ->
 					let call_type = (typeofavar (snd args'), ret_t) in
         	Ok (call_type, Func (((), id), avs, [ret], stmt))
 				| _::_, [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
-          stmt_typecheck c ret_t s >>= fun stmt ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-					typ_typecheck c ret_typ >>= fun ret ->
+         	let c' = Context.bind_all_avars c avs in 
+					stmt_typecheck c' ret_t s >>= fun stmt ->
+					typ_typecheck c' ret_typ >>= fun ret ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
 					let call_type = (args_t, ret_t) in
 					Ok (call_type, Func (((), id), avs, [ret], stmt))
@@ -538,17 +547,19 @@ let snd_func_pass c (p, call) =
 					Ok (call_type, Func (((), id), [], ret_list, stmt))
         | [args'], _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          stmt_typecheck c rets_t s >>= fun stmt ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-					Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
+          let c' = Context.bind_all_avars c avs in
+					stmt_typecheck c' rets_t s >>= fun stmt ->
+					Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
 					let arg_t = typeofavar (snd args') in
 					let call_type = (arg_t, rets_t) in
 					Ok (call_type, Func(((), id), avs, ret_list, stmt))
         | _::_, _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          stmt_typecheck c rets_t s >>= fun stmt ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-					Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
+         	let c' = Context.bind_all_avars c avs in
+					stmt_typecheck c' rets_t s >>= fun stmt ->
+					Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
 					let call_type = (args_t, rets_t) in
 					Ok (call_type, Func(((), id), avs, ret_list, stmt))
@@ -562,8 +573,9 @@ let snd_func_pass c (p, call) =
 					let call_type = (UnitT, UnitT) in
 					Ok (call_type, Proc(((), id), [], stmt))
         | _ ->
-          stmt_typecheck c UnitT s >>= fun stmt ->
           avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
+         	let c' = Context.bind_all_avars c avs in 
+					stmt_typecheck c' UnitT s >>= fun stmt ->
 					let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
 					let call_type = (args_t, UnitT) in
 					Ok (call_type, Proc(((), id), avs, stmt))

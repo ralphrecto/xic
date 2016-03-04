@@ -12,8 +12,16 @@ let (>>|) = Result.(>>|)
 let assert_true (b: bool) : unit =
   assert_equal b true
 
-(* Dummy pos *)
+(* Context helpers *)
 let empty = Context.empty
+let gam (xs: (string * Sigma.t) list) =
+  Context.of_alist_exn xs
+
+let vars (vs: (string * Expr.t) list) =
+  gam (List.map vs ~f:(fun (v, t) -> (v, Var t)))
+
+let funcs (fs: (string * Expr.t * Expr.t) list) =
+  gam (List.map fs ~f:(fun (v, a, b) -> (v, Function (a, b))))
 
 let (|-) c e = (c, e)
 
@@ -299,6 +307,16 @@ let test_expr () =
     empty |- (arr[arr[]] + arr[arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr[arr[]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr[arr[arr[]]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+
+    empty =/= (arr[one] + arr[tru]);
+    empty =/= (arr[arr[one]] + arr[tru]);
+    empty =/= (arr[one] + arr[arr[tru]]);
+    empty =/= (arr[arr[one]] + arr[arr[tru]]);
+    empty =/= (arr[arr[arr[one]]] + arr[arr[tru]]);
+    empty =/= (arr[arr[one]] + arr[arr[arr[tru]]]);
+    empty =/= (arr[arr[arr[one]]] + arr[arr[arr[tru]]]);
+
+    vars["x",IntT] |- (id "x") =: IntT;
 
     ()
 

@@ -185,9 +185,11 @@ and expr_typecheck c (p, expr) =
       | EmptyArray, ArrayT _ -> true
       | _ -> t' = t
     in
-    if List.for_all ~f:array_eq es
-      then Ok (ArrayT t, Array ((t,e)::es))
-      else Error (p, "Array elements have different types")
+    if List.for_all ~f:array_eq es then
+      let f acc (x, _) = if acc = EmptyArray then x else acc in
+      let t' = List.fold_left es ~f ~init:t in
+      Ok (ArrayT t', Array ((t, e)::es))
+    else Error (p, "Array elements have different types")
   end
   | Id (_, s) ->
       Context.printer c;

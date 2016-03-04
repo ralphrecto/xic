@@ -954,7 +954,7 @@ let test_stmt () =
     (empty, UnitT) |- if_ tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) =: One;
     (vars["x", IntT], UnitT) |- if_ tru (asgn x two) =: One;
     (vars["x", IntT], UnitT) |- if_ tru (block [asgn x two]) =: One;
-    (vars["x", IntT], IntT) |- if_ tru (block [return [x]]) =: Zero;
+    (vars["x", IntT], IntT) |- if_ tru (block [return [x]]) =: One;
     (vars["x", IntT], UnitT) |- if_ tru (if_ fls (asgn x two)) =: One;
     (vars["x", IntT], UnitT) |- if_ tru (ifelse fls (asgn x two) (asgn x three)) =: One;
     (vars["x", IntT], UnitT) |- if_ tru (while_ fls (asgn x two)) =: One;
@@ -964,6 +964,29 @@ let test_stmt () =
     (empty, UnitT) =/= (if_ tru (return [one]));
 
     (* IfElse *)
+    (empty, UnitT) |- ifelse tru (block []) (block []) =: One;
+    (empty, UnitT) |- ifelse fls (block []) (block []) =: One;
+    (empty, UnitT) |- ifelse ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) (block [decl [avar (aid "x" tint)]]) =: One;
+    (empty, UnitT) |- ifelse ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) (block [decl [avar (aid "y" tbool)]]) =: One;
+    (empty, UnitT) |- ifelse tru
+                             (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])])
+                             (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: One;
+    (empty, UnitT) |- ifelse tru (decl [avar (aid "x" tint)]) (block []) =: One;
+    (empty, UnitT) |- ifelse tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) (block []) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (asgn x two) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (block [asgn x two]) (asgn x three) =: One;
+    (vars["x", IntT], IntT) |- ifelse tru (block [return [x]]) (asgn x three) =: One;
+    (vars["x", IntT], IntT) |- ifelse tru (asgn x three) (block [return [x]]) =: One;
+    (vars["x", IntT], IntT) |- ifelse tru (block [return [x]]) (block [return [x]]) =: Zero;
+    (vars["x", IntT], IntT) |- ifelse tru (if_ tru (block [return [x]])) (block [return [x]]) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (if_ fls (asgn x two)) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (ifelse fls (asgn x two) (asgn x three)) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (while_ fls (asgn x two)) (asgn x three) =: One;
+    (fgam, UnitT) |- ifelse tru (proccall "i2u" []) (proccall "bi2u" []) =: One;
+
+    (empty, UnitT) =/= (ifelse one (block []) (block []));
+    (empty, UnitT) =/= (ifelse tru (return [one]) (block []));
+    (empty, UnitT) =/= (ifelse tru (block []) (return [one]));
     
     (* While *)
 

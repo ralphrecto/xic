@@ -459,6 +459,9 @@ let test_expr () =
     empty |- (arr[arr[]] + arr[arr[tru]]) =: ArrayT (ArrayT BoolT);
     empty |- (arr[arr[]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
     empty |- (arr[arr[arr[]]] + arr[arr[arr[tru]]]) =: ArrayT (ArrayT (ArrayT BoolT));
+    empty |- (arr[one] + arr[one;one]) =: ArrayT IntT;
+    empty |- (arr[arr[two];arr[one]] + arr[arr[one;one]]) =: ArrayT (ArrayT IntT);
+    empty |- (arr[arr[arr[two];arr[one]]] + arr[arr[arr[one;one]]]) =: ArrayT (ArrayT (ArrayT IntT));
 
     empty =/= (arr[one] + arr[tru]);
     empty =/= (arr[arr[one]] + arr[tru]);

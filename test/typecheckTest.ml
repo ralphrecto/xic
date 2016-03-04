@@ -6,9 +6,6 @@ open Stmt
 open Sigma
 open Ast.S
 
-(* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
-(* ! ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TEST *)
-(* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
@@ -16,22 +13,52 @@ let assert_true (b: bool) : unit =
   assert_equal b true
 
 (* Dummy pos *)
-let p = (-1, -1)
-let empty_c = Context.empty
+let empty = Context.empty
 
 let (|-) c e = (c, e)
 
-(* If <: is subtype, then =: is equal type. *)
-let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
-  let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
-  assert_true b
+module TestExpr = struct
+  (* If <: is subtype, then =: is equal type. *)
+  let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
+    let b = is_ok (expr_typecheck c e >>| fun e' -> assert_equal (fst e') t) in
+    assert_true b
+end
 
 let test_expr () =
-    empty_c |- (p, Int 42L) =: IntT;
+    let open Pos in
+    let open TestExpr in
+    let one = int 1L in
+    let two = int 1L in
+    let tru = bool true in
+    let fls = bool false in
+
+    empty |- one =: IntT;
+    empty |- tru =: BoolT;
+    empty |- fls =: BoolT;
+    empty |- string "a" =: ArrayT IntT;
+    empty |- char 'c' =: IntT;
+    empty |- (one + two) =: IntT;
+    empty |- (one - two) =: IntT;
+    empty |- (one * two) =: IntT;
+    empty |- (one *>> two) =: IntT;
+    empty |- (one / two) =: IntT;
+    empty |- (one % two) =: IntT;
+    empty |- (~~ one) =: IntT;
+    empty |- (one == two) =: BoolT;
+    empty |- (one != two) =: BoolT;
+    empty |- (one < two) =: BoolT;
+    empty |- (one <= two) =: BoolT;
+    empty |- (one > two) =: BoolT;
+    empty |- (one >= two) =: BoolT;
+    empty |- (!tru) =: BoolT;
+    empty |- (tru == fls) =: BoolT;
+    empty |- (tru != fls) =: BoolT;
+    empty |- (tru & fls) =: BoolT;
+    empty |- (tru || fls) =: BoolT;
     ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
-(* ! ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TESTS ADD YOUR TEST *)
+(* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [

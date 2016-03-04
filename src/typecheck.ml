@@ -322,12 +322,13 @@ let stmt_typecheck c rho s =
     match s with
     | Block ss -> begin
         (* iteratively typecheck all the statements in the block *)
-        let f s ssc =
+        let f ssc s =
           ssc >>= fun (ss, c) ->
           (c, rho) |- s >>= fun (s', c') ->
           Ok (s'::ss, c')
         in
-        List.fold_right ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+        List.fold_left ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+        let ss = List.rev ss in
 
         (* make sure that all but the last stmt is of type One *)
         if List.for_all (Util.init ss) ~f:(fun (t, _) -> t = One)

@@ -139,10 +139,6 @@ module Context = struct
       | Some x -> bind c x (Var (fst v))
       | None -> c
     )
-
-  let printer c =
-    Map.iter c (fun ~key ~data -> print_string key; print_string ", ");
-    print_endline ""
 end
 
 (******************************************************************************)
@@ -191,9 +187,7 @@ and expr_typecheck c (p, expr) =
       Ok (ArrayT t', Array ((t, e)::es))
     else Error (p, "Array elements have different types")
   end
-  | Id (_, s) ->
-      Context.printer c;
-      Context.var p c s >>= fun typ -> Ok (typ, Id ((), s))
+  | Id (_, s) -> Context.var p c s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
     expr_typecheck c l >>= fun (lt, l) ->
     expr_typecheck c r >>= fun (rt, r) ->

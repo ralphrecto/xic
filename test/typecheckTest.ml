@@ -57,7 +57,7 @@ module TestCallable = struct
                                      |Some (_,s) -> printf "%s" s; Ok ()
                                      |None -> Ok () ) in
                                      (*
-									 snd_func_pass gamma e >>= fun (t,_) -> 
+									 snd_func_pass gamma e >>= fun (t,_) ->
 									 Ok (assert_equal t func_t)) in *)
 		assert_true b
 
@@ -78,7 +78,7 @@ module TestStmt = struct
             | None    -> false
             | Some v' -> (v = v') && a)
     in
-    is_subset c c' && is_subset c' c  
+    is_subset c c' && is_subset c' c
 
   let (=:) ((c, r), s: (context * Expr.t) * Pos.stmt) (t, c': Stmt.t * context) : unit =
     begin
@@ -303,7 +303,7 @@ let test_expr () =
     ()
 
 let test_stmt () =
-    let open Pos in 
+    let open Pos in
     let open TestStmt in
 
     (* One is unit, Zero is void *)
@@ -329,7 +329,7 @@ let test_callable () =
 	let open TestCallable in
 	empty |- (func "id" [(aid "x" tint)] [tint] (return [id "x"])) =: (IntT, IntT);
 	empty |- (func "id" [(aid "x" tbool)] [tbool] (return [id "x"])) =: (BoolT, BoolT);
-	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))  
+	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
@@ -338,7 +338,7 @@ let test_callable () =
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
 	empty |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
-							=: (IntT, IntT);		
+							=: (IntT, IntT);
 	empty |- (func "f" [] [tint] (return [int 3L])) =: (UnitT, IntT);
 	empty |- (func "f" [] [tint] (return [(funccall "f" [])])) =: (UnitT, IntT);
 	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
@@ -355,9 +355,9 @@ let test_callable () =
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "f" [id "x"])); (return [id "x"])]))
 							=: (IntT, IntT);
 	f_binded |- (func "g" [aid "x" tint] [tint] (block [(asgn (id "x") (funccall "g" [id "x"])); (return [id "x"])]))
-							=: (IntT, IntT);	
+							=: (IntT, IntT);
 	()
- 
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

@@ -309,9 +309,10 @@ let test_stmt () =
     (* One is unit, Zero is void *)
     (* Decl *)
     (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
-    (empty, UnitT) |- decl [avar (aid "x" tint)] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aid "y" tbool)] =: (One, empty);
+    (empty, UnitT) |- decl [underscore] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aunderscore tint)] =: (One, empty);
+    (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: (One, empty);
     (* DeclAsgn *)
     (* Asgn *)
     (* Block *)

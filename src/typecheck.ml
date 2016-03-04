@@ -249,7 +249,7 @@ and expr_typecheck c (p, expr) =
   | FuncCall ((_, f), args) -> begin
     Context.func p c f >>= fun (a, b) ->
     match (a, b), args with
-    | (_, Unit), _ -> Error (p, "Using proc call as an expr")
+    | (_, UnitT), _ -> Error (p, "Using proc call as an expr")
     | (UnitT, _), _::_ -> Error (p, "Giving args to a function with no params")
     | (UnitT, t), [] when t <> UnitT -> Ok (t, FuncCall (((), f), []))
     | (TupleT t1, t2), _::_::_ when t2 <> UnitT ->

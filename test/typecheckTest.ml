@@ -799,18 +799,59 @@ let test_stmt () =
     (empty, UnitT) |- decl [avar (aid "y" tbool)] =: One;
     (empty, BoolT) |- decl [avar (aid "y" tbool)] =: One;
     (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: One;
+    (empty, UnitT) |- decl [avar (aid "z" (tarray tint (Some one)))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: One;
+
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint (Some one)) (Some one)))] =: One;
+
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some tru)))];
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some (arr[]))))];
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some (arr[one]))))];
+
     (empty, UnitT) |- decl [underscore] =: One;
     (empty, UnitT) |- decl [avar (aunderscore tint)] =: One;
     (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: One;
-    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) None))] =: One;
-    (empty, UnitT) |- decl [avar (aid "x" tint);
-                            avar (aid "y" tbool);
-                            avar (aid "z" (tarray tint None))] =: One;
-    (empty, UnitT) |- decl [avar (aid "x" tint);
-                            underscore;
-                            avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray tbool (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool (Some one)) (Some one)))] =: One;
+
+    (vars["x",IntT], IntT)        =/= decl [avar (aid "x" tint)];
+    (vars["x",BoolT], IntT)       =/= decl [avar (aid "x" tint)];
+    (vars["x",ArrayT IntT], IntT) =/= decl [avar (aid "x" tint)];
+    (vars["x",IntT], IntT)        =/= decl [avar (aid "x" tbool)];
+    (vars["x",BoolT], IntT)       =/= decl [avar (aid "x" tbool)];
+    (vars["x",ArrayT IntT], IntT) =/= decl [avar (aid "x" tbool)];
+
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tint)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tbool); avar (aid "y" tint)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tbool); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [underscore; avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); underscore] =: One;
+    (empty, UnitT) |- decl [underscore; underscore] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore tbool); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore tbool); avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tbool); avar (aid "z" (tarray tint None))] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); underscore; avar (aunderscore tbool)] =: One;
     (empty, UnitT) |- decl [underscore; underscore; underscore] =: One;
+
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); underscore] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); underscore; avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [underscore; avar(aid "y" tint); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); underscore; underscore] =: One;
+    (empty, UnitT) |- decl [underscore; avar(aid "y" tint); underscore] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; underscore]; =: One;
+
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aid "y" tint); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aid "y" tint); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aunderscore tbool); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aunderscore tbool); avar(aunderscore tbool)] =: One;
 
     (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tint)];
 

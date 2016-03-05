@@ -38,6 +38,17 @@ module Vars = struct
   let u2b  = ("u2b", UnitT, BoolT)
   let u2ia = ("u2ia", UnitT, ArrayT IntT)
 
+  (* 0 -> 2 *)
+  let u2ii  = ("u2ii",  UnitT, TupleT [IntT; IntT])
+  let u2ib  = ("u2ib",  UnitT, TupleT [IntT; BoolT])
+  let u2iia = ("u2iia", UnitT, TupleT [IntT; ArrayT IntT])
+  let u2bi  = ("u2bi",  UnitT, TupleT [BoolT; IntT])
+  let u2bb  = ("u2bb",  UnitT, TupleT [BoolT; BoolT])
+  let u2bia = ("u2bia", UnitT, TupleT [BoolT; ArrayT IntT])
+  let u2iai  = ("u2iai",  UnitT, TupleT [ArrayT IntT; IntT])
+  let u2iab  = ("u2iab",  UnitT, TupleT [ArrayT IntT; BoolT])
+  let u2iaia = ("u2iaia", UnitT, TupleT [ArrayT IntT; ArrayT IntT])
+
   (* 1 -> 0/1 *)
   let i2u   = ("i2u",   IntT,        UnitT)
   let i2i   = ("i2i",   IntT,        IntT)
@@ -204,7 +215,8 @@ module Vars = struct
     iaia2iai; iaia2iab; iaia2iaia; iii2u; iib2u; iiia2u; ibi2u; ibb2u; ibia2u;
     iiai2u; iiab2u; iiaia2u; bii2u; bib2u; biia2u; bbi2u; bbb2u; bbia2u;
     biai2u; biab2u; biaia2u; iaii2u; iaib2u; iaiia2u; iabi2u; iabb2u; iabia2u;
-    iaiai2u; iaiab2u; iaiaia2u;
+    iaiai2u; iaiab2u; iaiaia2u; u2ii; u2ib; u2iia; u2bi; u2bb; u2bia; u2iai;
+    u2iab; u2iaia;
 
     iaup; iadown; piaup; piadown
   ]
@@ -852,7 +864,6 @@ let test_stmt () =
     (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tbool); avar (aid "z" (tarray tint None))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" tint); underscore; avar (aunderscore tbool)] =: One;
     (empty, UnitT) |- decl [underscore; underscore; underscore] =: One;
-
     (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); underscore] =: One;
     (empty, UnitT) |- decl [avar(aid "x" tint); underscore; avar(aid "z" tint)] =: One;
     (empty, UnitT) |- decl [underscore; avar(aid "y" tint); avar(aid "z" tint)] =: One;
@@ -860,7 +871,6 @@ let test_stmt () =
     (empty, UnitT) |- decl [underscore; avar(aid "y" tint); underscore] =: One;
     (empty, UnitT) |- decl [underscore; underscore; avar(aid "z" tint)] =: One;
     (empty, UnitT) |- decl [underscore; underscore; underscore]; =: One;
-
     (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); avar(aunderscore tbool)] =: One;
     (empty, UnitT) |- decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "z" tint)] =: One;
     (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aid "y" tint); avar(aid "z" tint)] =: One;
@@ -870,33 +880,101 @@ let test_stmt () =
     (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aunderscore tbool); avar(aunderscore tbool)] =: One;
 
     (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tint)];
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tint)];
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tbool)];
+    (empty, UnitT) =/= decl [avar (aid "x" tbool); avar (aid "x" tint)];
+    (empty, UnitT) =/= decl [avar (aid "x" tbool); avar (aid "x" tbool)];
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tbool); avar (aid "z" (tarray tint None))];
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tbool); avar (aid "x" (tarray tint None))];
+    (empty, UnitT) =/= decl [avar(aid "x" tint); avar(aid "x" tint); underscore];
+    (empty, UnitT) =/= decl [avar(aid "x" tint); underscore; avar(aid "x" tint)];
+    (empty, UnitT) =/= decl [underscore; avar(aid "x" tint); avar(aid "x" tint)];
+    (empty, UnitT) =/= decl [avar(aid "x" tint); avar(aid "x" tint); avar(aunderscore tbool)];
+    (empty, UnitT) =/= decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "x" tint)];
+    (empty, UnitT) =/= decl [avar(aunderscore tbool); avar(aid "x" tint); avar(aid "x" tint)];
+
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tint)];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tbool)];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tbool); avar (aid "y" tint)];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tbool); avar (aid "y" tbool)];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); underscore];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); avar (aunderscore tbool)];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tbool); avar (aid "z" (tarray tint None))];
+    (vars["x",IntT], UnitT) =/= decl [avar (aid "x" tint); underscore; avar (aunderscore tbool)];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); avar(aid "y" tint); underscore];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); underscore; avar(aid "z" tint)];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); underscore; underscore];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); avar(aid "y" tint); avar(aunderscore tbool)];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "z" tint)];
+    (vars["x",IntT], UnitT) =/= decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aunderscore tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tint)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tbool); avar (aid "y" tint)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tbool); avar (aid "y" tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); underscore];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); avar (aunderscore tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); avar (aid "y" tbool); avar (aid "z" (tarray tint None))];
+    (vars["x",BoolT], UnitT) =/= decl [avar (aid "x" tint); underscore; avar (aunderscore tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); avar(aid "y" tint); underscore];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); underscore; avar(aid "z" tint)];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); underscore; underscore];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); avar(aid "y" tint); avar(aunderscore tbool)];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "z" tint)];
+    (vars["x",BoolT], UnitT) =/= decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aunderscore tbool)];
 
     (* DeclAsgn *)
     (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: One;
     (empty, UnitT) |- declasgn [avar (aid "y" tbool)] tru =: One;
-    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tbool None))]
-                               (arr[]) =: One;
-    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
-                               (arr[]) =: One;
-    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
-                               (arr[one]) =: One;
-    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))]
-                               (arr[one; two]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tbool None))] (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tbool None))] (arr[tru]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))] (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))] (arr[one]) =: One;
+    (empty, UnitT) |- declasgn [avar (aid "z" (tarray tint None))] (arr[one; two]) =: One;
+
+    (empty, UnitT) =/= declasgn [avar (aid "x" tint)] tru;
+    (empty, UnitT) =/= declasgn [avar (aid "y" tbool)] one;
+    (empty, UnitT) =/= declasgn [avar (aid "z" (tarray tbool None))] (arr[arr[]]);
+    (empty, UnitT) =/= declasgn [avar (aid "z" (tarray tbool None))] (arr[one]);
+    (empty, UnitT) =/= declasgn [avar (aid "z" (tarray tint None))] (arr[arr[]]);
+    (empty, UnitT) =/= declasgn [avar (aid "z" (tarray tint None))] (arr[tru]);
+    (empty, UnitT) =/= declasgn [avar (aid "z" (tarray tint None))] (arr[tru; tru]);
+
     (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
                                (arr[arr[one]; arr[two]; arr[one;two]; arr[]])
                                =: One;
-    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))]
-                               (arr[arr[]]) =: One;
-
+    (empty, UnitT) |- declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]]) =: One;
     (empty, UnitT) |- declasgn [avar (aunderscore tbool)] fls =: One;
-    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
-                               (arr[]) =: One;
-    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))]
-                               (arr[fls]) =: One;
-    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
-                               (arr[arr[]]) =: One;
-    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))]
-                               (arr[arr[fls]]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))] (arr[]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray tbool None))] (arr[fls]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))] (arr[arr[]]) =: One;
+    (empty, UnitT) |- declasgn [avar (aunderscore (tarray (tarray tbool None) None))] (arr[arr[fls]]) =: One;
+
+    (fgam, UnitT) |- declasgn [avar(aid "x" tint); avar(aid "y" tbool)] (funccall "u2ib" []) =: One;
+    (fgam, UnitT) |- declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (funccall "u2bi" []) =: One;
+    (fgam, UnitT) |- declasgn [avar(aid "y" tint); avar(aid "x" tint)] (funccall "u2ii" []) =: One;
+    (fgam, UnitT) |- declasgn [avar(aid "y" (tarray tint None)); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []) =: One;
+    (fgam, UnitT) |- declasgn [avar(aid "y" (tarray tint (Some one))); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []) =: One;
+    (fgam, UnitT) |- declasgn [avar(aid "y" (tarray tint None)); avar(aid "x" (tarray tint (Some one)))] (funccall "u2iaia" []) =: One;
+
+    (fgam, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] one;
+    (fgam, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] tru;
+    (fgam, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (arr[]);
+    (fgam, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (arr[]);
+
+    (fgam, UnitT) =/= declasgn [avar(aid "x" tint); avar(aid "x" tbool)] (funccall "u2ib" []);
+    (fgam, UnitT) =/= declasgn [avar(aid "x" tbool); avar(aid "x" tint)] (funccall "u2bi" []);
+    (fgam, UnitT) =/= declasgn [avar(aid "x" tint); avar(aid "x" tint)] (funccall "u2ii" []);
+    (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint None)); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
+    (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint (Some one))); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
+    (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint None)); avar(aid "x" (tarray tint (Some one)))] (funccall "u2iaia" []);
+
+    let g = Context.bind fgam "x" (Var IntT) in
+    (g, UnitT) =/= declasgn [avar(aid "x" tint); avar(aid "y" tbool)] (funccall "u2ib" []);
+    (g, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (funccall "u2bi" []);
+    (g, UnitT) =/= declasgn [avar(aid "y" tint); avar(aid "x" tint)] (funccall "u2ii" []);
+    (g, UnitT) =/= declasgn [avar(aid "y" (tarray tint None)); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
+    (g, UnitT) =/= declasgn [avar(aid "y" (tarray tint (Some one))); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
+    (g, UnitT) =/= declasgn [avar(aid "y" (tarray tint None)); avar(aid "x" (tarray tint (Some one)))] (funccall "u2iaia" []);
 
     (* Asgn *)
     (vars["x",IntT], IntT) |- (asgn x one) =: One;
@@ -961,7 +1039,7 @@ let test_stmt () =
     (vars["x", IntT], UnitT) |- block [ifelse fls (asgn x two) (asgn x three)] =: One;
     (vars["x", IntT], UnitT) |- block [while_ fls (asgn x two)] =: One;
     (fgam, UnitT) |- block [proccall "i2u" [one]] =: One;
-    
+
     (empty, UnitT) |- block [block [decl [avar (aid "x" tint)]];
                              block [decl [avar (aid "x" tint)]]] =: One;
     (empty, UnitT) |- block [block [declasgn [avar (aid "x" tint)] one];
@@ -1696,4 +1774,3 @@ let main () =
     ] |> run_test_tt_main
 
 let _ = main ()
-

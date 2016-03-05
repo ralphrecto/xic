@@ -1,0 +1,1 @@
+1:22 error:Name baz cannot be resolved

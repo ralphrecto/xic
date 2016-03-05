@@ -1,6 +1,0 @@
-#!/bin/bash
-
-./xth -compilerpath ../../compilers \
-      -testpath tests/pa2 \
-      -workpath ../../compilers/ \
-      parseScript

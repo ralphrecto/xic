@@ -35,7 +35,24 @@ xic ("Test --help") "--help" {
     ;
 }
 
-xic ("Test --parse") "--parse" {
+xic ("Test --lex") ["../pa1"] "--lex" {
+    ex1.xi;
+    ex2.xi (Lexical, "empty character literal");
+    spec1.xi;
+    spec2.xi;
+    spec3.xi;
+    gcd.xi;
+    ratadd.xi;
+    ratadduse.xi;
+    insertionsort.xi;
+    arrayinit.xi;
+    arrayinit2.xi;
+    mdarrays.xi;
+    add.xi;
+    beauty.xi;
+}
+
+xic ("Test --parse") ["../pa2"] "--parse" {
     ex1.xi;
     ex2.xi;
     ex3.xi (Syntax, "Unexpected token +");
@@ -51,4 +68,33 @@ xic ("Test --parse") "--parse" {
     mdarrays.xi;
     add.xi (Syntax, "Unexpected token +");
     beauty.xi (Syntax, "Unexpected token ==");
+}
+
+xic ("Test --typecheck") "--typecheck" {
+    ex01.xi;
+    ex02.xi;
+    ex03.xi;
+    ex04.xi (Semantic, "Cannot assign");
+    ex05.xi (Semantic, "Operands");
+    ex06.xi (Semantic, "Name .* cannot be resolved");
+    ex07.xi (Semantic, "Expected .*, but found .*");
+    ex08.xi (Semantic, "Missing return");
+    ex09.xi (Semantic, "Expected function call");
+    ex10.xi (Semantic, "Mismatched number of values");
+    ex11.xi (Semantic, "Expected .*, but found .*");
+    ex12.xi (Semantic, "not a function");
+    spec1-full.xi;
+    spec1.xi (Semantic, "Name .* cannot be resolved");
+    spec2.xi (Semantic, "Name .* cannot be resolved");
+    spec3.xi;
+    gcd.xi;
+    ratadd-full.xi;
+    ratadd.xi (Semantic, "Name .* cannot be resolved");
+    ratadduse-full.xi;
+    ratadduse.xi (Semantic, "Name .* cannot be resolved");
+    insertionsort.xi;
+    arrayinit.xi;
+    arrayinit2-full.xi;
+    arrayinit2.xi (Semantic, "Name .* cannot be resolved");
+    mdarrays.xi;
 }

@@ -1,0 +1,1 @@
+2:14 error:Name gcd cannot be resolved

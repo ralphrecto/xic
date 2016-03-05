@@ -2,6 +2,7 @@
 \title{Programming Assignment 3:\\ Semantic Analysis}
 
 \usepackage{fancyvrb}
+\usepackage{mathpartir}
 \usepackage{pervasives}
 \usepackage{tikz}
 \usetikzlibrary{positioning}
@@ -92,6 +93,31 @@ In the same spirit as above, we allow annotated underscores like \texttt{\_:int
 We allow multiple declarations without assignment (e.g. \texttt{x:int,
 y:bool}). This makes single and multiple declarations more consistent and is
 rather useful to do.
+
+\subsection{Empty Arrays}
+We handle empty arrays pretty liberally. For example, all of the following are
+well-typed according to us.
+\begin{verbatim}
+_:int[] = {}
+_:int[][] = {{}, {1}, {}}
+_:bool[][] = {{}, {true}, {}}
+_:bool[][] = {{}, {true}, {}} + {}
+_:bool[][] = {{}, {true}, {}} + {} + {{}}
+_:bool[][] = length({})
+\end{verbatim}
+One of the few things we disallow is indexing into an empty array literal,
+which is erroneous anyway. We do this by introducing additional production
+rules to our subtype relation to handle empty arrays which we give a special
+type: \texttt{empty}
+\begin{mathpar}
+  \inferrule
+  { }
+  {\texttt{empty} \leq \tau\texttt{[]}}
+
+  \inferrule
+  {\tau_1 \leq \tau_2}
+  {\tau_1\texttt{[]} \leq \tau_2\texttt{[]}}
+\end{mathpar}
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}

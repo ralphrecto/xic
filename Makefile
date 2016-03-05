@@ -28,7 +28,7 @@ JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
 OCAML_MAIN  = src/main
-OCAML_SRCS  = $(OCAML_MAIN).ml             
+OCAML_SRCS  = $(OCAML_MAIN).ml
 OCAML_TESTS = $(shell find test -name '*Test.ml')
 OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
 OCAML_TESTS_BIN = $(OCAML_TESTS:.ml=.byte)
@@ -57,8 +57,8 @@ $(INTERFACE_PARSER).java: $(INTERFACE_PARSER).cup
 						-nowarn \
 						$<
 
-.PHONY: src 
-src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN) 
+.PHONY: src
+src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make src                                                         *"
 	@echo "********************************************************************"
@@ -117,13 +117,18 @@ clean:
 	rm -rf $(SYMBOL).java
 	rm -rf $(LEXER).java
 	rm -f  p1.zip
+	rm -f  p2.zip
+	rm -f  p3.zip
 	corebuild -clean
 	@echo
 
-p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+p1.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
-p2.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+p2.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+	zip -r $@ $^
+
+p3.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
 print-%:

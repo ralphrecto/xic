@@ -48,7 +48,7 @@ let main flags filenames () : unit Deferred.t =
   else filenames
     |> List.map ~f:(fun fn -> rebase fn |> change_ext ".typed")
     |> Deferred.List.map ~f:typecheck_file
-    >>= Deferred.List.iter ~f:(function
+    >>= Deferred.List.iter ~how:`Sequential ~f:(function
       | Ok (msg, file) ->
           let f writer =
             Writer.write_line writer msg |> return in

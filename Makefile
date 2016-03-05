@@ -48,7 +48,7 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						-nowarn \
 						$<
 
-$(INTERFACE_PARSER).java $(SYMBOL).java: $(INTERFACE_PARSER).cup
+$(INTERFACE_PARSER).java: $(INTERFACE_PARSER).cup
 	java  -cp $(CUPJAR):$(CP) java_cup.Main \
 		                -destdir $(SRCDIR) \
 		                -package $(PKG) \

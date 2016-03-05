@@ -842,6 +842,51 @@ let test_stmt () =
                                (arr[arr[fls]]) =: One;
 
     (* Asgn *)
+    (vars["x",IntT], IntT) |- (asgn x one) =: One;
+    (vars["x",IntT], IntT) |- (asgn x (one + one)) =: One;
+    (vars["x",BoolT], IntT) |- (asgn x tru) =: One;
+    (vars["x",BoolT], IntT) |- (asgn x (tru & fls)) =: One;
+    (vars["x",ArrayT IntT], IntT) |- (asgn x (arr[])) =: One;
+    (vars["x",ArrayT IntT], IntT) |- (asgn x (arr[one])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[]])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[one]])) =: One;
+    (vars["y",IntT;"x",IntT], IntT) |- (asgn x one) =: One;
+    (vars["y",IntT;"x",IntT], IntT) |- (asgn x (one + one)) =: One;
+    (vars["y",IntT;"x",BoolT], IntT) |- (asgn x tru) =: One;
+    (vars["y",IntT;"x",BoolT], IntT) |- (asgn x (tru & fls)) =: One;
+    (vars["y",IntT;"x",ArrayT IntT], IntT) |- (asgn x (arr[])) =: One;
+    (vars["y",IntT;"x",ArrayT IntT], IntT) |- (asgn x (arr[one])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[]])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[one]])) =: One;
+    (fgam, IntT) |- (asgn (index (funccall "u2ia" []) one) one) =: One;
+    (fgam, IntT) |- (asgn (index (string "") one) one) =: One;
+
+    (empty, IntT) =/= (asgn x one);
+    (empty, IntT) =/= (asgn x tru);
+    (empty, IntT) =/= (asgn x (arr[]));
+    (empty, IntT) =/= (asgn x (arr[one]));
+    (empty, IntT) =/= (asgn x (arr[arr[]]));
+    (empty, IntT) =/= (asgn x (arr[arr[one]]));
+    (empty, IntT) =/= (asgn (index (funccall "f" []) one) one);
+
+    (vars["x",IntT], IntT) =/= (asgn x tru);
+    (vars["x",IntT], IntT) =/= (asgn x (arr[]));
+    (vars["x",IntT], IntT) =/= (asgn x (arr[one]));
+    (vars["x",BoolT], IntT) =/= (asgn x one);
+    (vars["x",BoolT], IntT) =/= (asgn x (arr[]));
+    (vars["x",BoolT], IntT) =/= (asgn x (arr[tru]));
+    (vars["x",ArrayT IntT], IntT) =/= (asgn x (arr[arr[arr[arr[arr[]]]]]));
+    (vars["x",ArrayT IntT], IntT) =/= (asgn x (arr[tru]));
+
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) tru);
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) (arr[]));
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) (arr[one]));
+    (fgam, IntT) =/= (asgn (index (string "") one) tru);
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[]));
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[one]));
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[arr[]]));
 
     (* Block *)
     (empty, UnitT) |- block [] =: One;
@@ -1022,7 +1067,7 @@ let test_stmt () =
     (empty, UnitT) =/= (ifelse one (block []) (block []));
     (empty, UnitT) =/= (ifelse tru (return [one]) (block []));
     (empty, UnitT) =/= (ifelse tru (block []) (return [one]));
-    
+
     (* While *)
     (empty, UnitT) |- while_ tru (block []) =: One;
     (empty, UnitT) |- while_ fls (block []) =: One;
@@ -1335,21 +1380,21 @@ let test_callable () =
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
 	empty |- (func "f" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
-	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);	
+	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);
 
 	(* _::_, [x] *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"])) 
+	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"]))
 						=: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L])) 
+	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L]))
 						=: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"])) 
+	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"]))
 						=: (TupleT [IntT; IntT; IntT], IntT);
 
 	(* [], _::_ *)
 	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
-	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true])) 
+	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true]))
 					  =: (UnitT, TupleT [IntT; IntT; BoolT]);
 
 	(* [x], _::_ *)
@@ -1362,7 +1407,7 @@ let test_callable () =
 						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
-	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint] 
+	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint]
 					 (return [id "x"; id "x"; id "x"])) =: (TupleT [IntT; IntT; IntT], TupleT [IntT; IntT; IntT]);
 
 	(* recursion *)
@@ -1388,7 +1433,7 @@ let test_callable () =
 	empty |- (proc "f" [aunderscore tint] (proccall "f" [int 3L])) =: (IntT, UnitT);
 
 	(* _::_ *)
-	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) 
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"]))
 						=: (TupleT [IntT; IntT], UnitT);
 	empty |- (proc "f" [aunderscore tint; aunderscore tint] (proccall "f" [int 3L; int 3L]))
 						=: (TupleT [IntT; IntT], UnitT);

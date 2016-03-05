@@ -328,10 +328,12 @@ full_stmt ::= stmt:s end_stmt
 
 block ::= LBRACE:lb stmt_star:s RBRACE
 	{: Position p = new Position(lbleft, lbright);
-	   RESULT = Block.of(p, s, Optional.empty()); :}
+	   Position ret_p = new Position(-1, -1);
+	   RESULT = Block.of(p, s, Optional.empty(), ret_p); :}
 	| LBRACE:lb stmt_star:s RETURN expr_star:el end_stmt RBRACE
 	{: Position p = new Position(lbleft, lbright);
-	   RESULT = Block.of(p, s, Optional.of(el)); :}
+	   Position ret_p = new Position(elleft, elright);
+	   RESULT = Block.of(p, s, Optional.of(el), ret_p); :}
 	;
 
 full_decl ::= var_plus:v

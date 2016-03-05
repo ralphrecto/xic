@@ -28,6 +28,10 @@ let typecheck_file filename : (string * string, unit) Result.t Deferred.t =
       | Error ((row,col), msg) ->
           let row_s = string_of_int row in
           let col_s = string_of_int col in
+          let stdout_msg =
+            "Semantic error beginning at " ^
+            row_s ^ ":" ^ col_s ^ ": " ^ msg in
+          Print.print_endline stdout_msg;
           Ok (row_s ^ ":" ^ col_s ^ " error:" ^ msg, filename)
     end
     | Error _ -> Error ()

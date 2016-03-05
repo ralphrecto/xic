@@ -364,8 +364,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         b.ss.forEach(s -> s.accept(this));
         if (b.ret.isPresent()) {
             printer.startList();
-            /* todo: fix this */
-            posPrinter(new Position(-1, -1));
+            posPrinter(b.ret_a);
 
             printer.startList();
             printer.printAtom("Return");

@@ -263,7 +263,7 @@ public class Main {
         );
 
         for (Tuple<Parsed, XiSource> p : parsed) {
-            File outputFile = Paths.get(diagPathOut(p.snd, "parsed")).toFile();
+            File outputFile = Paths.get(diagPathOut(p.snd, "typed")).toFile();
             SExpJaneStreetOut sexpOut = null;
             try {
                 sexpOut = new SExpJaneStreetOut(

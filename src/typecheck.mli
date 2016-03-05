@@ -19,8 +19,9 @@ module Expr: sig
   val to_string: t -> string
   val of_typ: Pos.typ -> t
 
-  (* subtype relation *)
+  (* subtype and supertype relation *)
   val (<=): t -> t -> bool
+  val (>=): t -> t -> bool
 
   (* `eqs p xs ys num type` checks that
    *

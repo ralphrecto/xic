@@ -797,6 +797,7 @@ let test_stmt () =
     (* Decl *)
     (empty, UnitT) |- decl [avar (aid "x" tint)] =: One;
     (empty, UnitT) |- decl [avar (aid "y" tbool)] =: One;
+    (empty, BoolT) |- decl [avar (aid "y" tbool)] =: One;
     (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: One;
     (empty, UnitT) |- decl [underscore] =: One;
@@ -809,7 +810,9 @@ let test_stmt () =
     (empty, UnitT) |- decl [avar (aid "x" tint);
                             underscore;
                             avar (aunderscore tbool)] =: One;
-    (empty, BoolT) |- decl [underscore; underscore; underscore] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; underscore] =: One;
+
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tint)];
 
     (* DeclAsgn *)
     (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: One;
@@ -839,7 +842,24 @@ let test_stmt () =
                                (arr[arr[fls]]) =: One;
 
     (* Asgn *)
+
     (* Block *)
+    (empty, UnitT) |- block [] =: One;
+
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)]] =: One;
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)];
+                             decl [avar (aid "y" tbool)]] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])] =: One;
+    (vars["x", IntT], UnitT) |- block [asgn x two] =: One;
+    (vars["x", IntT], UnitT) |- block [block [asgn x two]] =: One;
+    (vars["x", IntT], IntT)  |- block [block [return [x]]] =: Zero;
+    (vars["x", IntT], UnitT) |- block [if_ fls (asgn x two)] =: One;
+    (vars["x", IntT], UnitT) |- block [ifelse fls (asgn x two) (asgn x three)] =: One;
+    (vars["x", IntT], UnitT) |- block [while_ fls (asgn x two)] =: One;
+    (fgam, UnitT) |- block [proccall "i2u" [one]] =: One;
+
+    (empty, UnitT) =/= (block [decl [avar (aid "x" tint)]; decl [avar (aid "x" tint)]]);
 
     (* Return *)
     (empty, UnitT) |- (return []) =: Zero;

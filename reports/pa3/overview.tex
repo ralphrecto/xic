@@ -224,19 +224,13 @@ then everything that's not in \verb${\r, \n, \r\n}$. This set includes
 The distribution of work is described in detail in \secref{workplan}.
 
 \section{Testing}\label{sec:testing}
-We wrote numerous JUnit tests to verify the correctness of our lexer. We
-started with very basic tests that would test one token at a time. Then, we
-moved on to more complex tests where we would mix up different tokens or add
-random white spaces before, after or between the tokens. After that we created
-more test cases with escape characters, line terminators and EOF. Lastly, we
-created invalid tests to make sure that we are throwing the correct exceptions.
+We sectioned off tests based on the sections highlighted in the Xi Type System Specification - expressions, statements, top-level declarations, and programs. Within each section, we wrote many unit tests that logically and thoroughly verify the types by carefully following the axioms and the typing rules listed in the type specification.
 
-Our test plan worked out very well. First testing on very basic tokens helped
-us solidify the majority of our code. Then, testing with escape characters and
-line terminators helped us find a lot of bugs in our code and made sure that we
-were dealing with white spaces correctly.  Finally, testing that exceptions
-were thrown properly again made sure we covered all the corner cases in our
-lexer.
+In addition to testing the axioms and typing rules, we created invalid tests to ensure that we are throwing errors on invalid programs, expressions, and statements.
+
+To help make our test cases more readable and cute, we created sexy infix operators, such as \texttt{|-} and \texttt{=:}. A test case \texttt{c |- e =: t} represents a context \texttt{c} that derives the expression \texttt{e} of type \texttt{t}. We also created an infix operator \texttt{=/=} that ensures an error is thrown. For example, \texttt{c =/= e} means that the expression \texttt{e} is ill-typed in the context \texttt{c}. We similarly implemented these operators for statements, callables, and programs.
+
+Our test plan worked out very well. Methodically and meticulously testing our code allowed us to catch many simple oversights before running the test harness provided by the staff.
 
 \section{Work Plan}\label{sec:workplan}
 Before we started coding, one person set up the skeleton code and

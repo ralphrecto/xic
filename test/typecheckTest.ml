@@ -853,13 +853,28 @@ let test_stmt () =
     (empty, UnitT) |- block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])] =: One;
     (vars["x", IntT], UnitT) |- block [asgn x two] =: One;
     (vars["x", IntT], UnitT) |- block [block [asgn x two]] =: One;
+    (vars["x", IntT], UnitT) |- block [block[]; block[]; block[]] =: One;
     (vars["x", IntT], IntT)  |- block [block [return [x]]] =: Zero;
     (vars["x", IntT], UnitT) |- block [if_ fls (asgn x two)] =: One;
     (vars["x", IntT], UnitT) |- block [ifelse fls (asgn x two) (asgn x three)] =: One;
     (vars["x", IntT], UnitT) |- block [while_ fls (asgn x two)] =: One;
     (fgam, UnitT) |- block [proccall "i2u" [one]] =: One;
+    
+    (empty, UnitT) |- block [block [decl [avar (aid "x" tint)]];
+                             block [decl [avar (aid "x" tint)]]] =: One;
+    (empty, UnitT) |- block [block [declasgn [avar (aid "x" tint)] one];
+                             block [declasgn [avar (aid "x" tint)] two]] =: One;
 
-    (empty, UnitT) =/= (block [decl [avar (aid "x" tint)]; decl [avar (aid "x" tint)]]);
+    (* Block errors *)
+    (empty, UnitT) =/= (block [decl [avar (aid "x" tint)];
+                               decl [avar (aid "x" tint)]]);
+    (empty, UnitT) =/= (block [declasgn [avar (aid "x" tint)] one;
+                               declasgn [avar (aid "x" tint)] two]);
+    (*(empty, UnitT) =/= (block [decl [avar (aid "x" tint)];
+                               block [declasgn [avar (aid "x" tbool) tru]]]);*)
+
+    (vars["x", IntT], UnitT) =/= (block [decl [avar (aid "x" tint)]]);
+    (vars["x", IntT], UnitT) =/= (block [declasgn [avar (aid "x" tint)] one]);
 
     (* Return *)
     (empty, UnitT) |- (return []) =: Zero;

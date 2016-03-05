@@ -338,7 +338,7 @@ let stmt_typecheck c rho s =
           (c, rho) |- s >>= fun (s', c') ->
           Ok (s'::ss, c')
         in
-        List.fold_left ss ~f ~init:(Ok ([], c)) >>= fun (ss, c) ->
+        List.fold_left ss ~f ~init:(Ok ([], c)) >>= fun (ss, _) ->
         let ss = List.rev ss in
 
         (* make sure that all but the last stmt is of type One *)

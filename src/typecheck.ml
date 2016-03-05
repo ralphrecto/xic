@@ -364,10 +364,13 @@ let stmt_typecheck c rho s =
       | BoolT -> Ok ((lub (fst t') (fst f'), IfElse (b', t', f')), c)
       | _ -> err "If conditional not a boolean."
     end
-    | While (b, s) ->
+    | While (b, s) -> begin
         expr_typecheck c b >>= fun b' ->
         (c, rho) |- s >>= fun (s', _) ->
-        Ok ((One, While (b', s')), c)
+      match fst b'  with
+      | BoolT -> Ok ((One, While (b', s')), c)
+      | _ -> err "While conditional not a boolean."
+    end
     | ProcCall ((_, f), args) -> begin
       Context.func p c f >>= fun (a, b) ->
       match (a, b), args with

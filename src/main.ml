@@ -49,7 +49,7 @@ let main flags filenames () : unit Deferred.t =
           let f writer =
             Writer.write_line writer msg |> return in
           Writer.with_file file ~f
-      | Error _ -> print_endline "couldn't open file!!!!" |> return
+      | Error _ -> print_endline "Couldn't open file for typechecking." |> return
     )
 
 let () =

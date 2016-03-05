@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static mjw297.XicException.*;
+
 @SuppressWarnings("deprecation")
 public class Actions {
     /**
@@ -54,7 +56,7 @@ public class Actions {
     public static class Parsed {
         public final Optional<Ast.Program<Position>> prog;
         public final Optional<Ast.Interface<Position>> inter;
-        public final Optional<Exception> exception;
+        public final Optional<XicException> exception;
 
         Parsed(Ast.Program<Position> p) {
             this.prog = Optional.of(p);
@@ -68,7 +70,7 @@ public class Actions {
             this.exception = Optional.empty();
         }
 
-        Parsed(Exception e) {
+        Parsed(XicException e) {
             this.prog = Optional.empty();
             this.inter = Optional.empty();
             this.exception = Optional.of(e);
@@ -83,7 +85,11 @@ public class Actions {
             Ast.Program<Position> prog = (Ast.Program<Position>) parser.parse().value;
             return new Parsed(prog);
         } catch (Exception e) {
-            return new Parsed(e);
+            if (e instanceof XicException) {
+                return new Parsed((XicException) e);
+            } else {
+                return new Parsed(new GenericParserException(-1, -1, "cup error"));
+            }
         }
     }
 
@@ -94,7 +100,11 @@ public class Actions {
             Ast.Interface<Position> inter = (Ast.Interface<Position>) parser.parse().value;
             return new Parsed(inter);
         } catch (Exception e) {
-            return new Parsed(e);
+            if (e instanceof XicException) {
+                return new Parsed((XicException) e);
+            } else {
+                return new Parsed(new GenericParserException(-1, -1, "cup error"));
+            }
         }
     }
 }

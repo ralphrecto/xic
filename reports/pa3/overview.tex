@@ -239,17 +239,24 @@ were thrown properly again made sure we covered all the corner cases in our
 lexer.
 
 \section{Work Plan}\label{sec:workplan}
-Before we started coding, one person set up the skeleton code and
-modularization. Then another member took care of the frontend such as command
-line interfaces. Then, other people wrote the rules for lexing while the other
-members wrote test cases.
+One day during compiler lectures Michael and Ralph had an enlightenment -- switching our
+source language from Java to OCaml.
+They slowly approached Seung Hee and Alice after class and they didn't know at the moment, 
+but they were about to embark on the most incredible journey of their life. After discussing
+with professor Myers, we decided to go with the idea. Ralph and Michael immediately 
+worked on the conversion from Java to OCaml. Then after the skeleton of OCaml code was written
+we split up the work. Ralph worked on type checking expressions, Michael on statements,
+and Seung Hee and Alice pair programmed on type checking functions. Then, while 
+Ralph worked on the front end, Seung Hee, Michael and Alice focued on testing.
 
 \section{Known Problems}\label{sec:problems}
-None.
+Currently we do not support UTF-8 as OCaml does not have good support for unicode 
+escapes. 
 
 \section{Comments}\label{sec:comments}
-We spent about 60 hours total on the assignment. The assignment overall
-introduced important concepts about lexing but we thought the coding was a
-little bit dry and tedious.
+We spent about 80 hours total on the assignment. The assignment overall
+introduced important concepts about type checking. We really appreciated 
+the type checking specification. It was very thorough and the case analysis
+really helped structure our code.
 
 \end{document}

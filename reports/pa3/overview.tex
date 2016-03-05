@@ -43,81 +43,18 @@ make src
 \end{center}
 
 \section{Summary}\label{sec:summary}
-In this programming assignment, we implemented a lexer in Java for the Xi
-programming language using the JFlex lexer generator and CUP parser generator.
-Our major design decisions involve the design of symbol and exception classes,
-the choice of language and libraries, and the lexing of a few nefarious Xi
-programs. The most challenging aspect of the assignment was the handling of
-non-printable characters inside of comments, strings, and characters. For
-example, the form feed character `\verb$\f$' is a non-printable character that
-is difficult to lex correctly in various contexts. There are no known problems
-with our implementation.
+In this programming assignment, we implemented semantic analysis in OCaml for
+the Xi programming language. Our largest design decisions involve switching to
+OCaml and the format of our AST. The most challenging aspect of the assignment
+was the handling of the empty array. There are no known problems with our
+implementation.
 
 \section{Specification}\label{sec:specification}
 In this section, we make explicit our interpretation of the Xi language
 specification and discuss various language extensions we have implemented.
 
-\subsection{Line Endings and Whitespace}
-The Xi language specification is ambiguous about the definition of a line
-terminator, referring to it only informally as a ``newline''. We define a line
-terminator to be a carriage return `\verb$\r$', a newline `\verb$\n$', or both
-`\verb$\r\n$'. If a `\verb$\r\n$' is present, it is counted as a single
-newline. This definition of line terminators is consistent with the Java
-Language
-Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.4}}.
-Similarly we define whitespace to be any of `\verb$\r$', `\verb$\n$',
-`\verb$\r\n$', `\verb$ $', `\verb$\t$', `\verb$\f$'. This is also consistent with
-the Java Language
-Specification\footnote{\url{https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html\#jls-3.6}}.
-
-\subsection{Comments}
-The Xi language specification states that a comment is \texttt{//} followed by
-any sequence of characters until a newline character. We interpret a newline
-character to be any line terminator as defined above. We have also made a small
-revision and allow comments to be terminated by the end of a file as described
-in \secref{design}.
-
-\subsection{Characters in Comments, Strings, and Characters}
-Xi input files are UTF-8 encoded, though keywords and identifiers are made up
-of only ASCII characters. This leads to the question of what characters are
-allowed inside of comments, strings, and character literals. We allow any
-character that is not a line terminator, including exotic Unicode characters,
-to appear in a comment, string, or character literal. Allowing exotic
-characters simplifies the lexer and provides a bit of flexibility to
-Xi programmers.
-
-\subsection{Hex and Unicode Escape Sequences}
-The programming assignment mandates that we support hex escape sequences inside
-of string and character literals. For example, the string \verb$"\x64"$ is
-lexed into the string \texttt{"d"}. The programming assignment is ambiguous
-about the format of the hex escape sequences. We support only fixed width
-two-digit hex escape sequences.
-%
-In addition to hex escape sequences, we have also added Unicode escape
-sequences of the form:
-\begin{center}
-  \verb$\u[a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9]$
-\end{center}
-For example, the string \verb$"\u0064"$ lexes to \texttt{"d"}.
-
-\subsection{Escape Characters}
-The Xi language specification says to support a ``reasonable'' set of character
-escapes. We have elected to support \verb$\t$, \verb$\b$, \verb$\n$, \verb$\r$,
-\verb$\f$, \verb$\'$, \verb$\"$, and \verb$\\$. These are also the set of
-non-printable characters that our compiler pretty prints when run with the
-\texttt{--lex} flag. For example the Xi string \verb$"\n"$ is printed as
-\verb$\n$ rather than a literal newline. All other non-printable characters are
-printed as hex escaped sequences.
-
-\subsection{Non-Line Terminating Whitespace}
-Certain whitespace characters are not Xi line terminators but are often
-considered in other contexts to be line terminators. For example, \verb$\f$,
-\verb$\u2028$, and \verb$\u2029$ are considered by JFlex to be line
-terminators.  This leads to an inconsistency in the row numbers our lexer
-reports. The number of lines reported by JFlex is not consistent with the
-number of lines terminated by a Xi line terminator. Since these whitespace
-characters are rare to see in source code and since the inconsistency is
-unimportant, we avoid the complexity of correcting this inconsistency.
+\subsection{TODO}
+TODO
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}

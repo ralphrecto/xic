@@ -418,6 +418,17 @@ let stmt_typecheck c rho s =
         Ok ((One, Decl vs'), Context.bind_all_vars c vs')
     end
     | DeclAsgn (vs, e) -> begin
+        (*
+        (* COMPILERS IS FUN! *)
+        begin
+          match vs, e with
+          | [(_, Underscore)], (_, FuncCall _)
+          | [(_, AVar (_, AUnderscore _))], (_, FuncCall _) -> Ok ()
+          | [(_, Underscore)], _
+          | [(_, AVar (_, AUnderscore _))], _ -> Error (p, "Function call expected")
+          | _ -> Ok ()
+        end >>= fun () ->
+        *)
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
         expr_typecheck c e >>= fun e' ->
         match vs', fst e' with

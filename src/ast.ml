@@ -10,9 +10,9 @@ open Async.Std
  * S defines the type of an AST and is parameterized on 9 types, each
  * corresponding to one type of AST node:
  *
- *     1. 'p: prog
+ *     1. 'p: prog and interface
  *     2. 'u: use
- *     3. 'c: callable
+ *     3. 'c: callable and callable_decl
  *     4. 'i: id
  *     5. 'a: avar
  *     6. 'v: var
@@ -47,7 +47,19 @@ open Async.Std
 module S = struct
 
   (* top level terms *)
-  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
+  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) full_prog =
+    FullProg of ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
+
+  and ('p,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('c,'i,'a,'v,'s,'e,'t) raw_interface
+  and ('c,'i,'a,'v,'s,'e,'t) raw_interface =
+    Interface of ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+
+  and ('c,'i,'a,'v,'s,'e,'t) callable_decl = 'c * ('i,'a,'v,'s,'e,'t) raw_callable_decl
+  and ('i,'a,'v,'s,'e,'t) raw_callable_decl =
+    | FuncDecl of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list
+    | ProcDecl of 'i id * ('i,'a,'e,'t) avar list
+
+  and ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
   and ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog =
     | Prog of ('u,'i) use list * ('c,'i,'a,'v,'s,'e,'t) callable list
 
@@ -153,6 +165,56 @@ let string_of_unop_code (c: S.unop_code) : string =
   | S.UMINUS -> "-"
   | S.BANG   -> "!"
 
+let rec string_of_expr (_, e) : string =
+  let soe = string_of_expr in
+  match e with
+  | S.Int i -> sprintf "%s" (Int64.to_string_hum i)
+  | S.Bool b -> sprintf "%b" b
+  | S.String s -> sprintf "\"%s\"" s
+  | S.Char c -> sprintf "'%c'" c
+  | S.Array es -> sprintf "{%s}" (Util.commas (List.map ~f:soe es))
+  | S.Id (_, x) -> x
+  | S.BinOp (lhs, c, rhs) -> sprintf "%s%s%s" (soe lhs)
+                                              (string_of_binop_code c)
+                                              (soe rhs)
+  | S.UnOp (c, e) -> sprintf "%s%s" (string_of_unop_code c) (soe e)
+  | S.Index (a, i) -> sprintf "%s[%s]" (soe a) (soe i)
+  | S.Length e -> sprintf "length(%s)" (soe e)
+  | S.FuncCall ((_, f), args) -> sprintf "%s(%s)" f (Util.commas (List.map ~f:soe args))
+
+let rec string_of_typ (_, t) : string =
+  let sot = string_of_typ in
+  match t with
+  | S.TInt -> "int"
+  | S.TBool -> "bool"
+  | S.TArray (t, None) -> sprintf "%s[]" (sot t)
+  | S.TArray (t, Some e) -> sprintf "%s[%s]" (sot t) (string_of_expr e)
+
+let string_of_avar (_, a) : string =
+  match a with
+  | S.AId ((_, x), t) -> sprintf "%s: %s" x (string_of_typ t)
+  | S.AUnderscore t -> sprintf "_: %s" (string_of_typ t)
+
+let string_of_var (_, v) : string =
+  match v with
+  | S.AVar a -> string_of_avar a
+  | S.Underscore -> "_"
+
+let rec string_of_stmt (_, s) : string =
+  let sos = string_of_stmt in
+  match s with
+  | S.Decl xs -> sprintf "%s;" (Util.commas (List.map ~f:string_of_var xs))
+  | S.DeclAsgn (xs, e) -> sprintf "%s=%s;" (Util.commas (List.map ~f:string_of_var xs))
+                                           (string_of_expr e)
+  | S.Asgn (lhs, rhs) -> sprintf "%s=%s;" (string_of_expr lhs) (string_of_expr rhs)
+  | S.Block ss -> sprintf "{%s}" (Util.commas (List.map ~f:sos ss))
+  | S.Return es -> sprintf "return %s" (Util.commas (List.map ~f:string_of_expr es))
+  | S.If (b, t) -> sprintf "if(%s) %s" (string_of_expr b) (sos t)
+  | S.IfElse (b, t, f) -> sprintf "if(%s) %s else %s" (string_of_expr b) (sos t) (sos f)
+  | S.While (e, s) -> sprintf "while(%s) %s" (string_of_expr e) (sos s)
+  | S.ProcCall ((_, p), args) ->
+        sprintf "%s(%s)" p (Util.commas (List.map ~f:string_of_expr args))
+
 module type TAGS = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]
@@ -167,13 +229,16 @@ end
 
 module Make(T: TAGS) = struct
   open T
-  type prog     = (p,u,c,i,a,v,s,e,t) S.prog     [@@deriving sexp]
-  type use      = (  u,  i          ) S.use      [@@deriving sexp]
-  type callable = (    c,i,a,v,s,e,t) S.callable [@@deriving sexp]
-  type id       =        i            S.id       [@@deriving sexp]
-  type avar     = (      i,a,    e,t) S.avar     [@@deriving sexp]
-  type var      = (      i,a,v,  e,t) S.var      [@@deriving sexp]
-  type stmt     = (      i,a,v,s,e,t) S.stmt     [@@deriving sexp]
-  type expr     = (      i,      e  ) S.expr     [@@deriving sexp]
-  type typ      = (      i,      e,t) S.typ      [@@deriving sexp]
+  type full_prog     = (p,u,c,i,a,v,s,e,t) S.full_prog     [@@deriving sexp]
+  type interface     = (p,  c,i,a,v,s,e,t) S.interface     [@@deriving sexp]
+  type callable_decl = (    c,i,a,v,s,e,t) S.callable_decl [@@deriving sexp]
+  type prog          = (p,u,c,i,a,v,s,e,t) S.prog          [@@deriving sexp]
+  type use           = (  u,  i          ) S.use           [@@deriving sexp]
+  type callable      = (    c,i,a,v,s,e,t) S.callable      [@@deriving sexp]
+  type id            =        i            S.id            [@@deriving sexp]
+  type avar          = (      i,a,    e,t) S.avar          [@@deriving sexp]
+  type var           = (      i,a,v,  e,t) S.var           [@@deriving sexp]
+  type stmt          = (      i,a,v,s,e,t) S.stmt          [@@deriving sexp]
+  type expr          = (      i,      e  ) S.expr          [@@deriving sexp]
+  type typ           = (      i,      e,t) S.typ           [@@deriving sexp]
 end

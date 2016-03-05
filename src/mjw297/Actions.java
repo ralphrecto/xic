@@ -31,7 +31,7 @@ public class Actions {
      * from {@code s} until the EOF token is reached. The EOF token <i>is</i>
      * included in the returned list.
      */
-    public static Lexed lex(Reader r) throws IOException {
+    public static Lexed lex(Reader r) {
         List<Symbol> result = new ArrayList<>();
         Lexer l = new Lexer(r);
 
@@ -45,20 +45,32 @@ public class Actions {
             return new Lexed(result, Optional.empty());
         } catch (XicException e) {
             return new Lexed(result, Optional.of(e));
+        } catch (IOException e) {
+            XicException.XiIOException e2 = new XicException.XiIOException(e.getMessage());
+            return new Lexed(result, Optional.of(e2));
         }
     }
 
     public static class Parsed {
         public final Optional<Ast.Program<Position>> prog;
+        public final Optional<Ast.Interface<Position>> inter;
         public final Optional<Exception> exception;
 
         Parsed(Ast.Program<Position> p) {
             this.prog = Optional.of(p);
+            this.inter = Optional.empty();
+            this.exception = Optional.empty();
+        }
+
+        Parsed(Ast.Interface<Position> i) {
+            this.prog = Optional.empty();
+            this.inter = Optional.of(i);
             this.exception = Optional.empty();
         }
 
         Parsed(Exception e) {
             this.prog = Optional.empty();
+            this.inter = Optional.empty();
             this.exception = Optional.of(e);
         }
 
@@ -68,8 +80,19 @@ public class Actions {
         Parser parser = new Parser(new Lexer(r));
         try {
             @SuppressWarnings("unchecked")
-            Ast.Program<Position> p = (Ast.Program<Position>) parser.parse().value;
-            return new Parsed(p);
+            Ast.Program<Position> prog = (Ast.Program<Position>) parser.parse().value;
+            return new Parsed(prog);
+        } catch (Exception e) {
+            return new Parsed(e);
+        }
+    }
+
+    public static Parsed parseInterface(Reader r) {
+        InterfaceParser parser = new InterfaceParser(new Lexer(r));
+        try {
+            @SuppressWarnings("unchecked")
+            Ast.Interface<Position> inter = (Ast.Interface<Position>) parser.parse().value;
+            return new Parsed(inter);
         } catch (Exception e) {
             return new Parsed(e);
         }

@@ -72,6 +72,7 @@ public interface Ast {
         public R visit(FuncDecl<A> p);
         public R visit(ProcDecl<A> p);
         public R visit(Interface<A> p);
+        public R visit(FullProgram<A> p);
 
         // Stmt
         public R visit(Decl<A> d);
@@ -436,6 +437,7 @@ public interface Ast {
         public final A a;
         public final List<Stmt<A>> ss;
         public final Optional<List<Expr<A>>> ret;
+        public final A ret_a;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -570,8 +572,17 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Interface<A> implements XiFile<A> {
         public final A a;
-        public final List<Use<A>> uses;
         public final List<CallableDecl<A>> fs;
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class FullProgram<A> implements Node<A> {
+        public final A a;
+        public final Program<A> prog;
+        public final List<Interface<A>> inters;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 }

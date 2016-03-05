@@ -1,9 +1,11 @@
 SRCDIR = src/mjw297
 PKG = mjw297
 PARSER_CLASS = Parser
+INTERFACE_PARSER_CLASS = InterfaceParser
 SYMBOL_CLASS = Sym
 LEXER_CLASS = Lexer
 PARSER = $(SRCDIR)/$(PARSER_CLASS)
+INTERFACE_PARSER = $(SRCDIR)/$(INTERFACE_PARSER_CLASS)
 SYMBOL = $(SRCDIR)/$(SYMBOL_CLASS)
 LEXER  = $(SRCDIR)/$(LEXER_CLASS)
 CUPJAR = lib/java_cup.jar
@@ -12,6 +14,7 @@ SRCS  = $(shell find src -name '*.java') \
         $(shell find test -name '*.java') \
 	    $(LEXER).java \
 	    $(PARSER).java \
+	    $(INTERFACE_PARSER).java \
 	    $(SYMBOL).java
 TESTS = $(shell find test -name '*Test.java' \
             | sed 's/.java//' \
@@ -44,6 +47,16 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						-symbols $(SYMBOL_CLASS) \
 						-nowarn \
 						$<
+
+$(INTERFACE_PARSER).java: $(INTERFACE_PARSER).cup
+	java  -cp $(CUPJAR):$(CP) java_cup.Main \
+		                -destdir $(SRCDIR) \
+		                -package $(PKG) \
+						-parser $(INTERFACE_PARSER_CLASS) \
+						-symbols $(SYMBOL_CLASS) \
+						-nowarn \
+						$<
+
 .PHONY: src 
 src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN) 
 	@echo "********************************************************************"
@@ -100,16 +113,17 @@ clean:
 	rm -rf $(BIN)
 	rm -rf $(DOC)
 	rm -rf $(PARSER).java
+	rm -rf $(INTERFACE_PARSER).java
 	rm -rf $(SYMBOL).java
 	rm -rf $(LEXER).java
 	rm -f  p1.zip
 	corebuild -clean
 	@echo
 
-p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+p1.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
-p2.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+p2.zip: $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
 print-%:

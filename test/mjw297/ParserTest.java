@@ -291,7 +291,8 @@ public class ParserTest {
         List<Stmt<Position>> ss,
         Optional<List<Expr<Position>>> ret
     ) {
-        return Block.of(PositionKiller.dummyPosition, ss, ret);
+        return Block.of(PositionKiller.dummyPosition,
+                ss, ret, PositionKiller.dummyPosition);
     }
 
     private static If<Position> if_ (
@@ -429,7 +430,7 @@ public class ParserTest {
                         pos(2, 1),
                         Id.of(pos(2, 1), "main"),
                         l(),
-                        Block.of(pos(3, 1), l(), Optional.empty())
+                        Block.of(pos(3, 1), l(), Optional.empty(),pos(-1,-1))
                 ))
         );
         assertEquals(expected, parsePos(symbols));

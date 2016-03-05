@@ -19,13 +19,14 @@ module Expr: sig
   val to_string: t -> string
   val of_typ: Pos.typ -> t
 
-  (* subtype relation *)
+  (* subtype and supertype relation *)
   val (<=): t -> t -> bool
+  val (>=): t -> t -> bool
 
   (* `eqs p xs ys num type` checks that
    *
    *     (1) len(xs) == len(ys), and
-   *     (2) for all xi and yi, xi <= yi.
+   *     (2) for all xi and yi, xi >= yi.
    *
    * If (1) fails, `Error (p, num)` is returned. If (2) fails, `Error (p,
    * type)` is returned. *)
@@ -80,14 +81,18 @@ module Context: sig
 
   (* For every annotated variable `x:t` in `vs`, `bind_all c vs` binds `x` to
    * `t`. underscores and annotated underscores are ignored. *)
-  val bind_all: context -> var list -> context
+  val bind_all_vars: context -> var list -> context
+
+	val bind_all_avars: context -> avar list -> context
 end
 
-val expr_typecheck: context ->           Pos.expr     -> expr     Error.result
-val typ_typecheck:  context ->           Pos.typ      -> typ      Error.result
-val avar_typecheck: context ->           Pos.avar     -> avar     Error.result
-val var_typecheck:  context ->           Pos.var      -> var      Error.result
-val stmt_typecheck: context -> Expr.t -> Pos.stmt     -> stmt     Error.result
-val fst_func_pass:  context ->           Pos.callable -> context  Error.result
-val snd_func_pass:  context ->           Pos.callable -> callable Error.result
-val prog_typecheck:                      Pos.prog     -> prog     Error.result
+val expr_typecheck: context -> Pos.expr -> expr Error.result
+val typ_typecheck: context -> Pos.typ -> typ Error.result
+val avar_typecheck: context -> Pos.avar -> avar Error.result
+val var_typecheck: context -> Pos.var -> var Error.result
+val stmt_typecheck: context -> Expr.t -> Pos.stmt -> stmt Error.result
+val func_decl_typecheck: context -> Pos.callable_decl -> context Error.result
+val func_typecheck: context -> Pos.callable -> context Error.result
+val fst_func_pass: Pos.callable list -> Pos.interface list -> context Error.result
+val snd_func_pass: context -> Pos.callable -> callable Error.result
+val prog_typecheck: Pos.full_prog -> prog Error.result

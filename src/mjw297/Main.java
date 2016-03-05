@@ -221,9 +221,9 @@ public class Main {
 
             File outputFile = Paths.get(diagPathOut(p.snd, "parsed")).toFile();
 
-            SExpJaneStreetOut sExpOut = null;
+            SExpOut sExpOut = null;
             try {
-                sExpOut = new SExpJaneStreetOut(new FileOutputStream(outputFile));
+                sExpOut = new SExpOut(new FileOutputStream(outputFile));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);

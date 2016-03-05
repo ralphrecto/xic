@@ -23,6 +23,10 @@ open Ast.S
 let dummy = (-1, -1)
 let raw_id i = (dummy, i)
 
+let fullprog prog ilist = FullProg (prog, ilist)
+let interface dlist = (dummy, Interface dlist)
+let funcdecl f args typs = (dummy, FuncDecl ((raw_id f), args, typs))
+let procdecl f args = (dummy, ProcDecl ((raw_id f), args))
 let prog uses calls = (dummy, Prog (uses, calls))
 let use x = (dummy, Use (raw_id x))
 let func f args typs s = (dummy, Func ((raw_id f), args, typs, s))

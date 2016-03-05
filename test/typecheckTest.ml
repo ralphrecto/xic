@@ -254,6 +254,22 @@ module TestCallable = struct
     |> assert_true
 end
 
+module TestProg = struct
+	let (=:) (_: unit) (p: Pos.full_prog) : unit =
+		begin
+			match prog_typecheck p with
+			| Error (p, s) -> printf "%s" s; Error (p, s)
+			| Ok o -> Ok o
+		end
+		|> is_ok
+		|> assert_true
+
+  let (=/=) (_: unit) (p: Pos.full_prog) : unit =
+		prog_typecheck p
+    |> is_error
+    |> assert_true
+end
+
 module TestStmt = struct
   let (=:) (((c, r), s): (context * Expr.t) * Pos.stmt) (t: Stmt.t) : unit =
     match stmt_typecheck c r s with
@@ -1285,6 +1301,9 @@ let test_callable () =
 	(* unbound variable y *)
 	empty =/= (func "f" [aid "x" tint] [tint] (return [id "y"]));
 
+	(* does not actually return *)
+	empty =/= (func "f" [] [tint] (block []));
+
 	(* procedures *)
 
 	(* [] *)
@@ -1331,6 +1350,148 @@ let test_callable () =
 
 	()
 
+let test_prog () =
+	let open Pos in
+	let open TestProg in
+	let avar_u = [] in
+	let avar_i1 = [aid "x" tint] in
+	let avar_i2 = [aid "x" tint; aid "y" tint] in
+	let avar_i3 = [aid "x" tint; aid "y" tint; aid "z" tint] in
+	let typ_i1 = [tint] in
+	let typ_i2 = [tint; tint] in
+	let typ_i3 = [tint; tint; tint] in
+	let ret_i1 = return [int 3L] in
+	let ret_i2 = return [int 3L; int 3L] in
+	let ret_i3 = return [int 3L; int 3L; int 3L] in
+	let emp = block [] in
+	
+	let f_u2i = func "f_u2i" avar_u typ_i1 ret_i1 in
+	let f_u2ii = func "f_u2ii" avar_u typ_i2 ret_i2 in
+	let f_u2iii = func "f_u2iii" avar_u typ_i3 ret_i3 in
+	
+	let f_i2i = func "f_i2i" avar_i1 typ_i1 ret_i1 in
+	let f_i2ii = func "f_i2ii" avar_i1 typ_i2 ret_i2 in
+	let f_i2iii = func "f_i2iii" avar_i1 typ_i3 ret_i3 in
+	
+	let f_ii2i = func "f_ii2i" avar_i2 typ_i1 ret_i1 in
+	let f_ii2ii = func "f_ii2ii" avar_i2 typ_i2 ret_i2 in
+	let f_ii2iii = func "f_ii2iii" avar_i2 typ_i3 ret_i3 in
+	
+	let f_iii2i = func "f_iii2i" avar_i3 typ_i1 ret_i1 in
+	let f_iii2ii = func "f_iii2ii" avar_i3 typ_i2 ret_i2 in
+	let f_iii2iii = func "f_iii2iii" avar_i3 typ_i3 ret_i3 in
+
+	let p_u2u = proc "p_u2u" avar_u emp in
+	let p_i2u = proc "p_i2u" avar_i1 emp in
+	let p_ii2u = proc "p_ii2u" avar_i2 emp in
+	let p_iii2u = proc "p_iii2u" avar_i3 emp in
+
+	let fd_u2i = funcdecl "f_u2i" avar_u typ_i1 in
+	let fd_u2ii = funcdecl "f_u2ii" avar_u typ_i2 in
+	let fd_u2iii = funcdecl "f_u2iii" avar_u typ_i3 in
+	
+	let fd_i2i = funcdecl "f_i2i" avar_i1 typ_i1 in
+	let fd_i2ii = funcdecl "f_i2ii" avar_i1 typ_i2 in
+	let fd_i2iii = funcdecl "f_i2iii" avar_i1 typ_i3 in
+	
+	let fd_ii2i = funcdecl "f_ii2i" avar_i2 typ_i1 in
+	let fd_ii2ii = funcdecl "f_ii2ii" avar_i2 typ_i2 in
+	let fd_ii2iii = funcdecl "f_ii2iii" avar_i2 typ_i3 in
+	
+	let fd_iii2i = funcdecl "f_iii2i" avar_i3 typ_i1 in
+	let fd_iii2ii = funcdecl "f_iii2ii" avar_i3 typ_i2 in
+	let fd_iii2iii = funcdecl "f_iii2iii" avar_i3 typ_i3 in
+
+	let pd_u2u = procdecl "p_u2u" avar_u in
+	let pd_i2u = procdecl "p_i2u" avar_i1 in
+	let pd_ii2u = procdecl "p_ii2u" avar_i2 in
+	let pd_iii2u = procdecl "p_iii2u" avar_i3 in
+
+	let diff_fd_u2i = funcdecl "diff_f_u2i" avar_u typ_i1 in
+	let diff_fd_u2ii = funcdecl "diff_f_u2ii" avar_u typ_i2 in
+	let diff_fd_u2iii = funcdecl "diff_f_u2iii" avar_u typ_i3 in
+	
+	let diff_fd_i2i = funcdecl "diff_f_i2i" avar_i1 typ_i1 in
+	let diff_fd_i2ii = funcdecl "diff_f_i2ii" avar_i1 typ_i2 in
+	let diff_fd_i2iii = funcdecl "diff_f_i2iii" avar_i1 typ_i3 in
+	
+	let diff_fd_ii2i = funcdecl "diff_f_ii2i" avar_i2 typ_i1 in
+	let diff_fd_ii2ii = funcdecl "diff_f_ii2ii" avar_i2 typ_i2 in
+	let diff_fd_ii2iii = funcdecl "diff_f_ii2iii" avar_i2 typ_i3 in
+	
+	let diff_fd_iii2i = funcdecl "diff_f_iii2i" avar_i3 typ_i1 in
+	let diff_fd_iii2ii = funcdecl "diff_f_iii2ii" avar_i3 typ_i2 in
+	let diff_fd_iii2iii = funcdecl "diff_f_iii2iii" avar_i3 typ_i3 in
+
+	let diff_pd_u2u = procdecl "diff_p_u2u" avar_u in
+	let diff_pd_i2u = procdecl "diff_p_i2u" avar_i1 in
+	let diff_pd_ii2u = procdecl "diff_p_ii2u" avar_i2 in
+	let diff_pd_iii2u = procdecl "diff_p_iii2u" avar_i3 in
+
+	let wrong_fd_u2i = funcdecl "f_u2i" avar_u typ_i2 in
+	let wrong_fd_u2ii = funcdecl "f_u2ii" avar_u typ_i1 in
+	let wrong_fd_u2iii = funcdecl "f_u2iii" avar_u typ_i1 in
+	
+	let wrong_fd_i2i = funcdecl "f_i2i" avar_i1 typ_i2 in
+	let wrong_fd_i2ii = funcdecl "f_i2ii" avar_i1 typ_i1 in
+	let wrong_fd_i2iii = funcdecl "f_i2iii" avar_i1 typ_i1 in
+	
+	let wrong_fd_ii2i = funcdecl "f_ii2i" avar_i2 typ_i2 in
+	let wrong_fd_ii2ii = funcdecl "f_ii2ii" avar_i2 typ_i1 in
+	let wrong_fd_ii2iii = funcdecl "f_ii2iii" avar_i2 typ_i1 in
+	
+	let wrong_fd_iii2i = funcdecl "f_iii2i" avar_i3 typ_i2 in
+	let wrong_fd_iii2ii = funcdecl "f_iii2ii" avar_i3 typ_i1 in
+	let wrong_fd_iii2iii = funcdecl "f_iii2iii" avar_i3 typ_i1 in
+
+	let wrong_pd_u2u = procdecl "p_u2u" avar_i1 in
+	let wrong_pd_i2u = procdecl "p_i2u" avar_i2 in
+	let wrong_pd_ii2u = procdecl "p_ii2u" avar_i1 in
+	let wrong_pd_iii2u = procdecl "p_iii2u" avar_i1 in
+
+	let call_fd_u2i = func "f" avar_u typ_i1 (return [funccall "f_u2i" []]) in
+
+	let call_inter_prog = prog [] [call_fd_u2i] in
+
+	let everything_prog = prog [] [f_u2i; f_u2ii; f_u2iii; f_i2i; f_i2ii; f_i2iii;   
+													 f_ii2i; f_ii2ii; f_ii2iii; f_iii2i; f_iii2ii; f_iii2iii;
+													 p_u2u; p_i2u; p_ii2u; p_iii2u] in
+
+	let everything_inter = interface [fd_u2i; fd_u2ii; fd_u2iii; fd_i2i; fd_i2ii; fd_i2iii;   
+													 fd_ii2i; fd_ii2ii; fd_ii2iii; fd_iii2i; fd_iii2ii; fd_iii2iii;
+													 pd_u2u; pd_i2u; pd_ii2u; pd_iii2u] in
+
+	let diff_everything_inter = interface [diff_fd_u2i; diff_fd_u2ii; diff_fd_u2iii; diff_fd_i2i; 
+																				 diff_fd_i2ii; diff_fd_i2iii; diff_fd_ii2i; diff_fd_ii2ii; 
+																				 diff_fd_ii2iii; diff_fd_iii2i; diff_fd_iii2ii; diff_fd_iii2iii;
+													 							 diff_pd_u2u; diff_pd_i2u; diff_pd_ii2u; diff_pd_iii2u] in
+
+	let wrong_everything_inter = interface [wrong_fd_u2i; wrong_fd_u2ii; wrong_fd_u2iii; wrong_fd_i2i; 
+																				 wrong_fd_i2ii; wrong_fd_i2iii; wrong_fd_ii2i; wrong_fd_ii2ii; 
+																				 wrong_fd_ii2iii; wrong_fd_iii2i; wrong_fd_iii2ii; wrong_fd_iii2iii;
+													 							 wrong_pd_u2u; wrong_pd_i2u; wrong_pd_ii2u; wrong_pd_iii2u] in
+
+	let only_prog = fullprog everything_prog [] in
+	() =: only_prog;
+	
+	let alldiff_fullprog = fullprog everything_prog [diff_everything_inter] in
+	() =: alldiff_fullprog;
+
+	let allsame_fullprog = fullprog everything_prog [everything_inter] in
+	() =: allsame_fullprog;
+
+	let mult_fullprog = fullprog everything_prog [everything_inter; everything_inter; diff_everything_inter] in
+	() =: mult_fullprog;
+
+	let wrong_fullprog = fullprog everything_prog [everything_inter; diff_everything_inter; wrong_everything_inter]
+	in
+	() =/= wrong_fullprog;
+
+	let call_inter_fullprog = fullprog call_inter_prog [everything_inter] in
+	() =: call_inter_fullprog;
+
+	()	
+	
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -1339,6 +1500,7 @@ let main () =
         "test_expr" >:: test_expr;
         "test_stmt" >:: test_stmt;
 		"test_callable" >:: test_callable;
+		"test_prog" >:: test_prog;
     ] |> run_test_tt_main
 
 let _ = main ()

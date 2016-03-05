@@ -82,7 +82,7 @@ public class PositionKiller {
             Optional<List<Expr<Position>>> ret = b.ret.map(retList -> Lists.transform(
                 retList, e -> e.accept(new ExprKiller())
             ));
-            return Block.of(dummyPosition, ss, ret);
+            return Block.of(dummyPosition, ss, ret, dummyPosition);
         }
         public Stmt<Position> visit(If<Position> i) {
             return If.of(dummyPosition, i.b.accept(new ExprKiller()),

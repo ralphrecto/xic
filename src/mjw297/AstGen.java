@@ -153,7 +153,8 @@ public class AstGen {
                 baseStmt ?
                     repeat(AstGen::genBaseStmt, 10) :
                     repeat(AstGen::genStmt, 10),
-                Optional.of(repeat(AstGen::genExpr, 10))
+                Optional.of(repeat(AstGen::genExpr, 10)),
+                dummyPos
         );
     }
 

@@ -477,7 +477,8 @@ class CUP$InterfaceParser$actions {
                 int sright = CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-1).right;
                 ArrayList<Stmt<Position>> s = CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-1).<ArrayList<Stmt<Position>>> value();
                  Position p = new Position(lbleft, lbright);
-	   RESULT = Block.of(p, s, Optional.empty()); 
+	   Position ret_p = new Position(-1, -1);
+	   RESULT = Block.of(p, s, Optional.empty(), ret_p); 
                 CUP$InterfaceParser$result = parser.getSymbolFactory().newSymbol("block",5, CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-2), CUP$InterfaceParser$stack.peek(), RESULT);
             }
             return CUP$InterfaceParser$result;
@@ -496,7 +497,8 @@ class CUP$InterfaceParser$actions {
                 int elright = CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-2).right;
                 ArrayList<Expr<Position>> el = CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-2).<ArrayList<Expr<Position>>> value();
                  Position p = new Position(lbleft, lbright);
-	   RESULT = Block.of(p, s, Optional.of(el)); 
+	   Position ret_p = new Position(elleft, elright);
+	   RESULT = Block.of(p, s, Optional.of(el), ret_p); 
                 CUP$InterfaceParser$result = parser.getSymbolFactory().newSymbol("block",5, CUP$InterfaceParser$stack.elementAt(CUP$InterfaceParser$top-5), CUP$InterfaceParser$stack.peek(), RESULT);
             }
             return CUP$InterfaceParser$result;

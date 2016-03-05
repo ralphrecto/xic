@@ -808,23 +808,68 @@ let test_stmt () =
     let open Pos in
     let open Vars in
     let open TestStmt in
+    let open Vars in
 
     (* Decl *)
     (empty, UnitT) |- decl [avar (aid "x" tint)] =: One;
     (empty, UnitT) |- decl [avar (aid "y" tbool)] =: One;
+    (empty, BoolT) |- decl [avar (aid "y" tbool)] =: One;
     (empty, UnitT) |- decl [avar (aid "z" (tarray tint None))] =: One;
+    (empty, UnitT) |- decl [avar (aid "z" (tarray tint (Some one)))] =: One;
     (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) None))] =: One;
+
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint None) (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" (tarray (tarray tint (Some one)) (Some one)))] =: One;
+
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some tru)))];
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some (arr[]))))];
+    (empty, UnitT) =/= decl [avar (aid "z" (tarray tint (Some (arr[one]))))];
+
     (empty, UnitT) |- decl [underscore] =: One;
     (empty, UnitT) |- decl [avar (aunderscore tint)] =: One;
     (empty, UnitT) |- decl [avar (aunderscore (tarray tbool None))] =: One;
-    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) None))] =: One;
-    (empty, UnitT) |- decl [avar (aid "x" tint);
-                            avar (aid "y" tbool);
-                            avar (aid "z" (tarray tint None))] =: One;
-    (empty, UnitT) |- decl [avar (aid "x" tint);
-                            underscore;
-                            avar (aunderscore tbool)] =: One;
-    (empty, BoolT) |- decl [underscore; underscore; underscore] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray tbool (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool None) (Some one)))] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore (tarray (tarray tbool (Some one)) (Some one)))] =: One;
+
+    (vars["x",IntT], IntT)        =/= decl [avar (aid "x" tint)];
+    (vars["x",BoolT], IntT)       =/= decl [avar (aid "x" tint)];
+    (vars["x",ArrayT IntT], IntT) =/= decl [avar (aid "x" tint)];
+    (vars["x",IntT], IntT)        =/= decl [avar (aid "x" tbool)];
+    (vars["x",BoolT], IntT)       =/= decl [avar (aid "x" tbool)];
+    (vars["x",ArrayT IntT], IntT) =/= decl [avar (aid "x" tbool)];
+
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tint)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tbool); avar (aid "y" tint)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tbool); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [underscore; avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); underscore] =: One;
+    (empty, UnitT) |- decl [underscore; underscore] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore tbool); avar (aid "y" tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aunderscore tbool); avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); avar (aid "y" tbool); avar (aid "z" (tarray tint None))] =: One;
+    (empty, UnitT) |- decl [avar (aid "x" tint); underscore; avar (aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; underscore] =: One;
+
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); underscore] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); underscore; avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [underscore; avar(aid "y" tint); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); underscore; underscore] =: One;
+    (empty, UnitT) |- decl [underscore; avar(aid "y" tint); underscore] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [underscore; underscore; underscore]; =: One;
+
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aid "y" tint); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aid "y" tint); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aid "x" tint); avar(aunderscore tbool); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aid "y" tint); avar(aunderscore tbool)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aunderscore tbool); avar(aid "z" tint)] =: One;
+    (empty, UnitT) |- decl [avar(aunderscore tbool); avar(aunderscore tbool); avar(aunderscore tbool)] =: One;
+
+    (empty, UnitT) =/= decl [avar (aid "x" tint); avar (aid "x" tint)];
 
     (* DeclAsgn *)
     (empty, UnitT) |- declasgn [avar (aid "x" tint)] one =: One;
@@ -854,7 +899,97 @@ let test_stmt () =
                                (arr[arr[fls]]) =: One;
 
     (* Asgn *)
+    (vars["x",IntT], IntT) |- (asgn x one) =: One;
+    (vars["x",IntT], IntT) |- (asgn x (one + one)) =: One;
+    (vars["x",BoolT], IntT) |- (asgn x tru) =: One;
+    (vars["x",BoolT], IntT) |- (asgn x (tru & fls)) =: One;
+    (vars["x",ArrayT IntT], IntT) |- (asgn x (arr[])) =: One;
+    (vars["x",ArrayT IntT], IntT) |- (asgn x (arr[one])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[]])) =: One;
+    (vars["x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[one]])) =: One;
+    (vars["y",IntT;"x",IntT], IntT) |- (asgn x one) =: One;
+    (vars["y",IntT;"x",IntT], IntT) |- (asgn x (one + one)) =: One;
+    (vars["y",IntT;"x",BoolT], IntT) |- (asgn x tru) =: One;
+    (vars["y",IntT;"x",BoolT], IntT) |- (asgn x (tru & fls)) =: One;
+    (vars["y",IntT;"x",ArrayT IntT], IntT) |- (asgn x (arr[])) =: One;
+    (vars["y",IntT;"x",ArrayT IntT], IntT) |- (asgn x (arr[one])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[]])) =: One;
+    (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[one]])) =: One;
+    (fgam, IntT) |- (asgn (index (funccall "u2ia" []) one) one) =: One;
+    (fgam, IntT) |- (asgn (index (string "") one) one) =: One;
+
+    (empty, IntT) =/= (asgn x one);
+    (empty, IntT) =/= (asgn x tru);
+    (empty, IntT) =/= (asgn x (arr[]));
+    (empty, IntT) =/= (asgn x (arr[one]));
+    (empty, IntT) =/= (asgn x (arr[arr[]]));
+    (empty, IntT) =/= (asgn x (arr[arr[one]]));
+    (empty, IntT) =/= (asgn (index (funccall "f" []) one) one);
+
+    (vars["x",IntT], IntT) =/= (asgn x tru);
+    (vars["x",IntT], IntT) =/= (asgn x (arr[]));
+    (vars["x",IntT], IntT) =/= (asgn x (arr[one]));
+    (vars["x",BoolT], IntT) =/= (asgn x one);
+    (vars["x",BoolT], IntT) =/= (asgn x (arr[]));
+    (vars["x",BoolT], IntT) =/= (asgn x (arr[tru]));
+    (vars["x",ArrayT IntT], IntT) =/= (asgn x (arr[arr[arr[arr[arr[]]]]]));
+    (vars["x",ArrayT IntT], IntT) =/= (asgn x (arr[tru]));
+
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) tru);
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) (arr[]));
+    (fgam, IntT) =/= (asgn (index (funccall "u2ia" []) one) (arr[one]));
+    (fgam, IntT) =/= (asgn (index (string "") one) tru);
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[]));
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[one]));
+    (fgam, IntT) =/= (asgn (index (string "") one) (arr[arr[]]));
+
     (* Block *)
+    (empty, UnitT) |- block [] =: One;
+
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)]] =: One;
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)];
+                             decl [avar (aid "y" tbool)]] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])] =: One;
+    (vars["x", IntT], UnitT) |- block [asgn x two] =: One;
+    (vars["x", IntT], UnitT) |- block [block [asgn x two]] =: One;
+    (vars["x", IntT], UnitT) |- block [block[]; block[]; block[]] =: One;
+    (vars["x", IntT], IntT)  |- block [block [return [x]]] =: Zero;
+    (vars["x", IntT], UnitT) |- block [if_ fls (asgn x two)] =: One;
+    (vars["x", IntT], UnitT) |- block [ifelse fls (asgn x two) (asgn x three)] =: One;
+    (vars["x", IntT], UnitT) |- block [while_ fls (asgn x two)] =: One;
+    (fgam, UnitT) |- block [proccall "i2u" [one]] =: One;
+    
+    (empty, UnitT) |- block [block [decl [avar (aid "x" tint)]];
+                             block [decl [avar (aid "x" tint)]]] =: One;
+    (empty, UnitT) |- block [block [declasgn [avar (aid "x" tint)] one];
+                             block [declasgn [avar (aid "x" tint)] two]] =: One;
+    (empty, UnitT) |- block [block [declasgn [avar (aid "x" tint)] one];
+                             declasgn [avar (aid "x" tint)] two] =: One;
+
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)]; asgn x two] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" tint)] one; asgn x two] =: One;
+    (empty, UnitT) |- block [decl [avar (aid "x" tint)];
+                              block [asgn x two]] =: One;
+    (empty, UnitT) |- block [declasgn [avar (aid "x" tint)] one;
+                             block [asgn x two]] =: One;
+    (vars["x", IntT], UnitT) |- block [asgn x two] =: One;
+    (vars["x", IntT], UnitT) |- block [block [asgn x two]] =: One;
+
+    (* Block errors *)
+    (empty, UnitT) =/= (block [decl [avar (aid "x" tint)];
+                               decl [avar (aid "x" tint)]]);
+    (empty, UnitT) =/= (block [declasgn [avar (aid "x" tint)] one;
+                               declasgn [avar (aid "x" tint)] two]);
+    (empty, UnitT) =/= (block [decl [avar (aid "x" tint)];
+                               block [declasgn [avar (aid "x" tbool)] tru]]);
+
+    (vars["x", IntT], UnitT) =/= (block [decl [avar (aid "x" tint)]]);
+    (vars["x", IntT], UnitT) =/= (block [declasgn [avar (aid "x" tint)] one]);
+
+    (empty, UnitT) =/= block [decl [avar (aid "x" tint)]; return [x]];
 
     (* Return *)
     (empty, UnitT) |- (return []) =: Zero;
@@ -961,8 +1096,65 @@ let test_stmt () =
     (empty, TupleT [ArrayT IntT; ArrayT BoolT]) =/= (return [arr[arr[tru]]; arr[arr[one]]]);
 
     (* If *)
+    (empty, UnitT) |- if_ tru (block []) =: One;
+    (empty, UnitT) |- if_ fls (block []) =: One;
+    (empty, UnitT) |- if_ ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) =: One;
+    (empty, UnitT) |- if_ tru (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: One;
+    (empty, UnitT) |- if_ tru (decl [avar (aid "x" tint)]) =: One;
+    (empty, UnitT) |- if_ tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (asgn x two) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (block [asgn x two]) =: One;
+    (vars["x", IntT], IntT)  |- if_ tru (block [return [x]]) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (if_ fls (asgn x two)) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (ifelse fls (asgn x two) (asgn x three)) =: One;
+    (vars["x", IntT], UnitT) |- if_ tru (while_ fls (asgn x two)) =: One;
+    (fgam, UnitT) |- if_ tru (proccall "i2u" [one]) =: One;
+
+    (empty, UnitT) =/= (if_ one (block []));
+    (empty, UnitT) =/= (if_ tru (return [one]));
+
     (* IfElse *)
+    (empty, UnitT) |- ifelse tru (block []) (block []) =: One;
+    (empty, UnitT) |- ifelse fls (block []) (block []) =: One;
+    (empty, UnitT) |- ifelse ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) (block [decl [avar (aid "x" tint)]]) =: One;
+    (empty, UnitT) |- ifelse ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) (block [decl [avar (aid "y" tbool)]]) =: One;
+    (empty, UnitT) |- ifelse tru
+                             (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])])
+                             (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: One;
+    (empty, UnitT) |- ifelse tru (decl [avar (aid "x" tint)]) (block []) =: One;
+    (empty, UnitT) |- ifelse tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) (block []) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (asgn x two) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (block [asgn x two]) (asgn x three) =: One;
+    (vars["x", IntT], IntT)  |- ifelse tru (block [return [x]]) (asgn x three) =: One;
+    (vars["x", IntT], IntT)  |- ifelse tru (asgn x three) (block [return [x]]) =: One;
+    (vars["x", IntT], IntT)  |- ifelse tru (block [return [x]]) (block [return [x]]) =: Zero;
+    (vars["x", IntT], IntT)  |- ifelse tru (if_ tru (block [return [x]])) (block [return [x]]) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (if_ fls (asgn x two)) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (ifelse fls (asgn x two) (asgn x three)) (asgn x three) =: One;
+    (vars["x", IntT], UnitT) |- ifelse tru (while_ fls (asgn x two)) (asgn x three) =: One;
+    (fgam, UnitT) |- ifelse tru (proccall "i2u" [one]) (proccall "bi2u" [tru; one]) =: One;
+
+    (empty, UnitT) =/= (ifelse one (block []) (block []));
+    (empty, UnitT) =/= (ifelse tru (return [one]) (block []));
+    (empty, UnitT) =/= (ifelse tru (block []) (return [one]));
+
     (* While *)
+    (empty, UnitT) |- while_ tru (block []) =: One;
+    (empty, UnitT) |- while_ fls (block []) =: One;
+    (empty, UnitT) |- while_ ((one == one) & (two == two)) (block [decl [avar (aid "x" tint)]]) =: One;
+    (empty, UnitT) |- while_ tru (block [declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])]) =: One;
+    (empty, UnitT) |- while_ tru (decl [avar (aid "x" tint)]) =: One;
+    (empty, UnitT) |- while_ tru (declasgn [avar (aid "x" (tarray (tarray tint None) None))] (arr[arr[]])) =: One;
+    (vars["x", IntT], UnitT) |- while_ tru (asgn x two) =: One;
+    (vars["x", IntT], UnitT) |- while_ tru (block [asgn x two]) =: One;
+    (vars["x", IntT], IntT)  |- while_ tru (block [return [x]]) =: One;
+    (vars["x", IntT], UnitT) |- while_ tru (if_ fls (asgn x two)) =: One;
+    (vars["x", IntT], UnitT) |- while_ tru (ifelse fls (asgn x two) (asgn x three)) =: One;
+    (vars["x", IntT], UnitT) |- while_ tru (while_ fls (asgn x two)) =: One;
+    (fgam, UnitT) |- while_ tru (proccall "i2u" [one]) =: One;
+
+    (empty, UnitT) =/= (while_ one (block []));
+    (empty, UnitT) =/= (while_ tru (return [one]));
 
     (* ProcCall *)
     (fgam, IntT) |- (proccall "u2u" []) =: One;
@@ -1258,21 +1450,21 @@ let test_callable () =
 	empty |- (func "id" [(aid "x" (tarray tint None))] [(tarray tint None)] (return [id "x"]))
 						=: (ArrayT IntT, ArrayT IntT);
 	empty |- (func "f" [aunderscore tint] [tint] (return [int 3L])) =: (IntT, IntT);
-	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);	
+	empty |- (func "f" [aunderscore tint] [tint] (return [(funccall "f" [int 3L])])) =: (IntT, IntT);
 
 	(* _::_, [x] *)
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "x"])) =: (TupleT [IntT; IntT], IntT);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tint)] [tint] (return [id "y"])) =: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"])) 
+	empty |- (func "f" [(aid "x" tint); (aunderscore tint)] [tint] (return [id "x"]))
 						=: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L])) 
+	empty |- (func "f" [aunderscore tint; aunderscore tint] [tint] (return [int 3L]))
 						=: (TupleT [IntT; IntT], IntT);
-	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"])) 
+	empty |- (func "f" [aunderscore tint; aid "x" tint; aunderscore tint] [tint] (return [id "x"]))
 						=: (TupleT [IntT; IntT; IntT], IntT);
 
 	(* [], _::_ *)
 	empty |- (func "f" [] [tint; tint] (return [int 3L; int 2L])) =: (UnitT, TupleT [IntT; IntT]);
-	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true])) 
+	empty |- (func "f" [] [tint; tint; tbool] (return [int 3L; int 1L; bool true]))
 					  =: (UnitT, TupleT [IntT; IntT; BoolT]);
 
 	(* [x], _::_ *)
@@ -1285,7 +1477,7 @@ let test_callable () =
 						=: (TupleT [IntT; IntT], TupleT [IntT; IntT]);
 	empty |- (func "f" [(aid "x" tint); (aid "y" tbool)] [tbool;tint] (return [(id "y"); (id "x")]))
 						=: (TupleT [IntT; BoolT], TupleT [BoolT; IntT]);
-	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint] 
+	empty |- (func "f" [aid "x" tint; aunderscore tint; aunderscore tint] [tint; tint; tint]
 					 (return [id "x"; id "x"; id "x"])) =: (TupleT [IntT; IntT; IntT], TupleT [IntT; IntT; IntT]);
 
 	(* recursion *)
@@ -1314,7 +1506,7 @@ let test_callable () =
 	empty |- (proc "f" [aunderscore tint] (proccall "f" [int 3L])) =: (IntT, UnitT);
 
 	(* _::_ *)
-	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"])) 
+	empty |- (proc "f" [aid "x" tint; aid "y" tint] (proccall "f" [id "x"; id "x"]))
 						=: (TupleT [IntT; IntT], UnitT);
 	empty |- (proc "f" [aunderscore tint; aunderscore tint] (proccall "f" [int 3L; int 3L]))
 						=: (TupleT [IntT; IntT], UnitT);

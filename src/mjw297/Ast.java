@@ -437,6 +437,7 @@ public interface Ast {
         public final A a;
         public final List<Stmt<A>> ss;
         public final Optional<List<Expr<A>>> ret;
+        public final A ret_a;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }

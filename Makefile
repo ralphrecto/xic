@@ -27,7 +27,7 @@ DOC   = doc
 JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
-OCAML_MAIN  = src/main
+OCAML_MAIN  = src/ocaml/main
 OCAML_SRCS  = $(OCAML_MAIN).ml
 OCAML_TESTS = $(shell find test -name '*Test.ml')
 OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
@@ -67,7 +67,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 
 %.byte: %.ml
 	corebuild -pkgs async,oUnit \
-			  -Is   src,test $@
+			  -Is   src/ocaml,test $@
 
 
 .PHONY: doc

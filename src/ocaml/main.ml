@@ -1,6 +1,7 @@
 open Core.Std
 open Async.Std
 open Typecheck
+open Ir
 open Printf
 
 type flags = {

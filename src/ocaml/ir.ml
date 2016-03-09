@@ -1,6 +1,7 @@
 open Core.Std
 open Async.Std
 
+(* no ESeq or Call in lowered ir *)
 type expr = 
   | BinOp of expr * binop_code * expr
   | Call of expr * expr list * int
@@ -34,6 +35,14 @@ and mem_type =
   | NORMAL
   | IMMUTABLE
 
+(* in lowered ir:
+ * Move (Name of string, expr)
+ * Move (Temp of string, Call of expr * expr list * int)
+ * Exp (Call of expr * expr list * int)
+ * Jump of expr
+ * CJump of expr * string * string -- in block reordering second label should be removed
+ * Label of string
+ *)
 and stmt = 
   | CJump of expr * string * string
   | Jump of expr

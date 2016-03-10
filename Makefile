@@ -68,6 +68,9 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 %.byte: %.ml
 	corebuild -pkgs async,oUnit \
 			  -Is   src/ocaml,test $@
+	mkdir -p $(BIN)
+	mv $(notdir $@) $(BIN) | true
+	rm $(notdir $@) | true
 
 
 .PHONY: doc
@@ -85,7 +88,7 @@ test: src
 	@echo "********************************************************************"
 	java -cp $(BIN):$(CP) org.junit.runner.JUnitCore $(TESTS)
 	for t in $(OCAML_TESTS_EXE); do \
-         ./$$t; \
+         ./$(BIN)/$$t; \
     done
 	@echo
 

@@ -2,9 +2,9 @@ package edu.cornell.cs.cs4120.xic.ir;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -56,9 +56,8 @@ public class IRCompUnit extends IRNode {
     public IRNode visitChildren(IRVisitor v) {
         boolean modified = false;
 
-        Map<String, IRFuncDecl> results = new TreeMap<>();
-        for (String funcName : functions.keySet()) {
-            IRFuncDecl func = functions.get(funcName);
+        Map<String, IRFuncDecl> results = new LinkedHashMap<>();
+        for (IRFuncDecl func : functions.values()) {
             IRFuncDecl newFunc = (IRFuncDecl) v.visit(this, func);
             if (newFunc != func) modified = true;
             results.put(newFunc.name(), newFunc);
@@ -77,9 +76,19 @@ public class IRCompUnit extends IRNode {
     }
 
     @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        for (IRFuncDecl func : functions.values())
+            result = v.bind(result, v.visit(func));
+        if (hasExtraSequence()) result = v.bind(result, v.visit(seq));
+        return result;
+    }
+
+    @Override
     public void printSExp(SExpPrinter p) {
         p.startList();
         p.printAtom("COMPUNIT");
+        p.printAtom(name);
         for (IRFuncDecl func : functions.values())
             func.printSExp(p);
         p.endList();
@@ -87,22 +96,6 @@ public class IRCompUnit extends IRNode {
 
     public boolean hasExtraSequence() {
         return seq != null;
-    }
-
-    @Override
-    public boolean containsCalls() {
-        for (IRFuncDecl func : functions.values())
-            if (func.containsCalls()) return true;
-        if (hasExtraSequence()) return true;
-        return false;
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        int value = 0;
-        for (IRFuncDecl f : functions.values())
-            value = Math.max(value, f.computeMaximumCallResults());
-        return value;
     }
 
 }

@@ -1,6 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import edu.cornell.cs.cs4120.xic.InternalCompilerError;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 
 public abstract class IRVisitor {

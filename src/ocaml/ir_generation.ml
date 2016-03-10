@@ -2,8 +2,8 @@ open Core.Std
 open Async.Std
 open Ir
 
-(* label * adjacent nodes *)
-type node = Node of string * string list 
+(* label * adjacent nodes * mark *)
+type node = Node of string * string list * false
 type graph = node list
 
 let num_temp = ref 0 in
@@ -123,18 +123,18 @@ let block_reorder (stmts: stmt list) : block list =
 		| Block (l1,s1)::Block (l2,s2)::tl ->
 				begin
 					match s1 with
-					| CJump (_, tru, fls) -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
-					| Jump (Name l') -> create_graph (Block (l2, s2)::tl) (Node (l1, [l']))
+					| CJump (_, tru, fls) -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls], false)::graph)
+					| Jump (Name l') -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'], false)::graph)
 					| Jump _ -> failwith "error -- invalid jump"
-					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
+					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2], false)::graph)
 				end
 		| Block(l,s)::[]-> 
 				begin
 					match s with
-					| CJump (_, tru, fls) -> Node (l, [tru;fls])::graph
-					| Jump (Name l') -> Node (l, [l'])::graph
+					| CJump (_, tru, fls) -> Node (l, [tru;fls], false)::graph
+					| Jump (Name l') -> Node (l, [l'], false)::graph
 					| Jump _ -> failwith "error -- invalid jump"
-					| _ -> Node (l, [])::graph
+					| _ -> Node (l, [], false)::graph
 				end
 		| [] ->	graph
 	in	

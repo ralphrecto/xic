@@ -1,9 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -14,20 +17,18 @@ public class IRSeq extends IRStmt {
     private List<IRStmt> stmts;
 
     /**
-     * Create a SEQ from a list of statements. The list should not be modified subsequently.
-     * @param stmts the sequence of statements
+     * @param stmts the statements
      */
-    private IRSeq(List<IRStmt> stmts) {
-        this.stmts = stmts;
+    public IRSeq(IRStmt... stmts) {
+        this(Arrays.asList(stmts));
     }
 
     /**
-     * @param st the statements
+     * Create a SEQ from a list of statements. The list should not be modified subsequently.
+     * @param stmts the sequence of statements
      */
-    public IRSeq(IRStmt... st) {
-        stmts = new ArrayList<>(st.length);
-        for (IRStmt s : st)
-            stmts.add(s);
+    public IRSeq(List<IRStmt> stmts) {
+        this.stmts = stmts;
     }
 
     public List<IRStmt> stmts() {
@@ -56,6 +57,25 @@ public class IRSeq extends IRStmt {
     }
 
     @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        for (IRStmt stmt : stmts)
+            result = v.bind(result, v.visit(stmt));
+        return result;
+    }
+
+    @Override
+    public CheckCanonicalIRVisitor checkCanonicalEnter(
+            CheckCanonicalIRVisitor v) {
+        return v.enterSeq();
+    }
+
+    @Override
+    public boolean isCanonical(CheckCanonicalIRVisitor v) {
+        return !v.inSeq();
+    }
+
+    @Override
     public void printSExp(SExpPrinter p) {
         p.startList();
         p.printAtom("SEQ");
@@ -63,20 +83,4 @@ public class IRSeq extends IRStmt {
             stmt.printSExp(p);
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        for (IRStmt stmt : stmts)
-            if (stmt.containsCalls()) return true;
-        return false;
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        int value = 0;
-        for (IRStmt s : stmts)
-            value = Math.max(value, s.computeMaximumCallResults());
-        return value;
-    }
-
 }

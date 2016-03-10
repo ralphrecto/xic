@@ -12,7 +12,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 
-import edu.cornell.cs.cs4120.xic.InternalCompilerError;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp;
 import edu.cornell.cs.cs4120.xic.ir.IRCJump;
 import edu.cornell.cs.cs4120.xic.ir.IRCall;
@@ -31,32 +31,43 @@ import edu.cornell.cs.cs4120.xic.ir.visit.InsnMapsBuilder;
 
 /**
  * A simple IR interpreter
+ *
+ * The interpreter makes the following assumption about registers.
+ * Registers whose names begin with {@link Configuration#ABSTRACT_ARG_PREFIX}
+ * and {@link Configuration#ABSTRACT_RET_PREFIX} are shared across function
+ * calls.  IR code are responsible for saving the value of these registers
+ * before CALL is executed.
  */
 public class IRSimulator {
     /** compilation unit to be interpreted */
     private IRCompUnit compUnit;
 
     /** map from address to instruction */
-    private Map<Long, IRNode> indexToInsn;
-    private Map<IRNode, Long> insnToIndex;
+    protected Map<Long, IRNode> indexToInsn;
+    protected Map<IRNode, Long> insnToIndex;
 
-    /** map from labeled named to address */
+    /** map from labeled name to address */
     private Map<String, Long> nameToIndex;
 
     /** a random number generator for initializing garbage */
     protected Random r;
 
-    /** simulated heap */
+    /** global registers (register name -> value) */
+    private Map<String, Long> regs;
+
+    /** heap */
     private long mem[];
 
     /** heap pointer to lowest unallocated region */
     private long heapPtr;
 
     private ExprStack exprStack;
-    private int debugLevel = 0;
     private BufferedReader inReader;
+
     private Set<String> libraryFunctions;
     private List<String> ctors;
+
+    protected static int debugLevel = 0;
 
     public static final int DEFAULT_HEAP_SIZE = 10240;
 
@@ -78,10 +89,13 @@ public class IRSimulator {
 
         r = new Random();
 
+        regs = new HashMap<>();
+
         mem = new long[heapSize];
         // initialize heap to garbage
         for (int i = 0; i < heapSize; i++)
             mem[i] = r.nextLong();
+        // initialize heap pointer
         heapPtr = 0;
 
         exprStack = new ExprStack();
@@ -112,6 +126,41 @@ public class IRSimulator {
 
         for (int i = 0; i < ctors.size(); ++i)
             call(ctors.get(i), new long[] {});
+    }
+
+    /**
+     * Fetch the value at the given register
+     * @param frame the current execution frame
+     * @param tempName name of the register
+     * @return the value at the given register
+     */
+    public long get(ExecutionFrame frame, String tempName) {
+        if (isGlobalRegister(tempName)) {
+            if (!regs.containsKey(tempName)) {
+                /* Referencing a temp before having written to it - initialize
+                   with garbage */
+                regs.put(tempName, r.nextLong());
+            }
+            return regs.get(tempName);
+        }
+        else return frame.get(tempName);
+    }
+
+    /**
+     * Store a value into the given register
+     * @param frame the current execution frame
+     * @param tempName name of the register
+     * @param value value to be stored
+     */
+    public void put(ExecutionFrame frame, String tempName, long value) {
+        if (isGlobalRegister(tempName))
+            regs.put(tempName, value);
+        else frame.put(tempName, value);
+    }
+
+    protected boolean isGlobalRegister(String name) {
+        return name.startsWith(Configuration.ABSTRACT_ARG_PREFIX)
+                || name.startsWith(Configuration.ABSTRACT_RET_PREFIX);
     }
 
     /**
@@ -153,21 +202,20 @@ public class IRSimulator {
     }
 
     /**
-     * Simulate a function call
+     * Simulate a function call.
+     * All arguments to the function call are passed via registers with prefix
+     * {@link Configuration#ABSTRACT_ARG_PREFIX} and indices starting from 0.
+     * The function call should return the results via registers with prefix
+     * {@link Configuration#ABSTRACT_RET_PREFIX} and indices starting from 0.
      * @param name name of the function call
-     * @param args arguments to the function call, which may include
-     *          the location of the result
-     * @return the address of the result
+     * @param args arguments to the function call
+     * @return the value of register
+     *          {@link Configuration#ABSTRACT_RET_PREFIX} index 0
      */
-    public long call(String name, long[] args) {
-        return call(name, args, mem.length * Configuration.WORD_SIZE);
-    }
-
-    public long call(String name, long[] args, long sp) {
+    public long call(String name, long... args) {
         // Catch standard library calls.
         if (libraryFunctions.contains(name)) return libraryCall(name, args);
 
-        final int ws = Configuration.WORD_SIZE;
         IRFuncDecl fDecl = compUnit.getFunction(name);
         if (fDecl == null)
             throw new InternalCompilerError("Tried to call an unknown function: '"
@@ -175,46 +223,22 @@ public class IRSimulator {
 
         // Create a new stack frame.
         ExecutionFrame frame = new ExecutionFrame(fDecl);
-        int argsOnStack = 0;
-
-        // Push arguments that cannot be stored in available registers
-        // onto stack frame.
-        for (int i = args.length
-                - 1; i >= Configuration.PARAMETER_REGISTERS.length; --i) {
-            sp -= ws;
-            mem[(int) sp / ws] = args[i];
-            argsOnStack++;
-        }
-        sp -= 2 * ws;
-
-        frame.put(Configuration.FP_NAME, sp);
-
-        // If there is a nested call, we have to allocate the stack frame
-        // to hold potentially multiple results.
-        boolean hasCalls = fDecl.containsCalls();
-        int rvCount = hasCalls ? fDecl.computeMaximumCallResults() : 0;
-        if (rvCount == 1) rvCount = 0;
-
-        sp -= rvCount * ws;
-        frame.put(Configuration.CALL_RV_SCRATCH, sp);
 
         // Pass the remaining arguments into registers.
-        for (int i = 0; i < Math.min(Configuration.PARAMETER_REGISTERS.length,
-                                     args.length); ++i)
-            frame.put(Configuration.ABSTRACT_REG_PREFIX + i, args[i]);
+        for (int i = 0; i < args.length; ++i)
+            put(frame, Configuration.ABSTRACT_ARG_PREFIX + i, args[i]);
 
         // Simulate!
         while (frame.advance());
 
-        sp += ws * (2 + argsOnStack + rvCount);
-        return frame.get(Configuration.RV_NAME);
+        return get(frame, Configuration.ABSTRACT_RET_PREFIX + 0);
     }
 
     /**
      * Simulate a library function call
      * @param name name of the function call
      * @param args arguments to the function call, which may include
-     *          the location of the result
+     *          the pointer to the location of multiple results
      * @return the address of the result
      */
     protected long libraryCall(String name, long[] args) {
@@ -250,7 +274,7 @@ public class IRSimulator {
             case "_Ieof_b": {
                 return inReader.ready() ? 0 : 1;
             }
-                // conv declarations
+            // conv declarations
             case "_IunparseInt_aii": {
                 String line = String.valueOf(args[0]);
                 int len = line.length();
@@ -262,10 +286,9 @@ public class IRSimulator {
             }
             case "_IparseInt_t2ibai": {
                 StringBuffer buf = new StringBuffer();
-                long ptr = args[1], size = read(ptr - ws);
+                long ptr = args[0], size = read(ptr - ws);
                 for (int i = 0; i < size; ++i)
                     buf.append((char) read(ptr + i * ws));
-                long retPtr = args[0];
                 int result = 0, success = 1;
                 try {
                     result = Integer.parseInt(buf.toString());
@@ -273,18 +296,18 @@ public class IRSimulator {
                 catch (NumberFormatException e) {
                     success = 0;
                 }
-                store(retPtr, result);
-                store(retPtr + ws, success);
-                return retPtr;
+                put(null, Configuration.ABSTRACT_RET_PREFIX + 0, result);
+                put(null, Configuration.ABSTRACT_RET_PREFIX + 1, success);
+                return result;
             }
-                // special declarations
+            // special declarations
             case "_I_alloc_i": {
                 return malloc(args[0]);
             }
             case "_I_outOfBounds_p": {
                 throw new Trap("Out of bounds!");
             }
-                // other declarations
+            // other declarations
             case "_Iassert_pb": {
                 if (args[0] != 1) throw new Trap("Assertion error!");
                 return 0;
@@ -299,12 +322,12 @@ public class IRSimulator {
         }
     }
 
-    private void leave(ExecutionFrame frame) {
+    protected void leave(ExecutionFrame frame) {
         if (frame.ip instanceof IRConst)
             exprStack.pushValue(((IRConst) frame.ip).value());
         else if (frame.ip instanceof IRTemp) {
             String tempName = ((IRTemp) frame.ip).name();
-            exprStack.pushTemp(frame.get(tempName), tempName);
+            exprStack.pushTemp(get(frame, tempName), tempName);
         }
         else if (frame.ip instanceof IRBinOp) {
             long r = exprStack.popValue();
@@ -390,19 +413,19 @@ public class IRSimulator {
                 args[i] = exprStack.popValue();
             StackItem target = exprStack.pop();
             String targetName = target.name;
-            if (target.type != StackItem.Kind.NAME)
+            if (target.type != StackItem.Kind.NAME) {
                 if (indexToInsn.containsKey(target.value)) {
-                IRNode node = indexToInsn.get(target.value);
-                if (node instanceof IRFuncDecl)
-                    targetName = ((IRFuncDecl) node).name();
-                else throw new InternalCompilerError("Call to a non-function instruction!");
+                    IRNode node = indexToInsn.get(target.value);
+                    if (node instanceof IRFuncDecl)
+                        targetName = ((IRFuncDecl) node).name();
+                    else throw new InternalCompilerError("Call to a non-function instruction!");
+                }
+                else throw new InternalCompilerError("Invalid function call '"
+                        + frame.ip + "' (target '" + target.value
+                        + "' is unknown)!");
             }
-            else throw new InternalCompilerError("Invalid function call '"
-                    + frame.ip + "' (target '" + target.value
-                    + "' is unknown)!");
 
-            long retVal =
-                    call(targetName, args, frame.get(Configuration.FP_NAME));
+            long retVal = call(targetName, args);
             exprStack.pushValue(retVal);
         }
         else if (frame.ip instanceof IRName) {
@@ -425,7 +448,7 @@ public class IRSimulator {
             else if (stackItem.type == StackItem.Kind.TEMP) {
                 if (debugLevel > 0)
                     System.out.println("temp[" + stackItem.temp + "]=" + r);
-                frame.put(stackItem.temp, r);
+                put(frame, stackItem.temp, r);
             }
             else throw new InternalCompilerError("Invalid MOVE!");
         }
@@ -468,12 +491,12 @@ public class IRSimulator {
         /** instruction pointer */
         public IRNode ip;
 
-        /** temporary registers (register name -> value) */
-        public Map<String, Long> temps;
+        /** local registers (register name -> value) */
+        private Map<String, Long> regs;
 
         public ExecutionFrame(IRNode ip) {
             this.ip = ip;
-            temps = new HashMap<>();
+            regs = new HashMap<>();
         }
 
         /**
@@ -482,12 +505,12 @@ public class IRSimulator {
          * @return the value at the given register
          */
         public long get(String tempName) {
-            if (!temps.containsKey(tempName)) {
+            if (!regs.containsKey(tempName)) {
                 /* Referencing a temp before having written to it - initialize
                    with garbage */
                 put(tempName, r.nextLong());
             }
-            return temps.get(tempName);
+            return regs.get(tempName);
         }
 
         /**
@@ -496,7 +519,7 @@ public class IRSimulator {
          * @param value value to be stored
          */
         public void put(String tempName, long value) {
-            temps.put(tempName, value);
+            regs.put(tempName, value);
         }
 
         /**
@@ -533,7 +556,7 @@ public class IRSimulator {
      * This also keeps track of whether a value was created by a TEMP
      * or MEM, or NAME reference, which is useful when executing moves.
      */
-    private class ExprStack {
+    private static class ExprStack {
 
         private Stack<StackItem> stack;
 

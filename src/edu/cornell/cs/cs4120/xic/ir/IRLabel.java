@@ -39,15 +39,4 @@ public class IRLabel extends IRStmt {
         p.printAtom(name);
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        return false;
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        return 0;
-    }
-
 }

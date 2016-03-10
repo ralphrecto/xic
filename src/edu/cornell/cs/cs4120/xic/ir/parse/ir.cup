@@ -1,0 +1,235 @@
+package edu.cornell.cs.cs4120.xic.ir.parse;
+
+import edu.cornell.cs.cs4120.xic.ir.*;
+
+import java_cup.runtime.ComplexSymbolFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
+parser IRParser {:
+
+    public IRParser(IRLexer lexer) {
+        super(lexer, new ComplexSymbolFactory());
+    }
+:};
+
+terminal LPAREN, RPAREN;
+terminal MOVE, EXP, SEQ, JUMP, CJUMP, LABEL, RETURN;
+terminal CONST, TEMP, MEM, CALL, NAME, ESEQ;
+terminal ADD, SUB, MUL, HMUL, DIV, MOD, AND, OR, XOR, NOT;
+terminal LSHIFT, RSHIFT, ARSHIFT, EQ, NEQ, LT, GT, LEQ, GEQ;
+terminal FUNC, COMPUNIT;
+terminal String ATOM;
+terminal Long NUMBER;
+
+nonterminal IRCompUnit compunit;
+nonterminal List<IRFuncDecl> funcdecls;
+nonterminal IRFuncDecl funcdecl;
+nonterminal List<IRStmt> stmts;
+nonterminal IRStmt stmt, bare_stmt;
+nonterminal List<IRExpr> exprs_opt, exprs;
+nonterminal String name;
+nonterminal IRExpr expr, bare_expr, op, dest;
+nonterminal Long num;
+
+start with compunit;
+
+compunit ::=
+    LPAREN COMPUNIT name:n funcdecls:f RPAREN {:
+        RESULT = new IRCompUnit(n);
+        for (IRFuncDecl fd : f)
+             RESULT.appendFunc(fd);
+    :}
+;
+
+funcdecls ::=
+    funcdecl:fd {:
+        RESULT = new ArrayList<>();
+        RESULT.add(fd);
+    :}
+    | funcdecls:f funcdecl:fd {:
+        RESULT = f;
+        RESULT.add(fd);
+    :}
+;
+
+funcdecl ::=
+    LPAREN FUNC name:n stmt:s RPAREN {:
+        RESULT = new IRFuncDecl(n, s);
+    :}
+;
+
+name ::=
+    ATOM:a {:
+        RESULT = a;
+    :}
+;
+
+stmt ::=
+    LPAREN bare_stmt:s RPAREN {:
+        RESULT = s;
+    :}
+;
+
+bare_stmt ::=
+    MOVE dest:dest expr:e {:
+        RESULT = new IRMove(dest, e);
+    :}
+    | EXP expr:e {:
+        RESULT = new IRExp(e);
+    :}
+    | SEQ stmts:l {:
+        RESULT = new IRSeq(l);
+    :}
+    | JUMP expr:e {:
+        RESULT = new IRJump(e);
+    :}
+    | CJUMP expr:e name:trueLabel name:falseLabel {:
+        RESULT = new IRCJump(e, trueLabel, falseLabel);
+    :}
+    | CJUMP expr:e name:trueLabel {:
+        RESULT = new IRCJump(e, trueLabel);
+    :}
+    | LABEL name:n {:
+        RESULT = new IRLabel(n);
+    :}
+    | RETURN {:
+        RESULT = new IRReturn();
+    :}
+;
+
+dest ::=
+    LPAREN TEMP name:n RPAREN {:
+        RESULT = new IRTemp(n);
+    :}
+    | LPAREN MEM expr:e RPAREN {:
+        RESULT = new IRMem(e);
+    :}
+;
+
+expr ::=
+    LPAREN bare_expr:e RPAREN {:
+        RESULT = e;
+    :}
+;
+
+bare_expr ::=
+    CONST num:n {:
+        RESULT = new IRConst(n);
+    :}
+    | TEMP name:n {:
+        RESULT = new IRTemp(n);
+    :}
+    | op:o {:
+        RESULT = o;
+    :}
+    | MEM expr:e {:
+        RESULT = new IRMem(e);
+    :}
+    | CALL expr:target exprs_opt:args {:
+        RESULT = new IRCall(target, args);
+    :}
+    | NAME name:n {:
+        RESULT = new IRName(n);
+    :}
+    | ESEQ stmt:s expr:e {:
+        RESULT = new IRESeq(s, e);
+    :}
+;
+
+num ::=
+    NUMBER:n {:
+        RESULT = n;
+    :}
+;
+
+op ::=
+    ADD expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.ADD, x,y);
+    :}
+    | SUB expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.SUB, x,y);
+    :}
+    | MUL expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.MUL, x,y);
+    :}
+    | HMUL expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.HMUL, x,y);
+    :}
+    | DIV expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.DIV, x,y);
+    :}
+    | MOD expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.MOD, x,y);
+    :}
+    | AND expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.AND, x,y);
+    :}
+    | OR expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.OR, x,y);
+    :}
+    | XOR expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.XOR, x,y);
+    :}
+    | LSHIFT expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.LSHIFT, x,y);
+    :}
+    | RSHIFT expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.RSHIFT, x,y);
+    :}
+    | ARSHIFT expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.ARSHIFT, x,y);
+    :}
+    | EQ expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.EQ, x,y);
+    :}
+    | NEQ expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.NEQ, x,y);
+    :}
+    | LT expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.LT, x,y);
+    :}
+    | GT expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.GT, x,y);
+    :}
+    | LEQ expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.LEQ, x,y);
+    :}
+    | GEQ expr:x expr:y {:
+        RESULT = new IRBinOp(IRBinOp.OpType.GEQ, x,y);
+    :}
+;
+
+stmts ::=
+    stmt:s {:
+        RESULT = new LinkedList<>();
+        RESULT.add(s);
+    :}
+    | stmts:l stmt:s {:
+        RESULT = l;
+        RESULT.add(s);
+    :}
+;
+
+exprs_opt ::=
+    /* empty */ {:
+        RESULT = Collections.emptyList();
+    :}
+    | exprs:l {:
+        RESULT = l;
+    :}
+;
+
+exprs ::=
+    expr:e {:
+        RESULT = new LinkedList<>();
+        RESULT.add(e);
+    :}
+    | exprs:l expr:e {:
+        RESULT = l;
+        RESULT.add(e);
+    :}
+;

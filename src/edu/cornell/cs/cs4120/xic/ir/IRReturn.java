@@ -16,4 +16,15 @@ public class IRReturn extends IRStmt {
         p.printAtom("RETURN");
         p.endList();
     }
+
+    @Override
+    public boolean containsCalls() {
+        return false;
+    }
+
+    @Override
+    public int computeMaximumCallResults() {
+        return 0;
+    }
+
 }

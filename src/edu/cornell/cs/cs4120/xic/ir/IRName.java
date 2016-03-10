@@ -33,4 +33,15 @@ public class IRName extends IRExpr {
         p.printAtom(name);
         p.endList();
     }
+
+    @Override
+    public boolean containsCalls() {
+        return false;
+    }
+
+    @Override
+    public int computeMaximumCallResults() {
+        return 0;
+    }
+
 }

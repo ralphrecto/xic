@@ -1,4 +1,4 @@
-package edu.cornell.cs.cs4120.util;
+package edu.cornell.cs.cs4120.xic;
 
 import polyglot.util.SerialVersionUID;
 

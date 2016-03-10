@@ -45,6 +45,8 @@ and mem_type =
  *)
 and stmt = 
   | CJump of expr * string * string
+	(* only used after block reordering *)
+	| CJumpOne of expr * string
   | Jump of expr
   | Exp of expr
   | Label of string
@@ -59,4 +61,5 @@ and func_decl =
 (* name, functions, seq stmt *)
 and comp_unit = string * func_decl String.Map.t * stmt list
 
+(* label, stmts in block *)
 and block = Block of string * stmt list

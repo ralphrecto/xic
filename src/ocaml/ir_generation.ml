@@ -3,7 +3,7 @@ open Async.Std
 open Ir
 
 (* label * adjacent nodes * mark *)
-type node = Node of string * string list * bool
+type node = Node of string * string list
 type graph = node list
 
 let num_temp = ref 0 
@@ -123,26 +123,99 @@ let block_reorder (stmts: stmt list) : block list =
 		| Block (l1,s1)::Block (l2,s2)::tl ->
 				begin
 					match s1 with
-					| CJump (_, tru, fls)::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls], false)::graph)
-					| Jump (Name l')::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'], false)::graph)
+					| CJump (_, tru, fls)::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
+					| Jump (Name l')::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'])::graph)
 					| Jump _ ::_-> failwith "error -- invalid jump"
-					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2], false)::graph)
+					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
 				end
 		| Block(l,s)::[]-> 
 				begin
 					match s with
-					| CJump (_, tru, fls)::_ -> Node (l, [tru;fls], false)::graph
-					| Jump (Name l')::_ -> Node (l, [l'], false)::graph
+					| CJump (_, tru, fls)::_ -> Node (l, [tru;fls])::graph |> List.rev
+					| Jump (Name l')::_ -> Node (l, [l'])::graph |> List.rev
 					| Jump _ ::_ -> failwith "error -- invalid jump"
-					| _ -> Node (l, [], false)::graph
+					| _ -> Node (l, [])::graph |> List.rev
 				end
 		| [] ->	graph
 	in	
-	let graph = List.rev (create_graph blocks []) in
-	let rec find_seq g acc =
-		try
-			let start = List.find_exn ~f: (fun (Node (_,_,b)) -> b) g in
-			start			
-		with Not_found -> acc
+	let graph = create_graph blocks [] in
+	let rec find_trace graph (Node (l, adj)) acc =
+		match adj with
+		| h1::h2::_ -> 
+			begin	
+				try
+					if List.exists ~f: (fun e -> e = h2) acc then
+						if List.exists ~f: (fun e -> e = h1) acc then
+							List.rev (l::acc)
+						else
+							let next' = List.find_exn ~f:(fun (Node (l', _)) -> l' = h1) graph in
+							find_trace graph next' (l::acc)		
+					else			
+						let next = List.find_exn ~f:(fun (Node (l', _)) -> l' = h2) graph in
+						find_trace graph next (l::acc)
+				with Not_found -> List.rev (l::acc)
+			end
+		| hd::_ -> 
+			begin
+				try 
+					if List.exists ~f: (fun e -> e = hd) acc then
+						List.rev (l::acc)
+					else
+						let next = List.find_exn ~f: (fun (Node (l', _)) -> l' = hd) graph in
+						find_trace graph next (l::acc)
+				with Not_found -> List.rev (l::acc)
+			end
+		| [] ->	List.rev (l::acc)
+	in	
+	let rec find_seq graph acc =
+		match graph with
+		| [] -> List.concat acc
+		| hd::_ -> 
+			let trace = find_trace graph hd [] in
+			let remaining_graph = List.filter	graph  
+																 ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace)) 
+			in
+			find_seq remaining_graph (trace::acc)	
 	in
-	blocks
+	let seq = find_seq graph [] in
+	let not_expr e =
+		BinOp (BinOp (e, ADD, Const 1L), MOD, Const 2L)
+	in
+	let rec reorder seq acc =
+		match seq with
+		| h1::h2::tl ->
+			begin
+				try 
+					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks	in
+					match stmts with
+					| CJump (e, l1, l2)::stmts_tl ->
+						if l2 = h2 then
+							reorder (h2::tl) (b::acc)
+						else if l1 = h2 then
+							reorder (h2::tl) (Block (l, CJump (not_expr e, l2, l1)::stmts_tl)::acc)
+						else 
+							reorder (h2::tl) (Block (l, (Jump (Name l2))::stmts)::acc)
+					| Jump (Name l')::stmts_tl ->
+						if l' = h2 then
+							reorder (h2::tl) (Block (l, stmts_tl)::acc)
+						else
+							reorder (h2::tl) (b::acc)
+					| Jump _ ::_ -> failwith "error -- invalid jump"
+					| _ -> reorder (h2::tl) (b::acc)
+				with Not_found -> failwith "error -- label does not exist"
+			end
+		| h1::_ -> 
+			begin
+				try
+					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
+					match stmts with
+					| CJump (_, _, l2)::_ -> (Block (l, (Jump (Name l2))::stmts))::acc |> List.rev
+					| _ -> b::acc |> List.rev 
+				with Not_found -> failwith "error -- label does not exist"
+			end
+		| [] -> List.rev acc	
+	in
+	let reordered_blocks = reorder seq [] in
+	let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
+	final
+

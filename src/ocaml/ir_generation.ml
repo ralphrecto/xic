@@ -2,6 +2,10 @@ open Core.Std
 open Async.Std
 open Ir
 
+(* label * adjacent nodes *)
+type node = Node of string * string list 
+type graph = node list
+
 let num_temp = ref 0 in
 let fresh_temp () =
 	let str = "t" ^ (string_of_int (!num_temp)) in
@@ -114,10 +118,25 @@ let block_reorder (stmts: stmt list) : block list =
 		in
 		List.fold_left ~f: helper ~init: (None, []) l
 	in
-	let rec reorder blocks acc =
+	let create_graph blocks graph =
 		match blocks with
-		| [] -> acc
-		| Block(l, CJump(_, _, fls)::_)::tl -> 
-		| hd::tl -> reorder tl (hd::acc)
-
-			
+		| Block (l1,s1)::Block (l2,s2)::tl ->
+				begin
+					match s1 with
+					| CJump (_, tru, fls) -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
+					| Jump (Name l') -> create_graph (Block (l2, s2)::tl) (Node (l1, [l']))
+					| Jump _ -> failwith "error -- invalid jump"
+					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
+				end
+		| Block(l,s)::[]-> 
+				begin
+					match s with
+					| CJump (_, tru, fls) -> Node (l, [tru;fls])::graph
+					| Jump (Name l') -> Node (l, [l'])::graph
+					| Jump _ -> failwith "error -- invalid jump"
+					| _ -> Node (l, [])::graph
+				end
+		| [] ->	graph
+	in	
+	let graph = create_graph blocks [] in
+	blocks

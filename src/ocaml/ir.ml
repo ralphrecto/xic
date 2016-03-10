@@ -57,6 +57,6 @@ and func_decl =
   | FuncDecl of string * stmt
 
 (* name, functions, seq stmt *)
-and comp_unit = string * func_decl String.Map.t * stmt
+and comp_unit = string * func_decl String.Map.t * stmt list
 
 and block = Block of string * stmt list

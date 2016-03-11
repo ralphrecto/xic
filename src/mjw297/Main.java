@@ -43,6 +43,9 @@ public class Main {
     @Option(name = "-D", usage = "Specify where to place generated diagnostic files")
     private static String diagnosticPath = "";
 
+    @Option(name = "-compilerpath", hidden = true, required = true)
+    private static String compilerPath;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 

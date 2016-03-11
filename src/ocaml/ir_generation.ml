@@ -233,8 +233,9 @@ let rec constant_folding (e: expr) : expr =
 		let i1' = big_int_of_int64 i1 in
 		let i2' = big_int_of_int64 i2 in
 		let mult = mult_big_int i1' i2' in
-		let shifted = shift_right_big_int mult 64 in
-		let result = int64_of_big_int shifted in
+		let max_long = big_int_of_int64 max_int in 
+		let divided = div_big_int mult max_long in
+		let result = int64_of_big_int divided in
 		Const result
 	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2) 
 	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2) 

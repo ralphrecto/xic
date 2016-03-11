@@ -260,7 +260,7 @@ let rec constant_folding (e: expr) : expr =
 	| BinOp (e1, op, e2) ->
 		begin	
 			match (constant_folding e1), (constant_folding e2) with
-			| (Const i1 as c1), (Const i2 as c2)-> constant_folding (BinOp (c1, op, c2))
+			| (Const _ as c1), (Const _ as c2)-> constant_folding (BinOp (c1, op, c2))
 			| e1', e2' -> BinOp (e1', op, e2')
 		end
 	| Call (e', elist, i) ->

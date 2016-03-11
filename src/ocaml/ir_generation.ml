@@ -224,11 +224,18 @@ let block_reorder (stmts: stmt list) : block list =
 
 let rec constant_folding (e: expr) : expr =
 	let open Long in
+	let open Big_int in
 	match e with	
 	| BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
 	| BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2) 
 	| BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2) 
-	| BinOp (Const i1, HMUL, Const i2) -> failwith "TODO"   
+	| BinOp (Const i1, HMUL, Const i2) ->
+		let i1' = big_int_of_int64 i1 in
+		let i2' = big_int_of_int64 i2 in
+		let mult = mult_big_int i1' i2' in
+		let shifted = shift_right_big_int mult 64 in
+		let result = int64_of_big_int shifted in
+		Const result
 	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2) 
 	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2) 
 	| BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2) 

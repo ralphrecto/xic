@@ -1,7 +1,8 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
-import edu.cornell.cs.cs4120.xic.InternalCompilerError;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -99,24 +100,20 @@ public class IRBinOp extends IRExpr {
     }
 
     @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        result = v.bind(result, v.visit(left));
+        result = v.bind(result, v.visit(right));
+        return result;
+    }
+
+    @Override
     public void printSExp(SExpPrinter p) {
         p.startList();
         p.printAtom(type.toString());
         left.printSExp(p);
         right.printSExp(p);
         p.endList();
-    }
-
-    @Override
-    public boolean containsCalls() {
-        return left.containsCalls() || right.containsCalls();
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        int l = left.computeMaximumCallResults();
-        int r = right.computeMaximumCallResults();
-        return Math.max(l, r);
     }
 
 }

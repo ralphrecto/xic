@@ -33,15 +33,4 @@ public class IRConst extends IRExpr {
         p.printAtom(String.valueOf(value));
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        return false;
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        return 0;
-    }
-
 }

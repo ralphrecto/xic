@@ -54,12 +54,10 @@ and stmt =
   | Seq of stmt list
   | Return
 
-and func_decl =
-  | ProcDecl of string * stmt
-  | FuncDecl of string * stmt
+and func_decl = string * stmt
 
-(* name, functions, seq stmt *)
-and comp_unit = string * func_decl String.Map.t * stmt list
+(* name, functions *)
+and comp_unit = string * func_decl String.Map.t
 
 (* label, stmts in block *)
 and block = Block of string * stmt list

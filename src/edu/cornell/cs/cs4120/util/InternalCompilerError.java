@@ -1,4 +1,6 @@
-package polyglot.util;
+package edu.cornell.cs.cs4120.util;
+
+import polyglot.util.SerialVersionUID;
 
 /** Exception thrown when the compiler is confused. */
 public class InternalCompilerError extends RuntimeException {

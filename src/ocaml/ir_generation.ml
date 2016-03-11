@@ -105,8 +105,8 @@ let block_reorder (stmts: stmt list) : block list =
 		match l with
 		| None ->
 			let fresh_label = fresh_label () in
-			(Block (fresh_label, List.rev a)) :: b
-		| Some l' -> (Block (l', List.rev a)) :: b
+			(Block (fresh_label, List.rev a)) :: b |> List.rev	
+		| Some l' -> (Block (l', List.rev a)) :: b |> List.rev
 	in
 	let check_dup (Block (l1, _)) (Block (l2, _)) = 
 		compare l1 l2
@@ -220,4 +220,3 @@ let block_reorder (stmts: stmt list) : block list =
 	let reordered_blocks = reorder seq [] in
 	let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
 	final
-

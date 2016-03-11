@@ -1,6 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -38,21 +39,17 @@ public class IRExp extends IRStmt {
     }
 
     @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        result = v.bind(result, v.visit(expr));
+        return result;
+    }
+
+    @Override
     public void printSExp(SExpPrinter p) {
         p.startList();
         p.printAtom("EXP");
         expr.printSExp(p);
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        return expr.containsCalls();
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        return expr.computeMaximumCallResults();
-    }
-
 }

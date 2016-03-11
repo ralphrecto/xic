@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -14,25 +16,25 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 public class IRCall extends IRExpr {
     private IRExpr target;
     private List<IRExpr> args;
-    int returnSize;
 
     /**
      *
-     * @args target address of the code for this function call
-     * @args args arguments of this function call
+     * @param target address of the code for this function call
+     * @param args arguments of this function call
      */
-    public IRCall(IRExpr target, List<IRExpr> args, int returnSize) {
-        this.target = target;
-        this.args = args;
-        this.returnSize = returnSize;
-    }
-    
-    public IRCall(IRExpr target, int returnSize, IRExpr... args) {
-    	this.target = target;
-    	this.args = Arrays.asList(args);
-    	this.returnSize = returnSize;    	
+    public IRCall(IRExpr target, IRExpr... args) {
+        this(target, Arrays.asList(args));
     }
 
+    /**
+     *
+     * @param target address of the code for this function call
+     * @param args arguments of this function call
+     */
+    public IRCall(IRExpr target, List<IRExpr> args) {
+        this.target = target;
+        this.args = args;
+    }
 
     public IRExpr target() {
         return target;
@@ -40,14 +42,6 @@ public class IRCall extends IRExpr {
 
     public List<IRExpr> args() {
         return args;
-    }
-
-    public int returnSize() {
-        return returnSize;
-    }
-
-    public boolean isToProcedure() {
-        return returnSize == 0;
     }
 
     @Override
@@ -63,15 +57,29 @@ public class IRCall extends IRExpr {
         if (target != this.target) modified = true;
 
         List<IRExpr> results = new ArrayList<>(args.size());
-        for (IRExpr args : args) {
-            IRExpr newExpr = (IRExpr) v.visit(this, args);
-            if (newExpr != args) modified = true;
+        for (IRExpr arg : args) {
+            IRExpr newExpr = (IRExpr) v.visit(this, arg);
+            if (newExpr != arg) modified = true;
             results.add(newExpr);
         }
 
-        if (modified) return new IRCall(target, results, returnSize);
+        if (modified) return new IRCall(target, results);
 
         return this;
+    }
+
+    @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        result = v.bind(result, v.visit(target));
+        for (IRExpr arg : args)
+            result = v.bind(result, v.visit(arg));
+        return result;
+    }
+
+    @Override
+    public boolean isCanonical(CheckCanonicalIRVisitor v) {
+        return !v.inExpr();
     }
 
     @Override
@@ -83,16 +91,4 @@ public class IRCall extends IRExpr {
             arg.printSExp(p);
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        return true;
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        return Math.max(target.computeMaximumCallResults(), returnSize);
-    }
-
-
 }

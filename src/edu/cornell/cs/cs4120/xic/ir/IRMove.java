@@ -1,6 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
@@ -46,6 +47,14 @@ public class IRMove extends IRStmt {
     }
 
     @Override
+    public <T> T aggregateChildren(AggregateVisitor<T> v) {
+        T result = v.unit();
+        result = v.bind(result, v.visit(target));
+        result = v.bind(result, v.visit(expr));
+        return result;
+    }
+
+    @Override
     public void printSExp(SExpPrinter p) {
         p.startList();
         p.printAtom("MOVE");
@@ -53,17 +62,4 @@ public class IRMove extends IRStmt {
         expr.printSExp(p);
         p.endList();
     }
-
-    @Override
-    public boolean containsCalls() {
-        return target.containsCalls() || expr.containsCalls();
-    }
-
-    @Override
-    public int computeMaximumCallResults() {
-        int l = target.computeMaximumCallResults();
-        int r = expr.computeMaximumCallResults();
-        return Math.max(l, r);
-    }
-
 }

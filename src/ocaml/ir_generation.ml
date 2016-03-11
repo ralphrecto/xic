@@ -123,15 +123,15 @@ let block_reorder (stmts: stmt list) : block list =
 					| Jump _ ::_ -> failwith "error -- invalid jump"
 					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
 				end
-		| Block(l,s)::[]-> 
+		| Block(l,s)::tl -> 
 				begin
 					match s with
-					| CJump (_, tru, fls)::_ -> Node (l, [tru;fls])::graph |> List.rev
-					| Jump (Name l')::_ -> Node (l, [l'])::graph |> List.rev
+					| CJump (_, tru, fls)::_ -> create_graph tl (Node (l, [tru;fls])::graph)
+					| Jump (Name l')::_ -> create_graph tl (Node (l, [l'])::graph)
 					| Jump _ ::_ -> failwith "error -- invalid jump"
-					| _ -> Node (l, [])::graph |> List.rev
+					| _ -> create_graph tl (Node (l, [])::graph)
 				end
-		| [] ->	graph
+		| [] ->	List.rev graph
 	in	
 	let graph = create_graph blocks [] in
 	let rec find_trace graph (Node (l, adj)) acc =
@@ -203,7 +203,7 @@ let block_reorder (stmts: stmt list) : block list =
 					| _ -> reorder (h2::tl) (b::acc)
 				with Not_found -> failwith "error -- label does not exist"
 			end
-		| h1::_ -> 
+		| h1::tl -> 
 			begin
 				try
 					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
@@ -211,8 +211,8 @@ let block_reorder (stmts: stmt list) : block list =
 					| CJump (e, l1, l2)::stmts_tl -> 
 						let new_cjump = CJumpOne (e, l1) in	
 						let new_jump = Jump (Name l2) in
-						(Block (l, new_jump::new_cjump::stmts_tl))::acc |> List.rev
-					| _ -> b::acc |> List.rev 
+						reorder tl ((Block (l, new_jump::new_cjump::stmts_tl))::acc)
+					| _ -> reorder tl (b::acc)
 				with Not_found -> failwith "error -- label does not exist"
 			end
 		| [] -> List.rev acc	

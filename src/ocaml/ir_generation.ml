@@ -12,6 +12,7 @@ let fresh_temp () =
 	num_temp := !num_temp + 1;
 	str
 
+(* use this funciton when creating new labels *)
 let num_label = ref 0
 let fresh_label () =
 	let str = "l" ^ (string_of_int (!num_label)) in
@@ -73,6 +74,7 @@ and lower_stmt (s: stmt) : stmt list =
 		|> List.rev
 	| Label _
 	| Return ->	[s]
+	| CJumpOne _ -> failwith "this node shouldn't exist"
 
 let block_reorder (stmts: stmt list) : block list =
 	(* order of stmts in blocks are reversed
@@ -111,13 +113,6 @@ let block_reorder (stmts: stmt list) : block list =
 	in
 	(* sanity check to make sure there aren't duplicate labels *)
 	assert (not (List.contains_dup ~compare: check_dup blocks));
-	let find_remove l f =
-		let helper (elm_found, acc) e =
-			if f e then (Some e, acc)
-			else (elm_found, e::acc)
-		in
-		List.fold_left ~f: helper ~init: (None, []) l
-	in
 	let rec create_graph blocks graph =
 		match blocks with
 		| Block (l1,s1)::Block (l2,s2)::tl ->
@@ -125,7 +120,7 @@ let block_reorder (stmts: stmt list) : block list =
 					match s1 with
 					| CJump (_, tru, fls)::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
 					| Jump (Name l')::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'])::graph)
-					| Jump _ ::_-> failwith "error -- invalid jump"
+					| Jump _ ::_ -> failwith "error -- invalid jump"
 					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
 				end
 		| Block(l,s)::[]-> 
@@ -190,11 +185,15 @@ let block_reorder (stmts: stmt list) : block list =
 					match stmts with
 					| CJump (e, l1, l2)::stmts_tl ->
 						if l2 = h2 then
-							reorder (h2::tl) (b::acc)
+							let new_cjump = CJumpOne (e, l1) in
+							reorder (h2::tl) (Block(l, new_cjump::stmts_tl)::acc)
 						else if l1 = h2 then
-							reorder (h2::tl) (Block (l, CJump (not_expr e, l2, l1)::stmts_tl)::acc)
+							let new_cjump = CJumpOne (not_expr e, l2) in
+							reorder (h2::tl) (Block (l, new_cjump::stmts_tl)::acc)
 						else 
-							reorder (h2::tl) (Block (l, (Jump (Name l2))::stmts)::acc)
+							let new_cjump = CJumpOne (e, l1) in
+							let new_jump = Jump (Name l2) in 
+							reorder (h2::tl) (Block (l, new_jump::new_cjump::stmts_tl)::acc)
 					| Jump (Name l')::stmts_tl ->
 						if l' = h2 then
 							reorder (h2::tl) (Block (l, stmts_tl)::acc)
@@ -209,7 +208,10 @@ let block_reorder (stmts: stmt list) : block list =
 				try
 					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
 					match stmts with
-					| CJump (_, _, l2)::_ -> (Block (l, (Jump (Name l2))::stmts))::acc |> List.rev
+					| CJump (e, l1, l2)::stmts_tl -> 
+						let new_cjump = CJumpOne (e, l1) in	
+						let new_jump = Jump (Name l2) in
+						(Block (l, new_jump::new_cjump::stmts_tl))::acc |> List.rev
 					| _ -> b::acc |> List.rev 
 				with Not_found -> failwith "error -- label does not exist"
 			end

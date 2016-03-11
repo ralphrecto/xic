@@ -1,3 +1,4 @@
+module Long = Int64
 open Core.Std
 open Async.Std
 open Ir
@@ -9,14 +10,14 @@ type graph = node list
 let num_temp = ref 0 
 let fresh_temp () =
 	let str = "t" ^ (string_of_int (!num_temp)) in
-	num_temp := !num_temp + 1;
+	incr num_temp;
 	str
 
 (* use this funciton when creating new labels *)
 let num_label = ref 0
 let fresh_label () =
 	let str = "l" ^ (string_of_int (!num_label)) in
-	num_label := !num_label + 1;
+	incr num_label;
 	str 
 
 let rec lower_exp (e: expr) : (stmt list * expr) =
@@ -220,3 +221,47 @@ let block_reorder (stmts: stmt list) : block list =
 	let reordered_blocks = reorder seq [] in
 	let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
 	final
+
+let rec constant_folding (e: expr) : expr =
+	let open Long in
+	match e with	
+	| BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
+	| BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2) 
+	| BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2) 
+	| BinOp (Const i1, HMUL, Const i2) -> failwith "TODO"   
+	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2) 
+	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2) 
+	| BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2) 
+	| BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2) 
+	| BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2) 
+	| BinOp (Const i1, LSHIFT, Const i2) -> 
+		let i2' = to_int i2 in	
+		Const (shift_left i1 i2') 
+	| BinOp (Const i1, RSHIFT, Const i2) -> 
+		let i2' = to_int i2 in	
+		Const (shift_right_logical i1 i2') 
+	| BinOp (Const i1, ARSHIFT, Const i2) -> 
+		let i2' = to_int i2 in	
+		Const (shift_right i1 i2') 
+	| BinOp (Const i1, EQ, Const i2) -> if (compare i1 i2) = 0 then Const (1L) else Const (0L)
+	| BinOp (Const i1, NEQ, Const i2) -> if (compare i1 i2) <> 0 then Const (1L) else Const (0L) 
+	| BinOp (Const i1, LT, Const i2) -> if (compare i1 i2) < 0 then Const (1L) else Const (0L) 
+	| BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L) 
+	| BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L) 
+	| BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L) 
+	| BinOp (e1, op, e2) ->
+		begin	
+			match (constant_folding e1), (constant_folding e2) with
+			| (Const i1 as c1), (Const i2 as c2)-> constant_folding (BinOp (c1, op, c2))
+			| e1', e2' -> BinOp (e1', op, e2')
+		end
+	| Call (e', elist, i) ->
+		let folded_list = List.map ~f: constant_folding elist in
+		let folded_e = constant_folding e' in
+		Call (folded_e, folded_list, i)	
+	| ESeq (s, e') -> ESeq (s, constant_folding e')
+	| Mem (e', t) -> Mem (constant_folding e', t)
+	| Const _
+	| Name _
+	| Temp _ -> e
+ 

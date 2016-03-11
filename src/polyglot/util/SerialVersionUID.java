@@ -44,7 +44,6 @@ import java.util.TreeSet;
  * serialVersionUID field. Hopefully, the values generated here will be less
  * sensitive to the particular compiler being used.
  */
- @SuppressWarnings("serial")
 public class SerialVersionUID implements Serializable {
     private static final long serialVersionUID = generate();
 

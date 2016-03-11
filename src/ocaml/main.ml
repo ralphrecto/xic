@@ -3,6 +3,7 @@ open Async.Std
 open Typecheck
 open Ir
 open Ir_generation
+open Ir_printer
 open Printf
 
 type flags = {

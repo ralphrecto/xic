@@ -9,6 +9,11 @@ open Typecheck
 type node = Node of string * string list
 type graph = node list
 
+(* Convert an id string to a temp string. The temp string
+ * should not be a possible identifier. Identifiers begin
+ * with alphabetic characters. *)
+let id_to_temp (idstr: string) : string = "%TEMP%" ^ idstr 
+
 let num_temp = ref 0 
 let fresh_temp () =
 	let str = "temp" ^ (string_of_int (!num_temp)) in
@@ -47,9 +52,17 @@ and gen_control ((t, e): Typecheck.expr) t_label f_label =
 
 and gen_stmt ((_, s): Typecheck.stmt) =
   match s with
-  | Decl varlist -> failwith "do me"
+  (* TODO: is this sane? Rationale is that Decls with
+   * no initializations are only useful up to typechecking
+   * to verify scoping. Otherwise what code should they
+   * generate? *)
+  | Decl _ -> Exp (Temp (fresh_temp ()))
   | DeclAsgn (varlist, exp) ->  failwith "do me"
-  | Asgn (lhs, rhs) -> failwith "do me"
+  | Asgn (lhs, rhs) -> begin
+    match gen_expr lhs with      
+    | (Temp _ | Mem _ ) as lhs' -> Move (lhs', gen_expr rhs)
+    | _ -> failwith "impossible"
+  end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
   | Return exprlist -> failwith "do me"
   | If (pred, t) ->

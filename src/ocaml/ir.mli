@@ -4,7 +4,7 @@ open Async.Std
 (* no ESeq or Call in lowered ir *)
 type expr =
   | BinOp of expr * binop_code * expr
-  | Call of expr * expr list * int
+  | Call of expr * expr list
   | Const of Int64.t
   | ESeq of stmt * expr
   | Mem of expr * mem_type

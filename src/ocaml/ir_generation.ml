@@ -11,6 +11,11 @@ type graph = node list
 
 type block = Block of string * Ir.stmt list
 
+
+(********************************************************
+ * name helpers 
+ *******************************************************)
+
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)
@@ -29,7 +34,49 @@ let fresh_label () =
 	incr num_label;
 	str
 
-let rec gen_expr e = failwith "do me"
+
+(********************************************************
+ * IR generators and various helpers
+ *******************************************************)
+
+let const (n: int) =
+  Const (Int64.of_int n)
+
+(* Number of bytes in a word in memory *)
+let word_size = 8
+
+(* returns a function call node that allocates n bytes of memory *)
+let malloc (n: int) : Ir.expr =
+  Call (Name ("_I_alloc_i"),
+    [Const (Int64.of_int n)]
+  )
+
+(* mallocs n words instead of bytes *)
+let malloc_word (n: int) : Ir.expr =
+  malloc (n * word_size)
+
+(* x $ y == y words offset from x *)
+let ( $ ) (x: Ir.expr) (y: int) =
+  BinOp(x, ADD, const (y * word_size))
+
+let rec gen_expr ((t, e): Typecheck.expr) : Ir.expr =
+  match e with
+  | Array elts ->
+      let arr_len = List.length elts in
+      let mem_loc = malloc_word (arr_len + 1) in
+      let loc_tmp = Temp (fresh_temp ()) in
+      let mov_elt_seq elt (i, seq) = 
+        let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
+        (i + 1, mov_elt :: seq) in
+      ESeq (
+        Seq (
+          Move (loc_tmp, mem_loc) ::
+          Move (Mem (loc_tmp, NORMAL), const arr_len) ::
+          (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
+        ),
+        Mem (loc_tmp, NORMAL)
+      )
+  | _ -> failwith "do me"
 
 and gen_control ((t, e): Typecheck.expr) t_label f_label =
   match e with
@@ -99,7 +146,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
         Label f_label;
       ])
   | ProcCall ((_, id), args) ->
-      Exp (Call (Name id, List.map ~f:gen_expr args, -1))
+      Exp (Call (Name id, List.map ~f:gen_expr args))
 
 let rec lower_expr e =
 	match e with
@@ -109,7 +156,7 @@ let rec lower_expr e =
 		let temp = Temp (fresh_temp ()) in
 		let temp_move = Move (temp, e1') in
 		(s1 @ [temp_move] @ s2, BinOp(temp, binop, e2'))
-	| Call (e', es, i) ->
+	| Call (e', es) ->
 		let call_fold (acc, temps) elm =
 			let (s1, e1) = lower_expr elm in
 			let temp = fresh_temp () in
@@ -123,7 +170,7 @@ let rec lower_expr e =
 		let fn_stmts = name_s @ (temp_move_name :: (List.rev arg_stmts)) in
 		let fn_args = List.rev arg_temps in
 		let temp_fn = fresh_temp () in
-		let temp_move_fn = Move (Temp temp_fn, Call(Temp temp_name, fn_args, i)) in
+		let temp_move_fn = Move (Temp temp_fn, Call(Temp temp_name, fn_args)) in
 		(fn_stmts @ [temp_move_fn], Temp temp_fn)
 	| ESeq (s, e') ->
 		let s1 = lower_stmt s in
@@ -352,10 +399,10 @@ let rec constant_folding e =
 			| (Const _ as c1), (Const _ as c2)-> constant_folding (BinOp (c1, op, c2))
 			| e1', e2' -> BinOp (e1', op, e2')
 		end
-	| Call (e', elist, i) ->
+	| Call (e', elist) ->
 		let folded_list = List.map ~f: constant_folding elist in
 		let folded_e = constant_folding e' in
-		Call (folded_e, folded_list, i)
+		Call (folded_e, folded_list)
 	| ESeq (s, e') -> ESeq (s, constant_folding e')
 	| Mem (e', t) -> Mem (constant_folding e', t)
 	| Const _

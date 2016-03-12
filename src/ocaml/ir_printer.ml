@@ -38,7 +38,7 @@ let rec sexp_of_expr = function
         sexp_of_expr e1;
         sexp_of_expr e2]
   end
-  | Call (target, args, _) -> begin
+  | Call (target, args) -> begin
       of_atoms ["CALL";
         sexp_of_expr target;
         List.map ~f:sexp_of_expr args |> of_atoms_np]

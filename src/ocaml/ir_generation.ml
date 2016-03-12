@@ -2,6 +2,8 @@ module Long = Int64
 open Core.Std
 open Async.Std
 open Ir
+open Ast
+open Typecheck
 
 (* label * adjacent nodes * mark *)
 type node = Node of string * string list
@@ -9,20 +11,80 @@ type graph = node list
 
 let num_temp = ref 0 
 let fresh_temp () =
-	let str = "t" ^ (string_of_int (!num_temp)) in
+	let str = "temp" ^ (string_of_int (!num_temp)) in
 	incr num_temp;
 	str
 
 (* use this funciton when creating new labels *)
 let num_label = ref 0
 let fresh_label () =
-	let str = "l" ^ (string_of_int (!num_label)) in
+	let str = "label" ^ (string_of_int (!num_label)) in
 	incr num_label;
 	str 
 
-let gen_expr e = failwith "do me"
+let rec gen_expr e = failwith "do me"
 
-let gen_stmt s = failwith "do me"
+and gen_control ((t, e): Typecheck.expr) t_label f_label =
+  match e with
+  | Bool true -> Jump (Name t_label)
+  | Bool false -> Jump (Name f_label)
+  | BinOp (e1, AMP, e2) ->
+      let inter_label = fresh_label () in
+      Seq ([
+        CJump (gen_expr e1, inter_label, f_label);
+        Label inter_label;
+        CJump (gen_expr e2, t_label, f_label)
+      ])
+  | BinOp (e1, BAR, e2) ->
+      let inter_label = fresh_label () in
+      Seq ([
+        CJump (gen_expr e1, t_label, inter_label);
+        Label inter_label;
+        CJump (gen_expr e2, t_label, f_label)
+      ])
+  | UnOp (BANG, e1) -> gen_control e1 f_label t_label
+  | _ -> CJump (gen_expr (t, e), t_label, f_label)
+
+and gen_stmt ((_, s): Typecheck.stmt) =
+  match s with
+  | Decl varlist -> failwith "do me"
+  | DeclAsgn (varlist, exp) ->  failwith "do me"
+  | Asgn (lhs, rhs) -> failwith "do me"
+  | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
+  | Return exprlist -> failwith "do me"
+  | If (pred, t) ->
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      Seq ([
+        gen_control pred t_label f_label;
+        Label t_label;
+        gen_stmt t;
+        Label f_label;
+      ])
+  | IfElse (pred, t, f) ->
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      Seq ([
+        gen_control pred t_label f_label;
+        Label t_label;
+        gen_stmt t;
+        Label f_label;
+        gen_stmt f;
+      ])
+  | While (pred, s) -> 
+      let while_label = fresh_label () in
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      Seq ([
+        Label while_label;
+        gen_control pred t_label f_label;
+        Label t_label;
+        gen_stmt s;
+        Jump (Name while_label);
+        Label f_label;
+      ])
+  | ProcCall ((_, id), args) ->
+      Exp (Call (Name id, List.map ~f:gen_expr args, -1))
 
 let rec lower_expr e =
 	match e with

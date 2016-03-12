@@ -4,6 +4,9 @@ open Async.Std
 
 (* Xi AST -> IR AST *)
 val gen_expr : Typecheck.expr -> Ir.expr
+(* the control translation for booleans from lecture notes
+ * boolean -> true label -> false label -> resulting jumps *)
+val gen_control : Typecheck.expr -> string -> string -> Ir.stmt
 val gen_stmt : Typecheck.stmt -> Ir.stmt
 
 (* IR lowering *)

@@ -80,6 +80,43 @@ let test_lower_expr () =
 
   ()
 
+let test_lower_stmt () =
+  let open StmtsEq in
+  let open Fresh in
+
+  let one = Const 1L in
+  let two = Const 2L in
+  let stmts = [Return; Return; CJump (one, "t", "f")] in
+  let seq = Seq stmts in
+  let eseq e = ESeq (seq, e) in
+
+  (* Label *)
+  [Label "l"] === lower_stmt (Label "l");
+
+  (* Return *)
+  [Return] === lower_stmt Return;
+
+  (* CJump *)
+  stmts@[CJump (one, "t", "f")] === lower_stmt (CJump (eseq one, "t", "f"));
+
+  (* Jump *)
+  stmts@[Jump one] === lower_stmt (Jump (eseq one));
+
+  (* Exp *)
+  stmts === lower_stmt (Exp (eseq one));
+
+	(* Move *)
+  stmts@[Move (t 5, two)]@stmts@[Move (one, t 5)]
+  ===
+  lower_stmt (Move (eseq one, eseq two));
+
+	(* Seq ss *)
+  stmts@stmts@stmts
+  ===
+  lower_stmt (Seq [Seq stmts; Seq stmts; Seq stmts]);
+
+  ()
+
 let test_reorder () =
 	(* labels *)
 	let l1 = Ir.Label "l1" in
@@ -116,6 +153,7 @@ let test_reorder () =
 let main () =
 		"suite" >::: [
 			"test_lower_expr" >:: test_lower_expr;
+			"test_lower_stmt" >:: test_lower_stmt;
 			"test_reorder" >:: test_reorder;
     ] |> run_test_tt_main
 

@@ -9,7 +9,7 @@ open Typecheck
 type node = Node of string * string list
 type graph = node list
 
-type block = Block of string * stmt list
+type block = Block of string * Ir.stmt list
 
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
@@ -156,7 +156,7 @@ and lower_stmt s =
 	| Return ->	[s]
 	| CJumpOne _ -> failwith "this node shouldn't exist"
 
-let block_reorder stmts =
+let block_reorder (stmts: Ir.stmt list) =
 	(* order of stmts in blocks are reversed
 	   to make looking at conditionals easier *)
 	let gen_block (blocks, acc, label) elm =
@@ -305,6 +305,10 @@ let rec constant_folding e =
 	let open Long in
 	let open Big_int in
 	match e with
+	| BinOp (Const 0L, (ADD|SUB), Const i)
+	| BinOp (Const i, (ADD|SUB), Const 0L)
+	| BinOp (Const i, (MUL|DIV), Const 1L)
+	| BinOp (Const 1L, MUL, Const i) -> Const i
 	| BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
 	| BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
 	| BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
@@ -318,6 +322,12 @@ let rec constant_folding e =
 		Const result
 	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
 	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
+	| BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L 
+	| BinOp (Const 0L, (AND|OR), Const 0L) -> Const 0L
+	| BinOp (Const 1L, OR, Const _) 
+	| BinOp (Const _, OR, Const 1L) -> Const 1L
+	| BinOp (Const 0L, AND, Const _)
+	| BinOp (Const _, AND, Const 0L) -> Const 0L
 	| BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
 	| BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2)
 	| BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2)

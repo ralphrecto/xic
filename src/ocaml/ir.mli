@@ -59,9 +59,6 @@ and func_decl = string * stmt
 (* name, functions *)
 and comp_unit = string * func_decl String.Map.t
 
-(* label, stmts in block *)
-and block = Block of string * stmt list
-
 val string_of_binop_code : binop_code -> string
 val string_of_expr       : expr       -> string
 val string_of_stmt       : stmt       -> string

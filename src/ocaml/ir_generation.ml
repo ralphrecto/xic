@@ -12,9 +12,9 @@ type graph = node list
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)
-let id_to_temp (idstr: string) : string = "%TEMP%" ^ idstr 
+let id_to_temp (idstr: string) : string = "%TEMP%" ^ idstr
 
-let num_temp = ref 0 
+let num_temp = ref 0
 let fresh_temp () =
 	let str = "temp" ^ (string_of_int (!num_temp)) in
 	incr num_temp;
@@ -25,7 +25,7 @@ let num_label = ref 0
 let fresh_label () =
 	let str = "label" ^ (string_of_int (!num_label)) in
 	incr num_label;
-	str 
+	str
 
 let rec gen_expr e = failwith "do me"
 
@@ -59,7 +59,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | Decl _ -> Exp (Temp (fresh_temp ()))
   | DeclAsgn (varlist, exp) ->  failwith "do me"
   | Asgn (lhs, rhs) -> begin
-    match gen_expr lhs with      
+    match gen_expr lhs with
     | (Temp _ | Mem _ ) as lhs' -> Move (lhs', gen_expr rhs)
     | _ -> failwith "impossible"
   end
@@ -84,7 +84,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
         Label f_label;
         gen_stmt f;
       ])
-  | While (pred, s) -> 
+  | While (pred, s) ->
       let while_label = fresh_label () in
       let t_label = fresh_label () in
       let f_label = fresh_label () in
@@ -104,9 +104,9 @@ let rec lower_expr e =
 	| BinOp (e1, binop, e2) ->
 		let (s1, e1') = lower_expr e1 in
 		let (s2, e2') = lower_expr e2 in
-		let temp = fresh_temp () in
-		let temp_move = Move (Temp temp, e1') in
-		(s1 @ [temp_move] @ s2, BinOp(e1', binop, e2'))
+		let temp = Temp (fresh_temp ()) in
+		let temp_move = Move (temp, e1') in
+		(s1 @ [temp_move] @ s2, BinOp(temp, binop, e2'))
 	| Call (e', es, i) ->
 		let call_fold (acc, temps) elm =
 			let (s1, e1) = lower_expr elm in
@@ -114,10 +114,10 @@ let rec lower_expr e =
 			let temp_move = Move (Temp temp, e1) in
 			(temp_move::(List.rev_append s1 acc), (Temp temp)::temps)
 		in
-		let (arg_stmts, arg_temps) = List.fold_left ~f: call_fold ~init: ([], []) es in
 		let (name_s, name_e) = lower_expr e' in
 		let temp_name = fresh_temp () in
 		let temp_move_name = Move (Temp temp_name, name_e) in
+		let (arg_stmts, arg_temps) = List.fold_left ~f: call_fold ~init: ([], []) es in
 		let fn_stmts = name_s @ (temp_move_name :: (List.rev arg_stmts)) in
 		let fn_args = List.rev arg_temps in
 		let temp_fn = fresh_temp () in
@@ -131,7 +131,7 @@ let rec lower_expr e =
 		let (s', e') = lower_expr e' in
 		(s', Mem (e', t))
 	| Name _
-	| Temp _ 
+	| Temp _
 	| Const _ -> ([], e)
 
 and lower_stmt s =
@@ -145,12 +145,12 @@ and lower_stmt s =
 	| Exp e -> fst (lower_expr e)
 	| Move (dest, e') ->
 		let (dest_s, dest') = lower_expr dest in
-		let (s'', e'') = lower_expr e' in	
+		let (s'', e'') = lower_expr e' in
 		let temp = fresh_temp () in
 		let temp_move = Move (Temp temp, e'') in
 		s'' @ [temp_move] @ dest_s @ [Move(dest', Temp temp)]
 	| Seq ss ->
-		List.fold_left ~f:(fun acc s' -> (lower_stmt s') @ acc) ~init:[] ss 
+		List.fold_left ~f:(fun acc s' -> (lower_stmt s') @ acc) ~init:[] ss
 		|> List.rev
 	| Label _
 	| Return ->	[s]
@@ -161,34 +161,34 @@ let block_reorder stmts =
 	   to make looking at conditionals easier *)
 	let gen_block (blocks, acc, label) elm =
 		match elm, label, acc with
-		| Label s, Some l, _ -> 
+		| Label s, Some l, _ ->
 			(Block (l, acc)::blocks, [], Some s)
-		| Label s, None, [] -> 
-			(blocks, [], Some s)	
+		| Label s, None, [] ->
+			(blocks, [], Some s)
 		| Label s, None, _ ->
 			let fresh_label = fresh_label () in
-			(Block (fresh_label, acc)::blocks, [], Some s)	
-		| CJump _, Some l, _ -> 
+			(Block (fresh_label, acc)::blocks, [], Some s)
+		| CJump _, Some l, _ ->
 			(Block (l, elm::acc)::blocks, [], None)
-		| CJump _, None, _-> 
+		| CJump _, None, _->
 			let fresh_label = fresh_label () in
 			(Block (fresh_label, elm::acc)::blocks, [], None)
-		| Jump _, Some l, _ -> 
+		| Jump _, Some l, _ ->
 			(Block (l, elm::acc)::blocks, [], None)
 		| Jump _, None, _ ->
 			let fresh_label = fresh_label () in
 			(Block (fresh_label, elm::acc)::blocks, [], None)
 		| _ -> (blocks, elm::acc, label)
-	in 
+	in
 	let (b, a, l) = List.fold_left ~f: gen_block ~init: ([], [], None) stmts in
-	let blocks = 
+	let blocks =
 		match l with
 		| None ->
 			let fresh_label = fresh_label () in
-			(Block (fresh_label, List.rev a)) :: b |> List.rev	
+			(Block (fresh_label, List.rev a)) :: b |> List.rev
 		| Some l' -> (Block (l', List.rev a)) :: b |> List.rev
 	in
-	let check_dup (Block (l1, _)) (Block (l2, _)) = 
+	let check_dup (Block (l1, _)) (Block (l2, _)) =
 		compare l1 l2
 	in
 	(* sanity check to make sure there aren't duplicate labels *)
@@ -203,7 +203,7 @@ let block_reorder stmts =
 					| Jump _ ::_ -> failwith "error -- invalid jump"
 					| _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
 				end
-		| Block(l,s)::tl -> 
+		| Block(l,s)::tl ->
 				begin
 					match s with
 					| CJump (_, tru, fls)::_ -> create_graph tl (Node (l, [tru;fls])::graph)
@@ -212,27 +212,27 @@ let block_reorder stmts =
 					| _ -> create_graph tl (Node (l, [])::graph)
 				end
 		| [] ->	List.rev graph
-	in	
+	in
 	let graph = create_graph blocks [] in
 	let rec find_trace graph (Node (l, adj)) acc =
 		match adj with
-		| h1::h2::_ -> 
-			begin	
+		| h1::h2::_ ->
+			begin
 				try
 					if List.exists ~f: (fun e -> e = h2) acc then
 						if List.exists ~f: (fun e -> e = h1) acc then
 							List.rev (l::acc)
 						else
 							let next' = List.find_exn ~f:(fun (Node (l', _)) -> l' = h1) graph in
-							find_trace graph next' (l::acc)		
-					else			
+							find_trace graph next' (l::acc)
+					else
 						let next = List.find_exn ~f:(fun (Node (l', _)) -> l' = h2) graph in
 						find_trace graph next (l::acc)
 				with Not_found -> List.rev (l::acc)
 			end
-		| hd::_ -> 
+		| hd::_ ->
 			begin
-				try 
+				try
 					if List.exists ~f: (fun e -> e = hd) acc then
 						List.rev (l::acc)
 					else
@@ -241,16 +241,16 @@ let block_reorder stmts =
 				with Not_found -> List.rev (l::acc)
 			end
 		| [] ->	List.rev (l::acc)
-	in	
+	in
 	let rec find_seq graph acc =
 		match graph with
 		| [] -> List.concat acc
-		| hd::_ -> 
+		| hd::_ ->
 			let trace = find_trace graph hd [] in
-			let remaining_graph = List.filter	graph  
-																 ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace)) 
+			let remaining_graph = List.filter	graph
+																 ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace))
 			in
-			find_seq remaining_graph (trace::acc)	
+			find_seq remaining_graph (trace::acc)
 	in
 	let seq = find_seq graph [] in
 	let not_expr e =
@@ -260,7 +260,7 @@ let block_reorder stmts =
 		match seq with
 		| h1::h2::tl ->
 			begin
-				try 
+				try
 					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks	in
 					match stmts with
 					| CJump (e, l1, l2)::stmts_tl ->
@@ -270,9 +270,9 @@ let block_reorder stmts =
 						else if l1 = h2 then
 							let new_cjump = CJumpOne (not_expr e, l2) in
 							reorder (h2::tl) (Block (l, new_cjump::stmts_tl)::acc)
-						else 
+						else
 							let new_cjump = CJumpOne (e, l1) in
-							let new_jump = Jump (Name l2) in 
+							let new_jump = Jump (Name l2) in
 							reorder (h2::tl) (Block (l, new_jump::new_cjump::stmts_tl)::acc)
 					| Jump (Name l')::stmts_tl ->
 						if l' = h2 then
@@ -283,61 +283,61 @@ let block_reorder stmts =
 					| _ -> reorder (h2::tl) (b::acc)
 				with Not_found -> failwith "error -- label does not exist"
 			end
-		| h1::tl -> 
+		| h1::tl ->
 			begin
 				try
 					let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
 					match stmts with
-					| CJump (e, l1, l2)::stmts_tl -> 
-						let new_cjump = CJumpOne (e, l1) in	
+					| CJump (e, l1, l2)::stmts_tl ->
+						let new_cjump = CJumpOne (e, l1) in
 						let new_jump = Jump (Name l2) in
 						reorder tl ((Block (l, new_jump::new_cjump::stmts_tl))::acc)
 					| _ -> reorder tl (b::acc)
 				with Not_found -> failwith "error -- label does not exist"
 			end
-		| [] -> List.rev acc	
+		| [] -> List.rev acc
 	in
 	let reordered_blocks = reorder seq [] in
 	let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
 	final
 
-let rec constant_folding e = 
+let rec constant_folding e =
 	let open Long in
 	let open Big_int in
-	match e with	
+	match e with
 	| BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
-	| BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2) 
-	| BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2) 
+	| BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
+	| BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
 	| BinOp (Const i1, HMUL, Const i2) ->
 		let i1' = big_int_of_int64 i1 in
 		let i2' = big_int_of_int64 i2 in
 		let mult = mult_big_int i1' i2' in
-		let max_long = big_int_of_int64 max_int in 
+		let max_long = big_int_of_int64 max_int in
 		let divided = div_big_int mult max_long in
 		let result = int64_of_big_int divided in
 		Const result
-	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2) 
-	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2) 
-	| BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2) 
-	| BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2) 
-	| BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2) 
-	| BinOp (Const i1, LSHIFT, Const i2) -> 
-		let i2' = to_int i2 in	
-		Const (shift_left i1 i2') 
-	| BinOp (Const i1, RSHIFT, Const i2) -> 
-		let i2' = to_int i2 in	
-		Const (shift_right_logical i1 i2') 
-	| BinOp (Const i1, ARSHIFT, Const i2) -> 
-		let i2' = to_int i2 in	
-		Const (shift_right i1 i2') 
+	| BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
+	| BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
+	| BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
+	| BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2)
+	| BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2)
+	| BinOp (Const i1, LSHIFT, Const i2) ->
+		let i2' = to_int i2 in
+		Const (shift_left i1 i2')
+	| BinOp (Const i1, RSHIFT, Const i2) ->
+		let i2' = to_int i2 in
+		Const (shift_right_logical i1 i2')
+	| BinOp (Const i1, ARSHIFT, Const i2) ->
+		let i2' = to_int i2 in
+		Const (shift_right i1 i2')
 	| BinOp (Const i1, EQ, Const i2) -> if (compare i1 i2) = 0 then Const (1L) else Const (0L)
-	| BinOp (Const i1, NEQ, Const i2) -> if (compare i1 i2) <> 0 then Const (1L) else Const (0L) 
-	| BinOp (Const i1, LT, Const i2) -> if (compare i1 i2) < 0 then Const (1L) else Const (0L) 
-	| BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L) 
-	| BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L) 
-	| BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L) 
+	| BinOp (Const i1, NEQ, Const i2) -> if (compare i1 i2) <> 0 then Const (1L) else Const (0L)
+	| BinOp (Const i1, LT, Const i2) -> if (compare i1 i2) < 0 then Const (1L) else Const (0L)
+	| BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L)
+	| BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L)
+	| BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
 	| BinOp (e1, op, e2) ->
-		begin	
+		begin
 			match (constant_folding e1), (constant_folding e2) with
 			| (Const _ as c1), (Const _ as c2)-> constant_folding (BinOp (c1, op, c2))
 			| e1', e2' -> BinOp (e1', op, e2')
@@ -345,10 +345,10 @@ let rec constant_folding e =
 	| Call (e', elist, i) ->
 		let folded_list = List.map ~f: constant_folding elist in
 		let folded_e = constant_folding e' in
-		Call (folded_e, folded_list, i)	
+		Call (folded_e, folded_list, i)
 	| ESeq (s, e') -> ESeq (s, constant_folding e')
 	| Mem (e', t) -> Mem (constant_folding e', t)
 	| Const _
 	| Name _
 	| Temp _ -> e
- 
+

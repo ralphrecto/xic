@@ -9,6 +9,8 @@ open Typecheck
 type node = Node of string * string list
 type graph = node list
 
+type block = Block of string * stmt list
+
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)

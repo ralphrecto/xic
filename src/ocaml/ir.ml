@@ -9,6 +9,7 @@ type expr =
   | Mem of expr * mem_type
   | Name of string
   | Temp of string
+
 and binop_code =
   | ADD
   | SUB
@@ -28,9 +29,11 @@ and binop_code =
   | GT
   | LEQ
   | GEQ
+
 and mem_type =
   | NORMAL
   | IMMUTABLE
+
 and stmt =
   | CJump of expr * string * string
 	| CJumpOne of expr * string
@@ -40,9 +43,10 @@ and stmt =
   | Move of expr * expr
   | Seq of stmt list
   | Return
+
 and func_decl = string * stmt
+
 and comp_unit = string * func_decl String.Map.t
-and block = Block of string * stmt list
 
 let string_of_binop_code = function
   | ADD     -> "+"

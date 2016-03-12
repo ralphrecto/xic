@@ -1,2 +1,3 @@
 PKG core async oUnit
-B _build/src
+B _build/src/ocaml
+B _build/test/ocaml

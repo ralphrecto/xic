@@ -5,12 +5,10 @@ open Expr
 open Stmt
 open Sigma
 open Ast.S
+open TestUtil
 
 let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
-
-let assert_true (b: bool) : unit =
-  assert_equal b true
 
 (* Context helpers *)
 let empty = Context.empty

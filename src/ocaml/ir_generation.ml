@@ -33,7 +33,7 @@ let rec lower_exp (e: expr) : (stmt list * expr) =
 			let (s1, e1) = lower_exp elm in
 			let temp = fresh_temp () in
 			let temp_move = Move (Temp temp, e1) in
-			(temp_move::s1 @ acc, (Temp temp)::temps)
+			(temp_move::(List.rev_append s1 acc), (Temp temp)::temps)
 		in
 		let (arg_stmts, arg_temps) = List.fold_left ~f: call_fold ~init: ([], []) es in
 		let (name_s, name_e) = lower_exp e' in

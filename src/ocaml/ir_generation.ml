@@ -151,9 +151,7 @@ and lower_stmt s =
 		let temp = fresh_temp () in
 		let temp_move = Move (Temp temp, e'') in
 		s'' @ [temp_move] @ dest_s @ [Move(dest', Temp temp)]
-	| Seq ss ->
-		List.fold_left ~f:(fun acc s' -> (lower_stmt s') @ acc) ~init:[] ss
-		|> List.rev
+	| Seq ss -> List.concat_map ~f:lower_stmt ss
 	| Label _
 	| Return ->	[s]
 	| CJumpOne _ -> failwith "this node shouldn't exist"

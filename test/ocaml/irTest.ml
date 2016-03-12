@@ -80,43 +80,81 @@ let test_lower_expr () =
 
   ()
 
+let test_lower_stmt () =
+  let open StmtsEq in
+  let open Fresh in
+
+  let one = Const 1L in
+  let two = Const 2L in
+  let stmts = [Return; Return; CJump (one, "t", "f")] in
+  let seq = Seq stmts in
+  let eseq e = ESeq (seq, e) in
+
+  (* Label *)
+  [Label "l"] === lower_stmt (Label "l");
+
+  (* Return *)
+  [Return] === lower_stmt Return;
+
+  (* CJump *)
+  stmts@[CJump (one, "t", "f")] === lower_stmt (CJump (eseq one, "t", "f"));
+
+  (* Jump *)
+  stmts@[Jump one] === lower_stmt (Jump (eseq one));
+
+  (* Exp *)
+  stmts === lower_stmt (Exp (eseq one));
+
+  (* Move *)
+  stmts@[Move (t 5, two)]@stmts@[Move (one, t 5)]
+  ===
+  lower_stmt (Move (eseq one, eseq two));
+
+  (* Seq ss *)
+  stmts@stmts@stmts
+  ===
+  lower_stmt (Seq [Seq stmts; Seq stmts; Seq stmts]);
+
+  ()
+
 let test_reorder () =
-	(* labels *)
-	let l1 = Ir.Label "l1" in
-	let l2 = Ir.Label "l2" in
-	let l3 = Ir.Label "l3" in
-	let l4 = Ir.Label "l4" in
-	let l5 = Ir.Label "l5" in
+  (* labels *)
+  let l1 = Ir.Label "l1" in
+  let l2 = Ir.Label "l2" in
+  let l3 = Ir.Label "l3" in
+  let l4 = Ir.Label "l4" in
+  let l5 = Ir.Label "l5" in
 
-	(* statements *)
-	let s1 = CJump (Const 1L, "l2", "l3") in
-	let s2 = CJump (Const 1L, "l2", "l4") in
-	let s3 = Jump (Name "l2") in
-	let s4 = Jump (Name "l5") in
-	let s5 = Return in
+  (* statements *)
+  let s1 = CJump (Const 1L, "l2", "l3") in
+  let s2 = CJump (Const 1L, "l2", "l4") in
+  let s3 = Jump (Name "l2") in
+  let s4 = Jump (Name "l5") in
+  let s5 = Return in
 
-	let s_list = [l1; s1; l2; s2; l3; s3; l4; s4; l5; s5] in
+  let s_list = [l1; s1; l2; s2; l3; s3; l4; s4; l5; s5] in
 
-	let reordered = block_reorder s_list in
+  let reordered = block_reorder s_list in
 
-	(* blocks *)
-	let b1 = Block ("l1", [CJumpOne (Const 1L, "l2")]) in
-	let b2 = Block ("l3", []) in
-	let b3 = Block ("l2", [CJumpOne (Const 1L, "l2")]) in
-	let b4 = Block ("l4", []) in
-	let b5 = Block ("l5", [Return]) in
+  (* blocks *)
+  let b1 = Block ("l1", [CJumpOne (Const 1L, "l2")]) in
+  let b2 = Block ("l3", []) in
+  let b3 = Block ("l2", [CJumpOne (Const 1L, "l2")]) in
+  let b4 = Block ("l4", []) in
+  let b5 = Block ("l5", [Return]) in
 
-	let expected = [b1; b2; b3; b4; b5] in
+  let expected = [b1; b2; b3; b4; b5] in
 
-	assert_equal reordered expected
+  assert_equal reordered expected
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
-		"suite" >::: [
-			"test_lower_expr" >:: test_lower_expr;
-			"test_reorder" >:: test_reorder;
+    "suite" >::: [
+      "test_lower_expr" >:: test_lower_expr;
+      "test_lower_stmt" >:: test_lower_stmt;
+      "test_reorder" >:: test_reorder;
     ] |> run_test_tt_main
 
 let _ = main ()

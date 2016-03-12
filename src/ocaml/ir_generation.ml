@@ -20,23 +20,27 @@ let fresh_label () =
 	incr num_label;
 	str 
 
-let rec lower_exp (e: expr) : (stmt list * expr) =
+let gen_expr e = failwith "do me"
+
+let gen_stmt s = failwith "do me"
+
+let rec lower_expr e =
 	match e with
 	| BinOp (e1, binop, e2) ->
-		let (s1, e1') = lower_exp e1 in
-		let (s2, e2') = lower_exp e2 in
+		let (s1, e1') = lower_expr e1 in
+		let (s2, e2') = lower_expr e2 in
 		let temp = fresh_temp () in
 		let temp_move = Move (Temp temp, e1') in
 		(s1 @ [temp_move] @ s2, BinOp(e1', binop, e2'))
 	| Call (e', es, i) ->
 		let call_fold (acc, temps) elm =
-			let (s1, e1) = lower_exp elm in
+			let (s1, e1) = lower_expr elm in
 			let temp = fresh_temp () in
 			let temp_move = Move (Temp temp, e1) in
 			(temp_move::s1 @ acc, (Temp temp)::temps)
 		in
 		let (arg_stmts, arg_temps) = List.fold_left ~f: call_fold ~init: ([], []) es in
-		let (name_s, name_e) = lower_exp e' in
+		let (name_s, name_e) = lower_expr e' in
 		let temp_name = fresh_temp () in
 		let temp_move_name = Move (Temp temp_name, name_e) in
 		let fn_stmts = name_s @ (temp_move_name :: (List.rev arg_stmts)) in
@@ -46,27 +50,27 @@ let rec lower_exp (e: expr) : (stmt list * expr) =
 		(fn_stmts @ [temp_move_fn], Temp temp_fn)
 	| ESeq (s, e') ->
 		let s1 = lower_stmt s in
-		let (s2, e2) = lower_exp e' in
+		let (s2, e2) = lower_expr e' in
 		(s1 @ s2, e2)
 	| Mem (e', t) ->
-		let (s', e') = lower_exp e' in
+		let (s', e') = lower_expr e' in
 		(s', Mem (e', t))
 	| Name _
 	| Temp _ 
 	| Const _ -> ([], e)
 
-and lower_stmt (s: stmt) : stmt list =
+and lower_stmt s =
 	match s with
 	| CJump (e, l1, l2) ->
-		let (s', e') = lower_exp e in
+		let (s', e') = lower_expr e in
 		s' @ [CJump (e', l1, l2)]
 	| Jump e ->
-		let (s', e') = lower_exp e in
+		let (s', e') = lower_expr e in
 		s' @ [Jump e']
-	| Exp e -> fst (lower_exp e)
+	| Exp e -> fst (lower_expr e)
 	| Move (dest, e') ->
-		let (dest_s, dest') = lower_exp dest in
-		let (s'', e'') = lower_exp e' in	
+		let (dest_s, dest') = lower_expr dest in
+		let (s'', e'') = lower_expr e' in	
 		let temp = fresh_temp () in
 		let temp_move = Move (Temp temp, e'') in
 		s'' @ [temp_move] @ dest_s @ [Move(dest', Temp temp)]
@@ -77,7 +81,7 @@ and lower_stmt (s: stmt) : stmt list =
 	| Return ->	[s]
 	| CJumpOne _ -> failwith "this node shouldn't exist"
 
-let block_reorder (stmts: stmt list) : block list =
+let block_reorder stmts =
 	(* order of stmts in blocks are reversed
 	   to make looking at conditionals easier *)
 	let gen_block (blocks, acc, label) elm =
@@ -222,7 +226,7 @@ let block_reorder (stmts: stmt list) : block list =
 	let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
 	final
 
-let rec constant_folding (e: expr) : expr =
+let rec constant_folding e = 
 	let open Long in
 	let open Big_int in
 	match e with	

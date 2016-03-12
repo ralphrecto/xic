@@ -69,9 +69,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	corebuild -pkgs async,oUnit \
 			  -Is   src/ocaml,test $@
 	mkdir -p $(BIN)
-	mv $(notdir $@) $(BIN) | true
-	rm $(notdir $@) | true
-
+	mv -f $(notdir $@) $(BIN)
 
 .PHONY: doc
 doc:

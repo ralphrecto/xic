@@ -1,12 +1,11 @@
+open Core.Std
 open Ir
 open Ir_generation
 open OUnit
+open TestUtil
 
-let assert_true (b: bool) : unit =
-	assert_equal b true
-
-let test_reorder () = 
-	(* labels *)	
+let test_reorder () =
+	(* labels *)
 	let l1 = Ir.Label "l1" in
 	let l2 = Ir.Label "l2" in
 	let l3 = Ir.Label "l3" in
@@ -18,7 +17,7 @@ let test_reorder () =
 	let s2 = CJump (Const 1L, "l2", "l4") in
 	let s3 = Jump (Name "l2") in
 	let s4 = Jump (Name "l5") in
-	let s5 = Return in 
+	let s5 = Return in
 
 	let s_list = [l1; s1; l2; s2; l3; s3; l4; s4; l5; s5] in
 

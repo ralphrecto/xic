@@ -73,10 +73,10 @@ let test_lower_expr () =
   (stmts@[Move (t 1, Name "f")]@
    stmts@[Move (t 2, one)]@
    stmts@[Move (t 3, two)]@
-   [Move (t 4, Call(t 1, [t 2; t 3], 0))],
+   [Move (t 4, Call(t 1, [t 2; t 3]))],
    t 4)
   ===
-  lower_expr (Call (eseq (Name "f"), [eseq one; eseq two], 0));
+  lower_expr (Call (eseq (Name "f"), [eseq one; eseq two]));
 
   ()
 

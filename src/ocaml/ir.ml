@@ -3,7 +3,7 @@ open Async.Std
 
 type expr =
   | BinOp of expr * binop_code * expr
-  | Call of expr * expr list * int
+  | Call of expr * expr list
   | Const of Int64.t
   | ESeq of stmt * expr
   | Mem of expr * mem_type
@@ -74,7 +74,7 @@ let rec string_of_expr e =
   let sos = string_of_stmt in
   match e with
   | BinOp (lhs, o, rhs) -> sprintf "%s%s%s" (soe lhs) (sob o) (soe rhs)
-  | Call (f, args, _) -> sprintf "%s(%s)" (soe f) (Util.commas (List.map ~f:soe args))
+  | Call (f, args) -> sprintf "%s(%s)" (soe f) (Util.commas (List.map ~f:soe args))
   | Const i -> Int64.to_string i
   | ESeq (s, e) -> sprintf "(%s;%s)" (sos s) (soe e)
   | Mem (e, _) -> sprintf "mem %s" (soe e)

@@ -4,7 +4,7 @@ open Async.Std
 (* no ESeq or Call in lowered ir *)
 type expr =
   | BinOp of expr * binop_code * expr
-  | Call of expr * expr list * int
+  | Call of expr * expr list
   | Const of Int64.t
   | ESeq of stmt * expr
   | Mem of expr * mem_type
@@ -42,11 +42,11 @@ and mem_type =
  * Jump of expr
  * CJump of expr * string * string -- in block reordering second label should be removed
  * Label of string
- *)
+*)
 and stmt =
   | CJump of expr * string * string
-	(* only used after block reordering *)
-	| CJumpOne of expr * string
+  (* only used after block reordering *)
+  | CJumpOne of expr * string
   | Jump of expr
   | Exp of expr
   | Label of string

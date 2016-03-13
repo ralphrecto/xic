@@ -36,7 +36,7 @@ and mem_type =
 
 and stmt =
   | CJump of expr * string * string
-	| CJumpOne of expr * string
+  | CJumpOne of expr * string
   | Jump of expr
   | Exp of expr
   | Label of string
@@ -86,7 +86,7 @@ and string_of_stmt s =
   let sos = string_of_stmt in
   match s with
   | CJump (e, t, f) -> sprintf "cjump %s %s %s" (soe e) t f
-	| CJumpOne (e, l) -> sprintf "cjump %s %s" (soe e) l
+  | CJumpOne (e, l) -> sprintf "cjump %s %s" (soe e) l
   | Jump e -> sprintf "jump %s" (soe e)
   | Exp e -> sprintf "%s" (soe e)
   | Label l -> sprintf "%s:" l

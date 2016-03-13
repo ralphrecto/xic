@@ -14,7 +14,7 @@ module Expr: sig
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
-  [@@deriving sexp]
+    [@@deriving sexp]
 
   val to_string: t -> string
   val of_typ: Pos.typ -> t
@@ -37,7 +37,7 @@ module Stmt: sig
   type t =
     | One  (* aka unit *)
     | Zero (* aka void *)
-  [@@deriving sexp]
+    [@@deriving sexp]
 
   (* least upper bound *)
   val lub: t -> t -> t
@@ -47,7 +47,7 @@ module Sigma: sig
   type t =
     | Var      of Expr.t
     | Function of Expr.t * Expr.t
-  [@@deriving sexp]
+    [@@deriving sexp]
 end
 
 module Tags: sig
@@ -83,7 +83,7 @@ module Context: sig
    * `t`. underscores and annotated underscores are ignored. *)
   val bind_all_vars: context -> var list -> context
 
-	val bind_all_avars: context -> avar list -> context
+  val bind_all_avars: context -> avar list -> context
 end
 
 val expr_typecheck: context -> Pos.expr -> expr Error.result

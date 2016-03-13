@@ -43,16 +43,16 @@ open Async.Std
  *     end
  *
  *     include Ast.Make(T)
- *)
+*)
 module S = struct
 
   (* top level terms *)
   type ('p,'u,'c,'i,'a,'v,'s,'e,'t) full_prog =
-    FullProg of ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
+      FullProg of ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
 
   and ('p,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('c,'i,'a,'v,'s,'e,'t) raw_interface
   and ('c,'i,'a,'v,'s,'e,'t) raw_interface =
-    Interface of ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+      Interface of ('c,'i,'a,'v,'s,'e,'t) callable_decl list
 
   and ('c,'i,'a,'v,'s,'e,'t) callable_decl = 'c * ('i,'a,'v,'s,'e,'t) raw_callable_decl
   and ('i,'a,'v,'s,'e,'t) raw_callable_decl =
@@ -140,7 +140,7 @@ module S = struct
     | TInt
     | TBool
     | TArray of ('i,'e,'t) typ * ('i,'e) expr option
-  [@@deriving sexp]
+    [@@deriving sexp]
 end
 
 let string_of_binop_code (c: S.binop_code) : string =
@@ -175,8 +175,8 @@ let rec string_of_expr (_, e) : string =
   | S.Array es -> sprintf "{%s}" (Util.commas (List.map ~f:soe es))
   | S.Id (_, x) -> x
   | S.BinOp (lhs, c, rhs) -> sprintf "%s%s%s" (soe lhs)
-                                              (string_of_binop_code c)
-                                              (soe rhs)
+                               (string_of_binop_code c)
+                               (soe rhs)
   | S.UnOp (c, e) -> sprintf "%s%s" (string_of_unop_code c) (soe e)
   | S.Index (a, i) -> sprintf "%s[%s]" (soe a) (soe i)
   | S.Length e -> sprintf "length(%s)" (soe e)
@@ -205,7 +205,7 @@ let rec string_of_stmt (_, s) : string =
   match s with
   | S.Decl xs -> sprintf "%s;" (Util.commas (List.map ~f:string_of_var xs))
   | S.DeclAsgn (xs, e) -> sprintf "%s=%s;" (Util.commas (List.map ~f:string_of_var xs))
-                                           (string_of_expr e)
+                            (string_of_expr e)
   | S.Asgn (lhs, rhs) -> sprintf "%s=%s;" (string_of_expr lhs) (string_of_expr rhs)
   | S.Block ss -> sprintf "{%s}" (Util.commas (List.map ~f:sos ss))
   | S.Return es -> sprintf "return %s" (Util.commas (List.map ~f:string_of_expr es))
@@ -213,7 +213,7 @@ let rec string_of_stmt (_, s) : string =
   | S.IfElse (b, t, f) -> sprintf "if(%s) %s else %s" (string_of_expr b) (sos t) (sos f)
   | S.While (e, s) -> sprintf "while(%s) %s" (string_of_expr e) (sos s)
   | S.ProcCall ((_, p), args) ->
-        sprintf "%s(%s)" p (Util.commas (List.map ~f:string_of_expr args))
+    sprintf "%s(%s)" p (Util.commas (List.map ~f:string_of_expr args))
 
 module type TAGS = sig
   type p [@@deriving sexp]

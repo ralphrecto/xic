@@ -42,11 +42,11 @@ and mem_type =
  * Jump of expr
  * CJump of expr * string * string -- in block reordering second label should be removed
  * Label of string
- *)
+*)
 and stmt =
   | CJump of expr * string * string
-	(* only used after block reordering *)
-	| CJumpOne of expr * string
+  (* only used after block reordering *)
+  | CJumpOne of expr * string
   | Jump of expr
   | Exp of expr
   | Label of string

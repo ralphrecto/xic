@@ -35,14 +35,14 @@ let string_of_binop_code = function
 let rec sexp_of_expr = function
   | BinOp (e1, opcode, e2) -> begin
       of_atoms [string_of_binop_code opcode;
-        sexp_of_expr e1;
-        sexp_of_expr e2]
-  end
-  | Call (target, args, _) -> begin
+                sexp_of_expr e1;
+                sexp_of_expr e2]
+    end
+  | Call (target, args) -> begin
       of_atoms ["CALL";
-        sexp_of_expr target;
-        List.map ~f:sexp_of_expr args |> of_atoms_np]
-  end
+                sexp_of_expr target;
+                List.map ~f:sexp_of_expr args |> of_atoms_np]
+    end
   | Const i -> of_atoms ["CONST"; Int64.to_string i]
   | ESeq (s, e) -> of_atoms ["ESEQ"; sexp_of_stmt s; sexp_of_expr e]
   | Mem (e, _) -> of_atoms ["MEM"; sexp_of_expr e]
@@ -51,20 +51,20 @@ let rec sexp_of_expr = function
 
 and sexp_of_stmt = function
   | CJump (pred, label1, label2) ->
-      of_atoms ["CJUMP"; sexp_of_expr pred; label1; label2]
-	| CJumpOne (pred, label) ->
-      of_atoms ["CJUMP"; sexp_of_expr pred; label]
+    of_atoms ["CJUMP"; sexp_of_expr pred; label1; label2]
+  | CJumpOne (pred, label) ->
+    of_atoms ["CJUMP"; sexp_of_expr pred; label]
   | Jump label -> of_atoms ["JUMP"; sexp_of_expr label]
   | Exp e -> of_atoms ["EXP"; sexp_of_expr e]
   | Label s -> of_atoms ["LABEL"; s]
   | Move ((Temp _ | Mem _) as dest, e) ->
-      of_atoms ["MOVE"; sexp_of_expr dest; sexp_of_expr e]
+    of_atoms ["MOVE"; sexp_of_expr dest; sexp_of_expr e]
   | Move (_, _) -> failwith "Malformed Move IR node"
   | Seq (st_list) -> begin
       of_atoms [
         "SEQ";
         List.map ~f:sexp_of_stmt st_list |> of_atoms_np]
-  end
+    end
   | Return -> of_atoms ["RETURN"]
 
 and sexp_of_func_decl (name, block) =

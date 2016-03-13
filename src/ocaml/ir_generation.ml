@@ -71,7 +71,6 @@ let ( $ ) (x: Ir.expr) (y: int) =
 let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
   BinOp(x, ADD, BinOp(y, MUL, const word_size))
 
-
 let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   match b_code with
   | MINUS    -> SUB
@@ -88,6 +87,28 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   | NEQ      -> NEQ
   | AMP      -> AND
   | BAR      -> OR
+
+(* Format callable names according to Xi ABI *)
+let format_callable_name (c: Typecheck.callable) : string =
+  let rec type_name (e: Typecheck.Expr.t) = match e with
+    | IntT -> "i"
+    | BoolT -> "b"
+    | UnitT -> "p" (* p for procedure *)
+    | ArrayT t' -> "a" ^ (type_name t')
+    | TupleT tlist ->
+        let open List in
+        let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:type_name tlist) in
+        "t" ^ (string_of_int (length tlist)) ^ tnames
+    | EmptyArray -> failwith "impossible" in
+  let function_name =
+    let f c = if c = '_' then "__" else String.of_char c in
+    String.concat_map ~f in
+  let (fname, argnames, retnames) =
+    match c with
+    | (argt, rett), Func ((_, idstr), _, _, _)
+    | (argt, rett), Proc ((_, idstr), _, _) ->
+        function_name idstr, type_name argt, type_name rett in
+  Printf.sprintf "_I%s_%s%s" fname retnames argnames 
 
 let rec gen_expr ((t, e): Typecheck.expr) =
   match e with
@@ -272,6 +293,10 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       ])
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
+
+and gen_func_decl = failwith "do me"
+
+and gen_comp_unit = failwith "do me"
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

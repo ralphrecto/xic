@@ -74,7 +74,7 @@ let rec gen_expr ((t, e): Typecheck.expr) : Ir.expr =
         Move (Mem (loc_tmp, NORMAL), const arr_len) ::
         (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
       ),
-      Mem (loc_tmp$(1), NORMAL)
+      loc_tmp$(1)
     )
   | _ -> failwith "do me"
 

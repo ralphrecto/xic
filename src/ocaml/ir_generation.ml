@@ -114,21 +114,21 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
   match t with
   | TBool | TInt -> Temp (fresh_temp ())
   | TArray ((at', t'), index) ->
-      let fill () = match t' with
-        | TInt | TBool -> const 0
-        | TArray _ -> gen_decl_help (at', t') in
-      let array_size = match index with
-        | Some index_expr -> gen_expr index_expr
-        | None -> const 0 in
-      let mem_loc = array_size |> incr_ir |> malloc_word_ir in
-      let loc_tmp = Temp (fresh_temp ()) in
-      let i = Temp (fresh_temp ()) in
-      let while_label = fresh_label () in
-      let t_label = fresh_label () in
-      let f_label = fresh_label () in
-      let pred = BinOp(i, LT, incr_ir array_size) in
-      ESeq (
-        Seq ([
+    let fill () = match t' with
+      | TInt | TBool -> const 0
+      | TArray _ -> gen_decl_help (at', t') in
+    let array_size = match index with
+      | Some index_expr -> gen_expr index_expr
+      | None -> const 0 in
+    let mem_loc = array_size |> incr_ir |> malloc_word_ir in
+    let loc_tmp = Temp (fresh_temp ()) in
+    let i = Temp (fresh_temp ()) in
+    let while_label = fresh_label () in
+    let t_label = fresh_label () in
+    let f_label = fresh_label () in
+    let pred = BinOp(i, LT, incr_ir array_size) in
+    ESeq (
+      Seq ([
           Move (loc_tmp, mem_loc);
           Move (loc_tmp, array_size);
           Move (i, const 1);
@@ -140,26 +140,41 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
           Jump (Name while_label);
           Label f_label;
         ]),
-        loc_tmp$(1)
-      )
+      loc_tmp$(1)
+    )
 
 and gen_stmt ((_, s): Typecheck.stmt) =
   match s with
-  | Decl varlist ->
+  | Decl varlist -> begin
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
-            let vardecl =
-              Move (Temp (id_to_temp idstr), gen_decl_help (at, TArray (t, i))) in
-            vardecl :: seq
+          Move (Temp (id_to_temp idstr), gen_decl_help (at, TArray (t, i))) :: seq
         | _ -> seq in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
-  | DeclAsgn (varlist, exp) ->  failwith "do me"
-  | Asgn (lhs, rhs) -> begin
-      match gen_expr lhs with
-      | (Temp _ | Mem _ ) as lhs' -> Move (lhs', gen_expr rhs)
-      | _ -> failwith "impossible"
     end
+  | DeclAsgn ([(_,v)], exp) -> begin
+      match v with
+      | AVar (_, AId (var_id, t)) ->
+        let (_, var_id') = var_id in
+        Move (Temp (id_to_temp var_id'), gen_expr exp)
+      | _ -> Seq []
+    end
+  | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
+    (* TODO: assumption: if expr is a FuncCall with tuple return type,
+     * gen_expr returns an address to an array in memory containing the
+     * elements of the tuple. *)
+    let tuple_loc = gen_expr (TupleT tlist, rawexp) in
+    let gen_var_decls ((_, x): Typecheck.var) (i, seq) =
+      match x with
+      | AVar (_, AId ((_, idstr), _)) ->
+        let vasgn = Move (Temp (id_to_temp idstr), Mem (tuple_loc$(i), NORMAL))  in
+        (i + 1, vasgn :: seq)
+      | _ -> (i+1, seq) in
+    Seq (List.fold_right ~f:gen_var_decls ~init:(0,[]) vlist |> snd)
+  | DeclAsgn (_::_, _) -> failwith "impossible"
+  | DeclAsgn ([], _) -> failwith "impossible"
+  | Asgn (lhs, rhs) -> failwith "do me"
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
   | Return exprlist -> failwith "do me"
   | If (pred, t) ->

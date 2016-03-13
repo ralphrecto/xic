@@ -226,7 +226,14 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     Seq (List.fold_right ~f:gen_var_decls ~init:(0,[]) vlist |> snd)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
-  | Asgn (lhs, rhs) -> failwith "do me"
+  | Asgn ((lhs_typ, lhs), fullrhs) -> begin
+      match lhs with
+      | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
+      | Index (arr, index) -> 
+          let mem_loc = gen_expr arr in
+          Move (Mem (mem_loc$$(gen_expr index), NORMAL), gen_expr fullrhs)
+      | _ -> failwith "impossible"
+  end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
   | Return exprlist -> failwith "do me"
   | If (pred, t) ->

@@ -189,12 +189,15 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | IfElse (pred, t, f) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
+    let rest_label = fresh_label () in
     Seq ([
         gen_control pred t_label f_label;
         Label t_label;
         gen_stmt t;
+        Jump (Name rest_label);
         Label f_label;
         gen_stmt f;
+        Label rest_label;
       ])
   | While (pred, s) ->
     let while_label = fresh_label () in

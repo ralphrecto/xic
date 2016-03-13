@@ -103,16 +103,26 @@ and eval_stmt (store: context) ((_,s): Ast.stmt) : context * result option =
 			match eval_expr store e1 with
 			| Bool true -> eval_stmts store slist
 			| Bool false -> (store, None)
-			| _ -> failwith "shouldn't happen - if"
+			| _ -> failwith "shouldn't happen -- if"
 		end
 	| IfElse (e1, slist1, slist2) ->
 		begin
 			match eval_expr store e1 with
 			| Bool true -> eval_stmts store slist1
 			| Bool false -> eval_stmts store slist2
-			| _ -> failwith "shouldn't happen -ifelse"
+			| _ -> failwith "shouldn't happen -- ifelse"
 		end
 	| While (e1, slist) ->
+		let rec helper b (store', ret) =
+			match ret, (eval_expr store' b) with
+			| Some _, _ -> (store', ret)
+			| None, Bool true ->
+				let updated = expr_stmts store' slist in
+				helper b updated
+			| None, Bool false -> (store' ret)
+			| _ -> failwith "shouldn't happen -- while not a boolean"
+		in
+		helper e1 (store, None)
 	| ProcCall (id, elist) ->
 		match String.Map.find store id with
 		| Some (Function (params, body)) ->

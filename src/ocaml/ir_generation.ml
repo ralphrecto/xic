@@ -29,7 +29,61 @@ let fresh_label () =
 	incr num_label;
 	str
 
-let rec gen_expr e = failwith "do me"
+let word = Const (8L)
+
+let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
+  match b_code with
+  | MINUS    -> SUB
+  | STAR     -> MUL
+  | HIGHMULT -> HMUL
+  | DIV      -> DIV
+  | MOD      -> MOD
+  | PLUS     -> ADD
+  | LT       -> LT
+  | LTE      -> LEQ
+  | GTE      -> GEQ
+  | GT       -> GT
+  | EQEQ     -> EQ
+  | NEQ      -> NEQ
+  | AMP      -> AND
+  | BAR      -> OR
+
+let rec gen_expr ((t, e): Typecheck.expr) =
+  match e with
+  | Int       i              -> Const i
+  | Bool      b              -> if b then Const (1L) else Const (0L)
+  (* TODO: supporting more than ASCII chars? *)
+  | String    s              ->
+      (* Is this folding in the right direction? *)
+      (* TODO: fix the type to TInt...how??? :lll *)
+      let elms = String.foldi s ~init:[] ~f:(fun i acc c -> (t, Ast.S.Char c)::acc) in
+      gen_expr (t, Array elms)
+  | Char      c              -> Const (Int64.of_int (Char.to_int c))
+  | Array    (elms)          -> failwith "Hi Ralph"
+  | Id       (_, id)         -> Temp id
+  | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+  | UnOp     (unop, e1)      -> BinOp (Const (0L), SUB, gen_expr e1)
+  | Index    (a, i)          ->
+      let index     = gen_expr i in
+      let addr      = gen_expr a in
+      let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
+      let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      ESeq (Seq ([
+          CJump (in_bounds, t_label, f_label);
+          Label t_label;
+          Seq []; (* TODO out of bounds error *)
+          Label f_label;
+        ]),
+        Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
+      )
+  | Length    a              -> BinOp (Mem (gen_expr a, NORMAL), SUB, word)
+  | FuncCall ((_, id), args) ->
+      let args_ir = List.fold_right args
+                                    ~f:(fun elm acc -> (gen_expr elm)::acc)
+                                    ~init:[] in
+      Call (Name id, args_ir, List.length args_ir)
 
 and gen_control ((t, e): Typecheck.expr) t_label f_label =
   match e with

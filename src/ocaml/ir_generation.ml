@@ -294,9 +294,21 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
-and gen_func_decl = failwith "do me"
+and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
+  let cblock = match c with
+    | (_, Func (_, _, _, block))
+    | (_, Proc (_, _, block)) -> block in
+  (format_callable_name c, gen_stmt cblock)
 
-and gen_comp_unit = failwith "do me"
+and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
+  (* TODO: fix comp unit name to program name *) 
+  let Ast.S.Prog (_, callables) = program in
+  let callables' = List.map ~f:gen_func_decl callables in
+  let f (cname, block) map =
+    String.Map.add map ~key:cname ~data:(cname, block) in
+  let map = List.fold_right ~f ~init:String.Map.empty callables' in
+  ("program_name", map)
+
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

@@ -73,7 +73,7 @@ module S = struct
               ('i,'a,'v,'s,'e,'t) stmt
     | Proc of 'i id * ('i,'a,'e,'t) avar list * ('i,'a,'v,'s,'e,'t) stmt
 
-  (* identifiers, variaeles, and annotated variables *)
+  (* identifiers, variables, and annotated variables *)
   and 'i id = 'i * string
 
   and ('i,'a,'e,'t) avar = 'a * ('i,'e,'t) raw_avar

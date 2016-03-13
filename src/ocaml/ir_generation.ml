@@ -47,17 +47,27 @@ let word_size = 8
 
 (* returns a function call node that allocates n bytes of memory *)
 let malloc (n: int) : Ir.expr =
-  Call (Name ("_I_alloc_i"),
-        [Const (Int64.of_int n)]
-       )
+  Call (Name ("_I_alloc_i"), [Const (Int64.of_int n)])
 
 (* mallocs n words instead of bytes *)
 let malloc_word (n: int) : Ir.expr =
   malloc (n * word_size)
 
+(* malloc using ir expr *)
+let malloc_ir (e: Ir.expr) : Ir.expr =
+  Call (Name ("_I_alloc_i"), [e])
+
+(* malloc_word using ir expr *)
+let malloc_word_ir (e: Ir.expr) : Ir.expr =
+  malloc_ir (BinOp (e, MUL, const word_size))
+
 (* x $ y == y words offset from x *)
 let ( $ ) (x: Ir.expr) (y: int) =
   BinOp(x, ADD, const (y * word_size))
+
+(* x $$ y == y words offset from x *)
+let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
+  BinOp(x, ADD, BinOp(y, MUL, const word_size))
 
 let rec gen_expr ((t, e): Typecheck.expr) : Ir.expr =
   match e with
@@ -99,13 +109,51 @@ and gen_control ((t, e): Typecheck.expr) t_label f_label =
   | UnOp (BANG, e1) -> gen_control e1 f_label t_label
   | _ -> CJump (gen_expr (t, e), t_label, f_label)
 
+and gen_decl_help ((_, t): typ) : Ir.expr =
+  let incr_ir e = (BinOp (e, ADD, const 1)) in
+  match t with
+  | TBool | TInt -> Temp (fresh_temp ())
+  | TArray ((at', t'), index) ->
+      let fill () = match t' with
+        | TInt | TBool -> const 0
+        | TArray _ -> gen_decl_help (at', t') in
+      let array_size = match index with
+        | Some index_expr -> gen_expr index_expr
+        | None -> const 0 in
+      let mem_loc = array_size |> incr_ir |> malloc_word_ir in
+      let loc_tmp = Temp (fresh_temp ()) in
+      let i = Temp (fresh_temp ()) in
+      let while_label = fresh_label () in
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      let pred = BinOp(i, LT, incr_ir array_size) in
+      ESeq (
+        Seq ([
+          Move (loc_tmp, mem_loc);
+          Move (loc_tmp, array_size);
+          Move (i, const 1);
+          Label while_label;
+          CJump (pred, t_label, f_label);
+          Label t_label;
+          Move (Mem (loc_tmp$$(i), NORMAL), fill ());
+          Move (i, incr_ir i);
+          Jump (Name while_label);
+          Label f_label;
+        ]),
+        loc_tmp$(1)
+      )
+
 and gen_stmt ((_, s): Typecheck.stmt) =
   match s with
-  (* TODO: is this sane? Rationale is that Decls with
-   * no initializations are only useful up to typechecking
-   * to verify scoping. Otherwise what code should they
-   * generate? *)
-  | Decl _ -> Exp (Temp (fresh_temp ()))
+  | Decl varlist ->
+      let gen_var_decls ((_, x): Typecheck.var) seq =
+        match x with
+        | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
+            let vardecl =
+              Move (Temp (id_to_temp idstr), gen_decl_help (at, TArray (t, i))) in
+            vardecl :: seq
+        | _ -> seq in
+      Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
   | DeclAsgn (varlist, exp) ->  failwith "do me"
   | Asgn (lhs, rhs) -> begin
       match gen_expr lhs with

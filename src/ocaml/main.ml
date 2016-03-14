@@ -6,6 +6,7 @@ open Ir
 open Ir_generation
 open Ir_printer
 open Printf
+open Xi_interpreter
 
 type flags = {
   help:       bool;           (* --help      *)

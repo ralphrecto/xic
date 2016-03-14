@@ -193,7 +193,7 @@ and eval_binop e1 op e2 =
 	| Int i1, MOD, Int i2 -> Int (rem i1 i2)
 	| Int i1, PLUS, Int i2 -> Int (add i1 i2) 
 	| Int i1, LT, Int i2 -> Bool ((compare i1 i2) < 0)
-	| Int i1, LTE, Int i2 -> Bool ((compare i1 i2) < 0
+	| Int i1, LTE, Int i2 -> Bool ((compare i1 i2) <= 0
 	| Int i1, GTE, Int i2 -> Bool ((compare i1 i2) >= 0) 
 	| Int i1, GT, Int i2 -> Bool ((compare i1 i2) > 0)  
 	| Int i1, EQEQ, Int i2 -> Bool ((compare i1 i2) = 0) 

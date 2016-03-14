@@ -24,4 +24,4 @@ val lower_stmt : Ir.stmt -> Ir.stmt list
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)
-val constant_folding : Ir.expr -> Ir.expr
+val ir_constant_folding : Ir.expr -> Ir.expr

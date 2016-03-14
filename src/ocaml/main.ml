@@ -1,6 +1,7 @@
 open Core.Std
 open Async.Std
 open Typecheck
+open Ast_optimization
 open Ir
 open Ir_generation
 open Ir_printer

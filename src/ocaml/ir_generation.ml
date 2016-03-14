@@ -425,7 +425,8 @@ and lower_stmt s =
 
 let block_reorder (stmts: Ir.stmt list) =
   (* order of stmts in blocks are reversed
-     	   to make looking at conditionals easier *)
+     to make looking at conditionals easier *)
+	let epilogue = Jump (Name "done") in
   let gen_block (blocks, acc, label) elm =
     match elm, label, acc with
     | Label s, Some l, _ ->
@@ -445,21 +446,24 @@ let block_reorder (stmts: Ir.stmt list) =
     | Jump _, None, _ ->
       let fresh_label = fresh_label () in
       (Block (fresh_label, elm::acc)::blocks, [], None)
+		| Return, Some l, _ ->
+			(Block (l, epilogue::elm::acc)::blocks, [], None)
+		| Return, None, _ ->
+			let fresh_label = fresh_label () in
+			(Block (fresh_label, epilogue::elm::acc)::blocks, [], None)
     | _ -> (blocks, elm::acc, label)
   in
   let (b, a, l) = List.fold_left ~f: gen_block ~init: ([], [], None) stmts in
   let blocks =
-    match l with
-    | None ->
+    match l, a with
+		| None, [] -> b |> List.rev
+    | None, _ ->
       let fresh_label = fresh_label () in
-      (Block (fresh_label, List.rev a)) :: b |> List.rev
-    | Some l' -> (Block (l', List.rev a)) :: b |> List.rev
-  in
-  let check_dup (Block (l1, _)) (Block (l2, _)) =
-    compare l1 l2
+      (Block (fresh_label, a)) :: b |> List.rev
+		| Some l', _ -> (Block (l', a)) :: b |> List.rev
   in
   (* sanity check to make sure there aren't duplicate labels *)
-  assert (not (List.contains_dup ~compare: check_dup blocks));
+  assert (not (List.contains_dup ~compare: (fun (Block (l1, _)) (Block (l2, _)) -> compare l1 l2) blocks));
   let rec create_graph blocks graph =
     match blocks with
     | Block (l1,s1)::Block (l2,s2)::tl ->
@@ -562,9 +566,11 @@ let block_reorder (stmts: Ir.stmt list) =
           | _ -> reorder tl (b::acc)
         with Not_found -> failwith "error -- label does not exist"
       end
-    | [] -> List.rev acc
+    | [] -> acc
   in
-  let reordered_blocks = reorder seq [] in
+  let rev_reordered_blocks = reorder seq [] in
+	let epilogue_block = Block ("done", []) in
+	let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
   let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
   final
 

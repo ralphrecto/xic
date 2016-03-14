@@ -39,6 +39,8 @@ let fresh_label () =
 (* IR Generation                                                              *)
 (******************************************************************************)
 
+let out_of_bounds_proc = "_I_outOfBounds_p"
+
 let const (n: int) =
   Const (Int64.of_int n)
 
@@ -156,9 +158,9 @@ let rec gen_expr ((t, e): Typecheck.expr) =
       let f_label = fresh_label () in
       ESeq (Seq ([
           CJump (in_bounds, t_label, f_label);
-          Label t_label;
-          Seq []; (* TODO out of bounds error *)
           Label f_label;
+          Exp (Call (Name out_of_bounds_proc, []));
+          Label t_label;
         ]),
         Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
       )
@@ -201,25 +203,49 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
     let array_size = match index with
       | Some index_expr -> gen_expr index_expr
       | None -> const 0 in
-    let mem_loc = array_size |> incr_ir |> malloc_word_ir in
+
+    (* helpful temps *)
+    let size_tmp = Temp (fresh_temp ()) in
     let loc_tmp = Temp (fresh_temp ()) in
     let i = Temp (fresh_temp ()) in
-    let while_label = fresh_label () in
-    let t_label = fresh_label () in
-    let f_label = fresh_label () in
+
+    (* helpful labels *)
+    let cont_lbl = fresh_label () in
+    let bad_size_lbl = fresh_label () in
+    let while_lbl = fresh_label () in
+    let t_lbl = fresh_label () in
+    let f_lbl = fresh_label () in
+
+    (* helpful predicates *)
     let pred = BinOp(i, LT, incr_ir array_size) in
+
     ESeq (
       Seq ([
-          Move (loc_tmp, mem_loc);
-          Move (loc_tmp, array_size);
+          (* size_tmp = array_size
+           * if size_tmp < 0: outOfBounds() *)
+          Move (size_tmp, array_size);
+          CJump (BinOp(size_tmp, GEQ, const 0), cont_lbl, bad_size_lbl);
+          Label (bad_size_lbl);
+          Exp (Call (Name out_of_bounds_proc, []));
+
+          (* loc_tmp = malloc(word_size * (array_size + 1))
+           * loc_tmp[0] = array_size
+           * i = 1
+           * while (i < array_size + 1):
+           *   loc_tmp[i] = fill()
+           *   i++
+           * return &loc_tmp[1] *)
+          Label (cont_lbl);
+          Move (loc_tmp, array_size |> incr_ir |> malloc_word_ir);
+          Move (Mem (loc_tmp, NORMAL), array_size);
           Move (i, const 1);
-          Label while_label;
-          CJump (pred, t_label, f_label);
-          Label t_label;
+          Label while_lbl;
+          CJump (pred, t_lbl, f_lbl);
+          Label t_lbl;
           Move (Mem (loc_tmp$$(i), NORMAL), fill ());
           Move (i, incr_ir i);
-          Jump (Name while_label);
-          Label f_label;
+          Jump (Name while_lbl);
+          Label f_lbl;
         ]),
       loc_tmp$(1)
     )

@@ -39,29 +39,99 @@ let fresh_label () =
 (* IR Generation                                                              *)
 (******************************************************************************)
 
+let out_of_bounds_proc = "_I_outOfBounds_p"
+
 let const (n: int) =
   Const (Int64.of_int n)
 
 (* Number of bytes in a word in memory *)
 let word_size = 8
 
+let word = const word_size
+
 (* returns a function call node that allocates n bytes of memory *)
 let malloc (n: int) : Ir.expr =
-  Call (Name ("_I_alloc_i"),
-        [Const (Int64.of_int n)]
-       )
+  Call (Name ("_I_alloc_i"), [Const (Int64.of_int n)])
 
 (* mallocs n words instead of bytes *)
 let malloc_word (n: int) : Ir.expr =
   malloc (n * word_size)
 
+(* malloc using ir expr *)
+let malloc_ir (e: Ir.expr) : Ir.expr =
+  Call (Name ("_I_alloc_i"), [e])
+
+(* malloc_word using ir expr *)
+let malloc_word_ir (e: Ir.expr) : Ir.expr =
+  malloc_ir (BinOp (e, MUL, const word_size))
+
 (* x $ y == y words offset from x *)
 let ( $ ) (x: Ir.expr) (y: int) =
   BinOp(x, ADD, const (y * word_size))
 
-let rec gen_expr ((t, e): Typecheck.expr) : Ir.expr =
+(* x $$ y == y words offset from x *)
+let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
+  BinOp(x, ADD, BinOp(y, MUL, const word_size))
+
+(* name for ith return register; use for returning
+ * values from func calls *)
+let retreg i = "_RET" ^ (string_of_int i)
+
+(* name for ith arg register; use for passing
+ * argument values into func calls *)
+let argreg i = "_ARG" ^ (string_of_int i)
+
+let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
+  match b_code with
+  | MINUS    -> SUB
+  | STAR     -> MUL
+  | HIGHMULT -> HMUL
+  | DIV      -> DIV
+  | MOD      -> MOD
+  | PLUS     -> ADD
+  | LT       -> LT
+  | LTE      -> LEQ
+  | GTE      -> GEQ
+  | GT       -> GT
+  | EQEQ     -> EQ
+  | NEQ      -> NEQ
+  | AMP      -> AND
+  | BAR      -> OR
+
+(* Format callable names according to Xi ABI *)
+let format_callable_name (c: Typecheck.callable) : string =
+  let rec type_name (e: Typecheck.Expr.t) = match e with
+    | IntT -> "i"
+    | BoolT -> "b"
+    | UnitT -> "p" (* p for procedure *)
+    | ArrayT t' -> "a" ^ (type_name t')
+    | TupleT tlist ->
+        let open List in
+        let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:type_name tlist) in
+        "t" ^ (string_of_int (length tlist)) ^ tnames
+    | EmptyArray -> failwith "impossible" in
+  let function_name =
+    let f c = if c = '_' then "__" else String.of_char c in
+    String.concat_map ~f in
+  let (fname, argnames, retnames) =
+    match c with
+    | (argt, rett), Func ((_, idstr), _, _, _)
+    | (argt, rett), Proc ((_, idstr), _, _) ->
+        function_name idstr, type_name argt, type_name rett in
+  Printf.sprintf "_I%s_%s%s" fname retnames argnames 
+
+let rec gen_expr ((t, e): Typecheck.expr) =
   match e with
-  | Array elts ->
+  | Int       i              -> Const i
+  | Bool      b              -> if b then Const (1L) else Const (0L)
+  (* TODO: supporting more than ASCII chars? *)
+  | String    s              ->
+      (* Is this folding in the right direction? *)
+      (* TODO: fix the type to TInt...how??? :lll *)
+      let elms = String.foldi s ~init:[] ~f:(fun i acc c -> (t, Ast.S.Char c)::acc) in
+      gen_expr (t, Array elms)
+  | Char      c              -> Const (Int64.of_int (Char.to_int c))
+  | Array elts               ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
@@ -74,9 +144,32 @@ let rec gen_expr ((t, e): Typecheck.expr) : Ir.expr =
         Move (Mem (loc_tmp, NORMAL), const arr_len) ::
         (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
       ),
-      Mem (loc_tmp$(1), NORMAL)
+      loc_tmp$(1)
     )
-  | _ -> failwith "do me"
+  | Id       (_, id)         -> Temp id
+  | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+  | UnOp     (unop, e1)      -> BinOp (Const (0L), SUB, gen_expr e1)
+  | Index    (a, i)          ->
+      let index     = gen_expr i in
+      let addr      = gen_expr a in
+      let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
+      let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
+      let t_label = fresh_label () in
+      let f_label = fresh_label () in
+      ESeq (Seq ([
+          CJump (in_bounds, t_label, f_label);
+          Label f_label;
+          Exp (Call (Name out_of_bounds_proc, []));
+          Label t_label;
+        ]),
+        Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
+      )
+  | Length    a              -> BinOp (Mem (gen_expr a, NORMAL), SUB, word)
+  | FuncCall ((_, id), args) ->
+      let args_ir = List.fold_right args
+                                    ~f:(fun elm acc -> (gen_expr elm)::acc)
+                                    ~init:[] in
+      Call (Name id, args_ir)
 
 and gen_control ((t, e): Typecheck.expr) t_label f_label =
   match e with
@@ -99,21 +192,113 @@ and gen_control ((t, e): Typecheck.expr) t_label f_label =
   | UnOp (BANG, e1) -> gen_control e1 f_label t_label
   | _ -> CJump (gen_expr (t, e), t_label, f_label)
 
+and gen_decl_help ((_, t): typ) : Ir.expr =
+  let incr_ir e = (BinOp (e, ADD, const 1)) in
+  match t with
+  | TBool | TInt -> Temp (fresh_temp ())
+  | TArray ((at', t'), index) ->
+    let fill () = match t' with
+      | TInt | TBool -> const 0
+      | TArray _ -> gen_decl_help (at', t') in
+    let array_size = match index with
+      | Some index_expr -> gen_expr index_expr
+      | None -> const 0 in
+
+    (* helpful temps *)
+    let size_tmp = Temp (fresh_temp ()) in
+    let loc_tmp = Temp (fresh_temp ()) in
+    let i = Temp (fresh_temp ()) in
+
+    (* helpful labels *)
+    let cont_lbl = fresh_label () in
+    let bad_size_lbl = fresh_label () in
+    let while_lbl = fresh_label () in
+    let t_lbl = fresh_label () in
+    let f_lbl = fresh_label () in
+
+    (* helpful predicates *)
+    let pred = BinOp(i, LT, incr_ir array_size) in
+
+    ESeq (
+      Seq ([
+          (* size_tmp = array_size
+           * if size_tmp < 0: outOfBounds() *)
+          Move (size_tmp, array_size);
+          CJump (BinOp(size_tmp, GEQ, const 0), cont_lbl, bad_size_lbl);
+          Label (bad_size_lbl);
+          Exp (Call (Name out_of_bounds_proc, []));
+
+          (* loc_tmp = malloc(word_size * (array_size + 1))
+           * loc_tmp[0] = array_size
+           * i = 1
+           * while (i < array_size + 1):
+           *   loc_tmp[i] = fill()
+           *   i++
+           * return &loc_tmp[1] *)
+          Label (cont_lbl);
+          Move (loc_tmp, array_size |> incr_ir |> malloc_word_ir);
+          Move (Mem (loc_tmp, NORMAL), array_size);
+          Move (i, const 1);
+          Label while_lbl;
+          CJump (pred, t_lbl, f_lbl);
+          Label t_lbl;
+          Move (Mem (loc_tmp$$(i), NORMAL), fill ());
+          Move (i, incr_ir i);
+          Jump (Name while_lbl);
+          Label f_lbl;
+        ]),
+      loc_tmp$(1)
+    )
+
 and gen_stmt ((_, s): Typecheck.stmt) =
   match s with
-  (* TODO: is this sane? Rationale is that Decls with
-   * no initializations are only useful up to typechecking
-   * to verify scoping. Otherwise what code should they
-   * generate? *)
-  | Decl _ -> Exp (Temp (fresh_temp ()))
-  | DeclAsgn (varlist, exp) ->  failwith "do me"
-  | Asgn (lhs, rhs) -> begin
-      match gen_expr lhs with
-      | (Temp _ | Mem _ ) as lhs' -> Move (lhs', gen_expr rhs)
-      | _ -> failwith "impossible"
+  | Decl varlist -> begin
+      let gen_var_decls ((_, x): Typecheck.var) seq =
+        match x with
+        | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
+          Move (Temp (id_to_temp idstr), gen_decl_help (at, TArray (t, i))) :: seq
+        | _ -> seq in
+      Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
+  | DeclAsgn ([(_,v)], exp) -> begin
+      match v with
+      | AVar (_, AId (var_id, t)) ->
+        let (_, var_id') = var_id in
+        Move (Temp (id_to_temp var_id'), gen_expr exp)
+      | _ -> Seq []
+    end
+  | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
+    (* TODO: assumptions:
+     * - rawexp is necessarily a FuncCall
+     * - tuple return values are placed in registers _RET1, etc;
+     * see design.txt *)
+    let gen_var_decls (i, seq) ((_, x): Typecheck.var) =
+      match x with
+      | AVar (_, AId ((_, idstr), _)) ->
+        let retval =
+          if i = 0 then gen_expr (TupleT tlist, rawexp)
+          else Temp (retreg i) in 
+        (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
+      | _ -> (i+1, seq) in
+    let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
+    Seq (ret_seq)
+  | DeclAsgn (_::_, _) -> failwith "impossible"
+  | DeclAsgn ([], _) -> failwith "impossible"
+  | Asgn ((lhs_typ, lhs), fullrhs) -> begin
+      match lhs with
+      | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
+      | Index (arr, index) -> 
+          let mem_loc = gen_expr arr in
+          Move (Mem (mem_loc$$(gen_expr index), NORMAL), gen_expr fullrhs)
+      | _ -> failwith "impossible"
+  end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
-  | Return exprlist -> failwith "do me"
+  | Return exprlist ->
+      let mov_ret (i, seq) expr  = 
+        let mov = Move (Temp (retreg i), gen_expr expr) in
+        (i + 1, mov :: seq) in
+      let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
+      Seq (moves @ [Ir.Return])
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
@@ -126,12 +311,15 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | IfElse (pred, t, f) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
+    let rest_label = fresh_label () in
     Seq ([
         gen_control pred t_label f_label;
         Label t_label;
         gen_stmt t;
+        Jump (Name rest_label);
         Label f_label;
         gen_stmt f;
+        Label rest_label;
       ])
   | While (pred, s) ->
     let while_label = fresh_label () in
@@ -147,6 +335,29 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       ])
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
+
+and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
+  let (args, block) = match c with
+    | (_, Func (_, args, _, block))
+    | (_, Proc (_, args, block)) -> (args, block) in
+  let arg_mov (i, seq) (av: Typecheck.avar)  =
+    let seq' = match av with
+    | (_, AId ((_, idstr), t)) ->
+        Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+    | _ -> seq in
+    (i + 1, seq') in
+  let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
+  (format_callable_name c, Seq(moves @ [gen_stmt block]))
+
+and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
+  (* TODO: fix comp unit name to program name *) 
+  let Ast.S.Prog (_, callables) = program in
+  let callables' = List.map ~f:gen_func_decl callables in
+  let f map (cname, block) =
+    String.Map.add map ~key:cname ~data:(cname, block) in
+  let map = List.fold_left ~f ~init:String.Map.empty callables' in
+  ("program_name", map)
+
 
 (******************************************************************************)
 (* Lowering IR                                                                *)
@@ -362,14 +573,15 @@ let block_reorder (stmts: Ir.stmt list) =
 (* IR-Level Constant Folding                                                  *)
 (******************************************************************************)
 
-let rec constant_folding e =
+let rec ir_constant_folding e =
   let open Long in
   let open Big_int in
   match e with
-  | BinOp (Const 0L, (ADD|SUB), Const i)
+  | BinOp (Const 0L, ADD, Const i)
   | BinOp (Const i, (ADD|SUB), Const 0L)
   | BinOp (Const i, (MUL|DIV), Const 1L)
   | BinOp (Const 1L, MUL, Const i) -> Const i
+	| BinOp (Const 0L, SUB, Const i) -> Const (neg i)
   | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
   | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
   | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
@@ -409,16 +621,16 @@ let rec constant_folding e =
   | BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
   | BinOp (e1, op, e2) ->
     begin
-      match (constant_folding e1), (constant_folding e2) with
-      | (Const _ as c1), (Const _ as c2)-> constant_folding (BinOp (c1, op, c2))
+      match (ir_constant_folding e1), (ir_constant_folding e2) with
+      | (Const _ as c1), (Const _ as c2)-> ir_constant_folding (BinOp (c1, op, c2))
       | e1', e2' -> BinOp (e1', op, e2')
     end
   | Call (e', elist) ->
-    let folded_list = List.map ~f: constant_folding elist in
-    let folded_e = constant_folding e' in
+    let folded_list = List.map ~f: ir_constant_folding elist in
+    let folded_e = ir_constant_folding e' in
     Call (folded_e, folded_list)
-  | ESeq (s, e') -> ESeq (s, constant_folding e')
-  | Mem (e', t) -> Mem (constant_folding e', t)
+  | ESeq (s, e') -> ESeq (s, ir_constant_folding e')
+  | Mem (e', t) -> Mem (ir_constant_folding e', t)
   | Const _
   | Name _
   | Temp _ -> e

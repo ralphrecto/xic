@@ -10,7 +10,7 @@ type result =
 	| Char of char
 	| Array of result list
 	| Tuple of result list
-type store = Value of result | Function of id list * stmt list 
+type store = Value of result | Function of id list * stmt 
 type context = (store option) String.Map.t
 
 let id_of_avar ((_, av): avar) = 
@@ -43,15 +43,45 @@ let ids_of_vars vlist = List.map ~f: id_of_var vlist
 
 let ids_of_avars avlist = List.map ~f: id_of_avar avlist
 
-let eval_full_prog (p: Ast.full_prog) : result = 
+(* conv, io interface file functions *)
+(* NOTE: eof() function in io not included idk how to do it *)
 
-and eval_prog (p: Ast.prog) : result = 
+let unparseInt (n: int) : string =
+	string_of_int n
 
-and eval_callable (c: Ast.callable) : result = 
+let parseInt (s: string) : int =
+	int_of_string s
 
-and eval_avar (a: Ast.avar) : result =
+let print (s: string) : unit =
+	Printf.printf "%s" s
 
-and eval_var (v: Ast.var) : result =
+let print (s: string) : unit =
+	Printf.printf "%s\n" sA
+
+let readln : unit -> string = read_line 
+
+let getchar () : char =
+	let i = read_int () in
+	char_of_int i	
+
+(* interpreter *)
+
+let eval_full_prog (store: context) (FullProg (prog, _): Ast.full_prog) : result = 
+	let updated_store = eval_prog store prog in
+	match find store "main" with
+	| Some Function (ids, stmt) -> snd (eval_stmt stmt)
+	| Some _ -> failwith "main is a variable? lol"
+	| None -> failwith "no main function lol" 
+
+and eval_prog (store: context) (Prog (_, calls): Ast.prog) : store = 
+	List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
+
+and eval_callable (store: context) ((_, c): Ast.callable) : store = 
+	match c with
+	| FuncDecl ((_, id), avars, _, stmt)
+	| ProcDecl ((_, id), avars, stmt) ->
+		let args = ids_of_avars avars in
+		String.Map.add store ~key: id ~data: Function (args, stmt)
 
 and eval_stmts store ss = 
 	List.fold_left ~f:(fun (store', _) s -> eval_stmt store' s) ~init:(store, None) ss

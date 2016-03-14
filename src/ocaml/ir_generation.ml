@@ -71,6 +71,14 @@ let ( $ ) (x: Ir.expr) (y: int) =
 let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
   BinOp(x, ADD, BinOp(y, MUL, const word_size))
 
+(* name for ith return register; use for returning
+ * values from func calls *)
+let retreg i = "_RET" ^ (string_of_int i)
+
+(* name for ith arg register; use for passing
+ * argument values into func calls *)
+let argreg i = "_ARG" ^ (string_of_int i)
+
 let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   match b_code with
   | MINUS    -> SUB
@@ -234,17 +242,20 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       | _ -> Seq []
     end
   | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
-    (* TODO: assumption: if expr is a FuncCall with tuple return type,
-     * gen_expr returns an address to an array in memory containing the
-     * elements of the tuple. *)
-    let tuple_loc = gen_expr (TupleT tlist, rawexp) in
-    let gen_var_decls ((_, x): Typecheck.var) (i, seq) =
+    (* TODO: assumptions:
+     * - rawexp is necessarily a FuncCall
+     * - tuple return values are placed in registers _RET1, etc;
+     * see design.txt *)
+    let gen_var_decls (i, seq) ((_, x): Typecheck.var) =
       match x with
       | AVar (_, AId ((_, idstr), _)) ->
-        let vasgn = Move (Temp (id_to_temp idstr), Mem (tuple_loc$(i), NORMAL))  in
-        (i + 1, vasgn :: seq)
+        let retval =
+          if i = 0 then gen_expr (TupleT tlist, rawexp)
+          else Temp (retreg i) in 
+        (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
       | _ -> (i+1, seq) in
-    Seq (List.fold_right ~f:gen_var_decls ~init:(0,[]) vlist |> snd)
+    let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
+    Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
   | Asgn ((lhs_typ, lhs), fullrhs) -> begin
@@ -256,7 +267,12 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       | _ -> failwith "impossible"
   end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
-  | Return exprlist -> failwith "do me"
+  | Return exprlist ->
+      let mov_ret (i, seq) expr  = 
+        let mov = Move (Temp (retreg i), gen_expr expr) in
+        (i + 1, mov :: seq) in
+      let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
+      Seq (moves @ [Ir.Return])
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
@@ -295,18 +311,25 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
 and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let cblock = match c with
-    | (_, Func (_, _, _, block))
-    | (_, Proc (_, _, block)) -> block in
-  (format_callable_name c, gen_stmt cblock)
+  let (args, block) = match c with
+    | (_, Func (_, args, _, block))
+    | (_, Proc (_, args, block)) -> (args, block) in
+  let arg_mov (i, seq) (av: Typecheck.avar)  =
+    let seq' = match av with
+    | (_, AId ((_, idstr), t)) ->
+        Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+    | _ -> seq in
+    (i + 1, seq') in
+  let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
+  (format_callable_name c, Seq(moves @ [gen_stmt block]))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *) 
   let Ast.S.Prog (_, callables) = program in
   let callables' = List.map ~f:gen_func_decl callables in
-  let f (cname, block) map =
+  let f map (cname, block) =
     String.Map.add map ~key:cname ~data:(cname, block) in
-  let map = List.fold_right ~f ~init:String.Map.empty callables' in
+  let map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", map)
 
 

@@ -335,7 +335,7 @@ let block_reorder (stmts: Ir.stmt list) =
               reorder (h2::tl) (Block (l, stmts_tl)::acc)
             else
               reorder (h2::tl) (b::acc)
-          | Jump _ ::_ -> failwith "error -- invalid jump"
+          | Jump _::_ -> failwith "error -- invalid jump"
           | _ -> reorder (h2::tl) (b::acc)
         with Not_found -> failwith "error -- label does not exist"
       end

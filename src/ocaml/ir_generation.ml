@@ -524,14 +524,15 @@ let block_reorder (stmts: Ir.stmt list) =
 (* IR-Level Constant Folding                                                  *)
 (******************************************************************************)
 
-let rec constant_folding e =
+let rec ir_constant_folding e =
   let open Long in
   let open Big_int in
   match e with
-  | BinOp (Const 0L, (ADD|SUB), Const i)
+  | BinOp (Const 0L, ADD, Const i)
   | BinOp (Const i, (ADD|SUB), Const 0L)
   | BinOp (Const i, (MUL|DIV), Const 1L)
   | BinOp (Const 1L, MUL, Const i) -> Const i
+	| BinOp (Const 0L, SUB, Const i) -> Const (neg i)
   | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
   | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
   | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
@@ -571,16 +572,16 @@ let rec constant_folding e =
   | BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
   | BinOp (e1, op, e2) ->
     begin
-      match (constant_folding e1), (constant_folding e2) with
-      | (Const _ as c1), (Const _ as c2)-> constant_folding (BinOp (c1, op, c2))
+      match (ir_constant_folding e1), (ir_constant_folding e2) with
+      | (Const _ as c1), (Const _ as c2)-> ir_constant_folding (BinOp (c1, op, c2))
       | e1', e2' -> BinOp (e1', op, e2')
     end
   | Call (e', elist) ->
-    let folded_list = List.map ~f: constant_folding elist in
-    let folded_e = constant_folding e' in
+    let folded_list = List.map ~f: ir_constant_folding elist in
+    let folded_e = ir_constant_folding e' in
     Call (folded_e, folded_list)
-  | ESeq (s, e') -> ESeq (s, constant_folding e')
-  | Mem (e', t) -> Mem (constant_folding e', t)
+  | ESeq (s, e') -> ESeq (s, ir_constant_folding e')
+  | Mem (e', t) -> Mem (ir_constant_folding e', t)
   | Const _
   | Name _
   | Temp _ -> e

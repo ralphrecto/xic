@@ -641,3 +641,4 @@ let rec ir_constant_folding e =
   | Name _
   | Temp _ -> e
 
+

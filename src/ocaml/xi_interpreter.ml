@@ -245,10 +245,18 @@ and eval_expr (store: context) ((_,e): Typecheck.expr) : result =
 	
 and eval_binop e1 op e2 = 
 	let open Long in
+	let open Big_int in
 	match e1, op, e2 with
 	| Int i1, MINUS, Int i2 -> Int (sub i1 i2)
 	| Int i1, STAR, Int i2 -> Int (mul i1 i2)
-	| Int i1, HIGHMULT, Int i2 -> failwith "implement later"
+	| Int i1, HIGHMULT, Int i2 -> 
+		let i1' = big_int_of_int64 i1 in
+		let i2' = big_int_of_int64 i2 in
+		let mult = mult_big_int i1' i2' in
+		let max_long = big_int_of_int64 max_int in
+		let divided = div_big_int mult max_long in
+		let result = int64_of_big_int divided in
+		Int result
 	| Int i1, DIV, Int i2 -> Int (div i1 i2)
 	| Int i1, MOD, Int i2 -> Int (rem i1 i2)
 	| Int i1, PLUS, Int i2 -> Int (add i1 i2) 

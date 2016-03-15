@@ -302,9 +302,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
-    Seq ([
-        gen_control pred t_label f_label;
-        Label t_label;
+    Seq ([ gen_control pred t_label f_label; Label t_label;
         gen_stmt t;
         Label f_label;
       ])
@@ -337,17 +335,25 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
 and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let (args, block) = match c with
-    | (_, Func (_, args, _, block))
-    | (_, Proc (_, args, block)) -> (args, block) in
+  let (args, body) = 
+		match c with
+    | (_, Func (_, args, _, body)) -> (args, body)
+    | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
+		| (_, Proc (_, args, ((s, _) as body))) ->
+			let body' = (s, Ast.S.Block [body; (s, Return [])]) in
+			(args, body')
+	in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
-    let seq' = match av with
-    | (_, AId ((_, idstr), t)) ->
-        Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
-    | _ -> seq in
-    (i + 1, seq') in
+    let seq' = 
+			match av with
+			| (_, AId ((_, idstr), t)) ->
+					Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+			| _ -> seq 
+		in
+    (i + 1, seq') 
+	in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (format_callable_name c, Seq(moves @ [gen_stmt block]))
+  (format_callable_name c, Seq(moves @ [gen_stmt body]))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *) 

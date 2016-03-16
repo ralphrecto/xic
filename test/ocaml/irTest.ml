@@ -119,17 +119,17 @@ let test_lower_stmt () =
 
 let test_reorder () =
   (* labels *)
-  let l1 = Ir.Label "l1" in
-  let l2 = Ir.Label "l2" in
-  let l3 = Ir.Label "l3" in
-  let l4 = Ir.Label "l4" in
-  let l5 = Ir.Label "l5" in
+  let l1 = Ir.Label "label1" in
+  let l2 = Ir.Label "label2" in
+  let l3 = Ir.Label "label3" in
+  let l4 = Ir.Label "label4" in
+  let l5 = Ir.Label "label5" in
 
   (* statements *)
-  let s1 = CJump (Const 1L, "l2", "l3") in
-  let s2 = CJump (Const 1L, "l2", "l4") in
-  let s3 = Jump (Name "l2") in
-  let s4 = Jump (Name "l5") in
+  let s1 = CJump (Const 1L, "label2", "label3") in
+  let s2 = CJump (Const 1L, "label2", "label4") in
+  let s3 = Jump (Name "label2") in
+  let s4 = Jump (Name "label5") in
   let s5 = Return in
 
   let s_list = [l1; s1; l2; s2; l3; s3; l4; s4; l5; s5] in
@@ -137,13 +137,19 @@ let test_reorder () =
   let reordered = block_reorder s_list in
 
   (* blocks *)
-  let b1 = Block ("l1", [CJumpOne (Const 1L, "l2")]) in
-  let b2 = Block ("l3", []) in
-  let b3 = Block ("l2", [CJumpOne (Const 1L, "l2")]) in
-  let b4 = Block ("l4", []) in
-  let b5 = Block ("l5", [Return]) in
+  let b1 = Block ("label1", [CJumpOne (Const 1L, "label2")]) in
+  let b2 = Block ("label3", []) in
+  let b3 = Block ("label2", [CJumpOne (Const 1L, "label2")]) in
+  let b4 = Block ("label4", []) in
+  let b5 = Block ("label5", [Return; Jump (Name "done")]) in
+	let epilogue = Block ("done", []) in
 
-  let expected = [b1; b2; b3; b4; b5] in
+	(*
+	let () = List.fold_left ~init:() reordered 
+													~f: (fun _ (Block (l, ss)) -> Printf.printf "Block (%s, %s)\n" l (string_of_stmts ss)) in
+	*)
+	
+  let expected = [b1; b2; b3; b4; b5; epilogue] in
 
   assert_equal reordered expected
 

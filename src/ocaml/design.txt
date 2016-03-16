@@ -1,0 +1,12 @@
+Document your design decisions here so that they are available for everyone to
+see. This will be especially important from code generation on since we will
+be making more and more decisions and it will be harder to keep track of
+everything in our brains.
+
+IR Generation
+- IRCall(f,e1,...,en) evaluates to the entries in _RET0, regardless of
+whether f returns multiple things or just one thing. This is for
+convenience so that expr func calls (which necessarily only return 1
+value) do not need to do anything weird like moving stuff from _RET0.
+This means that in DeclAsgns with multiple variables, move the first
+variable from the IRCall, the second from _RET1, etc.

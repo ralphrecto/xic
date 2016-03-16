@@ -117,7 +117,8 @@ let rec gen_expr ((t, e): Typecheck.expr) =
     )
   | Id       (_, id)         -> Temp id
   | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
-  | UnOp     (unop, e1)      -> BinOp (Const (0L), SUB, gen_expr e1)
+  | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
+  | UnOp     (BANG,   e1)    -> BinOp (Const (1L), AND, gen_expr e1)
   | Index    (a, i)          ->
       let index     = gen_expr i in
       let addr      = gen_expr a in

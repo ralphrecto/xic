@@ -1,4 +1,6 @@
 open Core.Std
+open Typecheck.Expr
+open Ast.S
 open Ir
 open Ir_generation
 open OUnit
@@ -21,6 +23,14 @@ end
 module ExprEq = struct
   let (===) (a: expr) (b: expr) : unit =
     assert_equal ~printer:string_of_expr a b
+
+  let (=/=) (a: expr) (b:expr) : unit =
+    let soe = string_of_expr in
+    try
+      if ((a === b) = ()) then
+        raise (Failure (sprintf "Expected %s but got %s" (soe a) (soe b)))
+    with
+      _ -> ()
 end
 
 module StmtEq = struct
@@ -39,6 +49,57 @@ module PairEq = struct
     assert_equal ~printer a b
 end
 
+(**** HELPER FUNCTIONS ***)
+let int x  = (IntT, Int x)
+let bool b = (BoolT, Bool b)
+let binop i e1 op e2 : Typecheck.expr = (i, BinOp (e1, op, e2))
+let ibinop e1 op e2 = binop IntT e1 op e2
+let bbinop e1 op e2 = binop BoolT e2 op e2
+
+
+let test_ir_expr () =
+  let open ExprEq in
+
+  (* Ir exprs *)
+  let zero = Const 0L in
+  let one  = Const 1L in
+  let two  = Const 2L in
+  let tru  = one in
+  let fls  = zero in
+  let binop00 = BinOp (zero, ADD, zero) in
+  let binop12 = BinOp (one, ADD, two) in
+
+  (* Typecheck exprs *)
+  let zerot = int 0L in
+  let onet  = int 1L in
+  let twot  = int 2L in
+  let trut  = bool true in
+  let flst  = bool false in
+  let binop00t = ibinop zerot PLUS zerot in
+  let binop12t = ibinop onet PLUS twot in
+  (* string, char, array, id *)
+
+  (* Const tests *)
+  zero === gen_expr zerot;
+  one  === gen_expr onet;
+  two  === gen_expr twot;
+  tru  === gen_expr trut;
+  fls  === gen_expr flst;
+
+  (* BinOp tests *)
+  binop00 === gen_expr binop00t;
+  binop12  === gen_expr binop12t;
+  BinOp (binop12, SUB, binop12)  === gen_expr (ibinop binop12t MINUS binop12t);
+  BinOp (binop00, SUB, binop12)  === gen_expr (ibinop binop00t MINUS binop12t);
+
+  BinOp (one, ADD, two)   =/= gen_expr (ibinop twot PLUS onet);
+  
+  
+  (* Array tests *)
+  (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)
+
+  ()
+  
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in
@@ -158,6 +219,7 @@ let test_reorder () =
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
+      "test_ir_expr"    >:: test_ir_expr;
       "test_lower_expr" >:: test_lower_expr;
       "test_lower_stmt" >:: test_lower_stmt;
       "test_reorder" >:: test_reorder;

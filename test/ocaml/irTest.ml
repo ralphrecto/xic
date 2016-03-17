@@ -49,12 +49,16 @@ module PairEq = struct
     assert_equal ~printer a b
 end
 
+
 (**** HELPER FUNCTIONS ***)
 let int x  = (IntT, Int x)
 let bool b = (BoolT, Bool b)
 let binop i e1 op e2 : Typecheck.expr = (i, BinOp (e1, op, e2))
 let ibinop e1 op e2 = binop IntT e1 op e2
-let bbinop e1 op e2 = binop BoolT e2 op e2
+let bbinop e1 op e2 = binop BoolT e1 op e2
+let unop i op e : Typecheck.expr = (i, UnOp (op, e))
+let iunop e = unop IntT UMINUS e
+let bunop e = unop BoolT BANG e
 
 
 let test_ir_expr () =
@@ -77,26 +81,38 @@ let test_ir_expr () =
   let flst  = bool false in
   let binop00t = ibinop zerot PLUS zerot in
   let binop12t = ibinop onet PLUS twot in
-  (* string, char, array, id *)
 
-  (* Const tests *)
+  (* Ints, Bools, and Chars tests *)
   zero === gen_expr zerot;
   one  === gen_expr onet;
   two  === gen_expr twot;
   tru  === gen_expr trut;
   fls  === gen_expr flst;
 
+  (* Id tests *)
+
   (* BinOp tests *)
   binop00 === gen_expr binop00t;
   binop12  === gen_expr binop12t;
   BinOp (binop12, SUB, binop12)  === gen_expr (ibinop binop12t MINUS binop12t);
   BinOp (binop00, SUB, binop12)  === gen_expr (ibinop binop00t MINUS binop12t);
+  BinOp (BinOp (tru, AND, fls), OR, BinOp (fls, OR, fls))
+    ===
+    gen_expr (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst));
 
-  BinOp (one, ADD, two)   =/= gen_expr (ibinop twot PLUS onet);
+  BinOp (one, ADD, two)  =/= gen_expr (ibinop twot PLUS onet);
+  BinOp (one, ADD, zero) =/= gen_expr (bbinop onet BAR twot);
   
-  
-  (* Array tests *)
+  (* UnOp tests *)
+
+  (* String and Array tests *)
   (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)
+
+  (* Array Indexing tests *)
+
+  (* Length tests *)
+
+  (* FuncCall tests *)
 
   ()
   

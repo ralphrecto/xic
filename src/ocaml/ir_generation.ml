@@ -38,6 +38,7 @@ let fresh_label () =
 (******************************************************************************)
 (* IR Generation                                                              *)
 (******************************************************************************)
+let not_expr e = BinOp (BinOp (e, ADD, Const 1L), MOD, Const 2L)
 
 let out_of_bounds_proc = "_I_outOfBounds_p"
 
@@ -149,7 +150,7 @@ let rec gen_expr ((t, e): Typecheck.expr) =
   | Id       (_, id)         -> Temp id
   | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
   | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
-  | UnOp     (BANG,   e1)    -> BinOp (Const (1L), AND, gen_expr e1)
+  | UnOp     (BANG,   e1)    -> not_expr (gen_expr e1)
   | Index    (a, i)          ->
       let index     = gen_expr i in
       let addr      = gen_expr a in
@@ -531,9 +532,6 @@ let block_reorder (stmts: Ir.stmt list) =
       find_seq remaining_graph (trace::acc)
   in
   let seq = find_seq graph [] in
-  let not_expr e =
-    BinOp (BinOp (e, ADD, Const 1L), MOD, Const 2L)
-  in
   let rec reorder seq acc =
     match seq with
     | h1::h2::tl ->

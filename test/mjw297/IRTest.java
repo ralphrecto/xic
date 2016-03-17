@@ -21,8 +21,8 @@ public class IRTest {
         String workingDir = System.getProperty("user.dir");
         ProcessBuilder pb = new ProcessBuilder(
                 "./bin/irGenTest.byte",
-                "poop",
-                "poopy"
+                "test",
+                "testing"
         )
             .directory(Paths.get(workingDir).toFile());
         try {

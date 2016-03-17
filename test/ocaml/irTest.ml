@@ -118,9 +118,9 @@ let test_lower_stmt () =
   ()
 
 let test_reorder () =
-	(* helper function to print reordered to debug *)
 	
-	let print_reordered reordered = List.fold_left ~init:() reordered 
+	(* helper function to print blocks to debug *)
+	let print_blocks blocks = List.fold_left ~init:() blocks 
 													~f: (fun _ (Block (l, ss)) -> Printf.printf "Block (%s, %s)\n" l (string_of_stmts ss)) 
 	in
 	
@@ -182,8 +182,64 @@ let test_reorder () =
 
 	let expected2 = [b1; b2; b3; b4; b5; epilogue] in
 
+	(* labels *)
+  let l1 = Ir.Label "label1" in
+  let l2 = Ir.Label "label2" in
+  let l3 = Ir.Label "label3" in
+  let l4 = Ir.Label "label4" in
+  let l5 = Ir.Label "label5" in
+
+  (* statements *)
+  let s1 = Jump (Name "label2") in
+  let s2 = CJump (Const 1L, "label3", "label4") in
+	let s3 = Jump (Name "label5") in
+
+  let s_list = [l1; s1; l2; s2; l3; s3; l4; l5] in
+
+  let reordered3 = block_reorder s_list in
+
+  (* blocks *)
+  let b1 = Block ("label1", []) in
+  let b2 = Block ("label2", [CJumpOne(Const 1L, "label3")]) in
+  let b3 = Block ("label4", []) in
+  let b4 = Block ("label5", [Jump (Name "done")]) in
+  let b5 = Block ("label3", [Jump (Name "label5")]) in
+	let epilogue = Block ("done", []) in
+
+	let expected3 = [b1; b2; b3; b4; b5; epilogue] in
+
+	(* testing for reversing the boolean *)
+
+	(* labels *)
+  let l1 = Ir.Label "label1" in
+  let l2 = Ir.Label "label2" in
+  let l3 = Ir.Label "label3" in
+  let l4 = Ir.Label "label4" in
+
+  (* statements *)
+	let s1 = CJump (Const 1L, "label2", "label3") in
+	let s2 = CJump (Const 1L, "label4", "label3") in 
+	let s3 = Move (Const 1L, Const 2L) in
+	let s4 = Move (Const 1L, Const 0L) in
+	let s5 = Return in 
+
+  let s_list = [l1; s1; l2; s2; l4; s3; s4; l3; s5] in
+
+  let reordered4 = block_reorder s_list in
+
+  (* blocks *)
+  let b1 = Block ("label1", [CJumpOne (Const 1L, "label2")]) in
+	let b2 = Block ("label3", [Return; Jump (Name "done")]) in
+	let b3 = Block ("label2", [CJumpOne (BinOp (BinOp (Const 1L, ADD, Const 1L), MOD, Const 2L), "label3")]) in
+  let b4 = Block ("label4", [Move (Const 1L, Const 2L); Move (Const 1L, Const 0L); Jump (Name "label3")]) in
+	let epilogue = Block ("done", []) in
+
+	let expected4 = [b1; b2; b3; b4; epilogue] in
+
   assert_equal reordered1 expected1;
-	assert_equal reordered2 expected2
+	assert_equal reordered2 expected2;
+	assert_equal reordered3 expected3;
+	assert_equal reordered4 expected4
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

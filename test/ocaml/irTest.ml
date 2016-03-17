@@ -121,7 +121,8 @@ let test_reorder () =
 	
 	(* helper function to print blocks to debug *)
 	let print_blocks blocks = List.fold_left ~init:() blocks 
-													~f: (fun _ (Block (l, ss)) -> Printf.printf "Block (%s, %s)\n" l (string_of_stmts ss)) 
+													~f: (fun _ (Block (l, ss)) -> Printf.printf "Block (%s, %s)\n" l (string_of_stmts ss)); 
+													print_endline "";
 	in
 	
 	(* labels *)
@@ -227,6 +228,9 @@ let test_reorder () =
 
   let reordered4 = block_reorder s_list in
 
+	(* test case in powerpoint slides: 
+		http://www.cs.cornell.edu/courses/cs4120/2013fa/lectures/lec17-fa13.pdf *)
+
   (* blocks *)
   let b1 = Block ("label1", [CJumpOne (Const 1L, "label2")]) in
 	let b2 = Block ("label3", [Return; Jump (Name "done")]) in
@@ -236,10 +240,65 @@ let test_reorder () =
 
 	let expected4 = [b1; b2; b3; b4; epilogue] in
 
-  assert_equal reordered1 expected1;
+	(* labels *)
+  let l1 = Ir.Label "label1" in
+  let l2 = Ir.Label "label2" in
+  let l3 = Ir.Label "label3" in
+
+  (* statements *)
+	let s1 = CJump (Const 1L, "label2", "label3") in
+	let s2 = Move (Const 1L, Const 2L) in
+	let s3 = Jump (Name "label1") in
+	let s4 = Move (Const 0L, Const 1L) in
+	let s5 = Jump (Name "label2") in
+	let s6 = Exp (Const 1L) in
+
+  let s_list = [s1; l2; s2; s3; l1; s4; s5; l3; s6] in
+
+  let reordered5 = block_reorder s_list in
+
+  (* blocks *)
+	let b1 = Block ("label0", [CJumpOne (Const 1L, "label2")]) in
+	let b2 = Block ("label3", [Exp (Const 1L); Jump (Name "done")]) in
+	let b3 = Block ("label2", [Move (Const 1L, Const 2L)]) in
+	let b4 = Block ("label1", [Move (Const 0L, Const 1L); Jump (Name "label2")]) in
+	let epilogue = Block ("done", []) in
+
+	let expected5 = [b1; b2; b3; b4; epilogue] in
+
+	(* testing generating fresh labels *)
+
+	(* labels *)
+  let l2 = Ir.Label "label20" in
+  let l3 = Ir.Label "label30" in
+
+  (* statements *)
+	let s1 = CJump (Const 1L, "label20", "label30") in
+	let s2 = Move (Const 1L, Const 2L) in
+	let s3 = Jump (Name "label30") in
+	let s4 = Move (Const 0L, Const 1L) in
+	let s5 = Jump (Name "label20") in
+	let s6 = Exp (Const 1L) in
+
+  let s_list = [s1; l2; s2; s3; s4; s5; l3; s6] in
+
+  let reordered6 = block_reorder s_list in
+
+  (* blocks *)
+	let b1 = Block ("label1", [CJumpOne (Const 1L, "label20")]) in
+	let b2 = Block ("label30", [Exp (Const 1L); Jump (Name "done")]) in
+	let b3 = Block ("label20", [Move (Const 1L, Const 2L); Jump (Name "label30")]) in
+	let b4 = Block ("label2", [Move (Const 0L, Const 1L); Jump (Name "label20")]) in
+	let epilogue = Block ("done", []) in
+
+	let expected6 = [b1; b2; b3; b4; epilogue] in
+  
+	assert_equal reordered1 expected1;
 	assert_equal reordered2 expected2;
 	assert_equal reordered3 expected3;
-	assert_equal reordered4 expected4
+	assert_equal reordered4 expected4;
+	assert_equal reordered5 expected5;
+	assert_equal reordered6 expected6
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

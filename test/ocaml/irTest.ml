@@ -72,6 +72,8 @@ let test_ir_expr () =
   let fls  = zero in
   let binop00 = BinOp (zero, ADD, zero) in
   let binop12 = BinOp (one, ADD, two) in
+  let unopminus x = BinOp (zero, SUB, x) in
+  let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
 
   (* Typecheck exprs *)
   let zerot = int 0L in
@@ -104,6 +106,12 @@ let test_ir_expr () =
   BinOp (one, ADD, zero) =/= gen_expr (bbinop onet BAR twot);
   
   (* UnOp tests *)
+  unopminus zero === gen_expr (iunop zerot);
+  unopminus one  === gen_expr (iunop onet);
+  unopminus two  === gen_expr (iunop twot);
+  unopnot tru    === gen_expr (bunop trut);
+  unopnot fls    === gen_expr (bunop flst);
+
 
   (* String and Array tests *)
   (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)

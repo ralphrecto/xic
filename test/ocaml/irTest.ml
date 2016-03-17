@@ -377,13 +377,36 @@ let test_reorder () =
 	let epilogue = Block ("done", []) in
 
 	let expected6 = [b1; b2; b3; b4; epilogue] in
-  
+
+	(* testing fresh labels / adding jump to epilogue at the end / no accidentaly infinite loops *)
+
+	(* labels *)
+	let lx = Ir.Label "labelx" in
+	
+  (* statements *) 
+	let s1 = Jump (Name "labelx") in
+	let s2 = Jump (Name "labelx") in
+
+	let s_list = [s1; s2; lx] in
+
+	let reordered7 = block_reorder s_list in
+
+	(* blocks *)
+	let b1 = Block ("label3", []) in
+	let b2 = Block ("labelx", [Jump (Name "done")]) in
+	let b3 = Block ("label4", [Jump (Name "labelx")]) in
+	let epilogue = Block ("done", []) in
+
+	let expected7 = [b1; b2; b3; epilogue] in
+
 	assert_equal reordered1 expected1;
 	assert_equal reordered2 expected2;
 	assert_equal reordered3 expected3;
 	assert_equal reordered4 expected4;
 	assert_equal reordered5 expected5;
-	assert_equal reordered6 expected6
+	assert_equal reordered6 expected6;
+	assert_equal reordered7 expected7
+
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

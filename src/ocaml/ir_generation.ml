@@ -468,7 +468,9 @@ let block_reorder (stmts: Ir.stmt list) =
       (Block (fresh_label, a)) :: b |> List.rev
 		| Some l', _ -> (Block (l', a)) :: b |> List.rev
   in
-	(* *)
+	(* After generating all the blocks, connect_blocks iterates through the blocks again
+		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block. 
+		 It also adds a jump to the epilogue to the last block. *)
 	let rec connect_blocks blocks acc =
 		match blocks with
 		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)

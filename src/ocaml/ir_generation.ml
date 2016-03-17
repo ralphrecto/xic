@@ -462,7 +462,7 @@ let block_reorder (stmts: Ir.stmt list) =
     | _ -> (blocks, elm::acc, label)
   in
   let (b, a, l) = List.fold_left ~f: gen_block ~init: ([], [], None) stmts in
-  let blocks =
+  let not_connected_blocks =
     match l, a with
 		| None, [] -> b |> List.rev
     | None, _ ->
@@ -470,8 +470,27 @@ let block_reorder (stmts: Ir.stmt list) =
       (Block (fresh_label, a)) :: b |> List.rev
 		| Some l', _ -> (Block (l', a)) :: b |> List.rev
   in
+	(* After generating all the blocks, connect_blocks iterates through the blocks again
+		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block. 
+		 It also adds a jump to the epilogue to the last block. *)
+	let rec connect_blocks blocks acc =
+		match blocks with
+		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
+		| Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl -> 
+				let jump_nextblock = Jump (Name l2) in
+				let new_block = Block (l1, jump_nextblock::stmts1) in
+				connect_blocks (h2::tl) (new_block::acc)
+		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
+		| Block (l, stmts)::tl -> 
+				let new_block = Block (l, epilogue::stmts) in
+				connect_blocks tl (new_block::acc)
+		| [] -> List.rev acc
+	in
+	let blocks = connect_blocks not_connected_blocks [] in	
+
   (* sanity check to make sure there aren't duplicate labels *)
   assert (not (List.contains_dup ~compare: (fun (Block (l1, _)) (Block (l2, _)) -> compare l1 l2) blocks));
+
   let rec create_graph blocks graph =
     match blocks with
     | Block (l1,s1)::Block (l2,s2)::tl ->
@@ -523,7 +542,7 @@ let block_reorder (stmts: Ir.stmt list) =
   in
   let rec find_seq graph acc =
     match graph with
-    | [] -> List.concat acc
+    | [] -> acc |> List.rev |> List.concat
     | hd::_ ->
       let trace = find_trace graph hd [] in
       let remaining_graph = List.filter	graph
@@ -578,7 +597,6 @@ let block_reorder (stmts: Ir.stmt list) =
 	let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
   let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
   final
-
 
 (******************************************************************************)
 (* IR-Level Constant Folding                                                  *)

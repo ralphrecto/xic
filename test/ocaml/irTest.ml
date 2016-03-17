@@ -153,12 +153,6 @@ let test_reorder () =
 
   let expected1 = [b1; b2; b3; b4; b5; epilogue] in
 
-
-
-	(* graph looks like such:
-	 * label1 -> label2 -> label3 -> label5
-	 *							|-> label4 --------^ *)
-
 	(* testing to make sure that last block in sequence properly jumps to epilogue
 		 after reordering *)
 	
@@ -183,18 +177,13 @@ let test_reorder () =
   let b2 = Block ("label2", [CJumpOne(Const 1L, "label3")]) in
   let b3 = Block ("label4", []) in
   let b4 = Block ("label5", [Jump (Name "done")]) in
-  let b5 = Block ("label3", [Jump (Name "label5")]) in
+  let b5 = Block ("label3", [Jump (Name "label4")]) in
 	let epilogue = Block ("done", []) in
 
 	let expected2 = [b1; b2; b3; b4; b5; epilogue] in
 
-	(*let _ = List.fold_left ~f: (fun _ e -> print_endline e) ~init: () reordered2 in *)
-
-	let _ = print_reordered reordered2 in
- 
-	() 
-(*  assert_equal reordered1 expected1;
-	assert_equal reordered2 expected2*)
+  assert_equal reordered1 expected1;
+	assert_equal reordered2 expected2
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

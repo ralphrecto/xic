@@ -35,6 +35,9 @@ val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr
 val lower_stmt : Ir.stmt -> Ir.stmt list
 
 (* Basic block reordering *)
+(* Jump to epilogue block. *)
+val epilogue_jump : Ir.stmt
+
 (* `gen_block ss` chunks ss into blocks. The contents of the blocks are
  * reversed to make inspecting the last element of the block easier, and the
  * labels at the beginning of each block are pulled from the stmt list into the

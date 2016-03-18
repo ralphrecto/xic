@@ -48,6 +48,47 @@ and func_decl = string * stmt
 
 and comp_unit = string * func_decl String.Map.t
 
+(* abbreviations *)
+module Abbreviations = struct
+  let call f args = Call (f, args)
+  let const n = Const n
+  let eseq s e = ESeq (s, e)
+  let mem e = Mem (e, IMMUTABLE)
+  let name s = Name s
+  let temp s = Temp s
+
+  let cjump b t f = CJump (b, t, f)
+  let cjumpone e l = CJumpOne (e, l)
+  let jump l = Jump l
+  let exp e = Exp e
+  let label s = Label s
+  let move x e = Move (x, e)
+  let seq ss = Seq ss
+  let return = Return
+end
+
+module Infix = struct
+  let ( +   ) lhs rhs = BinOp (lhs, ADD,     rhs)
+  let ( -   ) lhs rhs = BinOp (lhs, SUB,     rhs)
+  let ( *   ) lhs rhs = BinOp (lhs, MUL,     rhs)
+  let ( *>> ) lhs rhs = BinOp (lhs, HMUL,    rhs)
+  let ( /   ) lhs rhs = BinOp (lhs, DIV,     rhs)
+  let ( %   ) lhs rhs = BinOp (lhs, MOD,     rhs)
+  let ( &   ) lhs rhs = BinOp (lhs, AND,     rhs)
+  let ( ||  ) lhs rhs = BinOp (lhs, OR,      rhs)
+  let ( ^   ) lhs rhs = BinOp (lhs, XOR,     rhs)
+  let ( <<  ) lhs rhs = BinOp (lhs, LSHIFT,  rhs)
+  let ( >>  ) lhs rhs = BinOp (lhs, RSHIFT,  rhs)
+  let ( >>> ) lhs rhs = BinOp (lhs, ARSHIFT, rhs)
+  let ( ==  ) lhs rhs = BinOp (lhs, EQ,      rhs)
+  let ( !=  ) lhs rhs = BinOp (lhs, NEQ,     rhs)
+  let ( <   ) lhs rhs = BinOp (lhs, LT,      rhs)
+  let ( >   ) lhs rhs = BinOp (lhs, GT,      rhs)
+  let ( <=  ) lhs rhs = BinOp (lhs, LEQ,     rhs)
+  let ( >=  ) lhs rhs = BinOp (lhs, GEQ,     rhs)
+end
+
+(* pretty printing *)
 let string_of_binop_code = function
   | ADD     -> "+"
   | SUB     -> "-"

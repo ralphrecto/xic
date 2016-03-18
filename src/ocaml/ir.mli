@@ -59,6 +59,47 @@ and func_decl = string * stmt
 (* name, functions *)
 and comp_unit = string * func_decl String.Map.t
 
+(* abbreviations *)
+module Abbreviations: sig
+  val call  : expr -> expr list -> expr
+  val const : Int64.t -> expr
+  val eseq  : stmt -> expr -> expr
+  val mem   : expr -> expr
+  val name  : string -> expr
+  val temp  : string -> expr
+
+  val cjump    : expr -> string -> string -> stmt
+  val cjumpone : expr -> string -> stmt
+  val jump     : expr -> stmt
+  val exp      : expr -> stmt
+  val label    : string -> stmt
+  val move     : expr -> expr -> stmt
+  val seq      : stmt list -> stmt
+  val return   : stmt
+end
+
+module Infix: sig
+  val ( +   ) : expr -> expr -> expr
+  val ( -   ) : expr -> expr -> expr
+  val ( *   ) : expr -> expr -> expr
+  val ( *>> ) : expr -> expr -> expr
+  val ( /   ) : expr -> expr -> expr
+  val ( %   ) : expr -> expr -> expr
+  val ( &   ) : expr -> expr -> expr
+  val ( ||  ) : expr -> expr -> expr
+  val ( ^   ) : expr -> expr -> expr
+  val ( <<  ) : expr -> expr -> expr
+  val ( >>  ) : expr -> expr -> expr
+  val ( >>> ) : expr -> expr -> expr
+  val ( ==  ) : expr -> expr -> expr
+  val ( !=  ) : expr -> expr -> expr
+  val ( <   ) : expr -> expr -> expr
+  val ( >   ) : expr -> expr -> expr
+  val ( <=  ) : expr -> expr -> expr
+  val ( >=  ) : expr -> expr -> expr
+end
+
+(* pretty printing *)
 val string_of_binop_code : binop_code -> string
 val string_of_expr       : expr       -> string
 val string_of_stmt       : stmt       -> string

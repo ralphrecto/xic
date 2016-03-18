@@ -7,11 +7,8 @@ open OUnit
 open TestUtil
 
 module Fresh = struct
-  let t n =
-    Temp (sprintf "temp%d" n)
-
-  let l n =
-    Label (sprintf "label%d" n)
+  let t n = Ir.Temp  (temp n)
+  let l n = Ir.Label (label n)
 end
 
 (* By default, OUnit's assert_equal function doesn't print out anything useful
@@ -47,6 +44,24 @@ module PairEq = struct
   let (===) (a: stmt list * expr) (b: stmt list * expr) : unit =
     let printer (ss, e) = sprintf "<%s; %s>" (string_of_stmts ss) (string_of_expr e) in
     assert_equal ~printer a b
+end
+
+module BlocksEq = struct
+  let indent (ss: stmt list) : string =
+    List.map ~f:string_of_stmt ss
+    |> List.map ~f:(fun s -> "  " ^ s)
+    |> String.concat ~sep:"\n"
+
+  let string_of_block (Block (l, ss)) =
+    match ss with
+    | [] -> sprintf "%s:" l
+    | _  -> sprintf "%s:\n%s" l (indent ss)
+
+  let string_of_blocks bs =
+    "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs))
+
+  let (===) (a: block list) (b: block list) : unit =
+    assert_equal ~printer:string_of_blocks a b
 end
 
 
@@ -202,210 +217,228 @@ let test_lower_stmt () =
 
   ()
 
+module Labels = struct
+  let label0  = label 0
+  let label1  = label 1
+  let label2  = label 2
+  let label3  = label 3
+  let label4  = label 4
+  let label5  = label 5
+  let label6  = label 6
+  let label7  = label 7
+  let label8  = label 8
+  let label9  = label 9
+  let label10 = label 10
+  let label11 = label 11
+  let label12 = label 12
+  let label13 = label 13
+  let label14 = label 14
+  let label15 = label 15
+  let label16 = label 16
+  let label17 = label 17
+  let label18 = label 18
+  let label19 = label 19
+  let label20 = label 20
+  let label21 = label 21
+  let label22 = label 22
+  let label23 = label 23
+  let label24 = label 24
+  let label25 = label 25
+  let label26 = label 26
+  let label27 = label 27
+  let label28 = label 28
+  let label29 = label 29
+  let label30 = label 30
+
+  let l0  = Fresh.l 0
+  let l1  = Fresh.l 1
+  let l2  = Fresh.l 2
+  let l3  = Fresh.l 3
+  let l4  = Fresh.l 4
+  let l5  = Fresh.l 5
+  let l6  = Fresh.l 6
+  let l7  = Fresh.l 7
+  let l8  = Fresh.l 8
+  let l9  = Fresh.l 9
+  let l10 = Fresh.l 10
+  let l11 = Fresh.l 11
+  let l12 = Fresh.l 12
+  let l13 = Fresh.l 13
+  let l14 = Fresh.l 14
+  let l15 = Fresh.l 15
+  let l16 = Fresh.l 16
+  let l17 = Fresh.l 17
+  let l18 = Fresh.l 18
+  let l19 = Fresh.l 19
+  let l20 = Fresh.l 20
+  let l21 = Fresh.l 21
+  let l22 = Fresh.l 22
+  let l23 = Fresh.l 23
+  let l24 = Fresh.l 24
+  let l25 = Fresh.l 25
+  let l26 = Fresh.l 26
+  let l27 = Fresh.l 27
+  let l28 = Fresh.l 28
+  let l29 = Fresh.l 29
+  let l30 = Fresh.l 30
+end
+
 let test_reorder () =
-	
-	(* helper function to print blocks to debug *)
-	let print_blocks blocks = List.fold_left ~init:() blocks 
-													~f: (fun _ (Block (l, ss)) -> Printf.printf "Block (%s, %s)\n" l (string_of_stmts ss)); 
-													print_endline "";
-	in
-	
-	(* labels *)
-  let l1 = Ir.Label "label1" in
-  let l2 = Ir.Label "label2" in
-  let l3 = Ir.Label "label3" in
-  let l4 = Ir.Label "label4" in
-  let l5 = Ir.Label "label5" in
+  let open Labels in
+  let open BlocksEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
 
-  (* statements *)
-  let s1 = CJump (Const 1L, "label2", "label3") in
-  let s2 = CJump (Const 1L, "label2", "label4") in
-  let s3 = Jump (Name "label2") in
-  let s4 = Jump (Name "label5") in
-  let s5 = Return in
+  let zero = const 0L in
+  let one  = const 1L in
+  let two  = const 2L in
 
-  let s_list = [l1; s1; l2; s2; l3; s3; l4; s4; l5; s5] in
+  let block l ss = Block (l, ss) in
+  let epilogue = block "done" [] in
 
-  let reordered1 = block_reorder s_list in
+  (* Test *)
+  let stmts = [
+    l1; cjump one label2 label3;
+    l2; cjump one label2 label4;
+    l3; jump (name label2);
+    l4; jump (name label5);
+    l5; return;
+  ] in
 
-  (* blocks *)
-  let b1 = Block ("label1", [CJumpOne (Const 1L, "label2")]) in
-  let b2 = Block ("label3", []) in
-  let b3 = Block ("label2", [CJumpOne (Const 1L, "label2")]) in
-  let b4 = Block ("label4", []) in
-  let b5 = Block ("label5", [Return; Jump (Name "done")]) in
-	let epilogue = Block ("done", []) in
+  let expected = [
+    block label1 [cjumpone one label2];
+    block label3 [];
+    block label2 [cjumpone one label2];
+    block label4 [];
+    block label5 [return; jump (name "done")];
+    epilogue;
+  ] in
 
+  expected === (block_reorder stmts);
 
-  let expected1 = [b1; b2; b3; b4; b5; epilogue] in
+  (* testing to make sure that last block in sequence properly jumps to
+   * epilogue after reordering *)
+  let stmts = [
+    l1; jump (name label2);
+    l2; cjump one label3 label4;
+    l3;
+    l4; jump (name label5);
+    l5;
+  ] in
 
-	(* testing to make sure that last block in sequence properly jumps to epilogue
-		 after reordering *)
-	
-  (* labels *)
-  let l1 = Ir.Label "label1" in
-  let l2 = Ir.Label "label2" in
-  let l3 = Ir.Label "label3" in
-  let l4 = Ir.Label "label4" in
-  let l5 = Ir.Label "label5" in
+  let expected = [
+    block label1 [];
+    block label2 [cjumpone one label3];
+    block label4 [];
+    block label5 [jump (name "done")];
+    block label3 [jump (name label4)];
+    epilogue;
+  ] in
 
-  (* statements *)
-  let s1 = Jump (Name "label2") in
-  let s2 = CJump (Const 1L, "label3", "label4") in
-	let s3 = Jump (Name "label5") in
+  expected === (block_reorder stmts);
 
-  let s_list = [l1; s1; l2; s2; l3; l4; s3; l5] in
+  (* Test *)
+  let stmts = [
+    l1; jump (name label2);
+    l2; cjump one label3 label4;
+    l3; jump (name label5);
+    l4;
+    l5;
+  ] in
 
-  let reordered2 = block_reorder s_list in
+  let expected = [
+    block label1 [];
+    block label2 [cjumpone one label3];
+    block label4 [];
+    block label5 [jump (name "done")];
+    block label3 [jump (name label5)];
+    epilogue
+  ] in
 
-  (* blocks *)
-  let b1 = Block ("label1", []) in
-  let b2 = Block ("label2", [CJumpOne(Const 1L, "label3")]) in
-  let b3 = Block ("label4", []) in
-  let b4 = Block ("label5", [Jump (Name "done")]) in
-  let b5 = Block ("label3", [Jump (Name "label4")]) in
-	let epilogue = Block ("done", []) in
-
-	let expected2 = [b1; b2; b3; b4; b5; epilogue] in
-
-	(* labels *)
-  let l1 = Ir.Label "label1" in
-  let l2 = Ir.Label "label2" in
-  let l3 = Ir.Label "label3" in
-  let l4 = Ir.Label "label4" in
-  let l5 = Ir.Label "label5" in
-
-  (* statements *)
-  let s1 = Jump (Name "label2") in
-  let s2 = CJump (Const 1L, "label3", "label4") in
-	let s3 = Jump (Name "label5") in
-
-  let s_list = [l1; s1; l2; s2; l3; s3; l4; l5] in
-
-  let reordered3 = block_reorder s_list in
-
-  (* blocks *)
-  let b1 = Block ("label1", []) in
-  let b2 = Block ("label2", [CJumpOne(Const 1L, "label3")]) in
-  let b3 = Block ("label4", []) in
-  let b4 = Block ("label5", [Jump (Name "done")]) in
-  let b5 = Block ("label3", [Jump (Name "label5")]) in
-	let epilogue = Block ("done", []) in
-
-	let expected3 = [b1; b2; b3; b4; b5; epilogue] in
+  expected === (block_reorder stmts);
 
 	(* testing for reversing the boolean *)
+  let stmts = [
+    l1; cjump one label2 label3;
+    l2; cjump one label4 label3;
+    l4; move one two;
+        move one zero;
+    l3; return;
+  ] in
 
-	(* labels *)
-  let l1 = Ir.Label "label1" in
-  let l2 = Ir.Label "label2" in
-  let l3 = Ir.Label "label3" in
-  let l4 = Ir.Label "label4" in
+  let expected = [
+    block label1 [cjumpone one label2];
+    block label3 [return; jump (name "done")];
+    block label2 [cjumpone ((one + one) % two) label3];
+    block label4 [move one two; move one zero; jump (name label3)];
+    epilogue
+  ] in
 
-  (* statements *)
-	let s1 = CJump (Const 1L, "label2", "label3") in
-	let s2 = CJump (Const 1L, "label4", "label3") in 
-	let s3 = Move (Const 1L, Const 2L) in
-	let s4 = Move (Const 1L, Const 0L) in
-	let s5 = Return in 
-
-  let s_list = [l1; s1; l2; s2; l4; s3; s4; l3; s5] in
-
-  let reordered4 = block_reorder s_list in
+  expected === (block_reorder stmts);
 
 	(* test case in powerpoint slides: 
-		http://www.cs.cornell.edu/courses/cs4120/2013fa/lectures/lec17-fa13.pdf *)
+   * http://www.cs.cornell.edu/courses/cs4120/2013fa/lectures/lec17-fa13.pdf *)
+  let stmts = [
+        cjump one label2 label3;
+    l2; move one two;
+        jump (name label1);
+    l1; move zero one;
+        jump (name label2);
+    l3; exp one;
+  ] in
 
-  (* blocks *)
-  let b1 = Block ("label1", [CJumpOne (Const 1L, "label2")]) in
-	let b2 = Block ("label3", [Return; Jump (Name "done")]) in
-	let b3 = Block ("label2", [CJumpOne (BinOp (BinOp (Const 1L, ADD, Const 1L), MOD, Const 2L), "label3")]) in
-  let b4 = Block ("label4", [Move (Const 1L, Const 2L); Move (Const 1L, Const 0L); Jump (Name "label3")]) in
-	let epilogue = Block ("done", []) in
+  let expected = [
+    block label0 [cjumpone one label2];
+    block label3 [exp one; jump (name "done")];
+    block label2 [move one two];
+    block label1 [move zero one; jump (name label2)];
+    epilogue
+  ] in
 
-	let expected4 = [b1; b2; b3; b4; epilogue] in
-
-	(* labels *)
-  let l1 = Ir.Label "label1" in
-  let l2 = Ir.Label "label2" in
-  let l3 = Ir.Label "label3" in
-
-  (* statements *)
-	let s1 = CJump (Const 1L, "label2", "label3") in
-	let s2 = Move (Const 1L, Const 2L) in
-	let s3 = Jump (Name "label1") in
-	let s4 = Move (Const 0L, Const 1L) in
-	let s5 = Jump (Name "label2") in
-	let s6 = Exp (Const 1L) in
-
-  let s_list = [s1; l2; s2; s3; l1; s4; s5; l3; s6] in
-
-  let reordered5 = block_reorder s_list in
-
-  (* blocks *)
-	let b1 = Block ("label0", [CJumpOne (Const 1L, "label2")]) in
-	let b2 = Block ("label3", [Exp (Const 1L); Jump (Name "done")]) in
-	let b3 = Block ("label2", [Move (Const 1L, Const 2L)]) in
-	let b4 = Block ("label1", [Move (Const 0L, Const 1L); Jump (Name "label2")]) in
-	let epilogue = Block ("done", []) in
-
-	let expected5 = [b1; b2; b3; b4; epilogue] in
+  expected === (block_reorder stmts);
 
 	(* testing generating fresh labels *)
+  reset_fresh_label ();
 
-	(* labels *)
-  let l2 = Ir.Label "label20" in
-  let l3 = Ir.Label "label30" in
+  let stmts = [
+         cjump one label20 label30;
+    l20; move one two;
+         jump (name label30);
+         move zero one;
+         jump (name label20);
+    l30; exp one;
+  ] in
 
-  (* statements *)
-	let s1 = CJump (Const 1L, "label20", "label30") in
-	let s2 = Move (Const 1L, Const 2L) in
-	let s3 = Jump (Name "label30") in
-	let s4 = Move (Const 0L, Const 1L) in
-	let s5 = Jump (Name "label20") in
-	let s6 = Exp (Const 1L) in
+  let expected = [
+    block label0 [cjumpone one label20];
+    block label30 [exp one; jump (name "done")];
+    block label20 [move one two; jump (name label30)];
+    block label1 [move zero one; jump (name label20)];
+    epilogue
+  ] in
 
-  let s_list = [s1; l2; s2; s3; s4; s5; l3; s6] in
+  expected === (block_reorder stmts);
 
-  let reordered6 = block_reorder s_list in
+  (* testing fresh labels / adding jump to epilogue at the end / no accidentaly
+   * infinite loops *)
+  reset_fresh_label ();
 
-  (* blocks *)
-	let b1 = Block ("label1", [CJumpOne (Const 1L, "label20")]) in
-	let b2 = Block ("label30", [Exp (Const 1L); Jump (Name "done")]) in
-	let b3 = Block ("label20", [Move (Const 1L, Const 2L); Jump (Name "label30")]) in
-	let b4 = Block ("label2", [Move (Const 0L, Const 1L); Jump (Name "label20")]) in
-	let epilogue = Block ("done", []) in
+  let stmts = [
+         jump (name label10);
+         jump (name label10);
+    l10;
+  ] in
 
-	let expected6 = [b1; b2; b3; b4; epilogue] in
+  let expected = [
+    block label0 [];
+    block label10 [jump (name "done")];
+    block label1 [jump (name label10)];
+    epilogue
+  ] in
 
-	(* testing fresh labels / adding jump to epilogue at the end / no accidentaly infinite loops *)
+  expected === (block_reorder stmts);
 
-	(* labels *)
-	let lx = Ir.Label "labelx" in
-	
-  (* statements *) 
-	let s1 = Jump (Name "labelx") in
-	let s2 = Jump (Name "labelx") in
-
-	let s_list = [s1; s2; lx] in
-
-	let reordered7 = block_reorder s_list in
-
-	(* blocks *)
-	let b1 = Block ("label3", []) in
-	let b2 = Block ("labelx", [Jump (Name "done")]) in
-	let b3 = Block ("label4", [Jump (Name "labelx")]) in
-	let epilogue = Block ("done", []) in
-
-	let expected7 = [b1; b2; b3; epilogue] in
-
-	assert_equal reordered1 expected1;
-	assert_equal reordered2 expected2;
-	assert_equal reordered3 expected3;
-	assert_equal reordered4 expected4;
-	assert_equal reordered5 expected5;
-	assert_equal reordered6 expected6;
-	assert_equal reordered7 expected7
+  ()
 
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

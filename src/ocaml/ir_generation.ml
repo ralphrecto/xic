@@ -15,25 +15,37 @@ type block = Block of string * Ir.stmt list
 (******************************************************************************)
 (* Naming Helpers                                                             *)
 (******************************************************************************)
-
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)
 let id_to_temp (idstr: string) : string = "%TEMP%" ^ idstr
 
+(* Increment and return the *old* value of r. *)
+let get_and_incr (r: int ref) : int =
+  let x = !r in
+  incr r;
+  x
+
 let num_temp = ref 0
-let fresh_temp () =
-  let str = "temp" ^ (string_of_int (!num_temp)) in
-  incr num_temp;
-  str
-
-(* use this funciton when creating new labels *)
 let num_label = ref 0
-let fresh_label () =
-  let str = "label" ^ (string_of_int (!num_label)) in
-  incr num_label;
-  str
 
+let reset_fresh_temp () =
+  num_temp := 0
+
+let reset_fresh_label () =
+  num_label := 0
+
+let temp n =
+  sprintf "__temp%d" n
+
+let label n =
+  sprintf "__label%d" n
+
+let fresh_temp () =
+  temp (get_and_incr num_temp)
+
+let fresh_label () =
+  label (get_and_incr num_label)
 
 (******************************************************************************)
 (* IR Generation                                                              *)

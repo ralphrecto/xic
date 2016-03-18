@@ -9,6 +9,20 @@ type graph = node list
 (* label, stmts in block *)
 type block = Block of string * Ir.stmt list
 
+(* naming *)
+(* The implementation of certain functions, like lowering, generate fresh temps
+ * and labels. To make testing easier, it's nice if fresh temps and labels are
+ * generated in a simple and consistent way. The way we accomplish this is by
+ * exposing a function temp and label which take in an integer and return a
+ * Temp and Label respectively. Internally, fresh temps are generated as temp
+ * 0, temp 1, temp 2, etc. The same goes for fresh labels. Moreover, we expose
+ * a way to reset the fresh temp and fresh label counts to make testing easier.
+ *)
+val temp  : int -> string
+val label : int -> string
+val reset_fresh_temp : unit -> unit
+val reset_fresh_label : unit -> unit
+
 (* Xi AST -> IR AST *)
 val gen_expr : Typecheck.expr -> Ir.expr
 (* the control translation for booleans from lecture notes

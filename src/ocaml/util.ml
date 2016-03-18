@@ -5,6 +5,9 @@ let init xs =
   | [] -> []
   | _::ys -> List.rev ys
 
-let commas ss =
-  String.concat ~sep:"," ss
+let join =
+  String.concat ~sep:"\n"
+
+let commas =
+  String.concat ~sep:","
 

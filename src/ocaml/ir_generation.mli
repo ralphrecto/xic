@@ -2,12 +2,14 @@ module Long = Int64
 open Core.Std
 open Async.Std
 
-(* label * adjacent nodes * mark *)
+(* label * adjacent nodes *)
 type node = Node of string * string list
 type graph = node list
-
 (* label, stmts in block *)
 type block = Block of string * Ir.stmt list
+
+val string_of_node  : node -> string
+val string_of_graph : graph -> string
 
 (* naming *)
 (* The implementation of certain functions, like lowering, generate fresh temps
@@ -35,9 +37,6 @@ val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr
 val lower_stmt : Ir.stmt -> Ir.stmt list
 
 (* Basic block reordering *)
-(* Jump to epilogue block. *)
-val epilogue_jump : Ir.stmt
-
 (* `gen_block ss` chunks ss into blocks. The contents of the blocks are
  * reversed to make inspecting the last element of the block easier, and the
  * labels at the beginning of each block are pulled from the stmt list into the
@@ -49,8 +48,12 @@ val gen_block : Ir.stmt list -> block list
 
 (* `connect_blocks blocks` iterates through blocks and if a block does not end
  * with a cjump, jump or a return, then it adds a jump to the next block. It
- * also adds a jump to the epilogue to the last block. *)
+ * also adds a return to the last block if it doesn't end in
+ * return/jump/cjump. *)
 val connect_blocks : block list -> block list
+
+(* Generates a control flow graph from a list of basic blocks. *)
+val create_graph : block list -> graph
 
 val block_reorder : Ir.stmt list -> block list
 

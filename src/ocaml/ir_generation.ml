@@ -5,12 +5,15 @@ open Ir
 open Ast
 open Typecheck
 
-(* label * adjacent nodes * mark *)
 type node = Node of string * string list
 type graph = node list
-
 type block = Block of string * Ir.stmt list
 
+let string_of_node (Node (l, ls)) =
+  sprintf "%s -> %s" l (Util.commas ls)
+
+let string_of_graph g =
+  Util.join (List.map ~f:string_of_node g)
 
 (******************************************************************************)
 (* Naming Helpers                                                             *)
@@ -442,8 +445,6 @@ and lower_stmt s =
 (******************************************************************************)
 (* Basic Block Reordering                                                     *)
 (******************************************************************************)
-let epilogue_jump = Jump (Name "done")
-
 let gen_block stmts =
   let f (blocks, acc, label) s =
     match s, label, acc with
@@ -471,35 +472,38 @@ let connect_blocks blocks =
         help (h2::tl) (new_block::acc)
     | [Block (l, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
     | [Block (l, stmts)] ->
-        let new_block = Block (l, epilogue_jump::stmts) in
+        let new_block = Block (l, Return::stmts) in
         help [] (new_block::acc)
     | [] -> List.rev acc
   in
   help blocks []
 
-let block_reorder (stmts: Ir.stmt list) =
-  let blocks = connect_blocks (gen_block stmts) in
-  let rec create_graph blocks graph =
+let create_graph blocks =
+  let rec help blocks graph =
     match blocks with
-    | Block (l1,s1)::Block (l2,s2)::tl ->
-      begin
-        match s1 with
-        | CJump (_, tru, fls)::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
-        | Jump (Name l')::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'])::graph)
-        | Jump _ ::_ -> failwith "error -- invalid jump"
-        | _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
-      end
-    | Block(l,s)::tl ->
-      begin
-        match s with
-        | CJump (_, tru, fls)::_ -> create_graph tl (Node (l, [tru;fls])::graph)
-        | Jump (Name l')::_ -> create_graph tl (Node (l, [l'])::graph)
-        | Jump _ ::_ -> failwith "error -- invalid jump"
-        | _ -> create_graph tl (Node (l, [])::graph)
-      end
+    | Block (l1, ss1)::(Block (l2, _) as b2)::tl -> begin
+        match ss1 with
+        | CJump (_, tru, fls)::_ -> help (b2::tl) (Node (l1, [tru; fls])::graph)
+        | Jump (Name l')::_ -> help (b2::tl) (Node (l1, [l'])::graph)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | Return::_ -> help (b2::tl) (Node (l1, [])::graph)
+        | _ -> help (b2::tl) (Node (l1, [l2])::graph)
+    end
+    | [Block(l, ss)] -> begin
+        match ss with
+        | CJump (_, tru, fls)::_ -> help [] (Node (l, [tru; fls])::graph)
+        | Jump (Name l')::_ -> help [] (Node (l, [l'])::graph)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | Return::_ -> help [] (Node (l, [])::graph)
+        | _ -> help [] (Node (l, [])::graph)
+    end
     | [] -> List.rev graph
   in
-  let graph = create_graph blocks [] in
+  help blocks []
+
+let block_reorder (stmts: Ir.stmt list) =
+  let blocks = connect_blocks (gen_block stmts) in
+  let graph = create_graph blocks in
   let rec find_trace graph (Node (l, adj)) acc =
     match adj with
     | h1::h2::_ ->
@@ -581,8 +585,7 @@ let block_reorder (stmts: Ir.stmt list) =
     | [] -> acc
   in
   let rev_reordered_blocks = reorder seq [] in
-  let epilogue_block = Block ("done", []) in
-  let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
+  let reordered_blocks = List.rev rev_reordered_blocks in
   let final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
   final
 

@@ -4,7 +4,8 @@
  * init [a, b, ..., y, z] = [a, b, ..., y] *)
 val init: 'a list -> 'a list
 
-(* commas [] = ""
- * commas ["a"] = "a"
- * commas ["a", "b"] = "a","b" *)
+(* String.concat ~sep:"\n" *)
+val join: string list -> string
+
+(* String.concat ~sep:"," *)
 val commas: string list -> string

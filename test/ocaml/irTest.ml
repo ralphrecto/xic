@@ -90,6 +90,7 @@ module Labels = struct
 end
 
 let block l ss = Block (l, ss)
+let node l ls = Node (l, ls)
 let zero = Ir.Abbreviations.const 0L
 let one  = Ir.Abbreviations.const 1L
 let two  = Ir.Abbreviations.const 2L
@@ -154,6 +155,10 @@ module BlocksEq = struct
     assert_equal ~printer:string_of_blocks a b
 end
 
+module GraphEq = struct
+  let (===) (a: graph) (b: graph) : unit =
+    assert_equal ~printer:string_of_graph a b
+end
 
 (**** HELPER FUNCTIONS ***)
 let int x  = (IntT, Int x)
@@ -594,15 +599,15 @@ let test_connect_blocks () =
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp one]] in
-  let expected = [block label0 [epilogue_jump; exp one]] in
+  let expected = [block label0 [return; exp one]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp one; exp two]] in
-  let expected = [block label0 [epilogue_jump; exp one; exp two]] in
+  let expected = [block label0 [return; exp one; exp two]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp zero; exp one; exp two]] in
-  let expected = [block label0 [epilogue_jump; exp zero; exp one; exp two]] in
+  let expected = [block label0 [return; exp zero; exp one; exp two]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [jump one]] in
@@ -657,7 +662,7 @@ let test_connect_blocks () =
   ] in
   let expected = [
     block label0 [jump (name label1); exp zero; exp one; exp two];
-    block label1 [epilogue_jump; exp two; exp one; exp zero];
+    block label1 [return; exp two; exp one; exp zero];
   ] in
   expected === connect_blocks blocks;
 
@@ -677,6 +682,92 @@ let test_connect_blocks () =
   ] in
   expected === connect_blocks blocks;
 
+  let blocks = [
+    block label0 [];
+    block label1 [];
+  ] in
+  let expected = [
+    block label0 [jump (name label1)];
+    block label1 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  ()
+
+let test_create_graph () =
+  let open Labels in
+  let open GraphEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let blocks   = [] in
+  let expected = [] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [exp one]] in
+  let expected = [node label0 []] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [jump (name "a")]] in
+  let expected = [node label0 ["a"]] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [cjump one "a" "b"]] in
+  let expected = [node label0 ["a"; "b"]] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [return]] in
+  let expected = [node label0 []] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [exp two];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 [];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [jump (name "a")];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 ["a"];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [cjump one "a" "b"];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 ["a"; "b"];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp zero; exp one; exp two];
+    block label1 [exp one];
+    block label2 [jump (name "a")];
+    block label3 [return];
+    block label4 [];
+    block label5 [exp zero];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 [label2];
+    node label2 ["a"];
+    node label3 [];
+    node label4 [label5];
+    node label5 [];
+  ] in
+  expected === create_graph blocks;
+
   ()
 
 let test_reorder () =
@@ -685,7 +776,6 @@ let test_reorder () =
   let open Ir.Abbreviations in
   let open Ir.Infix in
 
-  let epilogue = block "done" [] in
   reset_fresh_label ();
 
   (* Test *)
@@ -703,7 +793,6 @@ let test_reorder () =
     block label2 [cjumpone one label2];
     block label4 [];
     block label5 [return];
-    epilogue;
   ] in
 
   expected === (block_reorder stmts);
@@ -722,9 +811,8 @@ let test_reorder () =
     block label1 [];
     block label2 [cjumpone one label3];
     block label4 [];
-    block label5 [jump (name "done")];
+    block label5 [return];
     block label3 [jump (name label4)];
-    epilogue;
   ] in
 
   expected === (block_reorder stmts);
@@ -742,9 +830,8 @@ let test_reorder () =
     block label1 [];
     block label2 [cjumpone one label3];
     block label4 [];
-    block label5 [jump (name "done")];
+    block label5 [return];
     block label3 [jump (name label5)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -763,7 +850,6 @@ let test_reorder () =
     block label3 [return];
     block label2 [cjumpone ((one + one) % two) label3];
     block label4 [move one two; move one zero; jump (name label3)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -781,10 +867,9 @@ let test_reorder () =
 
   let expected = [
     block label0 [cjumpone one label2];
-    block label3 [exp one; jump (name "done")];
+    block label3 [exp one; return];
     block label2 [move one two];
     block label1 [move zero one; jump (name label2)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -803,10 +888,9 @@ let test_reorder () =
 
   let expected = [
     block label0 [cjumpone one label20];
-    block label30 [exp one; jump (name "done")];
+    block label30 [exp one; return];
     block label20 [move one two; jump (name label30)];
     block label1 [move zero one; jump (name label20)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -823,9 +907,8 @@ let test_reorder () =
 
   let expected = [
     block label0 [];
-    block label10 [jump (name "done")];
+    block label10 [return];
     block label1 [jump (name label10)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -842,6 +925,7 @@ let main () =
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;
       "test_connect_blocks" >:: test_connect_blocks;
+      "test_create_graph"   >:: test_create_graph;
       "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 

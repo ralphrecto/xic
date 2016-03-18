@@ -14,9 +14,9 @@ public abstract class AggregateVisitor<T> implements Copy<AggregateVisitor<T>> {
 
     /**
      * Bind two aggregate results
-     * @param r1
-     * @param r2
-     * @return
+     * @param r1 first agg result
+     * @param r2 second agg result
+     * @return bound result
      */
     public abstract T bind(T r1, T r2);
 

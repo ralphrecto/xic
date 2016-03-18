@@ -366,12 +366,12 @@ module Abbreviate(D: DUMMIES) = struct
   let tbool = (dummy_t, TBool)
   let tarray t e = (dummy_t, TArray (t, e))
 
-  let zero = int 0L
-  let one = int 0L
-  let two = int 0L
-  let three = int 0L
-  let four = int 0L
-  let five = int 0L
+  let zero  = int 0L
+  let one   = int 1L
+  let two   = int 2L
+  let three = int 3L
+  let four  = int 4L
+  let five  = int 5L
 
   let tru = bool true
   let fls = bool false

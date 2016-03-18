@@ -23,6 +23,13 @@ let to_bool (i: int64) : bool =
   | 1L -> true
   | _  -> failwith "invalid to_bool argument"
 
+let rec string_of_value (v: value) =
+  let sov = string_of_value in
+  match v with
+  | Int i -> sprintf "%s" (Int64.to_string i)
+  | Array vs -> sprintf "{%s}" (Util.commas (List.map ~f:sov vs))
+  | Tuple vs -> sprintf "(%s)" (Util.commas (List.map ~f:sov vs))
+
 let string_of_values (vs: value list) : string =
   List.map vs ~f:(function
     | Int i -> Char.of_int_exn (Int64.to_int_exn i)
@@ -30,13 +37,6 @@ let string_of_values (vs: value list) : string =
     | Tuple _ -> failwith "invalid parseInt argument"
   )
   |> String.of_char_list
-
-let rec string_of_value (v: value) =
-  let sov = string_of_value in
-  match v with
-  | Int i -> sprintf "%s" (Int64.to_string i)
-  | Array vs -> sprintf "{%s}" (Util.commas (List.map ~f:sov vs))
-  | Tuple vs -> sprintf "(%s)" (Util.commas (List.map ~f:sov vs))
 
 let id_of_avar ((_, av): avar) =
   match av with

@@ -101,6 +101,8 @@ let test_eval_expr () =
   Int 2L === eval_expr c (funccall "f4" [two]);
   Int 5L === eval_expr c (funccall "f5" [two;three]);
   Tuple [Int 5L;Int 2L;Int 0L] === eval_expr c (funccall "f6" [two;three]);
+  Array [Int 49L] === eval_expr c (funccall "unparseInt" [one]);
+  Int 1L === eval_expr c (funccall "parseInt" [arr[int 49L]]);
 
   ()
 

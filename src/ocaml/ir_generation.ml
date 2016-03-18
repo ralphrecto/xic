@@ -351,14 +351,16 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
-and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let (args, body) =
+and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
+  let (name, args, body) =
     match c with
-    | (_, Func (_, args, _, body)) -> (args, body)
-    | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
-    | (_, Proc (_, args, ((s, _) as body))) ->
+    | (_, Func ((_, name), args, _, body)) ->
+      (name, args, body)
+    | (_, Proc ((_, name), args, (s, Block stmts))) ->
+      (name, args, (s, Block (stmts @ [(s, Return [])])))
+    | (_, Proc ((_, name), args, ((s, _) as body))) ->
       let body' = (s, Ast.S.Block [body; (s, Return [])]) in
-      (args, body')
+      (name, args, body')
   in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
     let seq' =
@@ -370,14 +372,14 @@ and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (format_callable_name c, Seq(moves @ [gen_stmt body]))
+  (format_callable_name c, (name, Seq(moves @ [gen_stmt body])))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *)
   let Ast.S.Prog (_, callables) = program in
   let callables' = List.map ~f:gen_func_decl callables in
-  let f map (cname, block) =
-    String.Map.add map ~key:cname ~data:(cname, block) in
+  let f map (orig_name, (cname, block)) =
+    String.Map.add map ~key:orig_name ~data:(cname, block) in
   let map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", map)
 

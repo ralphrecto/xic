@@ -119,7 +119,7 @@ let test_ir_expr () =
 
   BinOp (one, ADD, two)  =/= gen_expr (ibinop twot PLUS onet);
   BinOp (one, ADD, zero) =/= gen_expr (bbinop onet BAR twot);
-  
+
   (* UnOp tests *)
   unopminus zero === gen_expr (iunop zerot);
   unopminus one  === gen_expr (iunop onet);
@@ -138,7 +138,7 @@ let test_ir_expr () =
   (* FuncCall tests *)
 
   ()
-  
+
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in
@@ -357,7 +357,7 @@ let test_reorder () =
 
   expected === (block_reorder stmts);
 
-	(* testing for reversing the boolean *)
+  (* testing for reversing the boolean *)
   let stmts = [
     l1; cjump one label2 label3;
     l2; cjump one label4 label3;
@@ -376,7 +376,7 @@ let test_reorder () =
 
   expected === (block_reorder stmts);
 
-	(* test case in powerpoint slides: 
+  (* test case in powerpoint slides:
    * http://www.cs.cornell.edu/courses/cs4120/2013fa/lectures/lec17-fa13.pdf *)
   let stmts = [
         cjump one label2 label3;
@@ -397,7 +397,7 @@ let test_reorder () =
 
   expected === (block_reorder stmts);
 
-	(* testing generating fresh labels *)
+  (* testing generating fresh labels *)
   reset_fresh_label ();
 
   let stmts = [

@@ -26,7 +26,7 @@ let get_and_incr (r: int ref) : int =
   incr r;
   x
 
-let num_temp = ref 0
+let num_temp  = ref 0
 let num_label = ref 0
 
 let reset_fresh_temp () =
@@ -131,7 +131,7 @@ let format_callable_name (c: Typecheck.callable) : string =
     | (argt, rett), Func ((_, idstr), _, _, _)
     | (argt, rett), Proc ((_, idstr), _, _) ->
         function_name idstr, type_name argt, type_name rett in
-  Printf.sprintf "_I%s_%s%s" fname retnames argnames 
+  Printf.sprintf "_I%s_%s%s" fname retnames argnames
 
 let rec gen_expr ((t, e): Typecheck.expr) =
   match e with
@@ -148,7 +148,7 @@ let rec gen_expr ((t, e): Typecheck.expr) =
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
-    let mov_elt_seq elt (i, seq) = 
+    let mov_elt_seq elt (i, seq) =
       let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
       (i + 1, mov_elt :: seq) in
     ESeq (
@@ -291,7 +291,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       | AVar (_, AId ((_, idstr), _)) ->
         let retval =
           if i = 0 then gen_expr (TupleT tlist, rawexp)
-          else Temp (retreg i) in 
+          else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
       | _ -> (i+1, seq) in
     let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
@@ -301,14 +301,14 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | Asgn ((lhs_typ, lhs), fullrhs) -> begin
       match lhs with
       | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
-      | Index (arr, index) -> 
+      | Index (arr, index) ->
           let mem_loc = gen_expr arr in
           Move (Mem (mem_loc$$(gen_expr index), NORMAL), gen_expr fullrhs)
       | _ -> failwith "impossible"
   end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
   | Return exprlist ->
-      let mov_ret (i, seq) expr  = 
+      let mov_ret (i, seq) expr  =
         let mov = Move (Temp (retreg i), gen_expr expr) in
         (i + 1, mov :: seq) in
       let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
@@ -349,7 +349,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
 and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let (args, body) = 
+  let (args, body) =
 		match c with
     | (_, Func (_, args, _, body)) -> (args, body)
     | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
@@ -358,19 +358,19 @@ and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
 			(args, body')
 	in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
-    let seq' = 
+    let seq' =
 			match av with
 			| (_, AId ((_, idstr), t)) ->
 					Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
-			| _ -> seq 
+			| _ -> seq
 		in
-    (i + 1, seq') 
+    (i + 1, seq')
 	in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
   (format_callable_name c, Seq(moves @ [gen_stmt body]))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
-  (* TODO: fix comp unit name to program name *) 
+  (* TODO: fix comp unit name to program name *)
   let Ast.S.Prog (_, callables) = program in
   let callables' = List.map ~f:gen_func_decl callables in
   let f map (cname, block) =
@@ -483,22 +483,22 @@ let block_reorder (stmts: Ir.stmt list) =
 		| Some l', _ -> (Block (l', a)) :: b |> List.rev
   in
 	(* After generating all the blocks, connect_blocks iterates through the blocks again
-		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block. 
+		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block.
 		 It also adds a jump to the epilogue to the last block. *)
 	let rec connect_blocks blocks acc =
 		match blocks with
 		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
-		| Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl -> 
+		| Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl ->
 				let jump_nextblock = Jump (Name l2) in
 				let new_block = Block (l1, jump_nextblock::stmts1) in
 				connect_blocks (h2::tl) (new_block::acc)
 		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
-		| Block (l, stmts)::tl -> 
+		| Block (l, stmts)::tl ->
 				let new_block = Block (l, epilogue::stmts) in
 				connect_blocks tl (new_block::acc)
 		| [] -> List.rev acc
 	in
-	let blocks = connect_blocks not_connected_blocks [] in	
+	let blocks = connect_blocks not_connected_blocks [] in
 
   (* sanity check to make sure there aren't duplicate labels *)
   assert (not (List.contains_dup ~compare: (fun (Block (l1, _)) (Block (l2, _)) -> compare l1 l2) blocks));
@@ -636,9 +636,9 @@ let rec ir_constant_folding e =
     Const result
   | BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
   | BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
-  | BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L 
+  | BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L
   | BinOp (Const 0L, (AND|OR), Const 0L) -> Const 0L
-  | BinOp (Const 1L, OR, Const _) 
+  | BinOp (Const 1L, OR, Const _)
   | BinOp (Const _, OR, Const 1L) -> Const 1L
   | BinOp (Const 0L, AND, Const _)
   | BinOp (Const _, AND, Const 0L) -> Const 0L

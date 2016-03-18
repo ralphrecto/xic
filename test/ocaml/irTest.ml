@@ -11,6 +11,89 @@ module Fresh = struct
   let l n = Ir.Label (label n)
 end
 
+module Labels = struct
+  let label0  = label 0
+  let label1  = label 1
+  let label2  = label 2
+  let label3  = label 3
+  let label4  = label 4
+  let label5  = label 5
+  let label6  = label 6
+  let label7  = label 7
+  let label8  = label 8
+  let label9  = label 9
+  let label10 = label 10
+  let label11 = label 11
+  let label12 = label 12
+  let label13 = label 13
+  let label14 = label 14
+  let label15 = label 15
+  let label16 = label 16
+  let label17 = label 17
+  let label18 = label 18
+  let label19 = label 19
+  let label20 = label 20
+  let label21 = label 21
+  let label22 = label 22
+  let label23 = label 23
+  let label24 = label 24
+  let label25 = label 25
+  let label26 = label 26
+  let label27 = label 27
+  let label28 = label 28
+  let label29 = label 29
+  let label30 = label 30
+  let labela = "label_a"
+  let labelb = "label_b"
+  let labelc = "label_c"
+  let labeld = "label_d"
+  let labele = "label_e"
+  let labelf = "label_f"
+
+  let l0  = Fresh.l 0
+  let l1  = Fresh.l 1
+  let l2  = Fresh.l 2
+  let l3  = Fresh.l 3
+  let l4  = Fresh.l 4
+  let l5  = Fresh.l 5
+  let l6  = Fresh.l 6
+  let l7  = Fresh.l 7
+  let l8  = Fresh.l 8
+  let l9  = Fresh.l 9
+  let l10 = Fresh.l 10
+  let l11 = Fresh.l 11
+  let l12 = Fresh.l 12
+  let l13 = Fresh.l 13
+  let l14 = Fresh.l 14
+  let l15 = Fresh.l 15
+  let l16 = Fresh.l 16
+  let l17 = Fresh.l 17
+  let l18 = Fresh.l 18
+  let l19 = Fresh.l 19
+  let l20 = Fresh.l 20
+  let l21 = Fresh.l 21
+  let l22 = Fresh.l 22
+  let l23 = Fresh.l 23
+  let l24 = Fresh.l 24
+  let l25 = Fresh.l 25
+  let l26 = Fresh.l 26
+  let l27 = Fresh.l 27
+  let l28 = Fresh.l 28
+  let l29 = Fresh.l 29
+  let l30 = Fresh.l 30
+  let la  = Ir.Label labela
+  let lb  = Ir.Label labelb
+  let lc  = Ir.Label labelc
+  let ld  = Ir.Label labeld
+  let le  = Ir.Label labele
+  let lf  = Ir.Label labelf
+end
+
+let block l ss = Block (l, ss)
+let zero = Ir.Abbreviations.const 0L
+let one  = Ir.Abbreviations.const 1L
+let two  = Ir.Abbreviations.const 2L
+
 (* By default, OUnit's assert_equal function doesn't print out anything useful
  * when its assertion fails. For example, 1 === 2 won't print either 1 or 2!
  * This module specializes === to a bunch of data types that do print
@@ -58,7 +141,7 @@ module BlocksEq = struct
     | _  -> sprintf "%s:\n%s" l (indent ss)
 
   let string_of_blocks bs =
-    "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs))
+    "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs)) ^ "\n"
 
   let (===) (a: block list) (b: block list) : unit =
     assert_equal ~printer:string_of_blocks a b
@@ -217,71 +300,281 @@ let test_lower_stmt () =
 
   ()
 
-module Labels = struct
-  let label0  = label 0
-  let label1  = label 1
-  let label2  = label 2
-  let label3  = label 3
-  let label4  = label 4
-  let label5  = label 5
-  let label6  = label 6
-  let label7  = label 7
-  let label8  = label 8
-  let label9  = label 9
-  let label10 = label 10
-  let label11 = label 11
-  let label12 = label 12
-  let label13 = label 13
-  let label14 = label 14
-  let label15 = label 15
-  let label16 = label 16
-  let label17 = label 17
-  let label18 = label 18
-  let label19 = label 19
-  let label20 = label 20
-  let label21 = label 21
-  let label22 = label 22
-  let label23 = label 23
-  let label24 = label 24
-  let label25 = label 25
-  let label26 = label 26
-  let label27 = label 27
-  let label28 = label 28
-  let label29 = label 29
-  let label30 = label 30
+let test_gen_block () =
+  let open Labels in
+  let open BlocksEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
 
-  let l0  = Fresh.l 0
-  let l1  = Fresh.l 1
-  let l2  = Fresh.l 2
-  let l3  = Fresh.l 3
-  let l4  = Fresh.l 4
-  let l5  = Fresh.l 5
-  let l6  = Fresh.l 6
-  let l7  = Fresh.l 7
-  let l8  = Fresh.l 8
-  let l9  = Fresh.l 9
-  let l10 = Fresh.l 10
-  let l11 = Fresh.l 11
-  let l12 = Fresh.l 12
-  let l13 = Fresh.l 13
-  let l14 = Fresh.l 14
-  let l15 = Fresh.l 15
-  let l16 = Fresh.l 16
-  let l17 = Fresh.l 17
-  let l18 = Fresh.l 18
-  let l19 = Fresh.l 19
-  let l20 = Fresh.l 20
-  let l21 = Fresh.l 21
-  let l22 = Fresh.l 22
-  let l23 = Fresh.l 23
-  let l24 = Fresh.l 24
-  let l25 = Fresh.l 25
-  let l26 = Fresh.l 26
-  let l27 = Fresh.l 27
-  let l28 = Fresh.l 28
-  let l29 = Fresh.l 29
-  let l30 = Fresh.l 30
-end
+  reset_fresh_label ();
+  let stmts = [] in
+  let expected = [] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    exp one;
+  ], [
+    block label0 [exp one];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    exp one;
+    exp two;
+  ], [
+    block label0 [exp two;
+                  exp one];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    exp zero;
+    exp one;
+    exp two;
+  ], [
+    block label0 [exp two;
+                  exp one;
+                  exp zero];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    l0;
+  ], [
+    block label0 []
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la;
+  ], [
+    block labela []
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; exp one
+  ], [
+    block labela [exp one]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; exp one;
+        exp two
+  ], [
+    block labela [exp two; exp one]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; exp zero;
+        exp one;
+        exp two;
+  ], [
+    block labela [exp two; exp one; exp zero]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp zero;
+    la; exp one;
+  ], [
+    block label0 [exp zero];
+    block labela [exp one];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp zero;
+    la;
+  ], [
+    block label0 [exp zero];
+    block labela [];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la;
+    lb;
+  ], [
+    block labela [];
+    block labelb [];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp zero;
+        exp one;
+    la;
+  ], [
+    block label0 [exp one; exp zero];
+    block labela [];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp zero;
+        exp one;
+    la; exp two;
+        exp one
+  ], [
+    block label0 [exp one; exp zero];
+    block labela [exp one; exp two];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp zero;
+        exp one;
+    la; exp two;
+    lb; exp one
+  ], [
+    block label0 [exp one; exp zero];
+    block labela [exp two];
+    block labelb [exp one];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    jump one
+  ], [
+    block label0 [jump one]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    cjump one "a" "b"
+  ], [
+    block label0 [cjump one "a" "b"]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    return
+  ], [
+    block label0 [return]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; jump one
+  ], [
+    block labela [jump one]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; cjump one "a" "b"
+  ], [
+    block labela [cjump one "a" "b"]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    la; return
+  ], [
+    block labela [return]
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    jump one;
+    jump one;
+  ], [
+    block label0 [jump one];
+    block label1 [jump one];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    cjump one "a" "b";
+    cjump one "a" "b";
+  ], [
+    block label0 [cjump one "a" "b"];
+    block label1 [cjump one "a" "b"];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    return;
+    return;
+  ], [
+    block label0 [return];
+    block label1 [return];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    jump one;
+    cjump one "a" "b";
+    return;
+  ], [
+    block label0 [jump one];
+    block label1 [cjump one "a" "b"];
+    block label2 [return];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+    jump one;
+    cjump one "a" "b";
+    return;
+  ], [
+    block label0 [jump one];
+    block label1 [cjump one "a" "b"];
+    block label2 [return];
+  ] in
+  expected === gen_block stmts;
+
+  reset_fresh_label ();
+  let stmts, expected = [
+        exp one;
+    la;
+    lb; exp two;
+        exp zero;
+        jump one;
+        jump one;
+    lc; exp one;
+    ld; return;
+        exp one;
+  ], [
+    block label0 [exp one];
+    block labela [];
+    block labelb [jump one; exp zero; exp two;];
+    block label1 [jump one];
+    block labelc [exp one];
+    block labeld [return];
+    block label2 [exp one];
+  ] in
+  expected === gen_block stmts;
+
+  ()
 
 let test_reorder () =
   let open Labels in
@@ -289,12 +582,8 @@ let test_reorder () =
   let open Ir.Abbreviations in
   let open Ir.Infix in
 
-  let zero = const 0L in
-  let one  = const 1L in
-  let two  = const 2L in
-
-  let block l ss = Block (l, ss) in
   let epilogue = block "done" [] in
+  reset_fresh_label ();
 
   (* Test *)
   let stmts = [
@@ -310,7 +599,7 @@ let test_reorder () =
     block label3 [];
     block label2 [cjumpone one label2];
     block label4 [];
-    block label5 [return; jump (name "done")];
+    block label5 [return];
     epilogue;
   ] in
 
@@ -368,7 +657,7 @@ let test_reorder () =
 
   let expected = [
     block label1 [cjumpone one label2];
-    block label3 [return; jump (name "done")];
+    block label3 [return];
     block label2 [cjumpone ((one + one) % two) label3];
     block label4 [move one two; move one zero; jump (name label3)];
     epilogue
@@ -440,7 +729,6 @@ let test_reorder () =
 
   ()
 
-
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -449,7 +737,8 @@ let main () =
       "test_ir_expr"    >:: test_ir_expr;
       "test_lower_expr" >:: test_lower_expr;
       "test_lower_stmt" >:: test_lower_stmt;
-      "test_reorder" >:: test_reorder;
+      "test_gen_block"  >:: test_gen_block;
+      "test_reorder"    >:: test_reorder;
     ] |> run_test_tt_main
 
 let _ = main ()

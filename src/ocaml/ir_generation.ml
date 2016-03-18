@@ -442,49 +442,29 @@ and lower_stmt s =
 (******************************************************************************)
 (* Basic Block Reordering                                                     *)
 (******************************************************************************)
+let epilogue_jump = Jump (Name "done")
+
+let gen_block stmts =
+  let f (blocks, acc, label) s =
+    match s, label, acc with
+    | Label s, Some l, _  -> (Block (l, acc)::blocks, [], Some s)
+    | Label s, None,   [] -> (blocks, [], Some s)
+    | Label s, None,   _  -> (Block (fresh_label (), acc)::blocks, [], Some s)
+    | (CJump _|Jump _|Return), Some l, _ -> (Block (l, s::acc)::blocks, [], None)
+    | (CJump _|Jump _|Return), None,   _ -> (Block (fresh_label (), s::acc)::blocks, [], None)
+    | _ -> (blocks, s::acc, label)
+  in
+  let (b, a, l) = List.fold_left ~f ~init:([], [], None) stmts in
+  match l, a with
+  | None, [] -> b |> List.rev
+  | None, _ -> (Block (fresh_label (), a)) :: b |> List.rev
+  | Some l', _ -> (Block (l', a)) :: b |> List.rev
 
 let block_reorder (stmts: Ir.stmt list) =
-  (* order of stmts in blocks are reversed
-     to make looking at conditionals easier *)
-	let epilogue = Jump (Name "done") in
-  let gen_block (blocks, acc, label) elm =
-    match elm, label, acc with
-    | Label s, Some l, _ ->
-      (Block (l, acc)::blocks, [], Some s)
-    | Label s, None, [] ->
-      (blocks, [], Some s)
-    | Label s, None, _ ->
-      let fresh_label = fresh_label () in
-      (Block (fresh_label, acc)::blocks, [], Some s)
-    | CJump _, Some l, _ ->
-      (Block (l, elm::acc)::blocks, [], None)
-    | CJump _, None, _->
-      let fresh_label = fresh_label () in
-      (Block (fresh_label, elm::acc)::blocks, [], None)
-    | Jump _, Some l, _ ->
-      (Block (l, elm::acc)::blocks, [], None)
-    | Jump _, None, _ ->
-      let fresh_label = fresh_label () in
-      (Block (fresh_label, elm::acc)::blocks, [], None)
-		| Return, Some l, _ ->
-			(Block (l, epilogue::elm::acc)::blocks, [], None)
-		| Return, None, _ ->
-			let fresh_label = fresh_label () in
-			(Block (fresh_label, epilogue::elm::acc)::blocks, [], None)
-    | _ -> (blocks, elm::acc, label)
-  in
-  let (b, a, l) = List.fold_left ~f: gen_block ~init: ([], [], None) stmts in
-  let not_connected_blocks =
-    match l, a with
-		| None, [] -> b |> List.rev
-    | None, _ ->
-      let fresh_label = fresh_label () in
-      (Block (fresh_label, a)) :: b |> List.rev
-		| Some l', _ -> (Block (l', a)) :: b |> List.rev
-  in
 	(* After generating all the blocks, connect_blocks iterates through the blocks again
 		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block.
 		 It also adds a jump to the epilogue to the last block. *)
+  let not_connected_blocks = gen_block stmts in
 	let rec connect_blocks blocks acc =
 		match blocks with
 		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
@@ -494,7 +474,7 @@ let block_reorder (stmts: Ir.stmt list) =
 				connect_blocks (h2::tl) (new_block::acc)
 		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
 		| Block (l, stmts)::tl ->
-				let new_block = Block (l, epilogue::stmts) in
+				let new_block = Block (l, epilogue_jump::stmts) in
 				connect_blocks tl (new_block::acc)
 		| [] -> List.rev acc
 	in

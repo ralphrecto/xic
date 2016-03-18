@@ -35,6 +35,15 @@ val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr
 val lower_stmt : Ir.stmt -> Ir.stmt list
 
 (* Basic block reordering *)
+(* `gen_block ss` chunks ss into blocks. The contents of the blocks are
+ * reversed to make inspecting the last element of the block easier, and the
+ * labels at the beginning of each block are pulled from the stmt list into the
+ * block itself.
+ *
+ *   gen_block [Label "a"; Exp 1; Exp 2] = [Block ("a", [Exp 2; Exp 1])]
+ *)
+val gen_block : Ir.stmt list -> block list
+
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)

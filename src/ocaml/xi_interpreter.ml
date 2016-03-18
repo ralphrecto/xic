@@ -150,10 +150,10 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
   | Return elist ->
     begin
       match elist with
-      |_::_ ->
+      |_::_::_ ->
         let res = List.map ~f:(eval_expr store) elist in
         (store, Some (Tuple res))
-      |[e] ->
+      | [e] ->
         let e' = eval_expr store e in
         (store, Some e')
       |[] -> (store, None)

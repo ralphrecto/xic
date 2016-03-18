@@ -11,14 +11,14 @@ end
 (* Context helpers *)
 let empty = String.Map.empty
 
-let gam (xs: (string * store) list) =
+let gam (xs: (string * store option) list) : context =
   String.Map.of_alist_exn xs
 
-let vals (vs: (string * value) list) =
-  gam (List.map vs ~f:(fun (v, t) -> (v, Value t)))
+let vals (vs: (string * value) list) : context =
+  gam (List.map vs ~f:(fun (v, t) -> (v, Some (Value t))))
 
-let funcs (fs: (string * (string option) list * Typecheck.stmt) list) =
-  gam (List.map fs ~f:(fun (f, args, s) -> (f, Function (args, s))))
+let funcs (fs: (string * (string option) list * Typecheck.stmt) list) : context =
+  gam (List.map fs ~f:(fun (f, args, s) -> (f, Some (Function (args, s)))))
 
 let test_eval_expr () =
   let open ValueEq in
@@ -57,10 +57,17 @@ let test_eval_expr () =
   Int 0L === eval_expr empty (tru   ==  fls);
   Int 1L === eval_expr empty (tru   !=  fls);
 
-  Int 1L  === eval_expr empty (!fls);
+  Int 1L === eval_expr empty (!fls);
   Int 0L === eval_expr empty (!tru);
-  Int (-1L)  === eval_expr empty (~~one);
-  Int (-2L)  === eval_expr empty (~~two);
+  Int (-1L) === eval_expr empty (~~one);
+  Int (-2L) === eval_expr empty (~~two);
+
+  Array [] === eval_expr empty (arr[] + arr[]);
+  Array [Int 1L] === eval_expr empty (arr[one] + arr[]);
+  Array [Int 1L] === eval_expr empty (arr[] + arr[one]);
+  Array [Int 1L;Int 2L] === eval_expr empty (arr[one] + arr[two]);
+  Array [Int 1L;Int 2L;Int 3L] === eval_expr empty (arr[one;two] + arr[three]);
+  Array [Int 1L;Int 2L;Int 3L] === eval_expr empty (arr[one] + arr[two;three]);
 
   Int 0L === eval_expr empty (index (arr[zero;one;two;three;four;five]) zero);
   Int 1L === eval_expr empty (index (arr[zero;one;two;three;four;five]) one);
@@ -76,8 +83,24 @@ let test_eval_expr () =
   Int 2L === eval_expr empty (length (arr[one;one]));
   Int 3L === eval_expr empty (length (arr[one;one;two]));
 
-  (* let vs = var ["x",Int 1L; "y",Int 1L; "z",] in  *)
-  (* Int 3L === eval_expr vars["x",Int 1L] (length (arr[one;one;two])); *)
+  let c = vals ["x",Int 1L; "y",Array [Int 1L; Int 2L]] in
+  Int 1L === eval_expr c (id "x");
+  Array [Int 1L; Int 2L] === eval_expr c (id "y");
+
+  let c = funcs [
+    "f1", [], return [one];
+    "f2", [Some "x"], return [one];
+    "f3", [None], return [one];
+    "f4", [Some "x"], return [id "x"];
+    "f5", [Some "x"; Some "y"], return [id "x" + id "y"];
+    "f6", [Some "x"; Some "y"], return [id "x" + id "y"; id "x"; zero];
+  ] in
+  Int 1L === eval_expr c (funccall "f1" []);
+  Int 1L === eval_expr c (funccall "f2" [one]);
+  Int 1L === eval_expr c (funccall "f3" [one]);
+  Int 2L === eval_expr c (funccall "f4" [two]);
+  Int 5L === eval_expr c (funccall "f5" [two;three]);
+  Tuple [Int 5L;Int 2L;Int 0L] === eval_expr c (funccall "f6" [two;three]);
 
   ()
 

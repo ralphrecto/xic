@@ -90,6 +90,7 @@ module Labels = struct
 end
 
 let block l ss = Block (l, ss)
+let node l ls = Node (l, ls)
 let zero = Ir.Abbreviations.const 0L
 let one  = Ir.Abbreviations.const 1L
 let two  = Ir.Abbreviations.const 2L
@@ -154,6 +155,10 @@ module BlocksEq = struct
     assert_equal ~printer:string_of_blocks a b
 end
 
+module GraphEq = struct
+  let (===) (a: graph) (b: graph) : unit =
+    assert_equal ~printer:string_of_graph a b
+end
 
 (**** HELPER FUNCTIONS for generating Typecheck exprs ****)
 let int x  = (IntT, Int x)
@@ -622,15 +627,15 @@ let test_connect_blocks () =
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp one]] in
-  let expected = [block label0 [epilogue_jump; exp one]] in
+  let expected = [block label0 [return; exp one]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp one; exp two]] in
-  let expected = [block label0 [epilogue_jump; exp one; exp two]] in
+  let expected = [block label0 [return; exp one; exp two]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [exp zero; exp one; exp two]] in
-  let expected = [block label0 [epilogue_jump; exp zero; exp one; exp two]] in
+  let expected = [block label0 [return; exp zero; exp one; exp two]] in
   expected === connect_blocks blocks;
 
   let blocks = [block label0 [jump one]] in
@@ -685,7 +690,7 @@ let test_connect_blocks () =
   ] in
   let expected = [
     block label0 [jump (name label1); exp zero; exp one; exp two];
-    block label1 [epilogue_jump; exp two; exp one; exp zero];
+    block label1 [return; exp two; exp one; exp zero];
   ] in
   expected === connect_blocks blocks;
 
@@ -705,6 +710,377 @@ let test_connect_blocks () =
   ] in
   expected === connect_blocks blocks;
 
+  let blocks = [
+    block label0 [];
+    block label1 [];
+  ] in
+  let expected = [
+    block label0 [jump (name label1)];
+    block label1 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  ()
+
+let test_create_graph () =
+  let open Labels in
+  let open GraphEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let blocks   = [] in
+  let expected = [] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [exp one]] in
+  let expected = [node label0 []] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [jump (name "a")]] in
+  let expected = [node label0 ["a"]] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [cjump one "a" "b"]] in
+  let expected = [node label0 ["a"; "b"]] in
+  expected === create_graph blocks;
+
+  let blocks   = [block label0 [return]] in
+  let expected = [node label0 []] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [exp two];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 [];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [jump (name "a")];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 ["a"];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp one];
+    block label1 [cjump one "a" "b"];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 ["a"; "b"];
+  ] in
+  expected === create_graph blocks;
+
+  let blocks   = [
+    block label0 [exp zero; exp one; exp two];
+    block label1 [exp one];
+    block label2 [jump (name "a")];
+    block label3 [return];
+    block label4 [];
+    block label5 [exp zero];
+  ] in
+  let expected = [
+    node label0 [label1];
+    node label1 [label2];
+    node label2 ["a"];
+    node label3 [];
+    node label4 [label5];
+    node label5 [];
+  ] in
+  expected === create_graph blocks;
+
+  ()
+
+module Graphs = struct
+  let n (l,ls) = Node (l, ls)
+  let a, b, c, d = "a", "b", "c", "d"
+  let all = [a;b;c;d]
+  let line    = [n(a,[b]);   n(b,[c]);   n(c,[d]); n(d,[])   ]
+  let square  = [n(a,[b]);   n(b,[c]);   n(c,[d]); n(d,[a])  ]
+  let diamond = [n(a,[b;c]); n(b,[d]);   n(c,[d]); n(d,[])   ]
+  let clique  = [n(a,all);   n(b,all);   n(c,all); n(d,all)  ]
+  let pairs   = [n(a,[b]);   n(b,[a]);   n(c,[d]); n(d,[c])  ]
+  let points  = [n(a,[]);    n(b,[]);    n(c,[]);  n(d,[])   ]
+  let weird   = [n(a,[b;c]); n(b,[c;d]); n(c,[d]); n(d,[a;d])]
+  let graphs = [line; square; diamond; clique; pairs; points; weird;]
+
+  let in_graph graph l =
+    let (===) (Node (l, _)) l' = l = l' in
+    List.exists graph ~f:(fun n -> n === l)
+
+  let get_node graph l =
+    let (===) (Node (l, _)) l' = l = l' in
+    List.find_exn graph ~f:(fun n -> n === l)
+end
+
+let test_valid_trace () =
+  let open Graphs in
+  (* In all graphs, single hop paths are good. *)
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x -> assert_true (valid_trace g [x]))
+  );
+
+  let goods = [
+    line, [a;b];
+    line, [b;c];
+    line, [c;d];
+    line, [a;b;c];
+    line, [b;c;d];
+    line, [a;b;c;d];
+
+    square, [a;b];
+    square, [b;c];
+    square, [c;d];
+    square, [d;a];
+    square, [a;b;c];
+    square, [b;c;d];
+    square, [c;d;a];
+    square, [d;a;b];
+    square, [a;b;c;d];
+    square, [b;c;d;a];
+    square, [c;d;a;b];
+    square, [d;a;b;c];
+
+    diamond, [a;b];
+    diamond, [a;c];
+    diamond, [a;b;d];
+    diamond, [a;c;d];
+    diamond, [b;d];
+
+    clique, [a;b;c;d];
+    clique, [a;b;d;c];
+    clique, [a;c;b;d];
+    clique, [a;c;d;b];
+    clique, [a;d;b;c];
+    clique, [a;d;c;b];
+    clique, [b;a;c;d];
+    clique, [b;a;d;c];
+    clique, [b;c;a;d];
+    clique, [b;c;d;a];
+    clique, [b;d;a;c];
+    clique, [b;d;c;a];
+    clique, [c;a;b;d];
+    clique, [c;a;d;b];
+    clique, [c;b;a;d];
+    clique, [c;b;d;a];
+    clique, [c;d;a;b];
+    clique, [c;d;b;a];
+    clique, [d;a;b;c];
+    clique, [d;a;c;b];
+    clique, [d;b;a;c];
+    clique, [d;b;c;a];
+    clique, [d;c;a;b];
+    clique, [d;c;b;a];
+
+    pairs, [a;b];
+    pairs, [b;a];
+    pairs, [c;d];
+    pairs, [d;c];
+
+    weird, [a;b];
+    weird, [a;c];
+    weird, [a;b;d];
+    weird, [a;b;c];
+    weird, [a;c;d];
+    weird, [b;d;a];
+    weird, [c;d;a];
+  ] in
+  List.iter goods ~f:(fun (g, t) -> assert_true (valid_trace g t));
+
+  (* In all graphs, empty hop paths are bad. *)
+  List.iter graphs ~f:(fun g -> assert_false (valid_trace g []));
+
+  (* In all graphs, duplicates are bad. *)
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x]));
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x;x]));
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x;x;x]));
+  );
+
+  let bads = [
+    line, [a;c];
+    line, [a;d];
+    line, [b;d];
+    line, [a;c;d];
+    line, [a;b;d];
+    line, [b;a];
+    line, [c;a];
+    line, [d;a];
+
+    line, [a;a;c];
+    line, [a;a;d];
+    line, [a;b;d];
+    line, [a;a;c;d];
+    line, [a;a;b;d];
+    line, [a;b;a];
+    line, [a;c;a];
+    line, [a;d;a];
+
+    square, [a;c];
+    square, [a;d];
+    square, [b;d];
+    square, [a;c;d];
+    square, [a;b;d];
+    square, [b;a];
+    square, [c;a];
+  ] in
+  List.iter bads ~f:(fun (g, t) -> assert_false (valid_trace g t))
+
+let test_get_trace () =
+  let open Graphs in
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x ->
+      assert_true (valid_trace g (find_trace g (get_node g x)))
+    )
+  )
+
+let test_valid_seq () =
+  let open Graphs in
+
+  (* In all graphs, single hop seqs are good. *)
+  List.iter graphs ~f:(fun g ->
+    let all_seq = List.map ~f:(fun x -> [x]) all in
+    assert_true (valid_seq g all_seq)
+  );
+
+  let goods = [
+    line, [[a];[b;c;d]];
+    line, [[a;b];[c;d]];
+    line, [[a];[b;c;d]];
+    line, [[a;b];[c];[d]];
+    line, [[a];[b;c];[d]];
+    line, [[a];[b];[c;d]];
+  ] in
+  List.iter goods ~f:(fun (g, s) -> assert_true (valid_seq g s));
+
+  let bads = [
+    line, [[b;c;d];[a]];
+    line, [[c;d];[a;b]];
+    line, [[b;c;d];[a]];
+    line, [[c];[d];[a;b]];
+    line, [[b;c];[d];[a]];
+    line, [[b];[c;d];[a]];
+    line, [[];[b;c;d]];
+    line, [[a];[c;d]];
+    line, [[a];[b;d]];
+    line, [[a];[b;c]];
+    line, [[a];[b;c;d;d]];
+    line, [[a;b];[b;c;d]];
+  ] in
+  List.iter bads ~f:(fun (g, s) -> assert_false (valid_seq g s));
+  ()
+
+let test_find_seq () =
+  let open Graphs in
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x ->
+      assert_true (valid_seq g (find_seq g))
+    )
+  )
+
+let test_tidy () =
+  let open Labels in
+  let open BlocksEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let blocks = [
+  ] in
+  let expected = [
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [exp one];
+  ] in
+  let expected = [
+    block label0 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [exp one; exp two];
+  ] in
+  let expected = [
+    block label0 [exp one; exp two];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [jump (name label1)];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [jump (name label2)];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [jump (name label2)];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label1];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [cjumpone one label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label1 label2];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [cjumpone ((one + one) % two) label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label3];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [jump (name label3); cjumpone one label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [return];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [return];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label3];
+  ] in
+  let expected = [
+    block label0 [jump (name label3); cjumpone one label2];
+  ] in
+  expected === tidy blocks;
+
   ()
 
 let test_reorder () =
@@ -713,7 +1089,6 @@ let test_reorder () =
   let open Ir.Abbreviations in
   let open Ir.Infix in
 
-  let epilogue = block "done" [] in
   reset_fresh_label ();
 
   (* Test *)
@@ -731,7 +1106,6 @@ let test_reorder () =
     block label2 [cjumpone one label2];
     block label4 [];
     block label5 [return];
-    epilogue;
   ] in
 
   expected === (block_reorder stmts);
@@ -750,9 +1124,8 @@ let test_reorder () =
     block label1 [];
     block label2 [cjumpone one label3];
     block label4 [];
-    block label5 [jump (name "done")];
+    block label5 [return];
     block label3 [jump (name label4)];
-    epilogue;
   ] in
 
   expected === (block_reorder stmts);
@@ -770,9 +1143,8 @@ let test_reorder () =
     block label1 [];
     block label2 [cjumpone one label3];
     block label4 [];
-    block label5 [jump (name "done")];
+    block label5 [return];
     block label3 [jump (name label5)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -791,7 +1163,6 @@ let test_reorder () =
     block label3 [return];
     block label2 [cjumpone ((one + one) % two) label3];
     block label4 [move one two; move one zero; jump (name label3)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -809,10 +1180,9 @@ let test_reorder () =
 
   let expected = [
     block label0 [cjumpone one label2];
-    block label3 [exp one; jump (name "done")];
+    block label3 [exp one; return];
     block label2 [move one two];
     block label1 [move zero one; jump (name label2)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -831,10 +1201,9 @@ let test_reorder () =
 
   let expected = [
     block label0 [cjumpone one label20];
-    block label30 [exp one; jump (name "done")];
+    block label30 [exp one; return];
     block label20 [move one two; jump (name label30)];
     block label1 [move zero one; jump (name label20)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -851,9 +1220,8 @@ let test_reorder () =
 
   let expected = [
     block label0 [];
-    block label10 [jump (name "done")];
+    block label10 [return];
     block label1 [jump (name label10)];
-    epilogue
   ] in
 
   expected === (block_reorder stmts);
@@ -871,6 +1239,12 @@ let main () =
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;
       "test_connect_blocks" >:: test_connect_blocks;
+      "test_create_graph"   >:: test_create_graph;
+      "test_valid_trace"    >:: test_valid_trace;
+      "test_get_trace"      >:: test_get_trace;
+      "test_valid_seq"      >:: test_valid_seq;
+      "test_find_seq"       >:: test_find_seq;
+      "test_tidy"           >:: test_tidy;
       "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 

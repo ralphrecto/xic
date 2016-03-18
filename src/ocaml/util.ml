@@ -5,6 +5,19 @@ let init xs =
   | [] -> []
   | _::ys -> List.rev ys
 
-let commas ss =
-  String.concat ~sep:"," ss
+let join =
+  String.concat ~sep:"\n"
 
+let commas =
+  String.concat ~sep:","
+
+let pairs xs =
+  match xs with
+  | [] -> []
+  | _::xs' -> List.zip_exn (init xs) (xs')
+
+let all_eq xs ys =
+  let (<=) xs ys =
+    List.for_all xs ~f:(List.mem ys)
+  in
+  xs <= ys && ys <= xs

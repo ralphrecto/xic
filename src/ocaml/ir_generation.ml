@@ -5,12 +5,15 @@ open Ir
 open Ast
 open Typecheck
 
-(* label * adjacent nodes * mark *)
 type node = Node of string * string list
 type graph = node list
-
 type block = Block of string * Ir.stmt list
 
+let string_of_node (Node (l, ls)) =
+  sprintf "%s -> %s" l (Util.commas ls)
+
+let string_of_graph g =
+  Util.join (List.map ~f:string_of_node g)
 
 (******************************************************************************)
 (* Naming Helpers                                                             *)
@@ -147,14 +150,14 @@ let rec gen_expr ((t, e): Typecheck.expr) =
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
-    let mov_elt_seq elt (i, seq) =
+    let mov_elt_seq (i, seq) elt =
       let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
       (i + 1, mov_elt :: seq) in
     ESeq (
       Seq (
         Move (loc_tmp, mem_loc) ::
         Move (Mem (loc_tmp, NORMAL), const arr_len) ::
-        (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
+        (List.fold_left ~f:mov_elt_seq ~init:(1, []) elts |> snd)
       ),
       loc_tmp$(1)
     )
@@ -347,14 +350,16 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
-and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let (args, body) =
+and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
+  let (name, args, body) =
     match c with
-    | (_, Func (_, args, _, body)) -> (args, body)
-    | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
-    | (_, Proc (_, args, ((s, _) as body))) ->
+    | (_, Func ((_, name), args, _, body)) ->
+      (name, args, body)
+    | (_, Proc ((_, name), args, (s, Block stmts))) ->
+      (name, args, (s, Block (stmts @ [(s, Return [])])))
+    | (_, Proc ((_, name), args, ((s, _) as body))) ->
       let body' = (s, Ast.S.Block [body; (s, Return [])]) in
-      (args, body')
+      (name, args, body')
   in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
     let seq' =
@@ -366,14 +371,14 @@ and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (format_callable_name c, Seq(moves @ [gen_stmt body]))
+  (format_callable_name c, (name, Seq(moves @ [gen_stmt body])))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *)
   let Ast.S.Prog (_, callables) = program in
   let callables' = List.map ~f:gen_func_decl callables in
-  let f map (cname, block) =
-    String.Map.add map ~key:cname ~data:(cname, block) in
+  let f map (orig_name, (cname, block)) =
+    String.Map.add map ~key:orig_name ~data:(cname, block) in
   let map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", map)
 
@@ -441,8 +446,6 @@ and lower_stmt s =
 (******************************************************************************)
 (* Basic Block Reordering                                                     *)
 (******************************************************************************)
-let epilogue_jump = Jump (Name "done")
-
 let gen_block stmts =
   let f (blocks, acc, label) s =
     match s, label, acc with
@@ -470,120 +473,132 @@ let connect_blocks blocks =
         help (h2::tl) (new_block::acc)
     | [Block (l, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
     | [Block (l, stmts)] ->
-        let new_block = Block (l, epilogue_jump::stmts) in
+        let new_block = Block (l, Return::stmts) in
         help [] (new_block::acc)
+    | [] -> List.rev acc
+  in
+  help blocks []
+
+let create_graph blocks =
+  let rec help blocks graph =
+    match blocks with
+    | Block (l1, ss1)::(Block (l2, _) as b2)::tl -> begin
+        match ss1 with
+        | CJump (_, tru, fls)::_ -> help (b2::tl) (Node (l1, [tru; fls])::graph)
+        | Jump (Name l')::_ -> help (b2::tl) (Node (l1, [l'])::graph)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | Return::_ -> help (b2::tl) (Node (l1, [])::graph)
+        | _ -> help (b2::tl) (Node (l1, [l2])::graph)
+    end
+    | [Block(l, ss)] -> begin
+        match ss with
+        | CJump (_, tru, fls)::_ -> help [] (Node (l, [tru; fls])::graph)
+        | Jump (Name l')::_ -> help [] (Node (l, [l'])::graph)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | Return::_ -> help [] (Node (l, [])::graph)
+        | _ -> help [] (Node (l, [])::graph)
+    end
+    | [] -> List.rev graph
+  in
+  help blocks []
+
+let (===) (Node (l, _)) l' =
+  l = l'
+
+let node_label (Node (l, _)) =
+  l
+
+let in_graph graph l =
+  List.exists graph ~f:(fun n -> n === l)
+
+let get_node graph l =
+  List.find_exn graph ~f:(fun n -> n === l)
+
+let valid_trace graph trace =
+  List.length trace > 0 &&
+  not (List.contains_dup trace) &&
+  List.for_all trace ~f:(in_graph graph) &&
+  List.for_all (Util.pairs trace) ~f:(fun (l1, l2) ->
+    let (Node (_, ls)) = get_node graph l1 in
+    List.mem ls l2
+  )
+
+let find_trace graph root =
+  let rec help graph (Node (l, adj)) acc =
+    let ok l' = l' <> l && in_graph graph l' && not (List.mem acc l') in
+    (* we rev to be compatible with an old version and not break tests. *)
+    match List.rev (List.filter adj ~f:ok) with
+    | [] -> List.rev (l::acc)
+    | l'::_ -> help graph (get_node graph l') (l::acc)
+  in
+  help graph root []
+
+let valid_seq graph seq =
+  match graph, seq with
+  | [], [] -> true
+  | [], _::_ | _::_, [] -> false
+  | _::_, []::_ -> false
+  | n::ns, (l::ls)::ts ->
+      let graph_labels = List.map graph ~f:node_label in
+      let seq_labels = List.concat seq in
+      node_label n = l &&
+      Util.all_eq graph_labels seq_labels &&
+      not (List.contains_dup seq_labels) &&
+      List.for_all seq ~f:(valid_trace graph)
+
+let find_seq graph =
+  let rec help graph acc =
+    match graph with
+    | [] -> List.rev acc
+    | n::ns ->
+        let trace = find_trace ns n in
+        let not_in_trace l = not (List.mem trace l) in
+        let rest = List.filter graph ~f:(fun (Node(l,_))-> not_in_trace l) in
+        help rest (trace::acc)
+  in
+  help graph []
+
+let tidy blocks =
+  let rec help blocks acc =
+    match blocks with
+    | (Block(l1,ss1) as b1)::(Block(l2,ss2) as b2)::btl -> begin
+        match ss1 with
+        | CJump (e, lt, lf)::sstl ->
+            if lf = l2 then
+              help (b2::btl) (Block(l1, CJumpOne(e, lt)::sstl)::acc)
+            else if lt = l2 then
+              help (b2::btl) (Block (l1, CJumpOne(not_expr e, lf)::sstl)::acc)
+            else
+              let new_cjump = CJumpOne (e, lt) in
+              let new_jump = Jump (Name lf) in
+              help (b2::btl) (Block (l1, new_jump::new_cjump::sstl)::acc)
+        | Jump (Name l')::sstl ->
+            if l' = l2
+              then help (b2::btl) (Block (l1, sstl)::acc)
+              else help (b2::btl) (b1::acc)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | _ -> help (b2::btl) (b1::acc)
+    end
+    | [Block(l,ss) as b] -> begin
+        match ss with
+        | CJump (e, lt, lf)::sstl ->
+            let new_cjump = CJumpOne (e, lt) in
+            let new_jump = Jump (Name lf) in
+            help [] ((Block (l, new_jump::new_cjump::sstl))::acc)
+        | _ -> help [] (b::acc)
+    end
     | [] -> List.rev acc
   in
   help blocks []
 
 let block_reorder (stmts: Ir.stmt list) =
   let blocks = connect_blocks (gen_block stmts) in
-  let rec create_graph blocks graph =
-    match blocks with
-    | Block (l1,s1)::Block (l2,s2)::tl ->
-      begin
-        match s1 with
-        | CJump (_, tru, fls)::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [tru; fls])::graph)
-        | Jump (Name l')::_ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l'])::graph)
-        | Jump _ ::_ -> failwith "error -- invalid jump"
-        | _ -> create_graph (Block (l2, s2)::tl) (Node (l1, [l2])::graph)
-      end
-    | Block(l,s)::tl ->
-      begin
-        match s with
-        | CJump (_, tru, fls)::_ -> create_graph tl (Node (l, [tru;fls])::graph)
-        | Jump (Name l')::_ -> create_graph tl (Node (l, [l'])::graph)
-        | Jump _ ::_ -> failwith "error -- invalid jump"
-        | _ -> create_graph tl (Node (l, [])::graph)
-      end
-    | [] -> List.rev graph
-  in
-  let graph = create_graph blocks [] in
-  let rec find_trace graph (Node (l, adj)) acc =
-    match adj with
-    | h1::h2::_ ->
-      begin
-        try
-          if List.exists ~f: (fun e -> e = h2) acc then
-            if List.exists ~f: (fun e -> e = h1) acc then
-              List.rev (l::acc)
-            else
-              let next' = List.find_exn ~f:(fun (Node (l', _)) -> l' = h1) graph in
-              find_trace graph next' (l::acc)
-          else
-            let next = List.find_exn ~f:(fun (Node (l', _)) -> l' = h2) graph in
-            find_trace graph next (l::acc)
-        with Not_found -> List.rev (l::acc)
-      end
-    | hd::_ ->
-      begin
-        try
-          if List.exists ~f: (fun e -> e = hd) acc then
-            List.rev (l::acc)
-          else
-            let next = List.find_exn ~f: (fun (Node (l', _)) -> l' = hd) graph in
-            find_trace graph next (l::acc)
-        with Not_found -> List.rev (l::acc)
-      end
-    | [] -> List.rev (l::acc)
-  in
-  let rec find_seq graph acc =
-    match graph with
-    | [] -> acc |> List.rev |> List.concat
-    | hd::_ ->
-      let trace = find_trace graph hd [] in
-      let remaining_graph = List.filter graph
-          ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace))
-      in
-      find_seq remaining_graph (trace::acc)
-  in
-  let seq = find_seq graph [] in
-  let rec reorder seq acc =
-    match seq with
-    | h1::h2::tl ->
-      begin
-        try
-          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
-          match stmts with
-          | CJump (e, l1, l2)::stmts_tl ->
-            if l2 = h2 then
-              let new_cjump = CJumpOne (e, l1) in
-              reorder (h2::tl) (Block(l, new_cjump::stmts_tl)::acc)
-            else if l1 = h2 then
-              let new_cjump = CJumpOne (not_expr e, l2) in
-              reorder (h2::tl) (Block (l, new_cjump::stmts_tl)::acc)
-            else
-              let new_cjump = CJumpOne (e, l1) in
-              let new_jump = Jump (Name l2) in
-              reorder (h2::tl) (Block (l, new_jump::new_cjump::stmts_tl)::acc)
-          | Jump (Name l')::stmts_tl ->
-            if l' = h2 then
-              reorder (h2::tl) (Block (l, stmts_tl)::acc)
-            else
-              reorder (h2::tl) (b::acc)
-          | Jump _::_ -> failwith "error -- invalid jump"
-          | _ -> reorder (h2::tl) (b::acc)
-        with Not_found -> failwith "error -- label does not exist"
-      end
-    | h1::tl ->
-      begin
-        try
-          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
-          match stmts with
-          | CJump (e, l1, l2)::stmts_tl ->
-            let new_cjump = CJumpOne (e, l1) in
-            let new_jump = Jump (Name l2) in
-            reorder tl ((Block (l, new_jump::new_cjump::stmts_tl))::acc)
-          | _ -> reorder tl (b::acc)
-        with Not_found -> failwith "error -- label does not exist"
-      end
-    | [] -> acc
-  in
-  let rev_reordered_blocks = reorder seq [] in
-  let epilogue_block = Block ("done", []) in
-  let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
-  let final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
-  final
+  let graph = create_graph blocks in
+  let seq = List.concat (find_seq graph) in
+  let get_block l = List.find_exn blocks ~f:(fun (Block(l', _)) -> l' = l) in
+  let blocks = List.map seq ~f:get_block in
+  let tidied = tidy blocks in
+  List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) tidied
 
 (******************************************************************************)
 (* IR-Level Constant Folding                                                  *)

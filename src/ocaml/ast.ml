@@ -345,6 +345,10 @@ module Abbreviate(D: DUMMIES) = struct
   let length e = (dummy_e, Length e)
   let funccall f args = (dummy_e, FuncCall ((raw_id f), args))
 
+  let tint = (dummy_t, TInt)
+  let tbool = (dummy_t, TBool)
+  let tarray t e = (dummy_t, TArray (t, e))
+
   let ( -   ) a b = (dummy_e, BinOp (a, MINUS,    b ))
   let ( *   ) a b = (dummy_e, BinOp (a, STAR,     b ))
   let ( *>> ) a b = (dummy_e, BinOp (a, HIGHMULT, b ))
@@ -361,10 +365,8 @@ module Abbreviate(D: DUMMIES) = struct
   let ( ||  ) a b = (dummy_e, BinOp (a, BAR,      b ))
   let ( ~~  ) a   = (dummy_e, UnOp (UMINUS, a))
   let ( !   ) a   = (dummy_e, UnOp (BANG,   a))
-
-  let tint = (dummy_t, TInt)
-  let tbool = (dummy_t, TBool)
-  let tarray t e = (dummy_t, TArray (t, e))
+  let (:=) = declasgn
+  let (<--) = asgn
 
   let zero  = int 0L
   let one   = int 1L

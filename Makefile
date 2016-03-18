@@ -91,6 +91,16 @@ test: src
     done
 	@echo
 
+.PHONY: ocaml_test
+ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
+	@echo "********************************************************************"
+	@echo "* make ocaml_test                                                  *"
+	@echo "********************************************************************"
+	for t in $(OCAML_TESTS_EXE); do \
+         ./$(BIN)/$$t; \
+    done
+	@echo
+
 .PHONY: publish
 publish: doc
 	@echo "********************************************************************"

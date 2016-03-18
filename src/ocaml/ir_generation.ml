@@ -151,14 +151,14 @@ let rec gen_expr ((t, e): Typecheck.expr) =
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
-    let mov_elt_seq elt (i, seq) =
+    let mov_elt_seq (i, seq) elt =
       let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
       (i + 1, mov_elt :: seq) in
     ESeq (
       Seq (
         Move (loc_tmp, mem_loc) ::
         Move (Mem (loc_tmp, NORMAL), const arr_len) ::
-        (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
+        (List.fold_left ~f:mov_elt_seq ~init:(1, []) elts |> snd)
       ),
       loc_tmp$(1)
     )

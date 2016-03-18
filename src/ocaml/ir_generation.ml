@@ -504,6 +504,9 @@ let create_graph blocks =
 let (===) (Node (l, _)) l' =
   l = l'
 
+let node_label (Node (l, _)) =
+  l
+
 let in_graph graph l =
   List.exists graph ~f:(fun n -> n === l)
 
@@ -529,20 +532,35 @@ let find_trace graph root =
   in
   help graph root []
 
+let valid_seq graph seq =
+  match graph, seq with
+  | [], [] -> true
+  | [], _::_ | _::_, [] -> false
+  | _::_, []::_ -> false
+  | n::ns, (l::ls)::ts ->
+      let graph_labels = List.map graph ~f:node_label in
+      let seq_labels = List.concat seq in
+      node_label n = l &&
+      Util.all_eq graph_labels seq_labels &&
+      not (List.contains_dup seq_labels) &&
+      List.for_all seq ~f:(valid_trace graph)
+
+let find_seq graph =
+  let rec help graph acc =
+    match graph with
+    | [] -> List.rev acc
+    | n::ns ->
+        let trace = find_trace ns n in
+        let not_in_trace l = not (List.mem trace l) in
+        let rest = List.filter graph ~f:(fun (Node(l,_))-> not_in_trace l) in
+        help rest (trace::acc)
+  in
+  help graph []
+
 let block_reorder (stmts: Ir.stmt list) =
   let blocks = connect_blocks (gen_block stmts) in
   let graph = create_graph blocks in
-  let rec find_seq graph acc =
-    match graph with
-    | [] -> acc |> List.rev |> List.concat
-    | hd::_ ->
-      let trace = find_trace graph hd in
-      let remaining_graph = List.filter graph
-          ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace))
-      in
-      find_seq remaining_graph (trace::acc)
-  in
-  let seq = find_seq graph [] in
+  let seq = List.concat (find_seq graph) in
   let rec reorder seq acc =
     match seq with
     | h1::h2::tl ->

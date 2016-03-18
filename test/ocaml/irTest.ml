@@ -792,7 +792,7 @@ module Graphs = struct
     List.find_exn graph ~f:(fun n -> n === l)
 end
 
-let test_good_trace () =
+let test_valid_trace () =
   let open Graphs in
   (* In all graphs, single hop paths are good. *)
   List.iter graphs ~f:(fun g ->
@@ -910,6 +910,50 @@ let test_get_trace () =
   List.iter graphs ~f:(fun g ->
     List.iter all ~f:(fun x ->
       assert_true (valid_trace g (find_trace g (get_node g x)))
+    )
+  )
+
+let test_valid_seq () =
+  let open Graphs in
+
+  (* In all graphs, single hop seqs are good. *)
+  List.iter graphs ~f:(fun g ->
+    let all_seq = List.map ~f:(fun x -> [x]) all in
+    assert_true (valid_seq g all_seq)
+  );
+
+  let goods = [
+    line, [[a];[b;c;d]];
+    line, [[a;b];[c;d]];
+    line, [[a];[b;c;d]];
+    line, [[a;b];[c];[d]];
+    line, [[a];[b;c];[d]];
+    line, [[a];[b];[c;d]];
+  ] in
+  List.iter goods ~f:(fun (g, s) -> assert_true (valid_seq g s));
+
+  let bads = [
+    line, [[b;c;d];[a]];
+    line, [[c;d];[a;b]];
+    line, [[b;c;d];[a]];
+    line, [[c];[d];[a;b]];
+    line, [[b;c];[d];[a]];
+    line, [[b];[c;d];[a]];
+    line, [[];[b;c;d]];
+    line, [[a];[c;d]];
+    line, [[a];[b;d]];
+    line, [[a];[b;c]];
+    line, [[a];[b;c;d;d]];
+    line, [[a;b];[b;c;d]];
+  ] in
+  List.iter bads ~f:(fun (g, s) -> assert_false (valid_seq g s));
+  ()
+
+let test_find_seq () =
+  let open Graphs in
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x ->
+      assert_true (valid_seq g (find_seq g))
     )
   )
 
@@ -1069,8 +1113,10 @@ let main () =
       "test_gen_block"      >:: test_gen_block;
       "test_connect_blocks" >:: test_connect_blocks;
       "test_create_graph"   >:: test_create_graph;
-      "test_good_trace"     >:: test_good_trace;
+      "test_valid_trace"    >:: test_valid_trace;
       "test_get_trace"      >:: test_get_trace;
+      "test_valid_seq"      >:: test_valid_seq;
+      "test_find_seq"       >:: test_find_seq;
       "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 

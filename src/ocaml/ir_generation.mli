@@ -66,6 +66,16 @@ val create_graph : block list -> graph
 val valid_trace : graph -> string list -> bool
 val find_trace : graph -> node -> string list
 
+(* Repeatedly call find_trace and flatten blocks. Each returned list is a
+ * trace. A valid seq is one in which
+ *     - first block in first trace of seq is first block in graph
+ *     - seq partitions graph
+ *     - no duplicate labels
+ *     - all traces are valid
+ *)
+val valid_seq : graph -> string list list -> bool
+val find_seq : graph -> string list list
+
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)

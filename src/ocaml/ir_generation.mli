@@ -23,6 +23,9 @@ val label : int -> string
 val reset_fresh_temp : unit -> unit
 val reset_fresh_label : unit -> unit
 
+(* Mallocs n words *)
+val malloc_word : int -> Ir.expr
+
 (* Xi AST -> IR AST *)
 val gen_expr : Typecheck.expr -> Ir.expr
 (* the control translation for booleans from lecture notes

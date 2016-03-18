@@ -139,10 +139,9 @@ let rec gen_expr ((t, e): Typecheck.expr) =
   | Bool      b              -> if b then Const (1L) else Const (0L)
   (* TODO: supporting more than ASCII chars? *)
   | String    s              ->
-      (* Is this folding in the right direction? *)
-      (* TODO: fix the type to TInt...how??? :lll *)
+      (* TODO: Is this folding in the right direction? *)
       let elms = String.foldi s ~init:[] ~f:(fun i acc c -> (t, Ast.S.Char c)::acc) in
-      gen_expr (t, Array elms)
+      gen_expr (ArrayT IntT, Array elms)
   | Char      c              -> Const (Int64.of_int (Char.to_int c))
   | Array elts               ->
     let arr_len = List.length elts in

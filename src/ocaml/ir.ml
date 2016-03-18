@@ -53,7 +53,7 @@ module Abbreviations = struct
   let call f args = Call (f, args)
   let const n = Const n
   let eseq s e = ESeq (s, e)
-  let mem e = Mem (e, IMMUTABLE)
+  let mem e = Mem (e, NORMAL)
   let name s = Name s
   let temp s = Temp s
 

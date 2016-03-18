@@ -155,30 +155,40 @@ module BlocksEq = struct
 end
 
 
-(**** HELPER FUNCTIONS ***)
+(**** HELPER FUNCTIONS for generating Typecheck exprs ****)
 let int x  = (IntT, Int x)
 let bool b = (BoolT, Bool b)
+let arr t args = (t, Array args)
+let iarr args = arr IntT args
+let barr args = arr BoolT args
+let earr = arr EmptyArray []
 let binop i e1 op e2 : Typecheck.expr = (i, BinOp (e1, op, e2))
 let ibinop e1 op e2 = binop IntT e1 op e2
 let bbinop e1 op e2 = binop BoolT e1 op e2
 let unop i op e : Typecheck.expr = (i, UnOp (op, e))
 let iunop e = unop IntT UMINUS e
 let bunop e = unop BoolT BANG e
+let id x t = (t, Id ((), x))
 
+module Ir_gen = Ir_generation
 
 let test_ir_expr () =
   let open ExprEq in
+  let open Abbreviations in
 
   (* Ir exprs *)
-  let zero = Const 0L in
-  let one  = Const 1L in
-  let two  = Const 2L in
+  let zero = const 0L in
+  let one  = const 1L in
+  let two  = const 2L in
   let tru  = one in
   let fls  = zero in
   let binop00 = BinOp (zero, ADD, zero) in
   let binop12 = BinOp (one, ADD, two) in
   let unopminus x = BinOp (zero, SUB, x) in
   let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
+  let x = temp "x" in
+  let y = temp "y" in
+  let word = const 8L in
 
   (* Typecheck exprs *)
   let zerot = int 0L in
@@ -197,6 +207,11 @@ let test_ir_expr () =
   fls  === gen_expr flst;
 
   (* Id tests *)
+  (* TODO: are there any interesting cases? *)
+  x === gen_expr (id "x" IntT);
+  y === gen_expr (id "y" BoolT);
+
+  x =/= gen_expr (id "y" IntT);
 
   (* BinOp tests *)
   binop00 === gen_expr binop00t;
@@ -217,16 +232,29 @@ let test_ir_expr () =
   unopnot tru    === gen_expr (bunop trut);
   unopnot fls    === gen_expr (bunop flst);
 
-
   (* String and Array tests *)
+  eseq 
+    (seq (
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 1 )) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) zero     ) ::
+      []
+    ))
+    (BinOp (temp "0", ADD, BinOp (one, MUL, word)))
+  ===
+  gen_expr earr;
+
   (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)
 
   (* Array Indexing tests *)
 
   (* Length tests *)
 
+
   (* FuncCall tests *)
 
+  ()
+
+let test_ir_stmt () =
   ()
 
 let test_lower_expr () =
@@ -838,6 +866,7 @@ let test_reorder () =
 let main () =
     "suite" >::: [
       "test_ir_expr"        >:: test_ir_expr;
+      "test_ir_stmt"        >:: test_ir_stmt;
       "test_lower_expr"     >:: test_lower_expr;
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;

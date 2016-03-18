@@ -76,6 +76,10 @@ val find_trace : graph -> node -> string list
 val valid_seq : graph -> string list list -> bool
 val find_seq : graph -> string list list
 
+(* Tidies up the reorderd blocks; see Appel page 172. *)
+val tidy : block list -> block list
+
+(* Full basic block reordering. *)
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)

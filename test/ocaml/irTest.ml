@@ -957,6 +957,104 @@ let test_find_seq () =
     )
   )
 
+let test_tidy () =
+  let open Labels in
+  let open BlocksEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let blocks = [
+  ] in
+  let expected = [
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [exp one];
+  ] in
+  let expected = [
+    block label0 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [exp one; exp two];
+  ] in
+  let expected = [
+    block label0 [exp one; exp two];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [jump (name label1)];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [jump (name label2)];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [jump (name label2)];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label1];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [cjumpone one label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label1 label2];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [cjumpone ((one + one) % two) label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label3];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [jump (name label3); cjumpone one label2];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [return];
+    block label1 [exp one];
+  ] in
+  let expected = [
+    block label0 [return];
+    block label1 [exp one];
+  ] in
+  expected === tidy blocks;
+
+  let blocks = [
+    block label0 [cjump one label2 label3];
+  ] in
+  let expected = [
+    block label0 [jump (name label3); cjumpone one label2];
+  ] in
+  expected === tidy blocks;
+
+  ()
+
 let test_reorder () =
   let open Labels in
   let open BlocksEq in
@@ -1117,6 +1215,7 @@ let main () =
       "test_get_trace"      >:: test_get_trace;
       "test_valid_seq"      >:: test_valid_seq;
       "test_find_seq"       >:: test_find_seq;
+      "test_tidy"           >:: test_tidy;
       "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 

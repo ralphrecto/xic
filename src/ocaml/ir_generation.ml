@@ -557,55 +557,47 @@ let find_seq graph =
   in
   help graph []
 
+let tidy blocks =
+  let rec help blocks acc =
+    match blocks with
+    | (Block(l1,ss1) as b1)::(Block(l2,ss2) as b2)::btl -> begin
+        match ss1 with
+        | CJump (e, lt, lf)::sstl ->
+            if lf = l2 then
+              help (b2::btl) (Block(l1, CJumpOne(e, lt)::sstl)::acc)
+            else if lt = l2 then
+              help (b2::btl) (Block (l1, CJumpOne(not_expr e, lf)::sstl)::acc)
+            else
+              let new_cjump = CJumpOne (e, lt) in
+              let new_jump = Jump (Name lf) in
+              help (b2::btl) (Block (l1, new_jump::new_cjump::sstl)::acc)
+        | Jump (Name l')::sstl ->
+            if l' = l2
+              then help (b2::btl) (Block (l1, sstl)::acc)
+              else help (b2::btl) (b1::acc)
+        | Jump _::_ -> failwith "error -- invalid jump"
+        | _ -> help (b2::btl) (b1::acc)
+    end
+    | [Block(l,ss) as b] -> begin
+        match ss with
+        | CJump (e, lt, lf)::sstl ->
+            let new_cjump = CJumpOne (e, lt) in
+            let new_jump = Jump (Name lf) in
+            help [] ((Block (l, new_jump::new_cjump::sstl))::acc)
+        | _ -> help [] (b::acc)
+    end
+    | [] -> List.rev acc
+  in
+  help blocks []
+
 let block_reorder (stmts: Ir.stmt list) =
   let blocks = connect_blocks (gen_block stmts) in
   let graph = create_graph blocks in
   let seq = List.concat (find_seq graph) in
-  let rec reorder seq acc =
-    match seq with
-    | h1::h2::tl ->
-      begin
-        try
-          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
-          match stmts with
-          | CJump (e, l1, l2)::stmts_tl ->
-            if l2 = h2 then
-              let new_cjump = CJumpOne (e, l1) in
-              reorder (h2::tl) (Block(l, new_cjump::stmts_tl)::acc)
-            else if l1 = h2 then
-              let new_cjump = CJumpOne (not_expr e, l2) in
-              reorder (h2::tl) (Block (l, new_cjump::stmts_tl)::acc)
-            else
-              let new_cjump = CJumpOne (e, l1) in
-              let new_jump = Jump (Name l2) in
-              reorder (h2::tl) (Block (l, new_jump::new_cjump::stmts_tl)::acc)
-          | Jump (Name l')::stmts_tl ->
-            if l' = h2 then
-              reorder (h2::tl) (Block (l, stmts_tl)::acc)
-            else
-              reorder (h2::tl) (b::acc)
-          | Jump _::_ -> failwith "error -- invalid jump"
-          | _ -> reorder (h2::tl) (b::acc)
-        with Not_found -> failwith "error -- label does not exist"
-      end
-    | h1::tl ->
-      begin
-        try
-          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
-          match stmts with
-          | CJump (e, l1, l2)::stmts_tl ->
-            let new_cjump = CJumpOne (e, l1) in
-            let new_jump = Jump (Name l2) in
-            reorder tl ((Block (l, new_jump::new_cjump::stmts_tl))::acc)
-          | _ -> reorder tl (b::acc)
-        with Not_found -> failwith "error -- label does not exist"
-      end
-    | [] -> acc
-  in
-  let rev_reordered_blocks = reorder seq [] in
-  let reordered_blocks = List.rev rev_reordered_blocks in
-  let final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
-  final
+  let get_block l = List.find_exn blocks ~f:(fun (Block(l', _)) -> l' = l) in
+  let blocks = List.map seq ~f:get_block in
+  let tidied = tidy blocks in
+  List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) tidied
 
 (******************************************************************************)
 (* IR-Level Constant Folding                                                  *)

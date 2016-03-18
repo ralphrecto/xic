@@ -481,7 +481,6 @@ let block_reorder (stmts: Ir.stmt list) =
   let blocks = connect_blocks not_connected_blocks [] in
 
   (* sanity check to make sure there aren't duplicate labels *)
-  assert (not (List.contains_dup ~compare: (fun (Block (l1, _)) (Block (l2, _)) -> compare l1 l2) blocks));
 
   let rec create_graph blocks graph =
     match blocks with

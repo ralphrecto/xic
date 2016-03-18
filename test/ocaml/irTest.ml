@@ -144,6 +144,13 @@ module BlocksEq = struct
     "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs)) ^ "\n"
 
   let (===) (a: block list) (b: block list) : unit =
+    let uniq_labels blocks =
+      List.map ~f:(fun (Block (l, _)) -> l) blocks
+      |> List.contains_dup
+      |> not
+    in
+    assert_true (uniq_labels a);
+    assert_true (uniq_labels b);
     assert_equal ~printer:string_of_blocks a b
 end
 

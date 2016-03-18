@@ -460,28 +460,25 @@ let gen_block stmts =
   | None, _ -> (Block (fresh_label (), a)) :: b |> List.rev
   | Some l', _ -> (Block (l', a)) :: b |> List.rev
 
-let block_reorder (stmts: Ir.stmt list) =
-  (* After generating all the blocks, connect_blocks iterates through the blocks again
-     and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block.
-     It also adds a jump to the epilogue to the last block. *)
-  let not_connected_blocks = gen_block stmts in
-  let rec connect_blocks blocks acc =
+let connect_blocks blocks =
+  let rec help blocks acc =
     match blocks with
-    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
+    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl ->
+        help (h2::tl) (h1::acc)
     | Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl ->
         let jump_nextblock = Jump (Name l2) in
         let new_block = Block (l1, jump_nextblock::stmts1) in
-        connect_blocks (h2::tl) (new_block::acc)
-    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
-    | Block (l, stmts)::tl ->
+        help (h2::tl) (new_block::acc)
+    | [Block (l, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
+    | [Block (l, stmts)] ->
         let new_block = Block (l, epilogue_jump::stmts) in
-        connect_blocks tl (new_block::acc)
+        help [] (new_block::acc)
     | [] -> List.rev acc
   in
-  let blocks = connect_blocks not_connected_blocks [] in
+  help blocks []
 
-  (* sanity check to make sure there aren't duplicate labels *)
-
+let block_reorder (stmts: Ir.stmt list) =
+  let blocks = connect_blocks (gen_block stmts) in
   let rec create_graph blocks graph =
     match blocks with
     | Block (l1,s1)::Block (l2,s2)::tl ->

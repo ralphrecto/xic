@@ -583,6 +583,102 @@ let test_gen_block () =
 
   ()
 
+let test_connect_blocks () =
+  let open Labels in
+  let open BlocksEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let blocks = [] in
+  let expected = [] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [exp one]] in
+  let expected = [block label0 [epilogue_jump; exp one]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [exp one; exp two]] in
+  let expected = [block label0 [epilogue_jump; exp one; exp two]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [exp zero; exp one; exp two]] in
+  let expected = [block label0 [epilogue_jump; exp zero; exp one; exp two]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [jump one]] in
+  let expected = [block label0 [jump one]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [cjump one "a" "b"]] in
+  let expected = [block label0 [cjump one "a" "b"]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [block label0 [return]] in
+  let expected = [block label0 [return]] in
+  expected === connect_blocks blocks;
+
+  let blocks = [
+    block label0 [exp one];
+    block label1 [return];
+  ] in
+  let expected = [
+    block label0 [jump (name label1); exp one];
+    block label1 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  let blocks = [
+    block label0 [exp one];
+    block label1 [exp two];
+    block label2 [return];
+  ] in
+  let expected = [
+    block label0 [jump (name label1); exp one];
+    block label1 [jump (name label2); exp two];
+    block label2 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  let blocks = [
+    block label0 [exp zero; exp one; exp two];
+    block label1 [exp two; exp one; exp zero];
+    block label2 [return];
+  ] in
+  let expected = [
+    block label0 [jump (name label1); exp zero; exp one; exp two];
+    block label1 [jump (name label2); exp two; exp one; exp zero];
+    block label2 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  let blocks = [
+    block label0 [exp zero; exp one; exp two];
+    block label1 [exp two; exp one; exp zero];
+  ] in
+  let expected = [
+    block label0 [jump (name label1); exp zero; exp one; exp two];
+    block label1 [epilogue_jump; exp two; exp one; exp zero];
+  ] in
+  expected === connect_blocks blocks;
+
+  let blocks = [
+    block label0 [exp one];
+    block label1 [jump one];
+    block label2 [exp two];
+    block label3 [cjump one "a" "b"];
+    block label4 [return];
+  ] in
+  let expected = [
+    block label0 [jump (name label1); exp one];
+    block label1 [jump one];
+    block label2 [jump (name label3); exp two];
+    block label3 [cjump one "a" "b"];
+    block label4 [return];
+  ] in
+  expected === connect_blocks blocks;
+
+  ()
+
 let test_reorder () =
   let open Labels in
   let open BlocksEq in
@@ -741,11 +837,12 @@ let test_reorder () =
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
-      "test_ir_expr"    >:: test_ir_expr;
-      "test_lower_expr" >:: test_lower_expr;
-      "test_lower_stmt" >:: test_lower_stmt;
-      "test_gen_block"  >:: test_gen_block;
-      "test_reorder"    >:: test_reorder;
+      "test_ir_expr"        >:: test_ir_expr;
+      "test_lower_expr"     >:: test_lower_expr;
+      "test_lower_stmt"     >:: test_lower_stmt;
+      "test_gen_block"      >:: test_gen_block;
+      "test_connect_blocks" >:: test_connect_blocks;
+      "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 
 let _ = main ()

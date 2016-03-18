@@ -47,6 +47,11 @@ val epilogue_jump : Ir.stmt
  *)
 val gen_block : Ir.stmt list -> block list
 
+(* `connect_blocks blocks` iterates through blocks and if a block does not end
+ * with a cjump, jump or a return, then it adds a jump to the next block. It
+ * also adds a jump to the epilogue to the last block. *)
+val connect_blocks : block list -> block list
+
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)

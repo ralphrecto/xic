@@ -149,21 +149,21 @@ public class ParserTest {
     ////////////////////////////////////////////////////////////////////////////
     // Abbreviations
     ////////////////////////////////////////////////////////////////////////////
-    private static AnnotatedId<Position> annotatedId (
+    public static AnnotatedId<Position> annotatedId (
         Id<Position> x,
         Type<Position> t
     ) {
         return AnnotatedId.of(PositionKiller.dummyPosition, x, t);
     }
 
-    private static AnnotatedUnderscore<Position> annotatedUnderscore (
+    public static AnnotatedUnderscore<Position> annotatedUnderscore (
         Underscore<Position> u,
         Type<Position> t
     ) {
         return AnnotatedUnderscore.of(PositionKiller.dummyPosition, u, t);
     }
 
-    private static Func<Position> func (
+    public static Func<Position> func (
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
         List<Type<Position>> returnType,
@@ -172,7 +172,7 @@ public class ParserTest {
         return Func.of(PositionKiller.dummyPosition, name, args, returnType, body);
     }
 
-    private static Proc<Position> proc (
+    public static Proc<Position> proc (
         Id<Position> name,
         List<AnnotatedVar<Position>> args,
         Stmt<Position> body
@@ -180,13 +180,13 @@ public class ParserTest {
         return Proc.of(PositionKiller.dummyPosition, name, args, body);
     }
 
-    private static Id<Position> id (
+    public static Id<Position> id (
         String x
     ) {
         return Id.of(PositionKiller.dummyPosition, x);
     }
 
-    private static BinOp<Position> binOp (
+    public static BinOp<Position> binOp (
         BinOpCode c,
         Expr<Position> lhs,
         Expr<Position> rhs
@@ -194,100 +194,100 @@ public class ParserTest {
         return BinOp.of(PositionKiller.dummyPosition, c, lhs, rhs);
     }
 
-    private static BinOp<Position> plus(Expr<Position> lhs, Expr<Position> rhs) {
+    public static BinOp<Position> plus(Expr<Position> lhs, Expr<Position> rhs) {
         return binOp(BinOpCode.PLUS, lhs, rhs);
     }
 
-    private static BinOp<Position> minus(Expr<Position> lhs, Expr<Position> rhs) {
+    public static BinOp<Position> minus(Expr<Position> lhs, Expr<Position> rhs) {
         return binOp(BinOpCode.MINUS, lhs, rhs);
     }
 
-    private static UnOp<Position> unOp (
+    public static UnOp<Position> unOp (
         UnOpCode c,
         Expr<Position> e
     ) {
         return UnOp.of(PositionKiller.dummyPosition, c, e);
     }
 
-    private static Index<Position> index (
+    public static Index<Position> index (
         Expr<Position> e,
         Expr<Position> index
     ) {
         return Index.of(PositionKiller.dummyPosition, e, index);
     }
 
-    private static Length<Position> length (
+    public static Length<Position> length (
         Expr<Position> e
     ) {
         return Length.of(PositionKiller.dummyPosition, e);
     }
 
-    private static NumLiteral<Position> numLiteral (
+    public static NumLiteral<Position> numLiteral (
         long x
     ) {
         return NumLiteral.of(PositionKiller.dummyPosition, x);
     }
 
-    private static BoolLiteral<Position> boolLiteral (
+    public static BoolLiteral<Position> boolLiteral (
         boolean b
     ) {
         return BoolLiteral.of(PositionKiller.dummyPosition, b);
     }
 
-    private static BoolLiteral<Position> true_ () {
+    public static BoolLiteral<Position> true_ () {
         return boolLiteral(true);
     }
 
-    private static BoolLiteral<Position> false_ () {
+    public static BoolLiteral<Position> false_ () {
         return boolLiteral(false);
     }
 
-    private static StringLiteral<Position> stringLiteral (
+    public static StringLiteral<Position> stringLiteral (
         String s
     ) {
         return StringLiteral.of(PositionKiller.dummyPosition, s);
     }
 
-    private static CharLiteral<Position> charLiteral (
+    public static CharLiteral<Position> charLiteral (
         char c
     ) {
         return CharLiteral.of(PositionKiller.dummyPosition, c);
     }
 
-    private static ArrayLiteral<Position> arrayLiteral (
+    public static ArrayLiteral<Position> arrayLiteral (
         List<Expr<Position>> xs
     ) {
         return ArrayLiteral.of(PositionKiller.dummyPosition, xs);
     }
 
-    private static Program<Position> program (
+    public static Program<Position> program (
         List<Use<Position>> uses,
         List<Callable<Position>> fs
     ) {
         return Program.of(PositionKiller.dummyPosition, uses, fs);
     }
 
-    private static Decl<Position> decl (
+    public static Decl<Position> decl (
         List<Var<Position>> vs
     ) {
         return Decl.of(PositionKiller.dummyPosition, vs);
     }
 
-    private static DeclAsgn<Position> declAsgn (
+    public static DeclAsgn<Position> declAsgn (
         List<Var<Position>> vs,
         Expr<Position> e
     ) {
         return DeclAsgn.of(PositionKiller.dummyPosition, vs, e);
     }
 
-    private static Asgn<Position> asgn (
+    public static Asgn<Position> asgn (
         Expr<Position> indexable,
         Expr<Position> index
     ) {
         return Asgn.of(PositionKiller.dummyPosition, indexable, index);
     }
 
-    private static Block<Position> block (
+    public static Block<Position> block (
         List<Stmt<Position>> ss,
         Optional<List<Expr<Position>>> ret
     ) {
@@ -295,14 +295,14 @@ public class ParserTest {
                 ss, ret, PositionKiller.dummyPosition);
     }
 
-    private static If<Position> if_ (
+    public static If<Position> if_ (
         Expr<Position> b,
         Stmt<Position> body
     ) {
         return If.of(PositionKiller.dummyPosition, b, body);
     }
 
-    private static IfElse<Position> ifElse (
+    public static IfElse<Position> ifElse (
         Expr<Position> b,
         Stmt<Position> thenBody,
         Stmt<Position> elseBody
@@ -310,49 +310,49 @@ public class ParserTest {
         return IfElse.of(PositionKiller.dummyPosition, b, thenBody, elseBody);
     }
 
-    private static While<Position> while_ (
+    public static While<Position> while_ (
         Expr<Position> b,
         Stmt<Position> body
     ) {
         return While.of(PositionKiller.dummyPosition, b, body);
     }
 
-    private static Int<Position> num (
+    public static Int<Position> num (
     ) {
         return Int.of(PositionKiller.dummyPosition);
     }
 
-    private static Bool<Position> bool (
+    public static Bool<Position> bool (
     ) {
         return Bool.of(PositionKiller.dummyPosition);
     }
 
-    private static Array<Position> array (
+    public static Array<Position> array (
         Type<Position> t,
         Optional<Expr<Position>> size
     ) {
         return Array.of(PositionKiller.dummyPosition, t, size);
     }
 
-    private static Use<Position> use (
+    public static Use<Position> use (
         Id<Position> x
     ) {
         return Use.of(PositionKiller.dummyPosition, x);
     }
 
-    private static Underscore<Position> underscore (
+    public static Underscore<Position> underscore (
     ) {
         return Underscore.of(PositionKiller.dummyPosition);
     }
 
-    private static FuncCall<Position> funcCall (
+    public static FuncCall<Position> funcCall (
         Id<Position> f,
         List<Expr<Position>> args
     ) {
         return FuncCall.of(PositionKiller.dummyPosition, f, args);
     }
 
-    private static ProcCall<Position> procCall (
+    public static ProcCall<Position> procCall (
         Id<Position> f,
         List<Expr<Position>> args
     ) {

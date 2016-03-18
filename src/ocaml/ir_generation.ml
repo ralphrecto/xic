@@ -350,22 +350,22 @@ and gen_stmt ((_, s): Typecheck.stmt) =
 
 and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
   let (args, body) =
-		match c with
+    match c with
     | (_, Func (_, args, _, body)) -> (args, body)
     | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
-		| (_, Proc (_, args, ((s, _) as body))) ->
-			let body' = (s, Ast.S.Block [body; (s, Return [])]) in
-			(args, body')
-	in
+    | (_, Proc (_, args, ((s, _) as body))) ->
+      let body' = (s, Ast.S.Block [body; (s, Return [])]) in
+      (args, body')
+  in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
     let seq' =
-			match av with
-			| (_, AId ((_, idstr), t)) ->
-					Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
-			| _ -> seq
-		in
+      match av with
+      | (_, AId ((_, idstr), t)) ->
+          Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+      | _ -> seq
+    in
     (i + 1, seq')
-	in
+  in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
   (format_callable_name c, Seq(moves @ [gen_stmt body]))
 
@@ -435,7 +435,7 @@ and lower_stmt s =
     s'' @ [temp_move] @ dest_s @ [Move(dest', Temp temp)]
   | Seq ss -> List.concat_map ~f:lower_stmt ss
   | Label _
-  | Return ->	[s]
+  | Return -> [s]
   | CJumpOne _ -> failwith "this node shouldn't exist"
 
 
@@ -461,24 +461,24 @@ let gen_block stmts =
   | Some l', _ -> (Block (l', a)) :: b |> List.rev
 
 let block_reorder (stmts: Ir.stmt list) =
-	(* After generating all the blocks, connect_blocks iterates through the blocks again
-		 and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block.
-		 It also adds a jump to the epilogue to the last block. *)
+  (* After generating all the blocks, connect_blocks iterates through the blocks again
+     and if a block does not end with a cjump, jump or a return, then it adds a jump to the next block.
+     It also adds a jump to the epilogue to the last block. *)
   let not_connected_blocks = gen_block stmts in
-	let rec connect_blocks blocks acc =
-		match blocks with
-		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
-		| Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl ->
-				let jump_nextblock = Jump (Name l2) in
-				let new_block = Block (l1, jump_nextblock::stmts1) in
-				connect_blocks (h2::tl) (new_block::acc)
-		| (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
-		| Block (l, stmts)::tl ->
-				let new_block = Block (l, epilogue_jump::stmts) in
-				connect_blocks tl (new_block::acc)
-		| [] -> List.rev acc
-	in
-	let blocks = connect_blocks not_connected_blocks [] in
+  let rec connect_blocks blocks acc =
+    match blocks with
+    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl -> connect_blocks (h2::tl) (h1::acc)
+    | Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl ->
+        let jump_nextblock = Jump (Name l2) in
+        let new_block = Block (l1, jump_nextblock::stmts1) in
+        connect_blocks (h2::tl) (new_block::acc)
+    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::tl -> connect_blocks tl (h1::acc)
+    | Block (l, stmts)::tl ->
+        let new_block = Block (l, epilogue_jump::stmts) in
+        connect_blocks tl (new_block::acc)
+    | [] -> List.rev acc
+  in
+  let blocks = connect_blocks not_connected_blocks [] in
 
   (* sanity check to make sure there aren't duplicate labels *)
   assert (not (List.contains_dup ~compare: (fun (Block (l1, _)) (Block (l2, _)) -> compare l1 l2) blocks));
@@ -501,7 +501,7 @@ let block_reorder (stmts: Ir.stmt list) =
         | Jump _ ::_ -> failwith "error -- invalid jump"
         | _ -> create_graph tl (Node (l, [])::graph)
       end
-    | [] ->	List.rev graph
+    | [] -> List.rev graph
   in
   let graph = create_graph blocks [] in
   let rec find_trace graph (Node (l, adj)) acc =
@@ -530,14 +530,14 @@ let block_reorder (stmts: Ir.stmt list) =
             find_trace graph next (l::acc)
         with Not_found -> List.rev (l::acc)
       end
-    | [] ->	List.rev (l::acc)
+    | [] -> List.rev (l::acc)
   in
   let rec find_seq graph acc =
     match graph with
     | [] -> acc |> List.rev |> List.concat
     | hd::_ ->
       let trace = find_trace graph hd [] in
-      let remaining_graph = List.filter	graph
+      let remaining_graph = List.filter graph
           ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace))
       in
       find_seq remaining_graph (trace::acc)
@@ -548,7 +548,7 @@ let block_reorder (stmts: Ir.stmt list) =
     | h1::h2::tl ->
       begin
         try
-          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks	in
+          let (Block (l, stmts)) as b = List.find_exn ~f: (fun (Block (l, _)) -> l = h1) blocks in
           match stmts with
           | CJump (e, l1, l2)::stmts_tl ->
             if l2 = h2 then
@@ -585,9 +585,9 @@ let block_reorder (stmts: Ir.stmt list) =
     | [] -> acc
   in
   let rev_reordered_blocks = reorder seq [] in
-	let epilogue_block = Block ("done", []) in
-	let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
-  let	final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
+  let epilogue_block = Block ("done", []) in
+  let reordered_blocks = List.rev (epilogue_block :: rev_reordered_blocks) in
+  let final = List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) reordered_blocks in
   final
 
 (******************************************************************************)
@@ -602,7 +602,7 @@ let rec ir_constant_folding e =
   | BinOp (Const i, (ADD|SUB), Const 0L)
   | BinOp (Const i, (MUL|DIV), Const 1L)
   | BinOp (Const 1L, MUL, Const i) -> Const i
-	| BinOp (Const 0L, SUB, Const i) -> Const (neg i)
+  | BinOp (Const 0L, SUB, Const i) -> Const (neg i)
   | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
   | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
   | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)

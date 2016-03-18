@@ -99,7 +99,7 @@ module Sigma = struct
 end
 open Sigma
 
-module Tags = struct
+module T = struct
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
   type c = Expr.t * Expr.t  [@@deriving sexp]
@@ -110,7 +110,21 @@ module Tags = struct
   type e = Expr.t           [@@deriving sexp]
   type t = Expr.t           [@@deriving sexp]
 end
-include Ast.Make(Tags)
+include Ast.Make(T)
+
+module D = struct
+  include T
+  let dummy_p = ()
+  let dummy_u = ()
+  let dummy_c = (EmptyArray, EmptyArray)
+  let dummy_i = ()
+  let dummy_a = EmptyArray
+  let dummy_v = EmptyArray
+  let dummy_s = Zero
+  let dummy_e = EmptyArray
+  let dummy_t = EmptyArray
+end
+module Abbreviations = Ast.Abbreviate(D)
 
 let varsofavar av =
   match av with

@@ -276,8 +276,11 @@ and eval_binop e1 op e2 =
   | Int i1, GT, Int i2 -> Bool ((compare i1 i2) > 0)
   | Int i1, EQEQ, Int i2 -> Bool ((compare i1 i2) = 0)
   | Int i1, NEQ, Int i2 -> Bool ((compare i1 i2) <> 0)
+  | Bool b1, EQEQ, Bool b2 -> Bool (b1 = b2)
+  | Bool b1, NEQ, Bool b2 -> Bool (b1 <> b2)
   | Bool b1, AMP, Bool b2 -> Bool (b1 && b2)
   | Bool b1, BAR, Bool b2 -> Bool (b1 || b2)
+  | Array _, (EQEQ|NEQ), Array _-> failwith "array equality is not supported"
   | _ -> failwith "shouldn't happen -- binop"
 
 and eval_unop op e1 =

@@ -770,6 +770,149 @@ let test_create_graph () =
 
   ()
 
+module Graphs = struct
+  let n (l,ls) = Node (l, ls)
+  let a, b, c, d = "a", "b", "c", "d"
+  let all = [a;b;c;d]
+  let line    = [n(a,[b]);   n(b,[c]);   n(c,[d]); n(d,[])   ]
+  let square  = [n(a,[b]);   n(b,[c]);   n(c,[d]); n(d,[a])  ]
+  let diamond = [n(a,[b;c]); n(b,[d]);   n(c,[d]); n(d,[])   ]
+  let clique  = [n(a,all);   n(b,all);   n(c,all); n(d,all)  ]
+  let pairs   = [n(a,[b]);   n(b,[a]);   n(c,[d]); n(d,[c])  ]
+  let points  = [n(a,[]);    n(b,[]);    n(c,[]);  n(d,[])   ]
+  let weird   = [n(a,[b;c]); n(b,[c;d]); n(c,[d]); n(d,[a;d])]
+  let graphs = [line; square; diamond; clique; pairs; points; weird;]
+
+  let in_graph graph l =
+    let (===) (Node (l, _)) l' = l = l' in
+    List.exists graph ~f:(fun n -> n === l)
+
+  let get_node graph l =
+    let (===) (Node (l, _)) l' = l = l' in
+    List.find_exn graph ~f:(fun n -> n === l)
+end
+
+let test_good_trace () =
+  let open Graphs in
+  (* In all graphs, single hop paths are good. *)
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x -> assert_true (valid_trace g [x]))
+  );
+
+  let goods = [
+    line, [a;b];
+    line, [b;c];
+    line, [c;d];
+    line, [a;b;c];
+    line, [b;c;d];
+    line, [a;b;c;d];
+
+    square, [a;b];
+    square, [b;c];
+    square, [c;d];
+    square, [d;a];
+    square, [a;b;c];
+    square, [b;c;d];
+    square, [c;d;a];
+    square, [d;a;b];
+    square, [a;b;c;d];
+    square, [b;c;d;a];
+    square, [c;d;a;b];
+    square, [d;a;b;c];
+
+    diamond, [a;b];
+    diamond, [a;c];
+    diamond, [a;b;d];
+    diamond, [a;c;d];
+    diamond, [b;d];
+
+    clique, [a;b;c;d];
+    clique, [a;b;d;c];
+    clique, [a;c;b;d];
+    clique, [a;c;d;b];
+    clique, [a;d;b;c];
+    clique, [a;d;c;b];
+    clique, [b;a;c;d];
+    clique, [b;a;d;c];
+    clique, [b;c;a;d];
+    clique, [b;c;d;a];
+    clique, [b;d;a;c];
+    clique, [b;d;c;a];
+    clique, [c;a;b;d];
+    clique, [c;a;d;b];
+    clique, [c;b;a;d];
+    clique, [c;b;d;a];
+    clique, [c;d;a;b];
+    clique, [c;d;b;a];
+    clique, [d;a;b;c];
+    clique, [d;a;c;b];
+    clique, [d;b;a;c];
+    clique, [d;b;c;a];
+    clique, [d;c;a;b];
+    clique, [d;c;b;a];
+
+    pairs, [a;b];
+    pairs, [b;a];
+    pairs, [c;d];
+    pairs, [d;c];
+
+    weird, [a;b];
+    weird, [a;c];
+    weird, [a;b;d];
+    weird, [a;b;c];
+    weird, [a;c;d];
+    weird, [b;d;a];
+    weird, [c;d;a];
+  ] in
+  List.iter goods ~f:(fun (g, t) -> assert_true (valid_trace g t));
+
+  (* In all graphs, empty hop paths are bad. *)
+  List.iter graphs ~f:(fun g -> assert_false (valid_trace g []));
+
+  (* In all graphs, duplicates are bad. *)
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x]));
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x;x]));
+    List.iter all ~f:(fun x -> assert_false (valid_trace g [x;x;x;x]));
+  );
+
+  let bads = [
+    line, [a;c];
+    line, [a;d];
+    line, [b;d];
+    line, [a;c;d];
+    line, [a;b;d];
+    line, [b;a];
+    line, [c;a];
+    line, [d;a];
+
+    line, [a;a;c];
+    line, [a;a;d];
+    line, [a;b;d];
+    line, [a;a;c;d];
+    line, [a;a;b;d];
+    line, [a;b;a];
+    line, [a;c;a];
+    line, [a;d;a];
+
+    square, [a;c];
+    square, [a;d];
+    square, [b;d];
+    square, [a;c;d];
+    square, [a;b;d];
+    square, [b;a];
+    square, [c;a];
+  ] in
+  List.iter bads ~f:(fun (g, t) -> assert_false (valid_trace g t))
+
+let test_get_trace () =
+  let open Graphs in
+  List.iter graphs ~f:(fun g ->
+    List.iter all ~f:(fun x ->
+      assert_true (valid_trace g (find_trace g (get_node g x)))
+    )
+  )
+
 let test_reorder () =
   let open Labels in
   let open BlocksEq in
@@ -926,6 +1069,8 @@ let main () =
       "test_gen_block"      >:: test_gen_block;
       "test_connect_blocks" >:: test_connect_blocks;
       "test_create_graph"   >:: test_create_graph;
+      "test_good_trace"     >:: test_good_trace;
+      "test_get_trace"      >:: test_get_trace;
       "test_reorder"        >:: test_reorder;
     ] |> run_test_tt_main
 

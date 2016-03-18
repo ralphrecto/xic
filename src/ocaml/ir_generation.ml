@@ -501,42 +501,42 @@ let create_graph blocks =
   in
   help blocks []
 
+let (===) (Node (l, _)) l' =
+  l = l'
+
+let in_graph graph l =
+  List.exists graph ~f:(fun n -> n === l)
+
+let get_node graph l =
+  List.find_exn graph ~f:(fun n -> n === l)
+
+let valid_trace graph trace =
+  List.length trace > 0 &&
+  not (List.contains_dup trace) &&
+  List.for_all trace ~f:(in_graph graph) &&
+  List.for_all (Util.pairs trace) ~f:(fun (l1, l2) ->
+    let (Node (_, ls)) = get_node graph l1 in
+    List.mem ls l2
+  )
+
+let find_trace graph root =
+  let rec help graph (Node (l, adj)) acc =
+    let ok l' = l' <> l && in_graph graph l' && not (List.mem acc l') in
+    (* we rev to be compatible with an old version and not break tests. *)
+    match List.rev (List.filter adj ~f:ok) with
+    | [] -> List.rev (l::acc)
+    | l'::_ -> help graph (get_node graph l') (l::acc)
+  in
+  help graph root []
+
 let block_reorder (stmts: Ir.stmt list) =
   let blocks = connect_blocks (gen_block stmts) in
   let graph = create_graph blocks in
-  let rec find_trace graph (Node (l, adj)) acc =
-    match adj with
-    | h1::h2::_ ->
-      begin
-        try
-          if List.exists ~f: (fun e -> e = h2) acc then
-            if List.exists ~f: (fun e -> e = h1) acc then
-              List.rev (l::acc)
-            else
-              let next' = List.find_exn ~f:(fun (Node (l', _)) -> l' = h1) graph in
-              find_trace graph next' (l::acc)
-          else
-            let next = List.find_exn ~f:(fun (Node (l', _)) -> l' = h2) graph in
-            find_trace graph next (l::acc)
-        with Not_found -> List.rev (l::acc)
-      end
-    | hd::_ ->
-      begin
-        try
-          if List.exists ~f: (fun e -> e = hd) acc then
-            List.rev (l::acc)
-          else
-            let next = List.find_exn ~f: (fun (Node (l', _)) -> l' = hd) graph in
-            find_trace graph next (l::acc)
-        with Not_found -> List.rev (l::acc)
-      end
-    | [] -> List.rev (l::acc)
-  in
   let rec find_seq graph acc =
     match graph with
     | [] -> acc |> List.rev |> List.concat
     | hd::_ ->
-      let trace = find_trace graph hd [] in
+      let trace = find_trace graph hd in
       let remaining_graph = List.filter graph
           ~f: (fun (Node (l,_)) -> not (List.exists ~f: (fun e -> e = l) trace))
       in

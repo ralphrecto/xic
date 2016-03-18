@@ -11,3 +11,7 @@ let join =
 let commas =
   String.concat ~sep:","
 
+let pairs xs =
+  match xs with
+  | [] -> []
+  | x::xs' -> List.zip_exn (init xs) (xs')

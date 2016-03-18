@@ -55,6 +55,17 @@ val connect_blocks : block list -> block list
 (* Generates a control flow graph from a list of basic blocks. *)
 val create_graph : block list -> graph
 
+(* Given a graph g and a node n, find and return an arbitrary valid trace through
+ * g rooted at n. A trace l1 ... ln is valid given it satisfies some
+ * properties:
+ *     - n > 1
+ *     - li != lj for all i \neq j
+ *     - l1 -> l2 -> ... -> ln
+ *     - li in g for all i
+ *)
+val valid_trace : graph -> string list -> bool
+val find_trace : graph -> node -> string list
+
 val block_reorder : Ir.stmt list -> block list
 
 (* Constant folding @ IR level *)

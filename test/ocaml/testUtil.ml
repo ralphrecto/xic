@@ -6,3 +6,6 @@ let (===) (x: 'a) (y: 'a) : unit =
 
 let assert_true (b: bool) : unit =
 	b === true
+
+let assert_false (b: bool) : unit =
+	b === false

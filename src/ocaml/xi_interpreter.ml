@@ -7,21 +7,34 @@ open Typecheck
 type id = string
 type value =
   | Int of int64
-  | Bool of bool
-  | String of string
-  | Char of char
   | Array of value list
   | Tuple of value list
 type store = Value of value | Function of (id option) list * stmt
 type context = (store option) String.Map.t
 
+let of_bool (b: bool) : value =
+  if b
+    then Int 1L
+    else Int 0L
+
+let to_bool (i: int64) : bool =
+  match i with
+  | 0L -> false
+  | 1L -> true
+  | _  -> failwith "invalid to_bool argument"
+
+let string_of_values (vs: value list) : string =
+  List.map vs ~f:(function
+    | Int i -> Char.of_int_exn (Int64.to_int_exn i)
+    | Array _
+    | Tuple _ -> failwith "invalid parseInt argument"
+  )
+  |> String.of_char_list
+
 let rec string_of_value (v: value) =
   let sov = string_of_value in
   match v with
   | Int i -> sprintf "%s" (Int64.to_string i)
-  | Bool b -> sprintf "%b" b
-  | String s -> sprintf "\"%s\"" s
-  | Char c -> sprintf "'%c'" c
   | Array vs -> sprintf "{%s}" (Util.commas (List.map ~f:sov vs))
   | Tuple vs -> sprintf "(%s)" (Util.commas (List.map ~f:sov vs))
 
@@ -148,25 +161,25 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
   | If (e1, slist) ->
     begin
       match eval_expr store e1 with
-      | Bool true -> eval_stmt store slist
-      | Bool false -> (store, None)
+      | Int 1L -> eval_stmt store slist
+      | Int 0L -> (store, None)
       | _ -> failwith "shouldn't happen -- if"
     end
   | IfElse (e1, slist1, slist2) ->
     begin
       match eval_expr store e1 with
-      | Bool true -> eval_stmt store slist1
-      | Bool false -> eval_stmt store slist2
+      | Int 1L -> eval_stmt store slist1
+      | Int 0L -> eval_stmt store slist2
       | _ -> failwith "shouldn't happen -- ifelse"
     end
   | While (e1, slist) ->
     let rec helper b (store', ret) =
       match ret, (eval_expr store' b) with
       | Some _, _ -> (store', ret)
-      | None, Bool true ->
+      | None, Int 1L ->
         let updated = eval_stmt store' slist in
         helper b updated
-      | None, Bool false -> (store', ret)
+      | None, Int 0L -> (store', ret)
       | _ -> failwith "shouldn't happen -- while not a boolean"
     in
     helper e1 (store, None)
@@ -186,18 +199,21 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
       | None ->
         let vals = List.map ~f:(eval_expr store) elist in
         match id, vals with
-        | "print", [String s] -> print s; (store, None)
-        | "println", [String s] -> println s; (store, None)
+        | "print", [Array vs] -> print (string_of_values vs); (store, None)
+        | "println", [Array vs] -> println (string_of_values vs); (store, None)
         | _ -> failwith "shouldn't happen -- proccall function not delcared"
     end
 
-and eval_expr (c: context) ((_,e): Typecheck.expr) : value =
+and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
   let open Long in
   match e with
   | Int i -> Int i
-  | Bool b -> Bool b
-  | String s -> String s
-  | Char c -> Char c
+  | Bool false -> Int 0L
+  | Bool true -> Int 1L
+  | String s ->
+      let chars = String.to_list_rev (String.rev s) in
+      Array (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars)
+  | Char c -> Int (Int64.of_int (Char.to_int c))
   | Array l -> Array (List.map ~f:(eval_expr c) l)
   | Id (_, i) ->
     begin
@@ -247,10 +263,10 @@ and eval_expr (c: context) ((_,e): Typecheck.expr) : value =
     | None ->
       let vals = List.map ~f:(eval_expr c) elist in
       match id, vals with
-      | "unparseInt", [Int i] -> String (unparseInt i)
-      | "parseInt", [String s] -> Int (parseInt s)
-      | "readln", [] -> String (readln ())
-      | "getchar", [] -> Char (getchar ())
+      | "unparseInt", [Int i] -> eval_expr c (t, String (unparseInt i))
+      | "parseInt", [Array vs] -> Int (parseInt (string_of_values vs))
+      | "readln", [] -> eval_expr c (t, String (readln ()))
+      | "getchar", [] -> eval_expr c (t, Char (getchar ()))
       | _ -> failwith "shouldn't happen -- funccall function not delcared"
 
 and eval_binop e1 op e2 =
@@ -270,16 +286,15 @@ and eval_binop e1 op e2 =
   | Int i1, DIV, Int i2 -> Int (div i1 i2)
   | Int i1, MOD, Int i2 -> Int (rem i1 i2)
   | Int i1, PLUS, Int i2 -> Int (add i1 i2)
-  | Int i1, LT, Int i2 -> Bool ((compare i1 i2) < 0)
-  | Int i1, LTE, Int i2 -> Bool ((compare i1 i2) <= 0)
-  | Int i1, GTE, Int i2 -> Bool ((compare i1 i2) >= 0)
-  | Int i1, GT, Int i2 -> Bool ((compare i1 i2) > 0)
-  | Int i1, EQEQ, Int i2 -> Bool ((compare i1 i2) = 0)
-  | Int i1, NEQ, Int i2 -> Bool ((compare i1 i2) <> 0)
-  | Bool b1, EQEQ, Bool b2 -> Bool (b1 = b2)
-  | Bool b1, NEQ, Bool b2 -> Bool (b1 <> b2)
-  | Bool b1, AMP, Bool b2 -> Bool (b1 && b2)
-  | Bool b1, BAR, Bool b2 -> Bool (b1 || b2)
+  | Int i1, LT, Int i2 -> of_bool ((compare i1 i2) < 0)
+  | Int i1, LTE, Int i2 -> of_bool ((compare i1 i2) <= 0)
+  | Int i1, GTE, Int i2 -> of_bool ((compare i1 i2) >= 0)
+  | Int i1, GT, Int i2 -> of_bool ((compare i1 i2) > 0)
+  | Int i1, EQEQ, Int i2 -> of_bool ((compare i1 i2) = 0)
+  | Int i1, NEQ, Int i2 -> of_bool ((compare i1 i2) <> 0)
+  | Int i1, AMP, Int i2 -> of_bool (to_bool i1 && to_bool i2)
+  | Int i1, BAR, Int i2 -> of_bool (to_bool i1 || to_bool i2)
+  | Array vs1, PLUS, Array vs2 -> Array (vs1 @ vs2)
   | Array _, (EQEQ|NEQ), Array _-> failwith "array equality is not supported"
   | _ -> failwith "shouldn't happen -- binop"
 
@@ -287,6 +302,6 @@ and eval_unop op e1 =
   let open Long in
   match op, e1 with
   | UMINUS, Int i -> Int (neg i)
-  | BANG, Bool b -> Bool (not b)
+  | BANG, Int i -> Int (Int64.(1L - i))
   | _ -> failwith "shouldn't happen -- unop"
 

@@ -54,73 +54,9 @@ notes. Though, we did implement novel forms of testing. There are no known
 problems with our implementation.
 
 \section{Specification}\label{sec:specification}
-In this section, we make explicit our interpretation of the Xi language
-specification and discuss various language extensions we have implemented.
-
-\subsection{Assignment to Underscore}
-This is one of the released test cases:
-%
-\begin{verbatim}
-main() {
-    _ = 2;
-}
-\end{verbatim}
-%
-The test harness expects us to throw an error saying that a function call was
-expected. We \emph{intentionally} fail this test case and allow this construct.
-We think disallowing this construct is somewhat arbitrary and makes it unclear
-when an underscore is allowed and when it is not. We allow underscores almost
-everywhere you expect a variable declaration.
-
-One may argue that a function call is the only sane thing to have on the right
-hand side of an assignment to underscore because it is the only thing that has
-side effects. However, this is not strictly true. We could nest a function in
-another expression (e.g. \texttt{\_ = 1 + f()}). We may want to run multiple
-functions and disregard all of them like this: \texttt{\_ = \{f(); g(); h()\}}.
-Maybe, we want to check that a function returns an array of at least one
-element: \texttt{\_ = f()[0]}. Maybe we want to crash the program: \texttt{\_ = 1
-/ 0} or \texttt{\_ = \{\}[0]}. We feel there are many reasons why you would want
-to throw away expressions that are not functions.
-
-If you really, really feel strongly about us disallowing this, then open up
-\texttt{typecheck.ml} and grep for \texttt{COMPILERS IS FUN}. Then, uncomment
-out the code that is there; this will disallow non-function call assignments to
-underscore.
-
-\subsection{Annotated Underscore}
-In the same spirit as above, we allow annotated underscores like \texttt{\_:int
-= 1}. This allows a programmer to assert the return types of functions:
-\texttt{\_:int = f(); \_:bool = g()}.
-
-\subsection{Multiple Declarations}
-We allow multiple declarations without assignment (e.g. \texttt{x:int,
-y:bool}). This makes single and multiple declarations more consistent and is
-rather useful to do.
-
-\subsection{Empty Arrays}
-We handle empty arrays pretty liberally. For example, all of the following are
-well-typed according to us.
-\begin{verbatim}
-_:int[] = {}
-_:int[][] = {{}, {1}, {}}
-_:bool[][] = {{}, {true}, {}}
-_:bool[][] = {{}, {true}, {}} + {}
-_:bool[][] = {{}, {true}, {}} + {} + {{}}
-_:bool[][] = length({})
-\end{verbatim}
-One of the few things we disallow is indexing into an empty array literal,
-which is erroneous anyway. We do this by introducing additional production
-rules to our subtype relation to handle empty arrays which we give a special
-type: \texttt{empty}
-\begin{mathpar}
-  \inferrule
-  { }
-  {\texttt{empty} \leq \tau\texttt{[]}}
-
-  \inferrule
-  {\tau_1 \leq \tau_2}
-  {\tau_1\texttt{[]} \leq \tau_2\texttt{[]}}
-\end{mathpar}
+For this project, we have not deviated from the project specification at all.
+We have also not implemented any extensions. The spec clarifications we made in
+previous assignments still stand.
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}

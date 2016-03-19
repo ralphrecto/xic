@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static mjw297.Util.Tuple;
 import static mjw297.Util.Either;
@@ -35,6 +36,15 @@ public class Main {
 
     @Option(name = "--typecheck", usage = "Generate output from syntactic analysis")
     private static boolean typecheckMode = false;
+
+    @Option(name = "--irgen", usage = "Generate intermediate code")
+    private static boolean irGenMode = false;
+
+    @Option(name = "--irrun", usage = "Generate and interpret intermediate code")
+    private static boolean irRunMode = false;
+
+    @Option(name = "-O", usage = "Disable optimizations")
+    private static boolean noOptimize = false;
 
     @Option(name = "-sourcepath", usage = "Specify where to find input source files")
     private static String sourcePath = "";
@@ -141,18 +151,18 @@ public class Main {
                 return String.format(xs.changeExtension(ext));
             } else {
                 return String.format(
-                        "%s/%s.%s",
-                        Files.simplifyPath(parentDir),
-                        nameNoExt,
-                        ext
+                    "%s/%s.%s",
+                    Files.simplifyPath(parentDir),
+                    nameNoExt,
+                    ext
                 );
             }
         } else {
             return String.format(
-                    "%s/%s.%s",
-                    Files.simplifyPath(diagnosticPath),
-                    nameNoExt,
-                    ext
+                "%s/%s.%s",
+                Files.simplifyPath(diagnosticPath),
+                nameNoExt,
+                ext
             );
         }
     }
@@ -186,6 +196,17 @@ public class Main {
         return null;
     }
 
+    private void printError(String kind, String filename, String line, String col, String msg) {
+        System.out.println(String.format(
+            "%s error at %s:%s%s: %s",
+            kind, filename, line, col, msg
+        ));
+    }
+
+    private void printError(String kind, String filename, int line, int col, String msg) {
+        printError(kind, filename, "" + line, "" + col, msg);
+    }
+
     /**
      * Actions for the --lex option
      */
@@ -212,10 +233,9 @@ public class Main {
 
             if (t.fst.exception.isPresent()) {
                 XicException e = t.fst.exception.get();
-                System.out.println(String.format(
-                    "Lexical error at %s beginning at %d:%d: %s",
+                printError("Lexical",
                     t.snd.filename, e.row, e.column, e.getMessage()
-                ));
+                );
                 outputBuilder.append(
                     String.format("%d:%d %s\n", e.row, e.column, e.getMessage())
                 );
@@ -228,12 +248,11 @@ public class Main {
 
     void writeParseError(XicException e, String filename, String outputFilename) {
         String kind = e.type == ErrorType.LEXING ? "Lexical" : "Syntactic";
-        System.out.println(String.format(
-            "%s error in %s beginning at %d:%d: %s",
+        printError(
             kind, filename, e.row, e.column, e.getMessage()
-        ));
+        );
         writeToFile(outputFilename, String.format(
-                "%d:%d %s", e.row, e.column, e.getMessage()
+            "%d:%d %s", e.row, e.column, e.getMessage()
         ));
     }
 
@@ -264,20 +283,22 @@ public class Main {
         System.exit(0);
     }
 
-    public void doTypecheck(List<String> filenames) {
+    private Tuple<List<Tuple<XiSource, XicException>>,List<Tuple<XiSource, FullProgram<Position>>>>
+            fullParse(List<String> filenames) {
+
         List<XiSource> sources = XiSource.createMany(filenames);
 
         List<Tuple<Parsed, XiSource>> parsedList = Lists.transform(sources,
             xs -> Tuple.of(Actions.parse(xs.reader), xs)
         );
 
-        List<Either<FullProgram<Position>, XicException>> finList;
-        finList = Lists.transform(parsedList, (Tuple<Parsed, XiSource> p) -> {
+        List<Tuple<XiSource, Either<FullProgram<Position>, XicException>>> resultList;
+        resultList = Lists.transform(parsedList, (Tuple<Parsed, XiSource> p) -> {
             Parsed parsed = p.fst;
             XiSource source = p.snd;
 
             if (!parsed.prog.isPresent()) {
-                return Either.right(parsed.exception.get());
+                return Tuple.of(source, Either.right(parsed.exception.get()));
             } else {
                 Program<Position> prog = parsed.prog.get();
 
@@ -309,11 +330,140 @@ public class Main {
                     }
                 }
                 if (useError.isPresent()) {
-                    return Either.right(useError.get());
+                    return Tuple.of(source, Either.right(useError.get()));
                 } else {
-                    return Either.left(FullProgram.of(prog.a, prog, interfaces));
+                    return Tuple.of(
+                        source,
+                        Either.left(FullProgram.of(prog.a, prog, interfaces))
+                    );
                 }
             }
+        });
+
+        List<Tuple<XiSource, XicException>> errors =
+            resultList.stream()
+                .filter(t -> t.snd.isRight())
+                .map(t -> Tuple.of(t.fst, t.snd.getRight()))
+                .collect(Collectors.toList());
+
+        List<Tuple<XiSource, FullProgram<Position>>> programs =
+            resultList.stream()
+                .filter(t -> t.snd.isLeft())
+                .map(t -> Tuple.of(t.fst, t.snd.getLeft()))
+                .collect(Collectors.toList());
+
+        return Tuple.of(errors, programs);
+    }
+
+    /* binArgs are additional options to pass to the OCaml binary
+     *  returns List<Tuple<source, stdout>> */
+    public List<Tuple<XiSource, String>> callOCaml(List<String> filenames, List<String> binArgs) {
+        Tuple<List<Tuple<XiSource, XicException>>,List<Tuple<XiSource, FullProgram<Position>>>>
+            fullyParsed = fullParse(filenames);
+
+        List<Tuple<XiSource, XicException>> errors = fullyParsed.fst;
+        errors.forEach(t -> {
+            writeParseError(t.snd, t.fst.filename, diagPathOut(t.fst, "typed"));
+        });
+
+        List<Tuple<XiSource, FullProgram<Position>>> programs = fullyParsed.snd;
+        List<String> sexps = Lists.transform(programs, t -> {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
+            sexpOut.visit(t.snd);
+            sexpOut.flush();
+            return baos.toString();
+        });
+        List<String> args = new ArrayList<>();
+        args.add("./bin/main.byte");
+        args.addAll(binArgs);
+        args.addAll(sexps);
+
+        ProcessBuilder pb = new ProcessBuilder(args)
+            .directory(Paths.get(compilerPath).toFile());
+        Process proc = null;
+
+        try {
+            proc = pb.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        BufferedReader stdErr = new BufferedReader(
+            new InputStreamReader(proc.getErrorStream())
+        );
+        List<String> stdErrors = stdErr.lines().collect(Collectors.toList());
+        errors.forEach(System.out::println);
+        if (stdErrors.size() > 0) System.exit(1);
+
+        BufferedReader stdOut = new BufferedReader(
+            new InputStreamReader(proc.getInputStream())
+        );
+        return Util.zip(
+            Lists.transform(programs, t -> t.fst),
+            stdOut.lines().collect(Collectors.toList())
+        );
+    }
+
+    private String doError(String stdOut, String filename) {
+        // [1] == row, [2] == col, [3] == msg
+        String[] errOut = stdOut.split(":::");
+        printError("Semantic",
+            filename, errOut[1], errOut[2], errOut[3]
+        );
+        return String.format(
+            "%s:%s error:%s", errOut[1], errOut[2], errOut[3]
+        );
+    }
+
+    void doTypecheck(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--typecheck");
+        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
+
+        stdOuts.forEach(t -> {
+            String fileOut = null;
+            if (t.snd.startsWith("ERROR")) {
+                fileOut = doError(t.snd, t.fst.filename);
+            } else {
+                fileOut = t.snd;
+            }
+
+            writeToFile(diagPathOut(t.fst, "typed"), fileOut);
+        });
+
+        System.exit(0);
+    }
+
+    void doIRGen(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+        binArgs.add("--lower");
+        binArgs.add("--blkreorder");
+        if (!noOptimize) {
+            binArgs.add("--ast-cfold");
+            binArgs.add("--ir-cfold");
+        }
+        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
+
+        stdOuts.forEach(t -> {
+            String fileOut = null;
+            if (t.snd.startsWith("ERROR")) {
+                fileOut = doError(t.snd, t.fst.filename);
+            } else {
+                fileOut = t.snd;
+            }
+
+            String parentDir = t.fst.file.getParent();
+            String outputFilename = parentDir == null ?
+                t.fst.changeExtension("ir") :
+                String.format("%s/%s.%s",
+                    Files.simplifyPath(parentDir),
+                    Files.getNameWithoutExtension(t.fst.filename),
+                    "ir"
+                );
+            writeToFile(outputFilename, fileOut);
         });
 
         System.exit(0);

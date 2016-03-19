@@ -11,11 +11,15 @@ open Xi_interpreter
 
 type flags = {
   typecheck:  bool;           (* --typecheck  *)
+  xirun: bool;               (* --xi-run     *)
   irgen:  bool;               (* --irgen      *)
-  optimize: bool;             (* --optimize   *)
+  ast_cfold: bool;            (* --ast-cfold  *)
+  ir_cfold: bool;             (* --ir-cfold   *)
+  lower: bool;                (* --lower      *)
+  blkreorder: bool;           (* --blkreorder *)
 } [@@deriving sexp]
 
-let flatmap ~f =
+let resmap ~f =
   List.map ~f:(function
     | Ok x -> Ok (f x)
     | Error e-> Error e)
@@ -26,7 +30,7 @@ let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
 let format_err_msg ((row, col), msg) =
   let row_s = string_of_int row in
   let col_s = string_of_int col in
-  row_s ^ ":" ^ col_s ^ " error:" ^ msg
+  "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
 let main flags asts () : unit Deferred.t =
   let typechecked = asts
@@ -41,18 +45,28 @@ let main flags asts () : unit Deferred.t =
         | Error e -> format_err_msg e)
       |> List.iter ~f:print_endline
       |> return
+  else if flags.xirun then
+    typechecked
+      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
+      |> resmap ~f:(eval_prog String.Map.empty)
+      |> resmap ~f:get_main_val
+      |> resmap ~f:(function Some v -> string_of_value v | None -> "no return")
+      |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
+      |> List.iter ~f:print_endline
+      |> return
   else if flags.irgen then
     typechecked
-      |> flatmap ~f:(do_if flags.optimize ast_constant_folding)
-      |> flatmap ~f:gen_comp_unit
-      |> flatmap ~f:(do_if flags.optimize ir_constant_folding)
-      |> flatmap ~f:lower_comp_unit
-      |> flatmap ~f:block_reorder_comp_unit
-      |> flatmap ~f:sexp_of_comp_unit
+      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
+      |> resmap ~f:gen_comp_unit
+      |> do_if flags.ir_cfold (resmap ~f:ir_constant_folding)
+      |> do_if flags.lower (resmap ~f:lower_comp_unit)
+      |> do_if flags.lower (resmap ~f:block_reorder_comp_unit)
+      |> resmap ~f:sexp_of_comp_unit
       |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
       |> List.iter ~f:print_endline
       |> return
   else return ()
+
 
 let () =
   Command.async
@@ -60,15 +74,23 @@ let () =
     Command.Spec.(
       empty
       +> flag "--typecheck" (optional_with_default true bool) ~doc:""
+      +> flag "--xirun" (optional_with_default false bool) ~doc:""
       +> flag "--irgen" (optional_with_default false bool) ~doc:""
-      +> flag "--optimize" (optional_with_default false bool) ~doc:""
+      +> flag "--ast-cfold" (optional_with_default false bool) ~doc:""
+      +> flag "--ir-cfold" (optional_with_default false bool) ~doc:""
+      +> flag "--lower-cfold" (optional_with_default false bool) ~doc:""
+      +> flag "--blkreorder" (optional_with_default false bool) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun t i o asts ->
+    (fun tc xir irg afold ifold l b asts ->
        let flags = {
-         typecheck = t;
-         irgen = i;
-         optimize = o;
+         typecheck = tc;
+         xirun = xir;
+         irgen = irg;
+         ast_cfold = afold;
+         ir_cfold = ifold; 
+         lower = l; 
+         blkreorder = b; 
        } in
        main flags asts)
   |> Command.run

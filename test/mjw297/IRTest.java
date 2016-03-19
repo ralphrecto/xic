@@ -1,41 +1,74 @@
 package mjw297;
 
+import com.google.common.collect.Lists;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
+import junit.framework.Assert;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import edu.cornell.cs.cs4120.xic.ir.*;
+
+import mjw297.Util.Tuple;
 
 /**
  * Created by ralphrecto on 3/16/16.
  */
 public class IRTest {
 
+    private final List<String> testFileNames = new ArrayList<>();
+
+    /* t -> JSexpOut sexp of FullProgram, where t\in testFileNames */
+    private final Map<String, String> testFileNametoProg = new HashMap<>();
+
+    /* t -> CompUnits generated from first IR gen pass */
+    private final Map<String, IRCompUnit> irGenProgs = new HashMap<>();
+
+    private final String baseTestDir = "examples/tests";
     Process irGen;
 
     public IRTest() {
+        /* Add test file names */
+        testFileNames.add("binopTests");
 
-        String xiProg = "test() : int { return 5; }";
-        Actions.Parsed parsed = Actions.parse(new StringReader(xiProg));
-        Ast.Program<Position> p = parsed.prog.get();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
-        sexpOut.visit(Ast.FullProgram.of(p.a, p, new ArrayList<>()));
-        sexpOut.flush();
+        testFileNames.forEach(fn -> {
+            File f = Paths.get(baseTestDir, fn + ".xi").toFile();
+            Parser p = null;
+            Ast.Program<Position> prog = null;
+            try {
+                Actions.Parsed parsed = Actions.parse(new FileReader(f));
+                if (!parsed.prog.isPresent()) {
+                    throw new Exception("Test file loading failure.");
+                } else {
+                    prog = parsed.prog.get();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
 
-        System.out.println(baos.toString());
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
+            sexpOut.visit(Ast.FullProgram.of(prog.a, prog, new ArrayList<>()));
+            sexpOut.flush();
 
-        String workingDir = System.getProperty("user.dir");
-        ProcessBuilder pb = new ProcessBuilder(
-                "./bin/irGenTest.byte",
-                baos.toString()
-        ).directory(Paths.get(workingDir).toFile());
+            testFileNametoProg.put(fn, baos.toString());
+        });
+
+
+        List<String> args = new ArrayList<>();
+        args.add("./bin/irGenTest.byte");
+        args.addAll(testFileNametoProg.values());
+        ProcessBuilder pb = new ProcessBuilder(args)
+            .directory(
+                Paths.get(System.getProperty("user.dir")).toFile()
+            );
 
         try {
             irGen = pb.start();
@@ -44,40 +77,42 @@ public class IRTest {
             System.exit(1);
         }
 
-        InputStream is = irGen.getInputStream();
-        InputStream os = irGen.getErrorStream();
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(is)
+        BufferedReader brStdOut = new BufferedReader(
+            new InputStreamReader(irGen.getInputStream())
         );
-        BufferedReader brOs = new BufferedReader(
-                new InputStreamReader(os)
+        BufferedReader brStdErr = new BufferedReader(
+            new InputStreamReader(irGen.getErrorStream())
         );
 
-        List<String> errors = brOs.lines().collect(Collectors.toList());
+        List<String> errors = brStdErr.lines().collect(Collectors.toList());
         errors.forEach(o -> System.out.println(o));
 
         if (errors.size() > 0) {
             System.exit(1);
         }
 
-        List<String> outputs = br.lines().collect(Collectors.toList());
-        for (String o : outputs) {
-            System.out.println(o);
-            IRParser parser = new IRParser(new IRLexer(new StringReader(o)));
-            IRCompUnit compUnit = null;
+        Util.zip(testFileNames, brStdOut.lines().collect(Collectors.toList())).forEach(t -> {
+            String testFileName = t.fst;
+            String genIr = t.snd;
+
+            IRParser p = new IRParser(new IRLexer(new StringReader(genIr)));
             try {
-                compUnit = parser.parse().value();
+                irGenProgs.put(testFileName, (IRCompUnit) p.parse().value());
             } catch (Exception e) {
                 e.printStackTrace();
+                System.exit(1);
             }
-            IRSimulator sim = new IRSimulator(compUnit);
-            System.out.println("result: " + sim.call("test"));
-        }
+        });
+    }
+
+    void longAssertTest(String filename, String testName, long expected) {
+        IRSimulator sim = new IRSimulator(irGenProgs.get(filename));
+        assertEquals(sim.call(testName), expected);
     }
 
     @Test
-    public void testyTest() {
-        assert(true);
+    public void binopTest1() {
+        longAssertTest("binopTests", "binopTest1", 10l);
     }
 }
 

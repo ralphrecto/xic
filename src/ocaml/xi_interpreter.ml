@@ -146,7 +146,10 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
         (store', None)
       | _ -> failwith "shouldn't happen - asgn left is not a var"
     end
-  | Block slist -> eval_stmts store slist
+  | Block slist ->
+      let (store', v) = eval_stmts store slist in
+      let store'' = String.Map.(filteri store' ~f:(fun ~key ~data -> mem store key)) in
+      (store'', v)
   | Return elist ->
     begin
       match elist with
@@ -192,7 +195,9 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
           match (List.zip params vals) with
           | Some l ->
             let store' = bind_ids_vals store l in
-            eval_stmt store' body
+            let (_, v) = eval_stmt store' body in
+            assert (v = None);
+            (store, None)
           | None -> failwith "shouldn't happen -- proccall params and args don't match"
         end
       | Some _ -> failwith "shouldn't happen -- proccall not a function"

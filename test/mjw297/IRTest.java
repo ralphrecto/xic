@@ -44,11 +44,12 @@ public class IRTest {
             try {
                 Actions.Parsed parsed = Actions.parse(new FileReader(f));
                 if (!parsed.prog.isPresent()) {
-                    throw new Exception("Test file loading failure.");
+                    throw parsed.exception.get();
                 } else {
                     prog = parsed.prog.get();
                 }
             } catch (Exception e) {
+                System.out.println(e.getMessage());
                 e.printStackTrace();
                 System.exit(1);
             }
@@ -107,12 +108,37 @@ public class IRTest {
 
     void longAssertTest(String filename, String testName, long expected) {
         IRSimulator sim = new IRSimulator(irGenProgs.get(filename));
-        assertEquals(sim.call(testName), expected);
+        assertEquals(expected, sim.call(testName));
     }
 
     @Test
-    public void binopTest1() {
-        longAssertTest("binopTests", "binopTest1", 10l);
+    public void basicBinopTest1() {
+        longAssertTest("binopTests", "basicBinopTest1", 10l);
+    }
+
+    @Test
+    public void basicBinopTest2() {
+        longAssertTest("binopTests", "basicBinopTest2", 10l);
+    }
+
+    @Test
+    public void basicBinopTest3() {
+        longAssertTest("binopTests", "basicBinopTest3", 25l);
+    }
+
+    @Test
+    public void basicBinopTest4() {
+        longAssertTest("binopTests", "basicBinopTest4", 4l);
+    }
+
+    @Test
+    public void basicBinopTest5() {
+        longAssertTest("binopTests", "basicBinopTest5", 30l);
+    }
+
+    @Test
+    public void basicBinopTest6() {
+        longAssertTest("binopTests", "basicBinopTest6", 30l);
     }
 }
 

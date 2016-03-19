@@ -412,7 +412,6 @@ let test_ir_expr () =
 
   (* Length tests *)
 
-
   (* FuncCall tests *)
 
   ()

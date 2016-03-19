@@ -302,7 +302,6 @@ public class Main {
             XiSource source = p.snd;
 
             if (!parsed.prog.isPresent()) {
-                System.out.println(parsed.exception.get());
                 return Tuple.of(source, Either.right(parsed.exception.get()));
             } else {
                 Program<Position> prog = parsed.prog.get();
@@ -433,7 +432,6 @@ public class Main {
             if (t.snd.startsWith("ERROR")) {
                 fileOut = doError(t.snd, t.fst.filename);
             } else {
-                System.out.println(t.snd);
                 fileOut = t.snd;
             }
 

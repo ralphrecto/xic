@@ -211,6 +211,22 @@ let test_eval_stmt () =
   (empty, Some (Int 1L)) === eval_stmt empty (while_ tru (block [return [one]]));
   (empty, None) === eval_stmt empty (while_ fls (block [return [one]]));
 
+	(* if in while *)
+	(empty, Some (Int 1L)) === eval_stmt empty (block [while_ tru (block [if_ tru (return [one])]); return [two]]);
+	(empty, Some (Int 1L)) === eval_stmt empty (block [while_ tru 
+																											(block [ifelse tru (return [one]) (return [three])]); 
+																										return [two]]);
+	(empty, Some (Int 3L)) === eval_stmt empty (block [while_ tru 
+																											(block [ifelse fls (return [one]) (return [three])]); 
+																										return [two]]);
+	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls 
+																											(block [ifelse fls (return [one]) (return [three])]); 
+																										return [two]]);
+	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls 
+																											(block [ifelse tru (return [one]) (return [three])]); 
+																										return [two]]);
+
+
   (* proc calls *)
   let c = funcs [
     "f1", [], block [];

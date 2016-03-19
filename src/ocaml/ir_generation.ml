@@ -142,7 +142,7 @@ let rec gen_expr ((t, e): Typecheck.expr) =
   | Bool      b              -> if b then Const (1L) else Const (0L)
   (* TODO: supporting more than ASCII chars? *)
   | String    s              ->
-      let elms = String.foldi s ~init:[] ~f:(fun i acc c -> (t, Ast.S.Char c)::acc) in
+      let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
       gen_expr (ArrayT IntT, Array (List.rev elms))
   | Char      c              -> Const (Int64.of_int (Char.to_int c))
   | Array elts               ->
@@ -329,7 +329,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | DeclAsgn ([(_,v)], exp) -> 
 		begin
       match v with
-      | AVar (_, AId (var_id, t)) ->
+      | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
         Move (Temp (id_to_temp var_id'), gen_expr exp)
       | _ -> Seq []
@@ -352,7 +352,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
-  | Asgn ((lhs_typ, lhs), fullrhs) -> 
+  | Asgn ((_, lhs), fullrhs) -> 
 		begin
       match lhs with
       | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
@@ -419,7 +419,7 @@ and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
   let arg_mov (i, seq) (av: Typecheck.avar)  =
     let seq' =
       match av with
-      | (_, AId ((_, idstr), t)) ->
+      | (_, AId ((_, idstr), _)) ->
           Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
       | _ -> seq
     in
@@ -520,13 +520,13 @@ let gen_block stmts =
 let connect_blocks blocks =
   let rec help blocks acc =
     match blocks with
-    | (Block (l, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl ->
+    | (Block (_, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl ->
         help (h2::tl) (h1::acc)
-    | Block (l1, stmts1)::(Block (l2, stmts2) as h2)::tl ->
+    | Block (l1, stmts1)::(Block (l2, _) as h2)::tl ->
         let jump_nextblock = Jump (Name l2) in
         let new_block = Block (l1, jump_nextblock::stmts1) in
         help (h2::tl) (new_block::acc)
-    | [Block (l, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
+    | [Block (_, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
     | [Block (l, stmts)] ->
         let new_block = Block (l, Return::stmts) in
         help [] (new_block::acc)
@@ -593,7 +593,7 @@ let valid_seq graph seq =
   | [], [] -> true
   | [], _::_ | _::_, [] -> false
   | _::_, []::_ -> false
-  | n::ns, (l::ls)::ts ->
+  | n::_, (l::_)::_ ->
       let graph_labels = List.map graph ~f:node_label in
       let seq_labels = List.concat seq in
       node_label n = l &&
@@ -616,7 +616,7 @@ let find_seq graph =
 let tidy blocks =
   let rec help blocks acc =
     match blocks with
-    | (Block(l1,ss1) as b1)::(Block(l2,ss2) as b2)::btl -> begin
+    | (Block(l1,ss1) as b1)::(Block(l2,_) as b2)::btl -> begin
         match ss1 with
         | CJump (e, lt, lf)::sstl ->
             if lf = l2 then

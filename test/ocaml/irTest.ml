@@ -174,7 +174,7 @@ let unop i op e : Typecheck.expr = (i, UnOp (op, e))
 let iunop e = unop IntT UMINUS e
 let bunop e = unop BoolT BANG e
 let id x t = (t, Id ((), x))
-let to_code c = Const (Int64.of_int (Char.to_int c))
+let code c = Const (Int64.of_int (Char.to_int c))
 
 module Ir_gen = Ir_generation
 
@@ -255,8 +255,8 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) one              ) ::
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )      ) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) one                    ) ::
       (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
       []
     ))
@@ -267,10 +267,10 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) two              ) ::
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )          ) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) two                        ) ::
       (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero     ) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
@@ -317,16 +317,16 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                   ) ::
-      (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                         ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (to_code '3')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (to_code '<')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (to_code 'l')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code 'm')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code 'a')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code 'C')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (to_code 'O')) ::
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                  ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                        ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (code '3')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (code '<')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (code 'l')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code 'm')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code 'a')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code 'C')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code 'O')) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
@@ -336,12 +336,12 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                   ) ::
-      (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                         ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) (to_code ' ')) ::
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                  ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                        ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code ' ')) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))

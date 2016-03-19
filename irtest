@@ -11,13 +11,31 @@ main() {
         nonce=TEMP
         dname=$(dirname $f)
         fname=$(basename $f)
+        noext=$(basename $f .xi)
         pervasive_file="$dname/pervasives.xi"
 
-        # don't do anything for remnant dummy programs
+        # don't do anything for temp files
         if [[ "$fname" != "$nonce"* ]]; then
             cat "$pervasive_file" "$f" > "$dname/$nonce-$fname"
-            # run stuff
-            # diff stuff
+
+            outputfiles[0]="$dname/$noext.nothing-out"
+            outputfiles[1]="$dname/$noext.astfolded-out"
+            outputfiles[2]="$dname/$noext.rawir-out"
+            outputfiles[3]="$dname/$noext.irfolded-out"
+            outputfiles[4]="$dname/$noext.lowered-out"
+            outputfiles[5]="$dname/$noext.ir-out"
+
+            # TODO: run stuff
+
+            for ((i = 0; i < ${#outputfiles[*]}; i++)); do
+                for ((j = i+1; j < ${#outputfiles[*]}; j++)); do
+                    filea="${outputfiles[$i]}"
+                    fileb="${outputfiles[$j]}"
+                    if ! diff "$filea" "$fileb" > /dev/null; then
+                        echo "$filea and $fileb" differ
+                    fi
+                done
+            done
         fi
     done
 }

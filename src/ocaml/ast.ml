@@ -242,3 +242,139 @@ module Make(T: TAGS) = struct
   type expr          = (      i,      e  ) S.expr          [@@deriving sexp]
   type typ           = (      i,      e,t) S.typ           [@@deriving sexp]
 end
+
+(* Often times, you want to construct an AST term without really caring about
+ * the values that it's tagged with. For example, we sometimes construct a
+ * Pos.expr without caring what the position of the expression is. The DUMMIES
+ * module type and Abbreviate functor generate helper functions to construct
+ * AST terms with dummy tags. Use it like this:
+ *
+ *     module T = struct
+ *       type p = int   [@@deriving sexp]
+ *       type u = bool  [@@deriving sexp]
+ *       type c = unit  [@@deriving sexp]
+ *       type i = float [@@deriving sexp]
+ *       type a = char  [@@deriving sexp]
+ *       type v = int   [@@deriving sexp]
+ *       type s = int   [@@deriving sexp]
+ *       type e = int   [@@deriving sexp]
+ *       type t = int   [@@deriving sexp]
+ *     end
+ *     include Ast.Make(T)
+ *
+ *     module D = struct
+ *       include T
+ *       include T
+ *       let dummy_p = 0
+ *       let dummy_u = false
+ *       let dummy_c = ()
+ *       let dummy_i = 0.0
+ *       let dummy_a = 'a'
+ *       let dummy_v = 0
+ *       let dummy_s = 0
+ *       let dummy_e = 0
+ *       let dummy_t = 0
+ *     end
+ *     module Abbreviations = Ast.Abbreviate(D)
+ *
+ * Then you can build dummy terms like Abbreviations.(one + two - three)
+ *)
+module type DUMMIES = sig
+  type p [@@deriving sexp]
+  type u [@@deriving sexp]
+  type c [@@deriving sexp]
+  type i [@@deriving sexp]
+  type a [@@deriving sexp]
+  type v [@@deriving sexp]
+  type s [@@deriving sexp]
+  type e [@@deriving sexp]
+  type t [@@deriving sexp]
+
+  val dummy_p: p
+  val dummy_u: u
+  val dummy_c: c
+  val dummy_i: i
+  val dummy_a: a
+  val dummy_v: v
+  val dummy_s: s
+  val dummy_e: e
+  val dummy_t: t
+end
+
+module Abbreviate(D: DUMMIES) = struct
+  open S
+  open D
+  let raw_id i = (dummy_i, i)
+
+  let fullprog prog ilist = FullProg (prog, ilist)
+
+  let prog uses calls = (dummy_p, Prog (uses, calls))
+  let interface dlist = (dummy_p, Interface dlist)
+
+  let funcdecl f args typs = (dummy_c, FuncDecl ((raw_id f), args, typs))
+  let procdecl f args = (dummy_c, ProcDecl ((raw_id f), args))
+
+  let use x = (dummy_u, Use (raw_id x))
+
+  let func f args typs s = (dummy_c, Func ((raw_id f), args, typs, s))
+  let proc f args s = (dummy_c, Proc ((raw_id f), args, s))
+
+  let aid x t = (dummy_a, AId ((raw_id x), t))
+  let aunderscore t = (dummy_a, AUnderscore t)
+
+  let avar a = (dummy_v, AVar a)
+  let underscore = (dummy_v, Underscore)
+
+  let decl vs = (dummy_s, Decl vs)
+  let declasgn vs es = (dummy_s, DeclAsgn (vs, es))
+  let asgn lhs rhs = (dummy_s, Asgn (lhs, rhs))
+  let block ss = (dummy_s, Block ss)
+  let return es = (dummy_s, Return es)
+  let if_ e t = (dummy_s, If (e, t))
+  let ifelse e t f = (dummy_s, IfElse (e, t, f))
+  let while_ e s = (dummy_s, While (e, s))
+  let proccall f args = (dummy_s, ProcCall ((raw_id f), args))
+
+  let int i = (dummy_e, Int i)
+  let bool b = (dummy_e, Bool b)
+  let string s = (dummy_e, String s)
+  let char c = (dummy_e, Char c)
+  let arr es = (dummy_e, Array es)
+  let id x = (dummy_e, Id (raw_id x))
+  let index a i = (dummy_e, Index (a, i))
+  let length e = (dummy_e, Length e)
+  let funccall f args = (dummy_e, FuncCall ((raw_id f), args))
+
+  let tint = (dummy_t, TInt)
+  let tbool = (dummy_t, TBool)
+  let tarray t e = (dummy_t, TArray (t, e))
+
+  let ( -   ) a b = (dummy_e, BinOp (a, MINUS,    b ))
+  let ( *   ) a b = (dummy_e, BinOp (a, STAR,     b ))
+  let ( *>> ) a b = (dummy_e, BinOp (a, HIGHMULT, b ))
+  let ( /   ) a b = (dummy_e, BinOp (a, DIV,      b ))
+  let ( %   ) a b = (dummy_e, BinOp (a, MOD,      b ))
+  let ( +   ) a b = (dummy_e, BinOp (a, PLUS,     b ))
+  let ( <   ) a b = (dummy_e, BinOp (a, LT,       b ))
+  let ( <=  ) a b = (dummy_e, BinOp (a, LTE,      b ))
+  let ( >=  ) a b = (dummy_e, BinOp (a, GTE,      b ))
+  let ( >   ) a b = (dummy_e, BinOp (a, GT,       b ))
+  let ( ==  ) a b = (dummy_e, BinOp (a, EQEQ,     b ))
+  let ( !=  ) a b = (dummy_e, BinOp (a, NEQ,      b ))
+  let ( &   ) a b = (dummy_e, BinOp (a, AMP,      b ))
+  let ( ||  ) a b = (dummy_e, BinOp (a, BAR,      b ))
+  let ( ~~  ) a   = (dummy_e, UnOp (UMINUS, a))
+  let ( !   ) a   = (dummy_e, UnOp (BANG,   a))
+  let (:=) = declasgn
+  let (<--) = asgn
+
+  let zero  = int 0L
+  let one   = int 1L
+  let two   = int 2L
+  let three = int 3L
+  let four  = int 4L
+  let five  = int 5L
+
+  let tru = bool true
+  let fls = bool false
+end

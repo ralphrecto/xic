@@ -14,7 +14,7 @@ let commas =
 let pairs xs =
   match xs with
   | [] -> []
-  | x::xs' -> List.zip_exn (init xs) (xs')
+  | _::xs' -> List.zip_exn (init xs) (xs')
 
 let all_eq xs ys =
   let (<=) xs ys =

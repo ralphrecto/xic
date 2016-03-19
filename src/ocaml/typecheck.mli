@@ -50,7 +50,7 @@ module Sigma: sig
     [@@deriving sexp]
 end
 
-module Tags: sig
+module T: sig
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
   type c = Expr.t * Expr.t  [@@deriving sexp]
@@ -61,7 +61,22 @@ module Tags: sig
   type e = Expr.t           [@@deriving sexp]
   type t = Expr.t           [@@deriving sexp]
 end
-include (module type of Ast.Make(Tags))
+include (module type of Ast.Make(T))
+
+module D: sig
+  include (module type of T)
+  val dummy_p: p
+  val dummy_u: u
+  val dummy_c: c
+  val dummy_i: i
+  val dummy_a: a
+  val dummy_v: v
+  val dummy_s: s
+  val dummy_e: e
+  val dummy_t: t
+end
+
+module Abbreviations: (module type of Ast.Abbreviate(D))
 
 type context = Sigma.t String.Map.t
 module Context: sig

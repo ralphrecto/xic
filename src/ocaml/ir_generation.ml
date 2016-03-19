@@ -142,28 +142,32 @@ let rec gen_expr ((t, e): Typecheck.expr) =
   | Bool      b              -> if b then Const (1L) else Const (0L)
   (* TODO: supporting more than ASCII chars? *)
   | String    s              ->
-      (* Is this folding in the right direction? *)
-      (* TODO: fix the type to TInt...how??? :lll *)
+      (* TODO: Is this folding in the right direction? *)
       let elms = String.foldi s ~init:[] ~f:(fun i acc c -> (t, Ast.S.Char c)::acc) in
-      gen_expr (t, Array elms)
+      gen_expr (ArrayT IntT, Array elms)
   | Char      c              -> Const (Int64.of_int (Char.to_int c))
   | Array elts               ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
-    let mov_elt_seq elt (i, seq) =
+    let mov_elt_seq (i, seq) elt =
       let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
       (i + 1, mov_elt :: seq) in
     ESeq (
       Seq (
         Move (loc_tmp, mem_loc) ::
         Move (Mem (loc_tmp, NORMAL), const arr_len) ::
-        (List.fold_right ~f:mov_elt_seq ~init:(1, []) elts |> snd)
+        (List.fold_left ~f:mov_elt_seq ~init:(1, []) elts |> snd)
       ),
       loc_tmp$(1)
     )
-  | Id       (_, id)         -> Temp id
-  | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+  | Id       (_, id)         -> Temp (id_to_temp id)
+  | BinOp    (e1, op, e2)    -> begin
+      match t with
+      | IntT | BoolT -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+      | ArrayT _ -> failwith "Hi Ralph"
+      | _ -> failwith "Shouldn't reach. BinOp applies only to ints and arrays"
+    end
   | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
   | UnOp     (BANG,   e1)    -> not_expr (gen_expr e1)
   | Index    (a, i)          ->
@@ -361,14 +365,16 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | ProcCall ((_, id), args) ->
     Exp (Call (Name id, List.map ~f:gen_expr args))
 
-and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
-  let (args, body) =
+and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
+  let (name, args, body) =
     match c with
-    | (_, Func (_, args, _, body)) -> (args, body)
-    | (_, Proc (_, args, (s, Block stmts))) -> (args, (s, Block (stmts @ [(s, Return [])])))
-    | (_, Proc (_, args, ((s, _) as body))) ->
+    | (_, Func ((_, name), args, _, body)) ->
+      (name, args, body)
+    | (_, Proc ((_, name), args, (s, Block stmts))) ->
+      (name, args, (s, Block (stmts @ [(s, Return [])])))
+    | (_, Proc ((_, name), args, ((s, _) as body))) ->
       let body' = (s, Ast.S.Block [body; (s, Return [])]) in
-      (args, body')
+      (name, args, body')
   in
   let arg_mov (i, seq) (av: Typecheck.avar)  =
     let seq' =
@@ -380,14 +386,14 @@ and gen_func_decl (c: Typecheck.callable) : Ir.func_decl =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (format_callable_name c, Seq(moves @ [gen_stmt body]))
+  (format_callable_name c, (name, Seq(moves @ [gen_stmt body])))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *)
   let Ast.S.Prog (_, callables) = program in
   let callables' = List.map ~f:gen_func_decl callables in
-  let f map (cname, block) =
-    String.Map.add map ~key:cname ~data:(cname, block) in
+  let f map (orig_name, (cname, block)) =
+    String.Map.add map ~key:orig_name ~data:(cname, block) in
   let map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", map)
 

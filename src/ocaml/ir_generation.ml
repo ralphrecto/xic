@@ -162,11 +162,52 @@ let rec gen_expr ((t, e): Typecheck.expr) =
       loc_tmp$(1)
     )
   | Id       (_, id)         -> Temp (id_to_temp id)
-  | BinOp    (e1, op, e2)    -> begin
-      match t with
-      | IntT | BoolT -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
-      | ArrayT _ -> failwith "Hi Ralph"
-      | _ -> failwith "Shouldn't reach. BinOp applies only to ints and arrays"
+  | BinOp ((t1, e1), op, (t2, e2)) -> begin
+      match t1, op, t2 with
+      (* Array concatenation *)
+      | ArrayT _, PLUS, ArrayT _ ->
+        let incr_ir e = (BinOp (e, ADD, const 1)) in
+
+        let arr1, arr2 = gen_expr (t1, e1), gen_expr (t2, e2) in
+        let arrtmp1, arrtmp2  = Temp (fresh_temp ()), Temp (fresh_temp ()) in
+        let lenarr1, lenarr2 = Temp (fresh_temp ()), Temp (fresh_temp ()) in
+        let newarr1, newarr2 = Temp (fresh_label ()), Temp (fresh_label ()) in
+        let while_lbl1, while_lbl2 = fresh_label (), fresh_label () in
+        let t1_lbl, f1_lbl = fresh_label (), fresh_label () in
+        let t2_lbl, f2_lbl = fresh_label (), fresh_label () in
+        let i, j = Temp (fresh_temp ()), Temp (fresh_temp ()) in
+        ESeq (
+          Seq ([
+            Move (arrtmp1, arr1);
+            Move (arrtmp2, arr2);
+            Move (lenarr1, Mem(arrtmp1$(-1), NORMAL));
+            Move (lenarr2, Mem(arrtmp2$(-1), NORMAL));
+            Move (newarr1, (BinOp (lenarr1, ADD, lenarr2)) |> incr_ir |> malloc_word_ir );
+            Move (Mem (newarr1, NORMAL), BinOp (lenarr1, ADD, lenarr2));
+            Move (newarr1, BinOp (newarr1, ADD, word));
+
+            Move (i, const 0);  
+            Label while_lbl1;
+            CJump (BinOp(i, LT, lenarr1), t1_lbl, f1_lbl);
+            Label t1_lbl;
+            Move (Mem (newarr1$$(i), NORMAL), Mem (arrtmp1$$(i), NORMAL));
+            Move (i, incr_ir i);
+            Jump (Name while_lbl1);
+            Label f1_lbl;
+
+            Move (newarr2, BinOp (newarr1, ADD, lenarr1) |> incr_ir);
+            Move (j, const 0);
+            Label while_lbl2;
+            CJump (BinOp(j, LT, lenarr2), t2_lbl, f2_lbl);
+            Label t2_lbl;
+            Move (Mem (newarr2$$(j), NORMAL), Mem (arrtmp2$$(j), NORMAL));
+            Move (j, incr_ir j);
+            Jump (Name while_lbl2);
+            Label f2_lbl;
+          ]),
+          newarr1
+        )
+      | _ -> BinOp (gen_expr (t1, e1), ir_of_ast_binop op, gen_expr (t2, e2))
     end
   | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
   | UnOp     (BANG,   e1)    -> not_expr (gen_expr e1)

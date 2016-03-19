@@ -91,7 +91,7 @@ let readln =
 let getchar () : char =
   let i = read_int () in
   char_of_int i
- 
+
 (* interpreter *)
 
 let rec eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog) : value option =
@@ -101,7 +101,7 @@ let rec eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog
 and eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context =
   List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
 
-and get_main_val context : value option = 
+and get_main_val context : value option =
   match String.Map.find context "main" with
   | Some (Some (Function (ids, stmt))) -> snd (eval_stmt context stmt)
   | Some _ -> failwith "main is a variable? lol"
@@ -151,7 +151,7 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
 				begin
 					match (eval_expr store e1), (eval_expr store e2) with
 					| Array l, Int i ->
-						let i' = Long.to_int i in	
+						let i' = Long.to_int i in
 						let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
 						l := new_l;
 						(store, None)
@@ -232,7 +232,7 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
       let chars = String.to_list_rev (String.rev s) in
       Array (ref (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars))
   | Char c -> Int (Int64.of_int (Char.to_int c))
-  | Array l -> 
+  | Array l ->
 		let new_l = ref (List.map ~f:(eval_expr c) l) in
 		Array new_l
   | Id (_, i) ->
@@ -315,8 +315,8 @@ and eval_binop e1 op e2 =
   | Int i1, AMP, Int i2 -> of_bool (to_bool i1 && to_bool i2)
   | Int i1, BAR, Int i2 -> of_bool (to_bool i1 || to_bool i2)
   | Array vs1, PLUS, Array vs2 -> Array (ref ((!vs1) @ (!vs2)))
-  | Array vs1, EQEQ, Array vs2 -> of_bool (vs1 = vs2)
-	| Array vs1, NEQ, Array vs2 -> of_bool (vs1 <> vs2)
+  | Array vs1, EQEQ, Array vs2 -> of_bool (phys_equal vs1 vs2)
+	| Array vs1, NEQ, Array vs2 -> of_bool (not (phys_equal vs1 vs2))
   | _ -> failwith "shouldn't happen -- binop"
 
 and eval_unop op e1 =

@@ -232,7 +232,7 @@ let test_eval_stmt () =
   (c, None) === eval_stmt c (proccall "f8" [two;three]);
 
   (* complicated *)
-  let x, y, z, u = id "x", id "y", id "z", underscore in
+  let x, y, z, _ = id "x", id "y", id "z", underscore in
   let xint = avar (aid "x" tint) in
   let yint = avar (aid "y" tint) in
   let zint = avar (aid "z" tint) in

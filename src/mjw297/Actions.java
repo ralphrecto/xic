@@ -88,7 +88,9 @@ public class Actions {
             if (e instanceof XicException) {
                 return new Parsed((XicException) e);
             } else {
-                return new Parsed(new GenericParserException(-1, -1, "cup error"));
+                System.out.println("prog");
+                e.printStackTrace();
+                return new Parsed(new GenericParserException(-1, -1, e.getMessage()));
             }
         }
     }
@@ -103,7 +105,9 @@ public class Actions {
             if (e instanceof XicException) {
                 return new Parsed((XicException) e);
             } else {
-                return new Parsed(new GenericParserException(-1, -1, "cup error"));
+                System.out.println("interface");
+                e.printStackTrace();
+                return new Parsed(new GenericParserException(-1, -1, e.getMessage()));
             }
         }
     }

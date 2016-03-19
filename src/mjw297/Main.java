@@ -302,6 +302,7 @@ public class Main {
             XiSource source = p.snd;
 
             if (!parsed.prog.isPresent()) {
+                System.out.println(parsed.exception.get());
                 return Tuple.of(source, Either.right(parsed.exception.get()));
             } else {
                 Program<Position> prog = parsed.prog.get();
@@ -344,17 +345,16 @@ public class Main {
             }
         });
 
-        List<Tuple<XiSource, XicException>> errors =
-            resultList.stream()
-                .filter(t -> t.snd.isRight())
-                .map(t -> Tuple.of(t.fst, t.snd.getRight()))
-                .collect(Collectors.toList());
+        List<Tuple<XiSource, XicException>> errors = new ArrayList<>();
+        List<Tuple<XiSource, FullProgram<Position>>> programs = new ArrayList<>();
 
-        List<Tuple<XiSource, FullProgram<Position>>> programs =
-            resultList.stream()
-                .filter(t -> t.snd.isLeft())
-                .map(t -> Tuple.of(t.fst, t.snd.getLeft()))
-                .collect(Collectors.toList());
+        for (Tuple<XiSource, Either<FullProgram<Position>, XicException>> result : resultList) {
+            if (result.snd.isLeft()) {
+                programs.add(Tuple.of(result.fst, result.snd.getLeft()));
+            } else {
+                errors.add(Tuple.of(result.fst, result.snd.getRight()));
+            }
+        }
 
         return Tuple.of(errors, programs);
     }
@@ -398,15 +398,17 @@ public class Main {
             new InputStreamReader(proc.getErrorStream())
         );
         List<String> stdErrors = stdErr.lines().collect(Collectors.toList());
-        errors.forEach(System.out::println);
+        stdErrors.forEach(System.out::println);
         if (stdErrors.size() > 0) System.exit(1);
 
         BufferedReader stdOut = new BufferedReader(
             new InputStreamReader(proc.getInputStream())
         );
+        List<String> stdOuts = stdOut.lines().collect(Collectors.toList());
+
         return Util.zip(
             Lists.transform(programs, t -> t.fst),
-            stdOut.lines().collect(Collectors.toList())
+            stdOuts
         );
     }
 
@@ -431,6 +433,7 @@ public class Main {
             if (t.snd.startsWith("ERROR")) {
                 fileOut = doError(t.snd, t.fst.filename);
             } else {
+                System.out.println(t.snd);
                 fileOut = t.snd;
             }
 

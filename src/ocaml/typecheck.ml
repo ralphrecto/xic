@@ -202,6 +202,7 @@ and expr_typecheck c (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
   | Bool b -> Ok (BoolT, Bool b)
+  | String "" -> Ok (EmptyArray, String "")
   | String s -> Ok (ArrayT IntT, String s)
   | Char c -> Ok (IntT, Char c)
   | Array [] -> Ok (EmptyArray, Array [])

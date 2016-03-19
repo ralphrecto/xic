@@ -5,7 +5,7 @@ foo(): bool, int {
     if (expr <= 47) { }
     else pred = !pred
     if (pred) { expr = 59 }
-    return pred, expr;
+    return pred;
 }
 
 bar() {

@@ -70,7 +70,7 @@ main() {
 
         one = "" + {1} + "";
         two = {} + {one} + {one, one} + {one} + {};
-        three = {{one}} + {} + {two} + {two, {one}} + {two} + {} + {two[0]};
+        three = {{one}} + {} + {two} + {two, {one}} + {two} + {} + {{two[0]}};
         four = {three} + {{two}} + {{{one}}};
         five = "" + "" + {four};
 

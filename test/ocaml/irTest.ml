@@ -358,7 +358,72 @@ let test_ir_expr () =
   ()
 
 let test_ir_stmt () =
-  ()
+	let open StmtEq in
+
+	(* Vars *)
+	let create_int_avar (id : string) : Typecheck.avar =
+		(IntT, AId (((), id), (IntT, TInt)))
+	in	
+
+	let create_int_var (id : string) : Typecheck.var =
+		(IntT, AVar (create_int_avar id))
+	in
+
+	let create_bool_avar (id : string) : Typecheck.avar =
+		(BoolT, AId (((), id), (BoolT, TBool)))
+	in
+
+	let create_bool_var (id : string) : Typecheck.var =
+		(BoolT, AVar (create_int_avar id))
+	in
+
+	let create_int_array_avar (id : string) (size : int64 option) : Typecheck.avar =
+		match size with
+		| Some x -> (ArrayT (IntT), AId (((), id), (ArrayT (IntT), TArray ((IntT, TInt), Some (IntT, Int x)))))
+		| None -> (ArrayT (IntT), AId (((), id), (ArrayT (IntT), TArray ((IntT, TInt), None))))
+	in
+
+	let create_int_array_var (id: string) (size : int64 option) : Typecheck.var =
+		(ArrayT (IntT), AVar (create_int_array_avar id size))
+	in
+	
+	let create_bool_array_avar (id : string) (size : int64 option) : Typecheck.avar =
+		match size with
+		| Some x -> (ArrayT (BoolT), AId (((), id), (ArrayT (BoolT), TArray ((BoolT, TBool), Some (IntT, Int x)))))
+		| None -> (ArrayT (BoolT), AId (((), id), (ArrayT (BoolT), TArray ((BoolT, TBool), None))))
+	in
+
+	let create_bool_array_var (id: string) (size : int64 option) : Typecheck.var =
+		(ArrayT (BoolT), AVar (create_int_array_avar id size))
+	in
+
+	(* Decl tests *)
+	(* ints *)		
+	Seq [] === gen_stmt ((Zero, Decl [create_int_var "hello"]))
+	
+	(* bools *)
+
+	(* arrays *)
+
+	(* arrays of arrays *)
+
+	(* mix of all sort of things *)
+
+	(* DeclAsgn tests *)
+
+	(* Asgn tests *)
+
+	(* Block tests *)
+
+	(* Retrun tests *)
+
+	(* If tests *)
+
+	(* IfElse tests *)
+
+	(* While tests *)
+
+	(* ProcCall tests *)
 
 let test_lower_expr () =
   let open PairEq in
@@ -1334,7 +1399,7 @@ let test_reorder () =
 let main () =
     "suite" >::: [
       "test_ir_expr"        >:: test_ir_expr;
-      "test_ir_stmt"        >:: test_ir_stmt;
+			"test_ir_stmt" 			  >:: test_ir_stmt;
       "test_lower_expr"     >:: test_lower_expr;
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;

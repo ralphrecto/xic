@@ -312,6 +312,11 @@ let test_eval_stmt () =
 
   let f = funcs["one_first",[Some "x"],asgn (index x zero) one] in
   let xintarr = avar (aid "x" (tarray tint None)) in
+  (empty, uno) === eval_stmt empty (block [
+    [xintarr] := arr[zero];
+    index x zero <-- one;
+    return [index x zero]
+  ]);
   (f, uno) === eval_stmt f (block [
     [xintarr] := arr[zero];
     proccall "one_first" [x];

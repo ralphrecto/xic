@@ -106,13 +106,6 @@ main() {
         println(string_of_1array(xs));
         println(string_of_1array(ys));
 
-        temp: int[]
-        temp = xs
-        xs = ys
-        ys = temp
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
-
         xs = ys;
         println(string_of_1array(xs));
         println(string_of_1array(ys));
@@ -129,7 +122,7 @@ main() {
     {
         xs:int[] = range(0, 10);
         println(string_of_1array(xs))
-        increment(xs);
+        _ = increment(xs);
         println(string_of_1array(xs))
         println(string_of_1array(increment(xs)))
         println(string_of_1array(increment({1, 2, 3, 4})))

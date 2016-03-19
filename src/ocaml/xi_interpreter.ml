@@ -91,18 +91,21 @@ let readln =
 let getchar () : char =
   let i = read_int () in
   char_of_int i
-
+ 
 (* interpreter *)
 
 let rec eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog) : value option =
   let updated_store = eval_prog store prog in
-  match String.Map.find store "main" with
-  | Some (Some (Function (ids, stmt))) -> snd (eval_stmt store stmt)
-  | Some _ -> failwith "main is a variable? lol"
-  | None -> failwith "no main function lol"
+  get_main_val updated_store
 
 and eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context =
   List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
+
+and get_main_val context : value option = 
+  match String.Map.find context "main" with
+  | Some (Some (Function (ids, stmt))) -> snd (eval_stmt context stmt)
+  | Some _ -> failwith "main is a variable? lol"
+  | None -> failwith "no main function lol"
 
 and eval_callable (store: context) ((_, c): Typecheck.callable) : context =
   match c with

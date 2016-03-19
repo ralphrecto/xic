@@ -11,6 +11,7 @@ open Xi_interpreter
 
 type flags = {
   typecheck:  bool;           (* --typecheck  *)
+  xirun: bool;               (* --xi-run     *)
   irgen:  bool;               (* --irgen      *)
   ast_cfold: bool;            (* --ast-cfold  *)
   ir_cfold: bool;             (* --ir-cfold   *)
@@ -18,7 +19,7 @@ type flags = {
   blkreorder: bool;           (* --blkreorder *)
 } [@@deriving sexp]
 
-let flatmap ~f =
+let resmap ~f =
   List.map ~f:(function
     | Ok x -> Ok (f x)
     | Error e-> Error e)
@@ -44,14 +45,23 @@ let main flags asts () : unit Deferred.t =
         | Error e -> format_err_msg e)
       |> List.iter ~f:print_endline
       |> return
+  else if flags.xirun then
+    typechecked
+      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
+      |> resmap ~f:(eval_prog String.Map.empty)
+      |> resmap ~f:get_main_val
+      |> resmap ~f:(function Some v -> string_of_value v | None -> "no return")
+      |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
+      |> List.iter ~f:print_endline
+      |> return
   else if flags.irgen then
     typechecked
-      |> do_if flags.ast_cfold (flatmap ~f:ast_constant_folding)
-      |> flatmap ~f:gen_comp_unit
-      |> do_if flags.ir_cfold (flatmap ~f:ir_constant_folding)
-      |> do_if flags.lower (flatmap ~f:lower_comp_unit)
-      |> do_if flags.lower (flatmap ~f:block_reorder_comp_unit)
-      |> flatmap ~f:sexp_of_comp_unit
+      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
+      |> resmap ~f:gen_comp_unit
+      |> do_if flags.ir_cfold (resmap ~f:ir_constant_folding)
+      |> do_if flags.lower (resmap ~f:lower_comp_unit)
+      |> do_if flags.lower (resmap ~f:block_reorder_comp_unit)
+      |> resmap ~f:sexp_of_comp_unit
       |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
       |> List.iter ~f:print_endline
       |> return
@@ -64,6 +74,7 @@ let () =
     Command.Spec.(
       empty
       +> flag "--typecheck" (optional_with_default true bool) ~doc:""
+      +> flag "--xirun" (optional_with_default false bool) ~doc:""
       +> flag "--irgen" (optional_with_default false bool) ~doc:""
       +> flag "--ast-cfold" (optional_with_default false bool) ~doc:""
       +> flag "--ir-cfold" (optional_with_default false bool) ~doc:""
@@ -71,10 +82,11 @@ let () =
       +> flag "--blkreorder" (optional_with_default false bool) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun tc ir afold ifold l b asts ->
+    (fun tc xir irg afold ifold l b asts ->
        let flags = {
          typecheck = tc;
-         irgen = ir;
+         xirun = xir;
+         irgen = irg;
          ast_cfold = afold;
          ir_cfold = ifold; 
          lower = l; 

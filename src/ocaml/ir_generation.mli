@@ -29,12 +29,12 @@ val reset_fresh_label : unit -> unit
 val malloc_word : int -> Ir.expr
 
 (* Xi AST -> IR AST *)
-val gen_expr : Typecheck.expr -> Ir.expr
+val gen_expr : string String.Map.t -> Typecheck.expr -> Ir.expr
 (* the control translation for booleans from lecture notes
  * boolean -> true label -> false label -> resulting jumps *)
-val gen_control : Typecheck.expr -> string -> string -> Ir.stmt
-val gen_stmt : Typecheck.stmt -> Ir.stmt
-val gen_func_decl : Typecheck.callable -> string * Ir.func_decl
+val gen_control : string String.Map.t -> Typecheck.expr -> string -> string -> Ir.stmt
+val gen_stmt : string String.Map.t -> Typecheck.stmt -> Ir.stmt
+val gen_func_decl : string String.Map.t -> Typecheck.callable -> string * Ir.func_decl
 val gen_comp_unit : Typecheck.prog -> Ir.comp_unit
 
 (* IR lowering *)

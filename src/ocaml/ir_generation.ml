@@ -21,7 +21,7 @@ let string_of_graph g =
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)
-let id_to_temp (idstr: string) : string = "%TEMP%" ^ idstr
+let id_to_temp (idstr: string) : string = "_TEMP" ^ idstr
 
 (* Increment and return the *old* value of r. *)
 let get_and_incr (r: int ref) : int =
@@ -136,20 +136,29 @@ let format_callable_name (c: Typecheck.callable) : string =
         function_name idstr, type_name argt, type_name rett in
   Printf.sprintf "_I%s_%s%s" fname retnames argnames
 
-let rec gen_expr ((t, e): Typecheck.expr) =
+(* id name -> ABI compliant name *)
+let callable_name_map (callables: Typecheck.callable list) : string String.Map.t =
+  let f map (callable: Typecheck.callable) = 
+    let name = match callable with
+      | (_, Func ((_, idstr), _, _, _))
+      | (_, Proc ((_, idstr), _, _)) -> idstr in
+    String.Map.add map ~key:name ~data:(format_callable_name callable) in
+  List.fold_left ~f ~init:String.Map.empty callables
+
+let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
   | Int       i              -> Const i
   | Bool      b              -> if b then Const (1L) else Const (0L)
   | String    s              ->
       let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
-      gen_expr (ArrayT IntT, Array (List.rev elms))
+      gen_expr callnames (ArrayT IntT, Array (List.rev elms))
   | Char      c              -> Const (Int64.of_int (Char.to_int c))
   | Array elts               ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
     let mov_elt_seq (i, seq) elt =
-      let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr elt) in
+      let mov_elt = Move (Mem (loc_tmp$(i), NORMAL), gen_expr callnames elt) in
       (i + 1, mov_elt :: seq) in
     ESeq (
       Seq (
@@ -166,7 +175,7 @@ let rec gen_expr ((t, e): Typecheck.expr) =
       | ArrayT _, PLUS, ArrayT _ ->
         let incr_ir e = (BinOp (e, ADD, const 1)) in
 
-        let arr1, arr2 = gen_expr (t1, e1), gen_expr (t2, e2) in
+        let arr1, arr2 = gen_expr callnames (t1, e1), gen_expr callnames (t2, e2) in
         let arrtmp1, arrtmp2  = Temp (fresh_temp ()), Temp (fresh_temp ()) in
         let lenarr1, lenarr2 = Temp (fresh_temp ()), Temp (fresh_temp ()) in
         let newarr1, newarr2 = Temp (fresh_label ()), Temp (fresh_label ()) in
@@ -205,13 +214,13 @@ let rec gen_expr ((t, e): Typecheck.expr) =
           ]),
           newarr1
         )
-      | _ -> BinOp (gen_expr (t1, e1), ir_of_ast_binop op, gen_expr (t2, e2))
+      | _ -> BinOp (gen_expr callnames (t1, e1), ir_of_ast_binop op, gen_expr callnames (t2, e2))
     end
-  | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
-  | UnOp     (BANG,   e1)    -> not_expr (gen_expr e1)
+  | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr callnames e1)
+  | UnOp     (BANG,   e1)    -> not_expr (gen_expr callnames e1)
   | Index    (a, i)          ->
-      let index     = gen_expr i in
-      let addr      = gen_expr a in
+      let index     = gen_expr callnames i in
+      let addr      = gen_expr callnames a in
       let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
       let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
       let t_label = fresh_label () in
@@ -224,35 +233,37 @@ let rec gen_expr ((t, e): Typecheck.expr) =
         ]),
         Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
       )
-  | Length    a              -> BinOp (Mem (gen_expr a, NORMAL), SUB, word)
+  | Length    a              -> BinOp (Mem (gen_expr callnames a, NORMAL), SUB, word)
   | FuncCall ((_, id), args) ->
-      let args_ir = List.fold_right args
-                                    ~f:(fun elm acc -> (gen_expr elm)::acc)
-                                    ~init:[] in
-      Call (Name id, args_ir)
+      let name = match String.Map.find callnames id with
+        | Some s -> s
+        | None -> failwith "impossible: calling an unknown function" in
+      let args_ir =
+        List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm)::acc) ~init:[] in
+      Call (Name name, args_ir)
 
-and gen_control ((t, e): Typecheck.expr) t_label f_label =
+and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_label f_label =
   match e with
   | Bool true -> Jump (Name t_label)
   | Bool false -> Jump (Name f_label)
   | BinOp (e1, AMP, e2) ->
     let inter_label = fresh_label () in
     Seq ([
-        CJump (gen_expr e1, inter_label, f_label);
+        CJump (gen_expr callnames e1, inter_label, f_label);
         Label inter_label;
-        CJump (gen_expr e2, t_label, f_label)
+        CJump (gen_expr callnames e2, t_label, f_label)
       ])
   | BinOp (e1, BAR, e2) ->
     let inter_label = fresh_label () in
     Seq ([
-        CJump (gen_expr e1, t_label, inter_label);
+        CJump (gen_expr callnames e1, t_label, inter_label);
         Label inter_label;
-        CJump (gen_expr e2, t_label, f_label)
+        CJump (gen_expr callnames e2, t_label, f_label)
       ])
-  | UnOp (BANG, e1) -> gen_control e1 f_label t_label
-  | _ -> CJump (gen_expr (t, e), t_label, f_label)
+  | UnOp (BANG, e1) -> gen_control callnames e1 f_label t_label
+  | _ -> CJump (gen_expr callnames (t, e), t_label, f_label)
 
-and gen_decl_help ((_, t): typ) : Ir.expr =
+and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
   let incr_ir e = (BinOp (e, ADD, const 1)) in
   match t with
   | TBool | TInt -> Temp (fresh_temp ())
@@ -260,11 +271,11 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
     let fill () = 
 			match t' with
       | TInt | TBool -> const 0
-      | TArray _ -> gen_decl_help (at', t') 
+      | TArray _ -> gen_decl_help callnames (at', t') 
 		in
     let array_size = 
 			match index with
-      | Some index_expr -> gen_expr index_expr
+      | Some index_expr -> gen_expr callnames index_expr
       | None -> const 0 
 		in
 
@@ -314,14 +325,14 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
       loc_tmp$(1)
     )
 
-and gen_stmt ((_, s): Typecheck.stmt) =
+and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   match s with
   | Decl varlist -> 
 		begin
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
-          Move (Temp (id_to_temp idstr), gen_decl_help (at, TArray (t, i))) :: seq
+          Move (Temp (id_to_temp idstr), gen_decl_help callnames (at, TArray (t, i))) :: seq
         | _ -> seq in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
@@ -330,7 +341,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       match v with
       | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
-        Move (Temp (id_to_temp var_id'), gen_expr exp)
+        Move (Temp (id_to_temp var_id'), gen_expr callnames exp)
       | _ -> Seq []
     end
   | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
@@ -342,7 +353,7 @@ and gen_stmt ((_, s): Typecheck.stmt) =
       match x with
       | AVar (_, AId ((_, idstr), _)) ->
         let retval =
-          if i = 0 then gen_expr (TupleT tlist, rawexp)
+          if i = 0 then gen_expr callnames (TupleT tlist, rawexp)
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
       | _ -> (i+1, seq) 
@@ -354,16 +365,16 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | Asgn ((_, lhs), fullrhs) -> 
 		begin
       match lhs with
-      | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
+      | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr callnames fullrhs)
       | Index (arr, index) ->
-          let mem_loc = gen_expr arr in
-          Move (Mem (mem_loc$$(gen_expr index), NORMAL), gen_expr fullrhs)
+          let mem_loc = gen_expr callnames arr in
+          Move (Mem (mem_loc$$(gen_expr callnames index), NORMAL), gen_expr callnames fullrhs)
       | _ -> failwith "impossible"
   	end
-  | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
+  | Block stmts -> Seq (List.map ~f:(gen_stmt callnames) stmts)
   | Return exprlist ->
       let mov_ret (i, seq) expr  =
-        let mov = Move (Temp (retreg i), gen_expr expr) in
+        let mov = Move (Temp (retreg i), gen_expr callnames expr) in
         (i + 1, mov :: seq) in
       let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
       Seq (moves @ [Ir.Return])
@@ -371,9 +382,9 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     let t_label = fresh_label () in
     let f_label = fresh_label () in
     Seq ([ 
-				gen_control pred t_label f_label; 
+				gen_control callnames pred t_label f_label; 
 				Label t_label;
-        gen_stmt t;
+        gen_stmt callnames t;
         Label f_label;
       ])
   | IfElse (pred, t, f) ->
@@ -381,12 +392,12 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     let f_label = fresh_label () in
     let rest_label = fresh_label () in
     Seq ([
-        gen_control pred t_label f_label;
+        gen_control callnames pred t_label f_label;
         Label t_label;
-        gen_stmt t;
+        gen_stmt callnames t;
         Jump (Name rest_label);
         Label f_label;
-        gen_stmt f;
+        gen_stmt callnames f;
         Label rest_label;
       ])
   | While (pred, s) ->
@@ -395,16 +406,19 @@ and gen_stmt ((_, s): Typecheck.stmt) =
     let f_label = fresh_label () in
     Seq ([
         Label while_label;
-        gen_control pred t_label f_label;
+        gen_control callnames pred t_label f_label;
         Label t_label;
-        gen_stmt s;
+        gen_stmt callnames s;
         Jump (Name while_label);
         Label f_label;
       ])
   | ProcCall ((_, id), args) ->
-    Exp (Call (Name id, List.map ~f:gen_expr args))
+    let name = match String.Map.find callnames id with
+      | Some s -> s
+      | None -> failwith "impossible: calling unknown function" in
+    Exp (Call (Name name, List.map ~f:(gen_expr callnames) args))
 
-and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
+and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) = 
   let (name, args, body) =
     match c with
     | (_, Func ((_, name), args, _, body)) ->
@@ -425,16 +439,17 @@ and gen_func_decl (c: Typecheck.callable) : (string * Ir.func_decl) =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (format_callable_name c, (name, Seq(moves @ [gen_stmt body])))
+  (name, (format_callable_name c, Seq(moves @ [gen_stmt callnames body])))
 
 and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
   (* TODO: fix comp unit name to program name *)
   let Ast.S.Prog (_, callables) = program in
-  let callables' = List.map ~f:gen_func_decl callables in
+  let callnames = callable_name_map callables in
+  let callables' = List.map ~f:(gen_func_decl callnames) callables in
   let f map (orig_name, (cname, block)) =
     String.Map.add map ~key:orig_name ~data:(cname, block) in
-  let map = List.fold_left ~f ~init:String.Map.empty callables' in
-  ("program_name", map)
+  let callable_map = List.fold_left ~f ~init:String.Map.empty callables' in
+  ("program_name", callable_map)
 
 
 (******************************************************************************)

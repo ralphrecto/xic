@@ -1,3 +1,5 @@
+use io;
+
 arr_eq(x: int[], y: int[]) : bool {
     if (length(x) != length(y)) {
         return false;
@@ -48,4 +50,32 @@ string_of_3array(x: int[][][]) : int[] {
     }
     s = s + "}"
     return s;
+}
+
+string_of_4array(x: int[][][][]) : int[] {
+    s: int[] = "{";
+    i: int = 0;
+    while (i < length(x)) {
+        s += string_of_3array(x[i]) + ",";
+    }
+    s = s + "}"
+    return s;
+}
+
+string_of_5array(x: int[][][][][]) : int[] {
+    s: int[] = "{";
+    i: int = 0;
+    while (i < length(x)) {
+        s += string_of_4array(x[i]) + ",";
+    }
+    s = s + "}"
+    return s;
+}
+
+int_of_string(s: int[]) : int {
+    return parseInt(s);
+}
+
+string_of_int(x: int) : int[] {
+    return unparseInt(x);
 }

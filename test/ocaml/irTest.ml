@@ -165,8 +165,8 @@ end
 let int x  = (IntT, Int x)
 let bool b = (BoolT, Bool b)
 let arr t args = (t, Array args)
-let iarr args = arr IntT args
-let barr args = arr BoolT args
+let iarr args = arr (ArrayT IntT) args
+let barr args = arr (ArrayT BoolT) args
 let earr = arr EmptyArray []
 let binop i e1 op e2 : Typecheck.expr = (i, BinOp (e1, op, e2))
 let ibinop e1 op e2 = binop IntT e1 op e2
@@ -175,7 +175,7 @@ let unop i op e : Typecheck.expr = (i, UnOp (op, e))
 let iunop e = unop IntT UMINUS e
 let bunop e = unop BoolT BANG e
 let id x t = (t, Id ((), x))
-let to_code c = Const (Int64.of_int (Char.to_int c))
+let code c = Const (Int64.of_int (Char.to_int c))
 
 module Ir_gen = Ir_generation
 
@@ -241,7 +241,7 @@ let test_ir_expr () =
   unopnot tru    === gen_expr (bunop trut);
   unopnot fls    === gen_expr (bunop flst);
 
-  (* String and Array tests *)
+  (* Array tests *)
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
@@ -256,8 +256,8 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) one              ) ::
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )      ) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) one                    ) ::
       (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
       []
     ))
@@ -268,10 +268,10 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) two              ) ::
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )          ) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) two                        ) ::
       (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero     ) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
@@ -292,6 +292,65 @@ let test_ir_expr () =
   ===
   gen_expr (iarr [zerot; onet; twot]);
 
+  (* [[]] *)
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2))::
+      (move (mem (Temp (Ir_gen.temp 0))) one)::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))
+            (eseq
+              (seq (
+                (move (Temp (Ir_gen.temp 1)) (Ir_gen.malloc_word 1))::
+                (move (mem (Temp (Ir_gen.temp 1))) zero)::
+                []))
+              (BinOp (Temp (Ir_gen.temp 1), ADD, word))
+            ))::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (arr (ArrayT (ArrayT IntT)) [iarr []]);
+
+  (* [[], [], [1,2]] *)
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4))::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 3L))::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L)))
+            (eseq
+              (seq (
+                (move (Temp (Ir_gen.temp 3)) (Ir_gen.malloc_word 3))::
+                (move (mem (Temp (Ir_gen.temp 3))) two)::
+                (move (mem (BinOp (Temp (Ir_gen.temp 3), ADD, const 16L))) two)::
+                (move (mem (BinOp (Temp (Ir_gen.temp 3), ADD, word))) one)::
+                []))
+              (BinOp (Temp (Ir_gen.temp 3), ADD, word))
+            ))::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L)))
+            (eseq
+              (seq (
+                (move (Temp (Ir_gen.temp 2)) (Ir_gen.malloc_word 1))::
+                (move (mem (Temp (Ir_gen.temp 2))) zero)::
+                []))
+              (BinOp (Temp (Ir_gen.temp 2), ADD, word))
+            ))::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))
+            (eseq
+              (seq (
+                (move (Temp (Ir_gen.temp 1)) (Ir_gen.malloc_word 1))::
+                (move (mem (Temp (Ir_gen.temp 1))) zero)::
+                []))
+              (BinOp (Temp (Ir_gen.temp 1), ADD, word))
+            ))::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]);
+
+  (* String Tests *)
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
@@ -318,16 +377,16 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                   ) ::
-      (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                         ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (to_code '3')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (to_code '<')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (to_code 'l')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code 'm')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code 'a')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code 'C')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (to_code 'O')) ::
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                  ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                        ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (code '3')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (code '<')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (code 'l')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code 'm')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code 'a')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code 'C')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code 'O')) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
@@ -337,12 +396,12 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                   ) ::
-      (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                         ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) (to_code ' ')) ::
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                  ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                        ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code ' ')) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))

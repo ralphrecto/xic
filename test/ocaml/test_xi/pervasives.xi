@@ -21,7 +21,7 @@ string_of_1array(x: int[]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += unparseInt(x[i]) + ",";
+        s = s + unparseInt(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -31,7 +31,7 @@ string_of_2array(x: int[][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_1array(x[i]) + ",";
+        s = s + string_of_1array(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -41,7 +41,7 @@ string_of_3array(x: int[][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_2array(x[i]) + ",";
+        s = s + string_of_2array(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -51,7 +51,7 @@ string_of_4array(x: int[][][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_3array(x[i]) + ",";
+        s = s + string_of_3array(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -61,7 +61,7 @@ string_of_5array(x: int[][][][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_4array(x[i]) + ",";
+        s = s + string_of_4array(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -71,7 +71,7 @@ string_of_1barray(x: int[]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_bool(x[i]) + ",";
+        s = s + string_of_bool(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -81,7 +81,7 @@ string_of_2barray(x: int[][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_1barray(x[i]) + ",";
+        s = s + string_of_1barray(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -91,7 +91,7 @@ string_of_3barray(x: int[][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_2barray(x[i]) + ",";
+        s = s + string_of_2barray(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -101,7 +101,7 @@ string_of_4barray(x: int[][][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_3barray(x[i]) + ",";
+        s = s + string_of_3barray(x[i]) + ",";
     }
     s = s + "}"
     return s;
@@ -111,7 +111,7 @@ string_of_5barray(x: int[][][][][]) : int[] {
     s: int[] = "{";
     i: int = 0;
     while (i < length(x)) {
-        s += string_of_4barray(x[i]) + ",";
+        s = s + string_of_4barray(x[i]) + ",";
     }
     s = s + "}"
     return s;

@@ -1,0 +1,8 @@
+// I/O support
+
+print(str: int[])     // Print a string to standard output.
+println(str: int[])   // Print a string to standard output, followed by a newline.
+readln() : int[]      // Read from standard input until a newline.
+getchar() : int       // Read a single character from standard input.
+                      // Returns -1 if the end of input has been reached.
+eof() : bool          // Test for end of file on standard input.

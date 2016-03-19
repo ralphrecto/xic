@@ -437,26 +437,6 @@ let test_ir_stmt () =
 		(BoolT, AVar (create_int_avar id))
 	in
 
-	let create_int_array_avar (id : string) (size : int64 option) : Typecheck.avar =
-		match size with
-		| Some x -> (ArrayT (IntT), AId (((), id), (ArrayT (IntT), TArray ((IntT, TInt), Some (IntT, Int x)))))
-		| None -> (ArrayT (IntT), AId (((), id), (ArrayT (IntT), TArray ((IntT, TInt), None))))
-	in
-
-	let create_int_array_var (id: string) (size : int64 option) : Typecheck.var =
-		(ArrayT (IntT), AVar (create_int_array_avar id size))
-	in
-	
-	let create_bool_array_avar (id : string) (size : int64 option) : Typecheck.avar =
-		match size with
-		| Some x -> (ArrayT (BoolT), AId (((), id), (ArrayT (BoolT), TArray ((BoolT, TBool), Some (IntT, Int x)))))
-		| None -> (ArrayT (BoolT), AId (((), id), (ArrayT (BoolT), TArray ((BoolT, TBool), None))))
-	in
-
-	let create_bool_array_var (id: string) (size : int64 option) : Typecheck.var =
-		(ArrayT (BoolT), AVar (create_int_array_avar id size))
-	in
-
 	(* Decl tests *)
 
 	(* ints *)		
@@ -1190,7 +1170,7 @@ let test_valid_seq () =
 let test_find_seq () =
   let open Graphs in
   List.iter graphs ~f:(fun g ->
-    List.iter all ~f:(fun x ->
+    List.iter all ~f:(fun _ ->
       assert_true (valid_seq g (find_seq g))
     )
   )

@@ -2,6 +2,14 @@ empty_first(xs: int[][]) {
     xs[0] = {};
 }
 
+increment(xs: int[]) : int[] {
+    i: int = 0;
+    while (i < length(xs)) {
+        xs[i] = xs[i] + 1;
+    }
+    return xs;
+}
+
 main() {
     {
         xs: int[][] = {{}, {1}, {1,2}};
@@ -83,5 +91,47 @@ main() {
         println(string_of_3array(three));
         println(string_of_4array(four));
         println(string_of_5array(five));
+    }
+
+    {
+        xs: int[] = {1, 2};
+        ys: int[] = {2, 1, 3, 1};
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+
+        temp: int[]
+        temp = xs
+        xs = ys
+        ys = temp
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+
+        temp: int[]
+        temp = xs
+        xs = ys
+        ys = temp
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+
+        xs = ys;
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+
+        ys[0] = 42;
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+
+        xs[1] = 43;
+        println(string_of_1array(xs));
+        println(string_of_1array(ys));
+    }
+
+    {
+        xs:int[] = range(0, 10);
+        println(string_of_1array(xs))
+        increment(xs);
+        println(string_of_1array(xs))
+        println(string_of_1array(increment(xs)))
+        println(string_of_1array(increment({1, 2, 3, 4})))
     }
 }

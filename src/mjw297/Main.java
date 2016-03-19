@@ -1,5 +1,9 @@
 package mjw297;
 import com.google.common.collect.Lists;
+import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
+import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
+import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
+import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
 import java_cup.runtime.Symbol;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -458,15 +462,42 @@ public class Main {
             String parentDir = t.fst.file.getParent();
             String outputFilename = parentDir == null ?
                 t.fst.changeExtension("ir") :
-                String.format("%s/%s.%s",
+                String.format("%s/%s.ir",
                     Files.simplifyPath(parentDir),
-                    Files.getNameWithoutExtension(t.fst.filename),
-                    "ir"
+                    Files.getNameWithoutExtension(t.fst.filename)
                 );
             writeToFile(outputFilename, fileOut);
         });
 
         System.exit(0);
+    }
+
+    void doIRRun(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+        binArgs.add("--lower");
+        binArgs.add("--blkreorder");
+        if (!noOptimize) {
+            binArgs.add("--ast-cfold");
+            binArgs.add("--ir-cfold");
+        }
+        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
+        stdOuts.forEach(t -> {
+            if (t.snd.startsWith("ERROR")) {
+                String[] errOut = t.snd.split(":::");
+                printError("Semantic",
+                    t.fst.filename, errOut[1], errOut[2], errOut[3]
+                );
+            } else {
+                IRParser parser = new IRParser(new IRLexer(new StringReader(t.snd)));
+                try {
+                    IRSimulator sim = new IRSimulator((IRCompUnit) parser.parse().value);
+                    sim.call("_Imain_paai", 0l);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -498,6 +529,10 @@ public class Main {
                 doParse(arguments);
             } else if (typecheckMode) {
                 doTypecheck(arguments);
+            } else if (irGenMode) {
+                doIRGen(arguments);
+            } else if (irRunMode) {
+                doIRRun(arguments);
             } else {
                 System.out.println("No options passed.");
                 printUsage();

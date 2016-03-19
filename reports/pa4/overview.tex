@@ -14,10 +14,10 @@
 % The fully qualified class name of your main program and any other
 % instructions needed to run the program.
 We implemented programming assignment $1$ and $2$ in Java, but we implemented
-programming assignment $3$ in OCaml. Our main OCaml executable is implemented
-in \texttt{main.ml} inside the \texttt{src} directory. To run our code, you
-will need to install a couple of packages and OCaml libraries by running the
-following:
+programming assignment $3$ and $4$ in OCaml. Our main OCaml executable is
+implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
+code, you will need to install a couple of packages and OCaml libraries by
+running the following:
 
 \begin{center}
 \begin{BVerbatim}
@@ -28,7 +28,7 @@ opam install core async oUnit
 
 To build our executable, simply run \texttt{make src}. This will use
 \texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
-code. It will use \texttt{corebuild} to build our OCaml code.  Invoking our
+code. It will use \texttt{corebuild} to build our OCaml code. Invoking our
 code manually is hard; instead, we we recommend you use the \texttt{xic} script
 which invokes our code with everything configured properly.
 

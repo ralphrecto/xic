@@ -1,11 +1,8 @@
 package mjw297;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -20,6 +17,42 @@ public class Util {
     public static class Tuple<S,T> {
         public final S fst;
         public final T snd;
+    }
+
+    public static class Result<O> {
+
+        private Optional<O> ok;
+        private Optional<String> error;
+
+        public Result(O okVal) {
+            ok = Optional.of(okVal);
+            error = Optional.empty();
+        }
+
+        public Result(String err) {
+            ok = Optional.empty();
+            error = Optional.of(err);
+        }
+
+        public <X> Result<X> flatmap(Function<O,Result<X>> f) {
+            if (this.isOk()) {
+                return f.apply(ok.get());
+            } else {
+                return Result.error(error.get());
+            }
+        }
+
+        public boolean isOk() {
+            return ok.isPresent();
+        }
+
+        public static <X> Result<X> ok(X okVal) {
+            return new Result<>(okVal);
+        }
+
+        public static <X> Result<X> error(String err) {
+            return new Result<>(err);
+        }
     }
 
     static <X,Y> List<Tuple<X,Y>> zip(List<X> fsts, List<Y> snds) {

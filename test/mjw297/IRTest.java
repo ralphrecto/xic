@@ -111,6 +111,20 @@ public class IRTest {
         assertEquals(expected, sim.call(testName));
     }
 
+    void printAssertTest(String filename, String testName, String expected) {
+        IRSimulator sim = new IRSimulator(irGenProgs.get(filename));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+        sim.call(testName);
+        System.out.flush();
+        System.setOut(old);
+
+        assertEquals(expected, baos.toString());
+    }
+
     @Test
     public void basicBinopTest1() {
         longAssertTest("binopTests", "basicBinopTest1", 10l);
@@ -139,6 +153,13 @@ public class IRTest {
     @Test
     public void basicBinopTest6() {
         longAssertTest("binopTests", "basicBinopTest6", 30l);
+    }
+
+    @Test
+    public void stringTest1() {
+        printAssertTest("binopTests", "stringTest1",
+          "I have done it again."
+        );
     }
 }
 

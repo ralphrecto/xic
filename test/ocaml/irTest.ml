@@ -1,3 +1,4 @@
+module Long = Int64
 open Core.Std
 open Typecheck.Expr
 open Ast.S
@@ -303,6 +304,7 @@ let test_ir_expr () =
 
 let test_ir_stmt () =
 	let open StmtEq in
+	let open Long in
 
 	(* Vars *)
 	let create_int_avar (id : string) : Typecheck.avar =
@@ -342,33 +344,15 @@ let test_ir_stmt () =
 	in
 
 	(* Decl tests *)
+
 	(* ints *)		
-	Seq [] === gen_stmt ((Zero, Decl [create_int_var "hello"]))
+	Seq [] === gen_stmt ((Zero, Decl [create_int_var "hello"]));
+	Seq [] === gen_stmt ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"]));
 	
 	(* bools *)
-
-	(* arrays *)
-
-	(* arrays of arrays *)
-
-	(* mix of all sort of things *)
-
-	(* DeclAsgn tests *)
-
-	(* Asgn tests *)
-
-	(* Block tests *)
-
-	(* Retrun tests *)
-
-	(* If tests *)
-
-	(* IfElse tests *)
-
-	(* While tests *)
-
-	(* ProcCall tests *)
-
+	Seq [] === gen_stmt ((Zero, Decl [create_bool_var "hello"]));
+	Seq [] === gen_stmt ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
+	
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in
@@ -419,8 +403,11 @@ let test_lower_stmt () =
   let one = Const 1L in
   let two = Const 2L in
   let stmts = [Return; Return; CJump (one, "t", "f")] in
+	let stmts2 = [Return; Return; CJump (one, "f", "t")] in
   let seq = Seq stmts in
+	let seq2 = Seq stmts2 in
   let eseq e = ESeq (seq, e) in
+	let eseq2 e = ESeq (seq2, e) in
 
   (* Label *)
   [Label "l"] === lower_stmt (Label "l");
@@ -438,9 +425,9 @@ let test_lower_stmt () =
   stmts === lower_stmt (Exp (eseq one));
 
   (* Move *)
-  stmts@[Move (t 5, two)]@stmts@[Move (one, t 5)]
+  stmts@[Move (t 5, one)]@stmts2@[Move (t 5, two)]
   ===
-  lower_stmt (Move (eseq one, eseq two));
+  lower_stmt (Move (eseq one, eseq2 two));
 
   (* Seq ss *)
   stmts@stmts@stmts

@@ -1343,11 +1343,7 @@ let test_reorder () =
 let main () =
     "suite" >::: [
       "test_ir_expr"        >:: test_ir_expr;
-<<<<<<< HEAD
 			"test_ir_stmt" 			  >:: test_ir_stmt;
-=======
-      "test_ir_stmt"        >:: test_ir_stmt;
->>>>>>> cd3820211b0cf7b2368e5ccbc51f1215a2a642c5
       "test_lower_expr"     >:: test_lower_expr;
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;

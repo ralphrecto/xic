@@ -1,3 +1,5 @@
+use io
+
 basicBinopTest1() : int {
   return 5 + 5;
 }
@@ -22,3 +24,7 @@ basicBinopTest6() : int {
   return 5 + 5 * 5;
 }
 
+stringTest1() {
+  print("I have done it again.");
+  return;
+}

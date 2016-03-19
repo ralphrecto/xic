@@ -497,6 +497,11 @@ and lower_stmt s =
   | Return -> [s]
   | CJumpOne _ -> failwith "this node shouldn't exist"
 
+let lower_func_decl (i, s) =
+  (i, Seq (lower_stmt s))
+
+let lower_comp_unit (id, funcs) =
+  (id, String.Map.map ~f:(fun data -> lower_func_decl data) funcs)
 
 (******************************************************************************)
 (* Basic Block Reordering                                                     *)
@@ -655,70 +660,94 @@ let block_reorder (stmts: Ir.stmt list) =
   let tidied = tidy blocks in
   List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) tidied
 
+let block_to_stmt blist =
+  let stmt_list = List.fold_right ~f:(fun (Block (_, stmts)) acc -> stmts@acc) ~init:[] blist in
+  Seq (stmt_list)
+
+let block_reorder_func_decl fd =
+  match fd with
+  | id, Seq stmts -> (id, block_reorder stmts |> block_to_stmt)
+  | _ -> failwith "can't happen"
+
+let block_reorder_comp_unit (id, funcs) =
+  (id, String.Map.map ~f:(fun data -> block_reorder_func_decl data) funcs)
+
 (******************************************************************************)
 (* IR-Level Constant Folding                                                  *)
 (******************************************************************************)
 
-let rec ir_constant_folding e =
-  let open Long in
-  let open Big_int in
-  match e with
-  | BinOp (Const 0L, ADD, Const i)
-  | BinOp (Const i, (ADD|SUB), Const 0L)
-  | BinOp (Const i, (MUL|DIV), Const 1L)
-  | BinOp (Const 1L, MUL, Const i) -> Const i
-  | BinOp (Const 0L, SUB, Const i) -> Const (neg i)
-  | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
-  | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
-  | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
-  | BinOp (Const i1, HMUL, Const i2) ->
-    let i1' = big_int_of_int64 i1 in
-    let i2' = big_int_of_int64 i2 in
-    let mult = mult_big_int i1' i2' in
-    let max_long = big_int_of_int64 max_int in
-    let divided = div_big_int mult max_long in
-    let result = int64_of_big_int divided in
-    Const result
-  | BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
-  | BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
-  | BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L
-  | BinOp (Const 0L, (AND|OR), Const 0L) -> Const 0L
-  | BinOp (Const 1L, OR, Const _)
-  | BinOp (Const _, OR, Const 1L) -> Const 1L
-  | BinOp (Const 0L, AND, Const _)
-  | BinOp (Const _, AND, Const 0L) -> Const 0L
-  | BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
-  | BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2)
-  | BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2)
-  | BinOp (Const i1, LSHIFT, Const i2) ->
-    let i2' = to_int i2 in
-    Const (shift_left i1 i2')
-  | BinOp (Const i1, RSHIFT, Const i2) ->
-    let i2' = to_int i2 in
-    Const (shift_right_logical i1 i2')
-  | BinOp (Const i1, ARSHIFT, Const i2) ->
-    let i2' = to_int i2 in
-    Const (shift_right i1 i2')
-  | BinOp (Const i1, EQ, Const i2) -> if (compare i1 i2) = 0 then Const (1L) else Const (0L)
-  | BinOp (Const i1, NEQ, Const i2) -> if (compare i1 i2) <> 0 then Const (1L) else Const (0L)
-  | BinOp (Const i1, LT, Const i2) -> if (compare i1 i2) < 0 then Const (1L) else Const (0L)
-  | BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L)
-  | BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L)
-  | BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
-  | BinOp (e1, op, e2) ->
-    begin
-      match (ir_constant_folding e1), (ir_constant_folding e2) with
-      | (Const _ as c1), (Const _ as c2)-> ir_constant_folding (BinOp (c1, op, c2))
-      | e1', e2' -> BinOp (e1', op, e2')
-    end
-  | Call (e', elist) ->
-    let folded_list = List.map ~f: ir_constant_folding elist in
-    let folded_e = ir_constant_folding e' in
-    Call (folded_e, folded_list)
-  | ESeq (s, e') -> ESeq (s, ir_constant_folding e')
-  | Mem (e', t) -> Mem (ir_constant_folding e', t)
-  | Const _
-  | Name _
-  | Temp _ -> e
-
+let ir_constant_folding comp_unit =
+  let rec fold_expr e =
+    let open Long in
+    let open Big_int in
+    match e with
+    | BinOp (Const 0L, ADD, Const i)
+    | BinOp (Const i, (ADD|SUB), Const 0L)
+    | BinOp (Const i, (MUL|DIV), Const 1L)
+    | BinOp (Const 1L, MUL, Const i) -> Const i
+    | BinOp (Const 0L, SUB, Const i) -> Const (neg i)
+    | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
+    | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
+    | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
+    | BinOp (Const i1, HMUL, Const i2) ->
+      let i1' = big_int_of_int64 i1 in
+      let i2' = big_int_of_int64 i2 in
+      let mult = mult_big_int i1' i2' in
+      let max_long = big_int_of_int64 max_int in
+      let divided = div_big_int mult max_long in
+      let result = int64_of_big_int divided in
+      Const result
+    | BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
+    | BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
+    | BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L
+    | BinOp (Const 0L, (AND|OR), Const 0L) -> Const 0L
+    | BinOp (Const 1L, OR, Const _)
+    | BinOp (Const _, OR, Const 1L) -> Const 1L
+    | BinOp (Const 0L, AND, Const _)
+    | BinOp (Const _, AND, Const 0L) -> Const 0L
+    | BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
+    | BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2)
+    | BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2)
+    | BinOp (Const i1, LSHIFT, Const i2) ->
+      let i2' = to_int i2 in
+      Const (shift_left i1 i2')
+    | BinOp (Const i1, RSHIFT, Const i2) ->
+      let i2' = to_int i2 in
+      Const (shift_right_logical i1 i2')
+    | BinOp (Const i1, ARSHIFT, Const i2) ->
+      let i2' = to_int i2 in
+      Const (shift_right i1 i2')
+    | BinOp (Const i1, EQ, Const i2) -> if (compare i1 i2) = 0 then Const (1L) else Const (0L)
+    | BinOp (Const i1, NEQ, Const i2) -> if (compare i1 i2) <> 0 then Const (1L) else Const (0L)
+    | BinOp (Const i1, LT, Const i2) -> if (compare i1 i2) < 0 then Const (1L) else Const (0L)
+    | BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L)
+    | BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L)
+    | BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
+    | BinOp (e1, op, e2) ->
+      begin
+        match (fold_expr e1), (fold_expr e2) with
+        | (Const _ as c1), (Const _ as c2)-> fold_expr (BinOp (c1, op, c2))
+        | e1', e2' -> BinOp (e1', op, e2')
+      end
+    | Call (e', elist) ->
+      let folded_list = List.map ~f: fold_expr elist in
+      let folded_e = fold_expr e' in
+      Call (folded_e, folded_list)
+    | ESeq (s, e') -> ESeq (s, fold_expr e')
+    | Mem (e', t) -> Mem (fold_expr e', t)
+    | Const _
+    | Name _
+    | Temp _ -> e in
+  let rec fold_stmt = function
+    | CJump (e, s1, s2) -> CJump (fold_expr e, s1, s2)
+    | CJumpOne (e, s) -> CJumpOne (fold_expr e, s)
+    | Jump e -> Jump (fold_expr e)
+    | Exp e -> Exp (fold_expr e)
+    | Label _ as l -> l 
+    | Move (e1, e2) -> Move (fold_expr e1, fold_expr e2)
+    | Seq (stmtlist) -> Seq (List.map ~f:fold_stmt stmtlist)
+    | Return -> Return in
+  let fold_func_decl (f, s) = (f, fold_stmt s) in
+  let (id, funcs) = comp_unit in
+  (id, String.Map.map ~f:fold_func_decl funcs)
 

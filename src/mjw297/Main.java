@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static mjw297.Util.Tuple;
+import static mjw297.Util.Either;
+import static mjw297.Ast.*;
 import static mjw297.Actions.*;
 import static mjw297.XicException.*;
 
@@ -84,33 +86,32 @@ public class Main {
          */
         String changeExtension(String newExt) {
             return String.format(
-                    "%s.%s", filename.substring(0, filename.length() - 3),
-                    newExt
+                "%s.%s", filename.substring(0, filename.length() - 3),
+                newExt
             );
         }
 
-        static XiSource create(String baseDir, String filename) throws XiSourceException {
+        static XiSource create(String baseDir, String filename) {
             String ext = Files.getFileExtension(filename);
             if (!(ext.equals("xi") || ext.equals("ixi"))) {
-                throw new XiSourceException("Valid Xi files must have .xi or .ixi extension");
+                System.out.println("Valid Xi files must have .xi or .ixi extension");
+                System.exit(1);
             }
             try {
                 File f = Paths.get(baseDir, filename).toFile();
-                return new XiSource(
-                        filename,
-                        f,
-                        new FileReader(f)
-                );
+                return new XiSource(filename, f, new FileReader(f));
             } catch (FileNotFoundException e) {
-                throw new XiSourceException(e.getMessage());
+                System.out.println(e.getMessage());
+                System.exit(1);
             }
+            return null;
         }
 
-        static XiSource create(String filename) throws XiSourceException {
+        static XiSource create(String filename) {
             return create(sourcePath, filename);
         }
 
-        static List<XiSource> createMany(String baseDir, List<String> filenames) throws XiSourceException {
+        static List<XiSource> createMany(String baseDir, List<String> filenames) {
             List<XiSource> sources = new ArrayList<>();
             for (String filename : filenames) {
                 sources.add(create(baseDir, filename));
@@ -118,7 +119,7 @@ public class Main {
             return sources;
         }
 
-        static List<XiSource> createMany(List<String> filenames) throws XiSourceException {
+        static List<XiSource> createMany(List<String> filenames) {
             return createMany(sourcePath, filenames);
         }
 
@@ -156,78 +157,84 @@ public class Main {
         }
     }
 
+    private void writeToFile(String filename, String contents) {
+        writeToFile(Paths.get(filename).toFile(), contents);
+    }
+
+    private void writeToFile(File file, String contents) {
+        try {
+            Files.write(contents.getBytes(), file);
+        } catch (IOException e) {
+            System.out.println(String.format(
+                "Cannot write to file %s",
+                file.getAbsolutePath()
+            ));
+            System.exit(1);
+        }
+    }
+
+    private FileOutputStream getFileOutputStream(String filename) {
+        try {
+            return new FileOutputStream(Paths.get(filename).toFile());
+        } catch (FileNotFoundException e) {
+            System.out.println(String.format(
+                "Cannot open file %s",
+                filename
+            ));
+            System.exit(1);
+        }
+        return null;
+    }
+
     /**
      * Actions for the --lex option
      */
     private void doLex(List<String> filenames) {
-        List<XiSource> sources = null;
-        try {
-            sources = XiSource.createMany(filenames);
-        } catch (XiSource.XiSourceException e) {
-            System.out.println(e.getMessage());
-            System.exit(1);
-        }
+        List<XiSource> sources = XiSource.createMany(filenames);
 
         List<Tuple<Lexed, XiSource>> lexedOut = Lists.transform(sources,
-                xs -> Tuple.of(Actions.lex(xs.reader), xs)
+            xs -> Tuple.of(Actions.lex(xs.reader), xs)
         );
 
         for (Tuple<Lexed, XiSource> t : lexedOut) {
-
             Lexed lexed = t.fst;
-
             StringBuilder outputBuilder = new StringBuilder();
 
             for (int i = 0; i < lexed.symbols.size(); i++) {
                 Symbol sym = lexed.symbols.get(i);
                 if (sym.sym == Sym.EOF) continue;
                 outputBuilder.append(
-                        String.format("%d:%d %s\n", sym.left, sym.right,
-                                SymUtil.symToLiteral(sym)
-                        )
+                    String.format("%d:%d %s\n", sym.left, sym.right,
+                        SymUtil.symToLiteral(sym)
+                    )
                 );
             }
 
             if (t.fst.exception.isPresent()) {
                 XicException e = t.fst.exception.get();
                 System.out.println(String.format(
-                        "Lexical error at %s beginning at %d:%d: %s",
-                        t.snd.filename, e.row, e.column, e.getMessage()
+                    "Lexical error at %s beginning at %d:%d: %s",
+                    t.snd.filename, e.row, e.column, e.getMessage()
                 ));
                 outputBuilder.append(
-                        String.format("%d:%d %s\n", e.row, e.column, e.getMessage())
+                    String.format("%d:%d %s\n", e.row, e.column, e.getMessage())
                 );
             }
 
             String outputFilename = diagPathOut(t.snd, "lexed");
-            File outputFile = Paths.get(outputFilename).toFile();
-
-            try {
-                Files.write(outputBuilder.toString().getBytes(), outputFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Could not write to file " + outputFilename);
-                System.exit(1);
-            }
+            writeToFile(outputFilename, outputBuilder.toString());
         }
     }
 
-    void writeParseError(XicException e, String filename, File outputFile) {
+    void writeParseError(XicException e, String filename, String outputFilename) {
         String kind = e.type == ErrorType.LEXING ? "Lexical" : "Syntactic";
         System.out.println(String.format(
             "%s error in %s beginning at %d:%d: %s",
             kind, filename, e.row, e.column, e.getMessage()
         ));
-        try {
-            Files.write(String.format(
-                    "%d:%d %s", e.row, e.column, e.getMessage()
-                ).getBytes(),
-                outputFile
-            );
-        } catch (IOException e1) {
-            e1.printStackTrace();
-            System.exit(1);
-        }
+        writeToFile(outputFilename, String.format(
+                "%d:%d %s", e.row, e.column, e.getMessage()
+        ));
     }
 
 
@@ -235,36 +242,22 @@ public class Main {
      * Actions for the --parse option
      */
     void doParse(List<String> filenames) {
-        List<XiSource> sources = null;
-        try {
-            sources = XiSource.createMany(filenames);
-        } catch (XiSource.XiSourceException e) {
-            System.out.println(e.getMessage());
-            System.exit(1);
-        }
+        List<XiSource> sources = XiSource.createMany(filenames);
 
         List<Tuple<Parsed, XiSource>> parsed = Lists.transform(sources,
-                xs -> Tuple.of(Actions.parse(xs.reader), xs)
+            xs -> Tuple.of(Actions.parse(xs.reader), xs)
         );
 
         for (Tuple<Parsed, XiSource> p : parsed) {
-
-            File outputFile = Paths.get(diagPathOut(p.snd, "parsed")).toFile();
-
-            SExpOut sExpOut = null;
-            try {
-                sExpOut = new SExpOut(new FileOutputStream(outputFile));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
+            String outputFilename = diagPathOut(p.snd, "parsed");
+            SExpOut sExpOut = new SExpOut(getFileOutputStream(outputFilename));
 
             Parsed result = p.fst;
             if (result.prog.isPresent()) {
                 sExpOut.visit(result.prog.get());
                 sExpOut.flush();
             } else {
-                writeParseError(result.exception.get(), p.snd.filename, outputFile);
+                writeParseError(result.exception.get(), p.snd.filename, outputFilename);
             }
         }
 
@@ -272,76 +265,56 @@ public class Main {
     }
 
     public void doTypecheck(List<String> filenames) {
-        List<XiSource> sources = null;
-        try {
-            sources = XiSource.createMany(filenames);
-        } catch (XiSource.XiSourceException e) {
-            System.out.println(e.getMessage());
-            System.exit(1);
-        }
+        List<XiSource> sources = XiSource.createMany(filenames);
 
-        List<Tuple<Parsed, XiSource>> parsed = Lists.transform(sources,
+        List<Tuple<Parsed, XiSource>> parsedList = Lists.transform(sources,
             xs -> Tuple.of(Actions.parse(xs.reader), xs)
         );
 
-        for (Tuple<Parsed, XiSource> p : parsed) {
-            File outputFile = Paths.get(diagPathOut(p.snd, "typed")).toFile();
-            SExpJaneStreetOut sexpOut = null;
-            try {
-                sexpOut = new SExpJaneStreetOut(
-                    new FileOutputStream(outputFile)
-                );
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
+        List<Either<FullProgram<Position>, XicException>> finList;
+        finList = Lists.transform(parsedList, (Tuple<Parsed, XiSource> p) -> {
+            Parsed parsed = p.fst;
+            XiSource source = p.snd;
 
-            if (!p.fst.prog.isPresent()) {
-                writeParseError(p.fst.exception.get(), p.snd.filename, outputFile);
+            if (!parsed.prog.isPresent()) {
+                return Either.right(parsed.exception.get());
             } else {
-                Ast.Program<Position> prog = p.fst.prog.get();
+                Program<Position> prog = parsed.prog.get();
 
-                List<Tuple<Ast.Use<Position>, XiSource>> useFiles = null;
-                try {
-                    useFiles = Util.zip(prog.uses, XiSource.createMany(
-                            libPath,
-                            Lists.transform(prog.uses, u -> u.x.x + ".ixi")
-                    ));
-                } catch (XiSource.XiSourceException e) {
-                    e.printStackTrace();
-                    System.exit(1);
-                }
-                List<Tuple<Ast.Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
-                        u -> Tuple.of(u.fst, Actions.parseInterface(u.snd.reader))
+                List<Tuple<Use<Position>, XiSource>> useFiles = Util.zip(
+                    prog.uses,
+                    XiSource.createMany(
+                        libPath,
+                        Lists.transform(prog.uses, u -> u.x.x + ".ixi")
+                    )
                 );
 
-                Optional<XiUseException> error = Optional.empty();
-                List<Ast.Interface<Position>> interfaces = new ArrayList<>();
-                for (Tuple<Ast.Use<Position>, Parsed> t : parsedUseFiles) {
+                List<Tuple<Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
+                    u -> Tuple.of(u.fst, Actions.parseInterface(u.snd.reader))
+                );
+
+                Optional<XiUseException> useError = Optional.empty();
+                List<Interface<Position>> interfaces = new ArrayList<>();
+                for (Tuple<Use<Position>, Parsed> t : parsedUseFiles) {
                     if (t.snd.inter.isPresent()) {
                         interfaces.add(t.snd.inter.get());
                     } else {
-                        error = Optional.of(new XicException.XiUseException(
-                                t.fst.x.x,
-                                t.fst.a.row,
-                                t.fst.a.col,
-                                t.snd.exception.get().getMessage()
+                        useError = Optional.of(new XicException.XiUseException(
+                            t.fst.x.x,
+                            t.fst.a.row,
+                            t.fst.a.col,
+                            t.snd.exception.get().getMessage()
                         ));
                         break;
                     }
                 }
-
-
-                if (error.isPresent()) {
-                    XiUseException e = error.get();
-                    writeParseError(error.get(), e.useName, outputFile);
+                if (useError.isPresent()) {
+                    return Either.right(useError.get());
                 } else {
-                    sexpOut.visit(Ast.FullProgram.of(prog.a, prog, interfaces));
-                    sexpOut.flush();
+                    return Either.left(FullProgram.of(prog.a, prog, interfaces));
                 }
             }
-
-        }
+        });
 
         System.exit(0);
     }

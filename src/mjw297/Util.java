@@ -1,11 +1,8 @@
 package mjw297;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -20,6 +17,37 @@ public class Util {
     public static class Tuple<S,T> {
         public final S fst;
         public final T snd;
+    }
+
+    public static class Either<X, Y> {
+
+        private Optional<X> left;
+        private Optional<Y> right;
+
+        public Either(Optional<X> left_, Optional<Y> right_) {
+            left = left_;
+            right = right_;
+        }
+
+        public <S> Either<S,Y> leftmap(Function<X,S> f) {
+            if (isLeft()) {
+                return Either.left(f.apply(left.get()));
+            } else {
+                return Either.right(right.get());
+            }
+        }
+
+        public boolean isLeft() {
+            return left.isPresent();
+        }
+
+        public static <X,Y> Either<X,Y> left(X left) {
+            return new Either<>(Optional.of(left), Optional.empty());
+        }
+
+        public static <X,Y> Either<X,Y> right(Y right) {
+            return new Either<>(Optional.empty(), Optional.of(right));
+        }
     }
 
     static <X,Y> List<Tuple<X,Y>> zip(List<X> fsts, List<Y> snds) {

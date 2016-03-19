@@ -1,3 +1,4 @@
+module StdString = String
 open Core.Std
 open Async.Std
 open Typecheck
@@ -9,81 +10,65 @@ open Printf
 open Xi_interpreter
 
 type flags = {
-  help:       bool;           (* --help      *)
-  lex:        bool;           (* --lex       *)
-  parse:      bool;           (* --parse     *)
-  typecheck:  bool;           (* --typecheck *)
-  sourcepath: string option;  (* -sourcepath *)
-  libpath:    string option;  (* -libpath    *)
-  outpath:    string option;  (* -D          *)
+  typecheck:  bool;           (* --typecheck  *)
+  irgen:  bool;               (* --irgen      *)
+  optimize: bool;             (* --optimize   *)
 } [@@deriving sexp]
 
-let change_ext ext filename =
-  filename
-  |> Filename.split_extension
-  |> fun (s,_) -> s ^ ext
+let flatmap ~f =
+  List.map ~f:(function
+    | Ok x -> Ok (f x)
+    | Error e-> Error e)
 
-(* errors if loading the sexp fails *)
-let typecheck_file filename : (string * string, unit) Result.t Deferred.t = 
-  Reader.load_sexp filename Pos.full_prog_of_sexp
-  >>| function
-  | Ok full_p -> begin
-      match prog_typecheck full_p with
-      | Ok _ -> Ok ("Valid Xi Program", filename)
-      | Error ((row,col), msg) ->
-        let row_s = string_of_int row in
-        let col_s = string_of_int col in
-        let stdout_msg =
-          "Semantic error beginning at " ^
-          row_s ^ ":" ^ col_s ^ ": " ^ msg in
-        Print.print_endline stdout_msg;
-        Ok (row_s ^ ":" ^ col_s ^ " error:" ^ msg, filename)
-    end
-  | Error _ -> Error ()
+let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
+  if b then f x else x
 
-let main flags filenames () : unit Deferred.t =
-  let rebase filename =
-    let open Filename in
-    let base = match flags.outpath with
-      | Some s -> s
-      | None -> dirname filename in
-    concat base (basename filename) in
+let format_err_msg ((row, col), msg) =
+  let row_s = string_of_int row in
+  let col_s = string_of_int col in
+  row_s ^ ":" ^ col_s ^ " error:" ^ msg
 
-  if not flags.typecheck then return ()
-  else filenames
-       |> List.map ~f:(fun fn -> rebase fn |> change_ext ".typed")
-       |> Deferred.List.map ~f:typecheck_file
-    >>= Deferred.List.iter ~how:`Sequential ~f:(function
-        | Ok (msg, file) ->
-          let f writer =
-            Writer.write_line writer msg |> return in
-          Writer.with_file file ~f
-        | Error _ -> return ()
-      )
+let main flags asts () : unit Deferred.t =
+  let typechecked = asts
+    |> List.map ~f:StdString.trim 
+    |> List.map ~f:Sexp.of_string
+    |> List.map ~f:Pos.full_prog_of_sexp
+    |> List.map ~f:prog_typecheck in
+  if flags.typecheck then
+    typechecked
+      |> List.map ~f:(function
+        | Ok _ -> "Valid Xi Program"
+        | Error e -> format_err_msg e)
+      |> List.iter ~f:print_endline
+      |> return
+  else if flags.irgen then
+    typechecked
+      |> flatmap ~f:(do_if flags.optimize ast_constant_folding)
+      |> flatmap ~f:gen_comp_unit
+      |> flatmap ~f:(do_if flags.optimize ir_constant_folding)
+      |> flatmap ~f:lower_comp_unit
+      |> flatmap ~f:block_reorder_comp_unit
+      |> flatmap ~f:sexp_of_comp_unit
+      |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
+      |> List.iter ~f:print_endline
+      |> return
+  else return ()
 
 let () =
   Command.async
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
-      +> flag "--help"      no_arg ~doc:""
-      +> flag "--lex"       no_arg ~doc:""
-      +> flag "--parse"     no_arg ~doc:""
-      +> flag "--typecheck" no_arg ~doc:""
-      +> flag "-sourcepath" (optional file) ~doc:""
-      +> flag "-libpath"    (optional file) ~doc:""
-      +> flag "-D"          (optional file) ~doc:""
-      +> anon (sequence ("file" %: file))
+      +> flag "--typecheck" (optional_with_default true bool) ~doc:""
+      +> flag "--irgen" (optional_with_default false bool) ~doc:""
+      +> flag "--optimize" (optional_with_default false bool) ~doc:""
+      +> anon (sequence ("asts" %: string))
     )
-    (fun h l p t s lib o filenames ->
+    (fun t i o asts ->
        let flags = {
-         help = h;
-         lex = l;
-         parse =  p;
          typecheck = t;
-         sourcepath = s;
-         libpath = lib;
-         outpath = o;
+         irgen = i;
+         optimize = o;
        } in
-       main flags filenames)
+       main flags asts)
   |> Command.run

@@ -41,6 +41,18 @@ public class Util {
             return left.isPresent();
         }
 
+        public boolean isRight() {
+            return right.isPresent();
+        }
+
+        public X getLeft() {
+            return left.get();
+        }
+
+        public Y getRight() {
+            return right.get();
+        }
+
         public static <X,Y> Either<X,Y> left(X left) {
             return new Either<>(Optional.of(left), Optional.empty());
         }

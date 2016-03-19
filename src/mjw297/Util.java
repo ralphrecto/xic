@@ -104,4 +104,17 @@ public class Util {
         }
         return kv;
     }
+
+    static <A> List<A> singleton(A x) {
+        List<A> xs = new ArrayList<>();
+        xs.add(x);
+        return xs;
+    }
+
+    static <A> List<A> concat(List<A> xs, List<A> ys) {
+        List<A> zs = new ArrayList<>();
+        zs.addAll(xs);
+        zs.addAll(ys);
+        return zs;
+    }
 }

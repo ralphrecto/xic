@@ -10,13 +10,13 @@ open Printf
 open Xi_interpreter
 
 type flags = {
-  typecheck:  bool;           (* --typecheck  *)
-  xirun: bool;               (* --xi-run     *)
-  irgen:  bool;               (* --irgen      *)
-  ast_cfold: bool;            (* --ast-cfold  *)
-  ir_cfold: bool;             (* --ir-cfold   *)
-  lower: bool;                (* --lower      *)
-  blkreorder: bool;           (* --blkreorder *)
+  typecheck:  bool;          (* --typecheck  *)
+  xirun: bool;               (* --xirun      *)
+  irgen:  bool;              (* --irgen      *)
+  ast_cfold: bool;           (* --ast-cfold  *)
+  ir_cfold: bool;            (* --ir-cfold   *)
+  lower: bool;               (* --lower      *)
+  blkreorder: bool;          (* --blkreorder *)
 } [@@deriving sexp]
 
 let resmap ~f =
@@ -34,7 +34,7 @@ let format_err_msg ((row, col), msg) =
 
 let main flags asts () : unit Deferred.t =
   let typechecked = asts
-    |> List.map ~f:StdString.trim 
+    |> List.map ~f:StdString.trim
     |> List.map ~f:Sexp.of_string
     |> List.map ~f:Pos.full_prog_of_sexp
     |> List.map ~f:prog_typecheck in
@@ -89,9 +89,9 @@ let () =
          xirun = xir;
          irgen = irg;
          ast_cfold = afold;
-         ir_cfold = ifold; 
-         lower = l; 
-         blkreorder = b; 
+         ir_cfold = ifold;
+         lower = l;
+         blkreorder = b;
        } in
        main flags asts)
   |> Command.run

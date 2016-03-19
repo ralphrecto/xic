@@ -62,6 +62,21 @@ public class Main {
     @Option(name = "-compilerpath", hidden = true, required = true)
     private static String compilerPath;
 
+    @Option(name = "--xirun", usage = "Evaluate Xi code")
+    private static boolean xiRunMode = false;
+
+    @Option(name = "--ast-cfold", usage = "Constant fold on AST")
+    private static boolean astCfoldMode = false;
+
+    @Option(name = "--ir-cfold", usage = "Constant fold on IR")
+    private static boolean irCfoldMode = false;
+
+    @Option(name = "--lower", usage = "Lower IR")
+    private static boolean lowerMode = false;
+
+    @Option(name = "--blkreorder", usage = "Reorder blocks")
+    private static boolean blkReorderMode = false;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 
@@ -424,7 +439,11 @@ public class Main {
 
     void doTypecheck(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--typecheck");
+        if (typecheckMode) {
+            binArgs.add("--typecheck");
+        } else {
+            binArgs.add("--xirun");
+        }
         List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
 
         stdOuts.forEach(t -> {
@@ -432,24 +451,48 @@ public class Main {
             if (t.snd.startsWith("ERROR")) {
                 fileOut = doError(t.snd, t.fst.filename);
             } else {
-                fileOut = t.snd;
+                if (typecheckMode) {
+                    fileOut = t.snd;
+                } else {
+                    System.out.println(t.snd);
+                }
             }
 
-            writeToFile(diagPathOut(t.fst, "typed"), fileOut);
+            if (typecheckMode) {
+                writeToFile(diagPathOut(t.fst, "typed"), fileOut);
+            }
         });
 
         System.exit(0);
     }
 
+    // generation
+    // --typecheck
+    // --ir-gen --ast-cfold ?
+    // --ir-gen --ir-cfold ?
+    // --ir-gen --lower
+    // --ir-gen --blkreorder
     void doIRGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--irgen");
-        binArgs.add("--lower");
-        binArgs.add("--blkreorder");
-        if (!noOptimize) {
-            binArgs.add("--ast-cfold");
-            binArgs.add("--ir-cfold");
+
+        List<String> astcfold =
+            noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
+        List<String> ircfold =
+            noOptimize ? astcfold : Util.concat(astcfold, Util.singleton("--ir-cfold"));
+        List<String> lower = Util.concat(ircfold, Util.singleton("--lower"));
+        List<String> blkreorder = Util.concat(lower, Util.singleton("--blkreorder"));
+
+        if (astCfoldMode) {
+            binArgs.addAll(astcfold);
+        } else if (irCfoldMode) {
+            binArgs.addAll(ircfold);
+        } else if (lowerMode) {
+            binArgs.addAll(lower);
+        } else if (blkReorderMode) {
+            binArgs.addAll(blkreorder);
         }
+
         List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
 
         stdOuts.forEach(t -> {
@@ -473,15 +516,33 @@ public class Main {
         System.exit(0);
     }
 
+    // running
+    // --typecheck --xirun
+    // --irrun --ast-cfold ?
+    // --irrun --ir-cfold ?
+    // --irrun --lower
+    // --irrun --blkreorder
     void doIRRun(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--irgen");
-        binArgs.add("--lower");
-        binArgs.add("--blkreorder");
-        if (!noOptimize) {
-            binArgs.add("--ast-cfold");
-            binArgs.add("--ir-cfold");
+
+        List<String> astcfold =
+            noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
+        List<String> ircfold =
+            noOptimize ? astcfold : Util.concat(astcfold, Util.singleton("--ir-cfold"));
+        List<String> lower = Util.concat(ircfold, Util.singleton("--lower"));
+        List<String> blkreorder = Util.concat(lower, Util.singleton("--blkreorder"));
+
+        if (astCfoldMode) {
+            binArgs.addAll(astcfold);
+        } else if (irCfoldMode) {
+            binArgs.addAll(ircfold);
+        } else if (lowerMode) {
+            binArgs.addAll(lower);
+        } else if (blkReorderMode) {
+            binArgs.addAll(blkreorder);
         }
+
         List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
         stdOuts.forEach(t -> {
             if (t.snd.startsWith("ERROR")) {
@@ -528,7 +589,7 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
-            } else if (typecheckMode) {
+            } else if (typecheckMode || xiRunMode) {
                 doTypecheck(arguments);
             } else if (irGenMode) {
                 doIRGen(arguments);

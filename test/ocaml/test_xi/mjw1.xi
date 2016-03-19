@@ -5,7 +5,8 @@ empty_first(xs: int[][]) {
 increment(xs: int[]) : int[] {
     i: int = 0;
     while (i < length(xs)) {
-        xs[i] = xs[i] + 1;
+       xs[i] = xs[i] + 1;
+       i = i + 1;
     }
     return xs;
 }

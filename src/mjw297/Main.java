@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static mjw297.Util.Tuple;
+import static mjw297.Util.Either;
+import static mjw297.Ast.*;
 import static mjw297.Actions.*;
 import static mjw297.XicException.*;
 
@@ -231,7 +233,7 @@ public class Main {
             kind, filename, e.row, e.column, e.getMessage()
         ));
         writeToFile(outputFilename, String.format(
-            "%d:%d %s", e.row, e.column, e.getMessage()
+                "%d:%d %s", e.row, e.column, e.getMessage()
         ));
     }
 
@@ -265,22 +267,21 @@ public class Main {
     public void doTypecheck(List<String> filenames) {
         List<XiSource> sources = XiSource.createMany(filenames);
 
-        List<Parsed> parsed = Lists.transform(sources,
-            xs -> Actions.parse(xs.reader)
+        List<Tuple<Parsed, XiSource>> parsedList = Lists.transform(sources,
+            xs -> Tuple.of(Actions.parse(xs.reader), xs)
         );
 
-        for (Tuple<Parsed, XiSource> p : Util.zip(parsed, sources)) {
-            String outputFilename = diagPathOut(p.snd, "typed");
-            SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(
-                    getFileOutputStream(outputFilename)
-            );
+        List<Either<FullProgram<Position>, XicException>> finList;
+        finList = Lists.transform(parsedList, (Tuple<Parsed, XiSource> p) -> {
+            Parsed parsed = p.fst;
+            XiSource source = p.snd;
 
-            if (!p.fst.prog.isPresent()) {
-                writeParseError(p.fst.exception.get(), p.snd.filename, outputFilename);
+            if (!parsed.prog.isPresent()) {
+                return Either.right(parsed.exception.get());
             } else {
-                Ast.Program<Position> prog = p.fst.prog.get();
+                Program<Position> prog = parsed.prog.get();
 
-                List<Tuple<Ast.Use<Position>, XiSource>> useFiles = Util.zip(
+                List<Tuple<Use<Position>, XiSource>> useFiles = Util.zip(
                     prog.uses,
                     XiSource.createMany(
                         libPath,
@@ -288,17 +289,17 @@ public class Main {
                     )
                 );
 
-                List<Tuple<Ast.Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
+                List<Tuple<Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
                     u -> Tuple.of(u.fst, Actions.parseInterface(u.snd.reader))
                 );
 
-                Optional<XiUseException> error = Optional.empty();
-                List<Ast.Interface<Position>> interfaces = new ArrayList<>();
-                for (Tuple<Ast.Use<Position>, Parsed> t : parsedUseFiles) {
+                Optional<XiUseException> useError = Optional.empty();
+                List<Interface<Position>> interfaces = new ArrayList<>();
+                for (Tuple<Use<Position>, Parsed> t : parsedUseFiles) {
                     if (t.snd.inter.isPresent()) {
                         interfaces.add(t.snd.inter.get());
                     } else {
-                        error = Optional.of(new XicException.XiUseException(
+                        useError = Optional.of(new XicException.XiUseException(
                             t.fst.x.x,
                             t.fst.a.row,
                             t.fst.a.col,
@@ -307,17 +308,13 @@ public class Main {
                         break;
                     }
                 }
-
-                if (error.isPresent()) {
-                    XiUseException e = error.get();
-                    writeParseError(error.get(), e.useName, outputFilename);
+                if (useError.isPresent()) {
+                    return Either.right(useError.get());
                 } else {
-                    sexpOut.visit(Ast.FullProgram.of(prog.a, prog, interfaces));
-                    sexpOut.flush();
+                    return Either.left(FullProgram.of(prog.a, prog, interfaces));
                 }
             }
-
-        }
+        });
 
         System.exit(0);
     }

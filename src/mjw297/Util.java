@@ -19,39 +19,34 @@ public class Util {
         public final T snd;
     }
 
-    public static class Result<O> {
+    public static class Either<X, Y> {
 
-        private Optional<O> ok;
-        private Optional<String> error;
+        private Optional<X> left;
+        private Optional<Y> right;
 
-        public Result(O okVal) {
-            ok = Optional.of(okVal);
-            error = Optional.empty();
+        public Either(Optional<X> left_, Optional<Y> right_) {
+            left = left_;
+            right = right_;
         }
 
-        public Result(String err) {
-            ok = Optional.empty();
-            error = Optional.of(err);
-        }
-
-        public <X> Result<X> flatmap(Function<O,Result<X>> f) {
-            if (this.isOk()) {
-                return f.apply(ok.get());
+        public <S> Either<S,Y> leftmap(Function<X,S> f) {
+            if (isLeft()) {
+                return Either.left(f.apply(left.get()));
             } else {
-                return Result.error(error.get());
+                return Either.right(right.get());
             }
         }
 
-        public boolean isOk() {
-            return ok.isPresent();
+        public boolean isLeft() {
+            return left.isPresent();
         }
 
-        public static <X> Result<X> ok(X okVal) {
-            return new Result<>(okVal);
+        public static <X,Y> Either<X,Y> left(X left) {
+            return new Either<>(Optional.of(left), Optional.empty());
         }
 
-        public static <X> Result<X> error(String err) {
-            return new Result<>(err);
+        public static <X,Y> Either<X,Y> right(Y right) {
+            return new Either<>(Optional.empty(), Optional.of(right));
         }
     }
 

@@ -40,6 +40,8 @@ val gen_comp_unit : Typecheck.prog -> Ir.comp_unit
 (* IR lowering *)
 val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr
 val lower_stmt : Ir.stmt -> Ir.stmt list
+val lower_func_decl : Ir.func_decl -> Ir.func_decl
+val lower_comp_unit : Ir.comp_unit -> Ir.comp_unit
 
 (* Basic block reordering *)
 (* `gen_block ss` chunks ss into blocks. The contents of the blocks are
@@ -87,5 +89,14 @@ val tidy : block list -> block list
 (* Full basic block reordering. *)
 val block_reorder : Ir.stmt list -> block list
 
+(* blocks to stmt *)
+val block_to_stmt : block list -> Ir.stmt
+
+(* func_decl block reordering *)
+val block_reorder_func_decl : Ir.func_decl -> Ir.func_decl
+
+(* comp_unit block reordering *)
+val block_reorder_comp_unit : Ir.comp_unit -> Ir.comp_unit
+
 (* Constant folding @ IR level *)
-val ir_constant_folding : Ir.expr -> Ir.expr
+val ir_constant_folding : Ir.comp_unit -> Ir.comp_unit

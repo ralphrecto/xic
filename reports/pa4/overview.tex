@@ -162,15 +162,31 @@ our compiler at a very high level and makes testing quick and flexible.
 All our tests pass.
 
 \section{Work Plan}\label{sec:workplan}
-One day during compiler lectures Michael and Ralph had an enlightenment -- switching our
-source language from Java to OCaml.
-They slowly approached Seung Hee and Alice after class and they didn't know at the moment,
-but they were about to embark on the most incredible journey of their life. After discussing
-with professor Myers, we decided to go with the idea. Ralph and Michael immediately
-worked on the conversion from Java to OCaml. Then after the skeleton of OCaml code was written
-we split up the work. Ralph worked on type checking expressions, Michael on statements,
-and Seung Hee and Alice pair programmed on type checking functions. Then, while
-Ralph worked on the front end, Seung Hee, Michael and Alice focued on testing.
+\begin{itemize}
+  \item \textbf{Ralph.}
+    Ralph worked on the front-end, implementing code generation, and worked on
+    connecting the Java IR interpreter with our Xi interpreter in order to make
+    testing nice and easy.
+
+  \item \textbf{Alice.}
+    Alice worked on implementing code generation for both statements and
+    expressions and also worked on thoroughly testing the most challenging
+    parts of the code generation.
+
+  \item \textbf{Seung Hee.}
+    Seung Hee implemented lowering, constant folding, block reordering, and the
+    Xi interpreter. She also worked on tested all three and on testing code
+    generation.
+
+  \item \textbf{Michael.}
+    Michael tested and debugged lowering, constant folding, block reordering,
+    and the Xi interpreter.
+\end{itemize}
+Ralph and Alice focused mainly on code generation while Seung Hee and Michael
+focused on lowering, block reordering, constant folding, and Xi evaluation. The
+work was divided in this way because none of these tasks depended on each other
+and because code generation was considerably more complex than any of the other
+parts.
 
 \section{Known Problems}\label{sec:problems}
 Currently we do not support UTF-8 as OCaml does not have good support for

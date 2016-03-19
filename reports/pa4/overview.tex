@@ -129,6 +129,37 @@ intricate ways. The lowering, block reordering, and constant folding were much
 less challenging.
 
 \section{Testing}\label{sec:testing}
+As usual, we have implemented a very comprehensive set of tests that range in
+scale and scope. First, we have implemented the typical unit tests for each
+pass of our algorithm. In fact, certain algorithms like the block reordering
+algorithm were divided into smaller self-contained subroutines that were
+thoroughly tested. In these unit tests, we manually construct an input and
+expected output and assert that they are equal.
+
+However, this manual approach to unit testing often overfits our algorithms.
+For example, consider unit testing block reordering in this way. We generate a
+set of input blocks and an expected reordered set of blocks and compare the
+two. This works, but the exact order of the output blocks is not specified. If
+we implement a different trace select heuristic, then our test cases could all
+fail. In order to overcome this problem, we implemented property based testing
+for certain algorithms. That is, we encoded the output properties of our
+algorithms as simple predicates in OCaml. For example, any output blocks are
+valid so long as the first block in the output is the first block in the input,
+the blocks form a permutation of the input blocks, and each trace within the
+reordered blocks is a valid trace. We then enumerate a large number of input
+blocks, generate the output and assert that they satisfy the predicates.
+Testing in this way makes our tests future proof and also less tedious to
+write.
+
+Most interestingly, we also implemented (and unit tested) an Xi interpreter.
+This allows to perform property based testing of our entire code generation
+pass. We manually write out a large number of Xi programs of various complexity
+and then for each assert that the result of interpreting the program with our
+Xi interpreter is the same as interpreting the intermediate code generated from
+it using the IR interpreter. This form of testing captures the correctness of
+our compiler at a very high level and makes testing quick and flexible.
+
+All our tests pass.
 
 \section{Work Plan}\label{sec:workplan}
 One day during compiler lectures Michael and Ralph had an enlightenment -- switching our

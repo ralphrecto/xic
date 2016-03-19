@@ -33,6 +33,7 @@ let format_err_msg ((row, col), msg) =
   "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
 let main flags asts () : unit Deferred.t =
+  List.iter ~f:print_endline asts;
   let typechecked = asts
     |> List.map ~f:StdString.trim 
     |> List.map ~f:Sexp.of_string
@@ -73,13 +74,13 @@ let () =
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
-      +> flag "--typecheck" (optional_with_default true bool) ~doc:""
-      +> flag "--xirun" (optional_with_default false bool) ~doc:""
-      +> flag "--irgen" (optional_with_default false bool) ~doc:""
-      +> flag "--ast-cfold" (optional_with_default false bool) ~doc:""
-      +> flag "--ir-cfold" (optional_with_default false bool) ~doc:""
-      +> flag "--lower-cfold" (optional_with_default false bool) ~doc:""
-      +> flag "--blkreorder" (optional_with_default false bool) ~doc:""
+      +> flag "--typecheck" no_arg ~doc:""
+      +> flag "--xirun" no_arg ~doc:""
+      +> flag "--irgen" no_arg ~doc:""
+      +> flag "--ast-cfold" no_arg ~doc:""
+      +> flag "--ir-cfold" no_arg ~doc:""
+      +> flag "--lower-cfold" no_arg ~doc:""
+      +> flag "--blkreorder" no_arg ~doc:""
       +> anon (sequence ("asts" %: string))
     )
     (fun tc xir irg afold ifold l b asts ->

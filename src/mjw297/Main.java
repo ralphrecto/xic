@@ -302,6 +302,7 @@ public class Main {
             XiSource source = p.snd;
 
             if (!parsed.prog.isPresent()) {
+                System.out.println(parsed.exception.get());
                 return Tuple.of(source, Either.right(parsed.exception.get()));
             } else {
                 Program<Position> prog = parsed.prog.get();
@@ -398,15 +399,17 @@ public class Main {
             new InputStreamReader(proc.getErrorStream())
         );
         List<String> stdErrors = stdErr.lines().collect(Collectors.toList());
-        errors.forEach(System.out::println);
+        stdErrors.forEach(System.out::println);
         if (stdErrors.size() > 0) System.exit(1);
 
         BufferedReader stdOut = new BufferedReader(
             new InputStreamReader(proc.getInputStream())
         );
+        List<String> stdOuts = stdOut.lines().collect(Collectors.toList());
+
         return Util.zip(
             Lists.transform(programs, t -> t.fst),
-            stdOut.lines().collect(Collectors.toList())
+            stdOuts
         );
     }
 

@@ -131,7 +131,7 @@ public abstract class XicException extends Exception {
 		public String useName;
 		public XiUseException(String useName, int row, int col, String msg) {
 			super(ErrorCode.USEERROR, row, col, String.format(
-				"error: Use error: %s", row, col, msg
+				"error: Use error: %s", msg
             ), ErrorType.SYNTACTIC);
 			this.useName = useName;
 		}
@@ -140,7 +140,7 @@ public abstract class XicException extends Exception {
 	public static class GenericParserException extends XicException {
 		public GenericParserException(int row, int col, String msg) {
 			super(ErrorCode.SYNTAX, row, col, String.format(
-                "error: parser error: %s", row, col, msg
+                "error: parser error: %s", msg
 			), ErrorType.SYNTACTIC);
 		}
 	}

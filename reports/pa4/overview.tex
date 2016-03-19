@@ -88,53 +88,47 @@ Our intermediate code generation is implemented by the following modules.
 \end{itemize}
 
 \subsection{Code Design}
-\subsubsection{Switch from Java to OCaml}
-The most fundamental design decision we made in this project was switching our
-main implementation language from Java to OCaml. In our work for PA2,
-we found significant overhead in implementing both the AST structure and recursive
-traversals over the structure, even with using the Visitor pattern. As an example,
-a simple traversal that changed a single field in every AST node took hundreds of lines
-of Visitor code. In general, we found an impedance mismatch between the recursive,
-immutable style in which we were using our AST and the language we were implementing
-it in.
+All the algorithms we employ are described in detail in the lecture notes or in
+the textbook, so we do not repeat a description of them here. Most of the
+algorithms are implemented using vanilla OCaml pattern matching and do not
+involve any sort of complex data structure or design pattern.
 
-Because of this, we decided at the beginning of our work in PA3 to change to OCaml.
-We kept all of our previous lexing and parsing work in Java intact and do all of our
-typechecking work in OCaml. To interface between the two languages, we used Jane Street's
-S-Expression parser for OCaml: we wrote an S-Expression printer for our AST representation
-in Java, the output of which is then parsed into our AST representation in OCaml. On the
-whole, we found significant gains in coding speed, code intelligibility and conciseness
-due to OCaml features that are particularly well-suited for tree traversals and transformations, such as pattern matching. All four of our group members are also either current or former
-CS 3110 TAs, so this made the coding process much more enjoyable for us on the whole.
+The one exception is basic block reordering. Block reordering required us to
+design a graph data structure and to choose a heuristic for selecting traces.
+We opted for a very simple, purely functional graph data structure based on an
+adjacency list representation of a graph. Each block in the code is represented
+by its label. Each node is paired with a list of its neighbors. Moreover, we
+store the graph as simple lists of pairs of lists. This data structure is not
+very efficient; many or all of the operations on the graphs are slow. We could
+have represented the graphs using sets and maps, but we opted not to. We felt
+the simplicity of our graph representation outweighs the benefits of a fast
+graph data structure and we had no evidence that block reordering was a
+bottleneck of the compiler.
 
-\subsubsection{OCaml AST}
-We followed our practice from Java of annotating AST nodes with an extra type that
-stores helpful information (e.g. positions in parsing, types for typechecking). For
-maximal flexibility, we designed our OCaml AST such that different types of AST nodes
-can be different types. Referring to \texttt{src/ast.ml}, our AST types are polymorphic
-in many type parameters to allow for these multifarious annotations. We make use of a
-functor to both facilitate the construction of these annotations and for type aliasing.
-
-\subsubsection{Use of the Error monad}
-We made significant use of the error monad in all of our typechecking functions. This
-allowed us to seamlessly propagate errors throughout our traversals of the AST during
-typechecking.
-
-\subsubsection{Jane Street OCaml Core libraries}
-We made extensive use of Jane Street's Core libraries, which extend OCaml's standard
-library significantly to facilitate everyday programming tasks, such as loading files,
-writing files, etc.
+Second, we opted for a very simple trace selection heuristic. Given an ordered
+list of blocks, we generate the longest trace rooted at the first block always
+taking false branches for conditional jumps. After we generate a trace, we
+remove the blocks in the trace from the graph and start the next trace at the
+first remaining block. This heuristic is very simple and very easy to
+implement, however, it does not produce the longest possible traces. We could
+employ a heuristic where we select nodes with the lowest in-degree. We opted
+not do implement this heuristic because we felt it would greatly complicate our
+code. However, it is possible in the future to implement this optimization.
 
 \subsection{Programming}
+We followed a bottom-up implementation strategy, implementing each pass of our
+code generation algorithm independently before finally gluing together each
+pass after they had all been tested. This bottom-up approach made it easy to
+divide work between team members and maximized modularity.
+
+The most challenging part of the assignment was generating code for operations
+involving arrays. For example, the declaration of a multidimensional array
+involves a recursive function that repeatedly allocates and initializes memory.
+Moreover, concatenating two arrays involves reallocating and copying memory in
+intricate ways. The lowering, block reordering, and constant folding were much
+less challenging.
 
 \section{Testing}\label{sec:testing}
-We sectioned off tests based on the sections highlighted in the Xi Type System Specification - expressions, statements, top-level declarations, and programs. Within each section, we wrote many unit tests that logically and thoroughly verify the types by carefully following the axioms and the typing rules listed in the type specification.
-
-In addition to testing the axioms and typing rules, we created invalid tests to ensure that we are throwing errors on invalid programs, expressions, and statements.
-
-To help make our test cases more readable and cute, we created sexy infix operators, such as \texttt{|-} and \texttt{=:}. A test case \texttt{c |- e =: t} represents a context \texttt{c} that derives the expression \texttt{e} of type \texttt{t}. We also created an infix operator \texttt{=/=} that ensures an error is thrown. For example, \texttt{c =/= e} means that the expression \texttt{e} is ill-typed in the context \texttt{c}. We similarly implemented these operators for statements, callables, and programs.
-
-Our test plan worked out very well. Methodically and meticulously testing our code allowed us to catch many simple oversights before running the test harness provided by the staff.
 
 \section{Work Plan}\label{sec:workplan}
 One day during compiler lectures Michael and Ralph had an enlightenment -- switching our

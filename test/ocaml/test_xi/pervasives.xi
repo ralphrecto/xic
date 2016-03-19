@@ -1,5 +1,6 @@
 use io;
 
+// Checks for structural equality of two arrays, not physical equality
 arr_eq(x: int[], y: int[]) : bool {
     if (length(x) != length(y)) {
         return false;

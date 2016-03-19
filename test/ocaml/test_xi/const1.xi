@@ -1,3 +1,3 @@
-main () : int {
-    return 5;
+main () {
+    print (string_of_int (5));
 }

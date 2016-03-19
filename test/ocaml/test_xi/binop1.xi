@@ -1,3 +1,3 @@
-main () : int {
-    return 1 + 7;
+main () {
+    print (string_of_int (1 + 7));
 }

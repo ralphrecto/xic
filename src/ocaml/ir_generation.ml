@@ -161,8 +161,13 @@ let rec gen_expr ((t, e): Typecheck.expr) =
       ),
       loc_tmp$(1)
     )
-  | Id       (_, id)         -> Temp id
-  | BinOp    (e1, op, e2)    -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+  | Id       (_, id)         -> Temp (id_to_temp id)
+  | BinOp    (e1, op, e2)    -> begin
+      match t with
+      | IntT | BoolT -> BinOp (gen_expr e1, ir_of_ast_binop op, gen_expr e2)
+      | ArrayT _ -> failwith "Hi Ralph"
+      | _ -> failwith "Shouldn't reach. BinOp applies only to ints and arrays"
+    end
   | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr e1)
   | UnOp     (BANG,   e1)    -> not_expr (gen_expr e1)
   | Index    (a, i)          ->

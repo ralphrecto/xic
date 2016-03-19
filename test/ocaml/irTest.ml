@@ -181,6 +181,8 @@ let test_ir_expr () =
   let open ExprEq in
   let open Abbreviations in
 
+  Ir_gen.reset_fresh_temp ();
+
   (* Ir exprs *)
   let zero = const 0L in
   let one  = const 1L in
@@ -191,8 +193,8 @@ let test_ir_expr () =
   let binop12 = BinOp (one, ADD, two) in
   let unopminus x = BinOp (zero, SUB, x) in
   let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
-  let x = temp "x" in
-  let y = temp "y" in
+  let x = temp "%TEMP%x" in
+  let y = temp "%TEMP%y" in
   let word = const 8L in
 
   (* Typecheck exprs *)
@@ -238,15 +240,55 @@ let test_ir_expr () =
   unopnot fls    === gen_expr (bunop flst);
 
   (* String and Array tests *)
+  Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 1 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) zero     ) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) zero             ) ::
       []
     ))
-    (BinOp (temp "0", ADD, BinOp (one, MUL, word)))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr earr;
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) one              ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (iarr [zerot]);
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) two              ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (iarr [zerot; onet]);
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 4 )) ::
+      (move ( mem ( Temp (Ir_gen.temp 0) )) (const 3L)       ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) two ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
+      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (iarr [zerot; onet; twot]);
 
   (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)
 
@@ -265,6 +307,8 @@ let test_ir_stmt () =
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in
+
+  Ir_gen.reset_fresh_temp ();
 
   let one = Const 1L in
   let two = Const 2L in

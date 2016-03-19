@@ -7,6 +7,8 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning}
 
+\newcommand{\ir}{intermediate representation}
+
 \begin{document}
 \maketitle
 
@@ -47,11 +49,11 @@ make src
 In this programming assignment, we implemented intermediate code generation for
 the Xi programming language. The most challenging aspect of the assignment was
 generating code for complex array operations, including multi-dimensional array
-declarations and array concatenation.  This assignment didn't involve many
-design decisions; the intermediate representation, code generation algorithm,
-lowering algorithm, and block reordering algorithm were all taken from the
-notes. Though, we did implement novel forms of testing. There are no known
-problems with our implementation.
+declarations and array concatenation. This assignment didn't involve many
+design decisions; the \ir, code generation algorithm, lowering algorithm, and
+block reordering algorithm were all taken from the notes. Though, we did
+implement novel forms of testing. There are no known problems with our
+implementation.
 
 \section{Specification}\label{sec:specification}
 For this project, we have not deviated from the project specification at all.
@@ -60,45 +62,32 @@ previous assignments still stand.
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}
-\begin{figure}[h]
-  \centering
-  \begin{tikzpicture}
-    \tikzstyle{every node}+=[draw]
-    \node (main)  at (0, 0)  {\texttt{main}};
-    \node (typecheck) at (2, 1)  {\texttt{typecheck}};
-    \node (ast)   at (2, -1) {\texttt{ast}};
-    \node (pos)   at (4, 0)  {\texttt{pos}};
-    \path[->, ultra thick] (ast)   edge (pos)
-                           (ast)   edge (typecheck)
-                           (typecheck) edge (main);
-  \end{tikzpicture}
-  \caption{%
-    Module Dependency Diagram. Each node represents a module. An arrow from
-    module $u$ to module $v$ signifies that $v$ depends on $u$.
-  }
-  \label{fig:mdd}
-\end{figure}
+Our intermediate code generation is implemented by the following modules.
+\begin{itemize}
+  \item \texttt{ast\_optimization}
+    This module implements constant folding at the AST level. It does not
+    interact with any \ir.
 
-We had four main files in our typechecker, as shown in \figref{mdd}.
-\begin{enumerate}
-  \item{\texttt{main.ml}:}
-    This is the main front end for our compiler. In this class, we handle the
-    various command line options passed into the binary and call the rest of
-    our lexing, parsing, and typechecking code. We also handle all IO (including the typechecking
-    output) in this class.
+  \item \texttt{ir}
+    This module defines the type of our \ir. Though, this assignment was
+    implemented in OCaml, we translated and adopted the types provided in the
+    Java release code.
 
-  \item{\texttt{typecheck.ml}:}
-    This file contains the typechecking logic and implements the interface defined by \texttt{typecheck.mli}.
+  \item \texttt{ir\_generation}
+    This module is responsible for intermediate code generation, lowering,
+    constant folding, and basic block reordering. All the algorithms are
+    implemented as described in the lecture notes or in the textbook.
 
-  \item{\texttt{ast.ml}:}
-    This file is similar to Ast.java for \texttt{pa2} except that we utilize OCaml. We define our AST nodes by using OCaml abstract data types.
+  \item \texttt{ir\_printer}
+    This module pretty prints our \ir into the appropriate Sexp format.
 
-  \item{\texttt{pos.ml}:}
-    This class represents a position (row and column) and contains many helpful helper functions that construct expressions and statements without worrying about the position.
+  \item \texttt{xi\_interpreter}
+    This module implements an Xi interpreter. The interpreter takes in a
+    type-checked AST and evaluates it to a value. This module is used solely
+    for testing, as described below.
+\end{itemize}
 
-\end{enumerate}
-
-\subsection{Code Design and Programming}
+\subsection{Code Design}
 \subsubsection{Switch from Java to OCaml}
 The most fundamental design decision we made in this project was switching our
 main implementation language from Java to OCaml. In our work for PA2,
@@ -135,6 +124,8 @@ typechecking.
 We made extensive use of Jane Street's Core libraries, which extend OCaml's standard
 library significantly to facilitate everyday programming tasks, such as loading files,
 writing files, etc.
+
+\subsection{Programming}
 
 \section{Testing}\label{sec:testing}
 We sectioned off tests based on the sections highlighted in the Xi Type System Specification - expressions, statements, top-level declarations, and programs. Within each section, we wrote many unit tests that logically and thoroughly verify the types by carefully following the axioms and the typing rules listed in the type specification.

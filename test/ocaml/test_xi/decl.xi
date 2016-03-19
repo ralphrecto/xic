@@ -1,7 +1,7 @@
-main() {
+main(args: int[][]) {
 	//should return 2
 	{
-		x: int[] = {1;2;3};
+		x: int[] = {1,2,3};
 		print(string_of_int(x[1]));
 	}
 	// should return 0

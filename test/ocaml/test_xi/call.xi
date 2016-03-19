@@ -1,16 +1,16 @@
 main () {
     {
       print ("Expecting false. Actual: " + string_of_bool (foo()));
-      print (string_of_int (eq (17)));
+      print (string_of_bool (eq (17)));
       print (string_of_int (mod (13110, 10000)));
     }
    
     {
       // Testing multiple return
       x:int, y:int, z:int = square(1, 2, 3); 
-      print (string_of_int x);
-      print (string_of_int y);
-      print (string_of_int z);
+      print (string_of_int(x));
+      print (string_of_int(y));
+      print (string_of_int(z));
     }
 
     {
@@ -41,7 +41,7 @@ mod (x:int, y:int) : int {
 }
 
 square (x:int, y:int, z:int) : int, int, int {
-    return (x * x, y * y, z * z);
+    return x * x, y * y, z * z;
 }
 
 arr1 (a:int[]) {

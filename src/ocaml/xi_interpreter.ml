@@ -7,7 +7,7 @@ open Typecheck
 type id = string
 type value =
   | Int of int64
-  | Array of value list
+  | Array of (value list) ref
   | Tuple of value list
 type store = Value of value | Function of (id option) list * stmt
 type context = (store option) String.Map.t
@@ -27,7 +27,7 @@ let rec string_of_value (v: value) =
   let sov = string_of_value in
   match v with
   | Int i -> sprintf "%s" (Int64.to_string i)
-  | Array vs -> sprintf "{%s}" (Util.commas (List.map ~f:sov vs))
+  | Array vs -> sprintf "{%s}" (Util.commas (List.map ~f:sov !vs))
   | Tuple vs -> sprintf "(%s)" (Util.commas (List.map ~f:sov vs))
 
 let string_of_values (vs: value list) : string =
@@ -147,7 +147,17 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
       | (_, Id (_,i)), e2' ->
         let store' = bind_ids_vals store [(Some i, e2')] in
         (store', None)
-      | _ -> failwith "shouldn't happen - asgn left is not a var"
+			| (_, Index(e1, e2)), e2' ->
+				begin
+					match (eval_expr store e1), (eval_expr store e2) with
+					| Array l, Int i ->
+						let i' = Long.to_int i in	
+						let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
+						l := new_l;
+						(store, None)
+					| _ -> failwith "shouldn't happen in asgn"
+				end
+      | _ -> failwith "shouldn't happen - asgn left is not a var or array indexing"
     end
   | Block slist ->
       let (store', v) = eval_stmts store slist in
@@ -207,8 +217,8 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
       | None ->
         let vals = List.map ~f:(eval_expr store) elist in
         match id, vals with
-        | "print", [Array vs] -> print (string_of_values vs); (store, None)
-        | "println", [Array vs] -> println (string_of_values vs); (store, None)
+        | "print", [Array vs] -> print (string_of_values !vs); (store, None)
+        | "println", [Array vs] -> println (string_of_values !vs); (store, None)
         | _ -> failwith "shouldn't happen -- proccall function not delcared"
     end
 
@@ -220,9 +230,11 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
   | Bool true -> Int 1L
   | String s ->
       let chars = String.to_list_rev (String.rev s) in
-      Array (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars)
+      Array (ref (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars))
   | Char c -> Int (Int64.of_int (Char.to_int c))
-  | Array l -> Array (List.map ~f:(eval_expr c) l)
+  | Array l -> 
+		let new_l = ref (List.map ~f:(eval_expr c) l) in
+		Array new_l
   | Id (_, i) ->
     begin
       match String.Map.find c i with
@@ -238,7 +250,7 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
       | Array l, Int i ->
         let i' = to_int i in
         begin
-          match List.nth l i' with
+          match List.nth (!l) i' with
           | Some x -> x
           | None -> failwith "invalid index"
         end
@@ -248,7 +260,7 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
     begin
       match eval_expr c e1 with
       | Array l ->
-        let len = List.length l in
+        let len = List.length (!l) in
         Int (of_int len)
       | _ -> failwith "shouldn't happen -- length"
     end
@@ -272,7 +284,7 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
       let vals = List.map ~f:(eval_expr c) elist in
       match id, vals with
       | "unparseInt", [Int i] -> eval_expr c (t, String (unparseInt i))
-      | "parseInt", [Array vs] -> Int (parseInt (string_of_values vs))
+      | "parseInt", [Array vs] -> Int (parseInt (string_of_values (!vs)))
       | "readln", [] -> eval_expr c (t, String (readln ()))
       | "getchar", [] -> eval_expr c (t, Char (getchar ()))
       | _ -> failwith "shouldn't happen -- funccall function not delcared"
@@ -302,8 +314,9 @@ and eval_binop e1 op e2 =
   | Int i1, NEQ, Int i2 -> of_bool ((compare i1 i2) <> 0)
   | Int i1, AMP, Int i2 -> of_bool (to_bool i1 && to_bool i2)
   | Int i1, BAR, Int i2 -> of_bool (to_bool i1 || to_bool i2)
-  | Array vs1, PLUS, Array vs2 -> Array (vs1 @ vs2)
-  | Array _, (EQEQ|NEQ), Array _-> failwith "array equality is not supported"
+  | Array vs1, PLUS, Array vs2 -> Array (ref ((!vs1) @ (!vs2)))
+  | Array vs1, EQEQ, Array vs2 -> of_bool (vs1 = vs2)
+	| Array vs1, NEQ, Array vs2 -> of_bool (vs1 <> vs2)
   | _ -> failwith "shouldn't happen -- binop"
 
 and eval_unop op e1 =

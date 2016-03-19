@@ -69,15 +69,15 @@ let test_eval_expr () =
   Int 1L === eval_expr empty (tru);
   Int 0L === eval_expr empty (fls);
 
-  Array [Int 102L;Int 111L;Int 111L] === eval_expr empty (string "foo");
+  Array (ref [Int 102L;Int 111L;Int 111L]) === eval_expr empty (string "foo");
 
   Int 97L === eval_expr empty (char 'a');
   Int 98L === eval_expr empty (char 'b');
 
-  Array [] === eval_expr empty (arr[]);
-  Array [Int 1L] === eval_expr empty (arr[one]);
-  Array [Int 1L;Int 2L] === eval_expr empty (arr[one;two]);
-  Array [Int 2L;Int 1L] === eval_expr empty (arr[two;one]);
+  Array (ref []) === eval_expr empty (arr[]);
+  Array (ref [Int 1L]) === eval_expr empty (arr[one]);
+  Array (ref [Int 1L;Int 2L]) === eval_expr empty (arr[one;two]);
+  Array (ref [Int 2L;Int 1L]) === eval_expr empty (arr[two;one]);
 
   Int 1L === eval_expr empty (three -   two);
   Int 6L === eval_expr empty (three *   two);
@@ -101,12 +101,12 @@ let test_eval_expr () =
   Int (-1L) === eval_expr empty (~~one);
   Int (-2L) === eval_expr empty (~~two);
 
-  Array [] === eval_expr empty (arr[] + arr[]);
-  Array [Int 1L] === eval_expr empty (arr[one] + arr[]);
-  Array [Int 1L] === eval_expr empty (arr[] + arr[one]);
-  Array [Int 1L;Int 2L] === eval_expr empty (arr[one] + arr[two]);
-  Array [Int 1L;Int 2L;Int 3L] === eval_expr empty (arr[one;two] + arr[three]);
-  Array [Int 1L;Int 2L;Int 3L] === eval_expr empty (arr[one] + arr[two;three]);
+  Array (ref []) === eval_expr empty (arr[] + arr[]);
+  Array (ref [Int 1L]) === eval_expr empty (arr[one] + arr[]);
+  Array (ref [Int 1L]) === eval_expr empty (arr[] + arr[one]);
+  Array (ref [Int 1L;Int 2L]) === eval_expr empty (arr[one] + arr[two]);
+  Array (ref [Int 1L;Int 2L;Int 3L]) === eval_expr empty (arr[one;two] + arr[three]);
+  Array (ref [Int 1L;Int 2L;Int 3L]) === eval_expr empty (arr[one] + arr[two;three]);
 
   Int 0L === eval_expr empty (index (arr[zero;one;two;three;four;five]) zero);
   Int 1L === eval_expr empty (index (arr[zero;one;two;three;four;five]) one);
@@ -122,9 +122,9 @@ let test_eval_expr () =
   Int 2L === eval_expr empty (length (arr[one;one]));
   Int 3L === eval_expr empty (length (arr[one;one;two]));
 
-  let c = vals ["x",Int 1L; "y",Array [Int 1L; Int 2L]] in
+  let c = vals ["x",Int 1L; "y",Array (ref [Int 1L; Int 2L])] in
   Int 1L === eval_expr c (id "x");
-  Array [Int 1L; Int 2L] === eval_expr c (id "y");
+  Array (ref [Int 1L; Int 2L]) === eval_expr c (id "y");
 
   let c = funcs [
     "f1", [], return [one];
@@ -140,7 +140,7 @@ let test_eval_expr () =
   Int 2L === eval_expr c (funccall "f4" [two]);
   Int 5L === eval_expr c (funccall "f5" [two;three]);
   Tuple [Int 5L;Int 2L;Int 0L] === eval_expr c (funccall "f6" [two;three]);
-  Array [Int 49L] === eval_expr c (funccall "unparseInt" [one]);
+  Array (ref [Int 49L]) === eval_expr c (funccall "unparseInt" [one]);
   Int 1L === eval_expr c (funccall "parseInt" [arr[int 49L]]);
 
   ()
@@ -190,10 +190,10 @@ let test_eval_stmt () =
     eval_stmt empty (return [one;two;three]);
 
   (* asgn *)
-  let c  = vals ["x",Int 1L; "y",Array [Int 1L; Int 2L]] in
-  let c1 = vals ["x",Int 2L; "y",Array [Int 1L; Int 2L]] in
-  let c2 = vals ["x",Int 3L; "y",Array [Int 1L; Int 2L]] in
-  let c3 = vals ["x",Int 1L; "y",Array [Int 2L; Int 1L]] in
+  let c  = vals ["x",Int 1L; "y",Array (ref [Int 1L; Int 2L])] in
+  let c1 = vals ["x",Int 2L; "y",Array (ref [Int 1L; Int 2L])] in
+  let c2 = vals ["x",Int 3L; "y",Array (ref [Int 1L; Int 2L])] in
+  let c3 = vals ["x",Int 1L; "y",Array (ref [Int 2L; Int 1L])] in
   (c,  None) === eval_stmt c (asgn (id "x") one);
   (c1, None) === eval_stmt c (asgn (id "x") two);
   (c2, None) === eval_stmt c (asgn (id "x") three);

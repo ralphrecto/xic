@@ -33,19 +33,19 @@ let format_err_msg ((row, col), msg) =
   "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
 let main flags asts () : unit Deferred.t =
-  List.iter ~f:print_endline asts;
   let typechecked = asts
     |> List.map ~f:StdString.trim 
     |> List.map ~f:Sexp.of_string
     |> List.map ~f:Pos.full_prog_of_sexp
     |> List.map ~f:prog_typecheck in
-  if flags.typecheck then
+  if flags.typecheck then begin
     typechecked
       |> List.map ~f:(function
         | Ok _ -> "Valid Xi Program"
         | Error e -> format_err_msg e)
       |> List.iter ~f:print_endline
       |> return
+  end
   else if flags.xirun then
     typechecked
       |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)

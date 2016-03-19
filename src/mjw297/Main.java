@@ -345,17 +345,16 @@ public class Main {
             }
         });
 
-        List<Tuple<XiSource, XicException>> errors =
-            resultList.stream()
-                .filter(t -> t.snd.isRight())
-                .map(t -> Tuple.of(t.fst, t.snd.getRight()))
-                .collect(Collectors.toList());
+        List<Tuple<XiSource, XicException>> errors = new ArrayList<>();
+        List<Tuple<XiSource, FullProgram<Position>>> programs = new ArrayList<>();
 
-        List<Tuple<XiSource, FullProgram<Position>>> programs =
-            resultList.stream()
-                .filter(t -> t.snd.isLeft())
-                .map(t -> Tuple.of(t.fst, t.snd.getLeft()))
-                .collect(Collectors.toList());
+        for (Tuple<XiSource, Either<FullProgram<Position>, XicException>> result : resultList) {
+            if (result.snd.isLeft()) {
+                programs.add(Tuple.of(result.fst, result.snd.getLeft()));
+            } else {
+                errors.add(Tuple.of(result.fst, result.snd.getRight()));
+            }
+        }
 
         return Tuple.of(errors, programs);
     }
@@ -434,6 +433,7 @@ public class Main {
             if (t.snd.startsWith("ERROR")) {
                 fileOut = doError(t.snd, t.fst.filename);
             } else {
+                System.out.println(t.snd);
                 fileOut = t.snd;
             }
 

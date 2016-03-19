@@ -103,7 +103,7 @@ and eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context 
 
 and get_main_val context : value option = 
   match String.Map.find context "main" with
-  | Some (Some (Function (ids, stmt))) -> snd (eval_stmt context stmt)
+  | Some (Some (Function (_, stmt))) -> snd (eval_stmt context stmt)
   | Some _ -> failwith "main is a variable? lol"
   | None -> failwith "no main function lol"
 
@@ -161,7 +161,7 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
     end
   | Block slist ->
       let (store', v) = eval_stmts store slist in
-      let store'' = String.Map.(filteri store' ~f:(fun ~key ~data -> mem store key)) in
+      let store'' = String.Map.(filteri store' ~f:(fun ~key ~data:_ -> mem store key)) in
       (store'', v)
   | Return elist ->
     begin

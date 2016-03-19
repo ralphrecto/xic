@@ -429,10 +429,6 @@ let test_ir_stmt () =
 		(IntT, AVar (create_int_avar id))
 	in
 
-	let create_bool_avar (id : string) : Typecheck.avar =
-		(BoolT, AId (((), id), (BoolT, TBool)))
-	in
-
 	let create_bool_var (id : string) : Typecheck.var =
 		(BoolT, AVar (create_int_avar id))
 	in
@@ -1424,7 +1420,7 @@ let test_reorder () =
 let main () =
     "suite" >::: [
       "test_ir_expr"        >:: test_ir_expr;
-			"test_ir_stmt" 			  >:: test_ir_stmt;
+      "test_ir_stmt"        >:: test_ir_stmt;
       "test_lower_expr"     >:: test_lower_expr;
       "test_lower_stmt"     >:: test_lower_stmt;
       "test_gen_block"      >:: test_gen_block;

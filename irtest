@@ -1,0 +1,19 @@
+#! /bin/bash
+
+set -euo pipefail
+
+main() {
+    for f in "$@"; do
+        nonce=TEMP
+        dname=$(dirname $f)
+        fname=$(basename $f)
+        pervasive_file="$dname/pervasives.xi"
+
+        # don't do anything for remnant dummy programs
+        if [[ "$fname" != "$nonce"* ]]; then
+            cat "$pervasive_file" "$f" > "$dname/$nonce-$fname"
+        fi
+    done
+}
+
+main "$@"

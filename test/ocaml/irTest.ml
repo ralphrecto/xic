@@ -7,6 +7,8 @@ open Ir_generation
 open OUnit
 open TestUtil
 
+let callnames = String.Map.empty
+
 module Fresh = struct
   let t n = Ir.Temp  (temp n)
   let l n = Ir.Label (label n)
@@ -195,8 +197,8 @@ let test_ir_expr () =
   let binop12 = BinOp (one, ADD, two) in
   let unopminus x = BinOp (zero, SUB, x) in
   let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
-  let x = temp "%TEMP%x" in
-  let y = temp "%TEMP%y" in
+  let x = temp "_TEMPx" in
+  let y = temp "_TEMPy" in
   let word = const 8L in
 
   (* Typecheck exprs *)
@@ -209,37 +211,37 @@ let test_ir_expr () =
   let binop12t = ibinop onet PLUS twot in
 
   (* Ints, Bools, and Chars tests *)
-  zero === gen_expr zerot;
-  one  === gen_expr onet;
-  two  === gen_expr twot;
-  tru  === gen_expr trut;
-  fls  === gen_expr flst;
+  zero === gen_expr callnames zerot;
+  one  === gen_expr callnames onet;
+  two  === gen_expr callnames twot;
+  tru  === gen_expr callnames trut;
+  fls  === gen_expr callnames flst;
 
   (* Id tests *)
   (* TODO: are there any interesting cases? *)
-  x === gen_expr (id "x" IntT);
-  y === gen_expr (id "y" BoolT);
+  x === gen_expr callnames (id "x" IntT);
+  y === gen_expr callnames (id "y" BoolT);
 
-  x =/= gen_expr (id "y" IntT);
+  x =/= gen_expr callnames (id "y" IntT);
 
   (* BinOp tests *)
-  binop00 === gen_expr binop00t;
-  binop12  === gen_expr binop12t;
-  BinOp (binop12, SUB, binop12)  === gen_expr (ibinop binop12t MINUS binop12t);
-  BinOp (binop00, SUB, binop12)  === gen_expr (ibinop binop00t MINUS binop12t);
+  binop00 === gen_expr callnames binop00t;
+  binop12  === gen_expr callnames binop12t;
+  BinOp (binop12, SUB, binop12)  === gen_expr callnames (ibinop binop12t MINUS binop12t);
+  BinOp (binop00, SUB, binop12)  === gen_expr callnames (ibinop binop00t MINUS binop12t);
   BinOp (BinOp (tru, AND, fls), OR, BinOp (fls, OR, fls))
     ===
-    gen_expr (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst));
+    gen_expr callnames (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst));
 
-  BinOp (one, ADD, two)  =/= gen_expr (ibinop twot PLUS onet);
-  BinOp (one, ADD, zero) =/= gen_expr (bbinop onet BAR twot);
+  BinOp (one, ADD, two)  =/= gen_expr callnames (ibinop twot PLUS onet);
+  BinOp (one, ADD, zero) =/= gen_expr callnames (bbinop onet BAR twot);
 
   (* UnOp tests *)
-  unopminus zero === gen_expr (iunop zerot);
-  unopminus one  === gen_expr (iunop onet);
-  unopminus two  === gen_expr (iunop twot);
-  unopnot tru    === gen_expr (bunop trut);
-  unopnot fls    === gen_expr (bunop flst);
+  unopminus zero === gen_expr callnames (iunop zerot);
+  unopminus one  === gen_expr callnames (iunop onet);
+  unopminus two  === gen_expr callnames (iunop twot);
+  unopnot tru    === gen_expr callnames (bunop trut);
+  unopnot fls    === gen_expr callnames (bunop flst);
 
   (* Array tests *)
   Ir_gen.reset_fresh_temp ();
@@ -251,7 +253,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr earr;
+  gen_expr callnames earr;
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -263,7 +265,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (iarr [zerot]);
+  gen_expr callnames (iarr [zerot]);
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -276,7 +278,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (iarr [zerot; onet]);
+  gen_expr callnames (iarr [zerot; onet]);
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -290,7 +292,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (iarr [zerot; onet; twot]);
+  gen_expr callnames (iarr [zerot; onet; twot]);
 
   (* [[]] *)
   Ir_gen.reset_fresh_temp ();
@@ -310,7 +312,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (arr (ArrayT (ArrayT IntT)) [iarr []]);
+  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr []]);
 
   (* [[], [], [1,2]] *)
   Ir_gen.reset_fresh_temp ();
@@ -348,7 +350,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]);
+  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]);
 
   (* String Tests *)
   Ir_gen.reset_fresh_temp ();
@@ -360,7 +362,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (EmptyArray, String "");
+  gen_expr callnames (EmptyArray, String "");
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -372,7 +374,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (EmptyArray, String "A");
+  gen_expr callnames (EmptyArray, String "A");
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -391,7 +393,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (ArrayT IntT, String "OCaml <3");
+  gen_expr callnames (ArrayT IntT, String "OCaml <3");
 
   Ir_gen.reset_fresh_temp ();
   eseq 
@@ -406,7 +408,7 @@ let test_ir_expr () =
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr (ArrayT IntT, String "    ");
+  gen_expr callnames (ArrayT IntT, String "    ");
 
   (* Array Indexing tests *)
 
@@ -440,12 +442,12 @@ let test_ir_stmt () =
 	(* Decl tests *)
 
 	(* ints *)		
-	Seq [] === gen_stmt ((Zero, Decl [create_int_var "hello"]));
-	Seq [] === gen_stmt ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"]));
+	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "hello"]));
+	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"]));
 	
 	(* bools *)
-	Seq [] === gen_stmt ((Zero, Decl [create_bool_var "hello"]));
-	Seq [] === gen_stmt ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
+	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"]));
+	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
 	
 let test_lower_expr () =
   let open PairEq in

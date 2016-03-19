@@ -44,11 +44,14 @@ make src
 \end{center}
 
 \section{Summary}\label{sec:summary}
-In this programming assignment, we implemented semantic analysis in OCaml for
-the Xi programming language. Our largest design decisions involve switching to
-OCaml and the format of our AST. The most challenging aspect of the assignment
-was the handling of the empty array. There are no known problems with our
-implementation.
+In this programming assignment, we implemented intermediate code generation for
+the Xi programming language. The most challenging aspect of the assignment was
+generating code for complex array operations, including multi-dimensional array
+declarations and array concatenation.  This assignment didn't involve many
+design decisions; the intermediate representation, code generation algorithm,
+lowering algorithm, and block reordering algorithm were all taken from the
+notes. Though, we did implement novel forms of testing. There are no known
+problems with our implementation.
 
 \section{Specification}\label{sec:specification}
 In this section, we make explicit our interpretation of the Xi language

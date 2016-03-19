@@ -140,7 +140,6 @@ let rec gen_expr ((t, e): Typecheck.expr) =
   match e with
   | Int       i              -> Const i
   | Bool      b              -> if b then Const (1L) else Const (0L)
-  (* TODO: supporting more than ASCII chars? *)
   | String    s              ->
       let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
       gen_expr (ArrayT IntT, Array (List.rev elms))

@@ -495,6 +495,9 @@ let test_expr () =
     empty =/= (index (arr[arr[arr[tru]]]) (arr[]));
     empty =/= (index tru one);
 
+    empty |- (string "") =: EmptyArray;
+    empty |- (string "" + string "") =: EmptyArray;
+    empty |- (string "" + string "a") =: ArrayT IntT;
     empty |- (arr[] + arr[]) =: EmptyArray;
     empty |- (arr[] + arr[one]) =: ArrayT IntT;
     empty |- (arr[one] + arr[]) =: ArrayT IntT;
@@ -998,7 +1001,6 @@ let test_stmt () =
     (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[]])) =: One;
     (vars["y",IntT;"x",ArrayT (ArrayT IntT)], IntT) |- (asgn x (arr[arr[one]])) =: One;
     (fgam, IntT) |- (asgn (index (funccall "u2ia" []) one) one) =: One;
-    (fgam, IntT) |- (asgn (index (string "") one) one) =: One;
 
     (empty, IntT) =/= (asgn x one);
     (empty, IntT) =/= (asgn x tru);
@@ -1007,6 +1009,7 @@ let test_stmt () =
     (empty, IntT) =/= (asgn x (arr[arr[]]));
     (empty, IntT) =/= (asgn x (arr[arr[one]]));
     (empty, IntT) =/= (asgn (index (funccall "f" []) one) one);
+    (empty, IntT) =/= (asgn (index (string "") one) one);
 
     (vars["x",IntT], IntT) =/= (asgn x tru);
     (vars["x",IntT], IntT) =/= (asgn x (arr[]));

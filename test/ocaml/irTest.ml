@@ -175,6 +175,7 @@ let unop i op e : Typecheck.expr = (i, UnOp (op, e))
 let iunop e = unop IntT UMINUS e
 let bunop e = unop BoolT BANG e
 let id x t = (t, Id ((), x))
+let to_code c = Const (Int64.of_int (Char.to_int c))
 
 module Ir_gen = Ir_generation
 
@@ -280,18 +281,73 @@ let test_ir_expr () =
   Ir_gen.reset_fresh_temp ();
   eseq 
     (seq (
-      (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 4 )) ::
-      (move ( mem ( Temp (Ir_gen.temp 0) )) (const 3L)       ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) two ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4)           ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 3L)                 ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) two) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero    ) ::
       []
     ))
     (BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr (iarr [zerot; onet; twot]);
 
-  (*=== gen_expr (ArrayT IntT, String "OCaml <3") *)
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 1)) ::
+      (move (mem (Temp (Ir_gen.temp 0))) zero            ) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (EmptyArray, String "");
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2)              ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) one                           ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) (const 65L)) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (EmptyArray, String "A");
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                   ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                         ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (to_code '3')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (to_code '<')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (to_code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (to_code 'l')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code 'm')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code 'a')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code 'C')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (to_code 'O')) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (ArrayT IntT, String "OCaml <3");
+
+  Ir_gen.reset_fresh_temp ();
+  eseq 
+    (seq (
+      (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                   ) ::
+      (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                         ) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (to_code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (to_code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (to_code ' ')) ::
+      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) (to_code ' ')) ::
+      []
+    ))
+    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+  ===
+  gen_expr (ArrayT IntT, String "    ");
 
   (* Array Indexing tests *)
 

@@ -1,0 +1,202 @@
+\documentclass{hw}
+\title{Programming Assignment 4:\\ Intermediate Code Generation}
+
+\usepackage{fancyvrb}
+\usepackage{mathpartir}
+\usepackage{pervasives}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\newcommand{\ir}{intermediate representation}
+
+\begin{document}
+\maketitle
+
+\section{Metadata}\label{sec:metadata}
+% The fully qualified class name of your main program and any other
+% instructions needed to run the program.
+We implemented programming assignment $1$ and $2$ in Java, but we implemented
+programming assignment $3$ and $4$ in OCaml. Our main OCaml executable is
+implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
+code, you will need to install a couple of packages and OCaml libraries by
+running the following:
+
+\begin{center}
+\begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip
+opam install core async oUnit
+\end{BVerbatim}
+\end{center}
+
+To build our executable, simply run \texttt{make src}. This will use
+\texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
+code. It will use \texttt{corebuild} to build our OCaml code. Invoking our
+code manually is hard; instead, we we recommend you use the \texttt{xic} script
+which invokes our code with everything configured properly.
+
+In summary, perform the following:
+
+\begin{center}
+\begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip
+opam install core async oUnit
+make src
+./xic [flags] <xi_file.xi>...
+\end{BVerbatim}
+\end{center}
+
+\section{Summary}\label{sec:summary}
+In this programming assignment, we implemented intermediate code generation for
+the Xi programming language. The most challenging aspect of the assignment was
+generating code for complex array operations, including multi-dimensional array
+declarations and array concatenation. This assignment didn't involve many
+design decisions; the \ir, code generation algorithm, lowering algorithm, and
+block reordering algorithm were all taken from the notes. Though, we did
+implement novel forms of testing. There are no known problems with our
+implementation.
+
+\section{Specification}\label{sec:specification}
+For this project, we have not deviated from the project specification at all.
+We have also not implemented any extensions. The spec clarifications we made in
+previous assignments still stand.
+
+\section{Design and Implementation}\label{sec:design}
+\subsection{Architecture}
+Our intermediate code generation is implemented by the following modules.
+\begin{itemize}
+  \item \texttt{ast\_optimization}
+    This module implements constant folding at the AST level. It does not
+    interact with any \ir.
+
+  \item \texttt{ir}
+    This module defines the type of our \ir. Though, this assignment was
+    implemented in OCaml, we translated and adopted the types provided in the
+    Java release code.
+
+  \item \texttt{ir\_generation}
+    This module is responsible for intermediate code generation, lowering,
+    constant folding, and basic block reordering. All the algorithms are
+    implemented as described in the lecture notes or in the textbook.
+
+  \item \texttt{ir\_printer}
+    This module pretty prints our \ir into the appropriate Sexp format.
+
+  \item \texttt{xi\_interpreter}
+    This module implements an Xi interpreter. The interpreter takes in a
+    type-checked AST and evaluates it to a value. This module is used solely
+    for testing, as described below.
+\end{itemize}
+
+\subsection{Code Design}
+All the algorithms we employ are described in detail in the lecture notes or in
+the textbook, so we do not repeat a description of them here. Most of the
+algorithms are implemented using vanilla OCaml pattern matching and do not
+involve any sort of complex data structure or design pattern.
+
+The one exception is basic block reordering. Block reordering required us to
+design a graph data structure and to choose a heuristic for selecting traces.
+We opted for a very simple, purely functional graph data structure based on an
+adjacency list representation of a graph. Each block in the code is represented
+by its label. Each node is paired with a list of its neighbors. Moreover, we
+store the graph as simple lists of pairs of lists. This data structure is not
+very efficient; many or all of the operations on the graphs are slow. We could
+have represented the graphs using sets and maps, but we opted not to. We felt
+the simplicity of our graph representation outweighs the benefits of a fast
+graph data structure and we had no evidence that block reordering was a
+bottleneck of the compiler.
+
+Second, we opted for a very simple trace selection heuristic. Given an ordered
+list of blocks, we generate the longest trace rooted at the first block always
+taking false branches for conditional jumps. After we generate a trace, we
+remove the blocks in the trace from the graph and start the next trace at the
+first remaining block. This heuristic is very simple and very easy to
+implement, however, it does not produce the longest possible traces. We could
+employ a heuristic where we select nodes with the lowest in-degree. We opted
+not do implement this heuristic because we felt it would greatly complicate our
+code. However, it is possible in the future to implement this optimization.
+
+\subsection{Programming}
+We followed a bottom-up implementation strategy, implementing each pass of our
+code generation algorithm independently before finally gluing together each
+pass after they had all been tested. This bottom-up approach made it easy to
+divide work between team members and maximized modularity.
+
+The most challenging part of the assignment was generating code for operations
+involving arrays. For example, the declaration of a multidimensional array
+involves a recursive function that repeatedly allocates and initializes memory.
+Moreover, concatenating two arrays involves reallocating and copying memory in
+intricate ways. The lowering, block reordering, and constant folding were much
+less challenging.
+
+\section{Testing}\label{sec:testing}
+As usual, we have implemented a very comprehensive set of tests that range in
+scale and scope. First, we have implemented the typical unit tests for each
+pass of our algorithm. In fact, certain algorithms like the block reordering
+algorithm were divided into smaller self-contained subroutines that were
+thoroughly tested. In these unit tests, we manually construct an input and
+expected output and assert that they are equal.
+
+However, this manual approach to unit testing often overfits our algorithms.
+For example, consider unit testing block reordering in this way. We generate a
+set of input blocks and an expected reordered set of blocks and compare the
+two. This works, but the exact order of the output blocks is not specified. If
+we implement a different trace select heuristic, then our test cases could all
+fail. In order to overcome this problem, we implemented property based testing
+for certain algorithms. That is, we encoded the output properties of our
+algorithms as simple predicates in OCaml. For example, any output blocks are
+valid so long as the first block in the output is the first block in the input,
+the blocks form a permutation of the input blocks, and each trace within the
+reordered blocks is a valid trace. We then enumerate a large number of input
+blocks, generate the output and assert that they satisfy the predicates.
+Testing in this way makes our tests future proof and also less tedious to
+write.
+
+Most interestingly, we also implemented (and unit tested) an Xi interpreter.
+This allows to perform property based testing of our entire code generation
+pass. We manually write out a large number of Xi programs of various complexity
+and then for each assert that the result of interpreting the program with our
+Xi interpreter is the same as interpreting the intermediate code generated from
+it using the IR interpreter. This form of testing captures the correctness of
+our compiler at a very high level and makes testing quick and flexible.
+
+All our tests pass.
+
+\section{Work Plan}\label{sec:workplan}
+\begin{itemize}
+  \item \textbf{Ralph.}
+    Ralph worked on the front-end, implementing code generation, and worked on
+    connecting the Java IR interpreter with our Xi interpreter in order to make
+    testing nice and easy.
+
+  \item \textbf{Alice.}
+    Alice worked on implementing code generation for both statements and
+    expressions and also worked on thoroughly testing the most challenging
+    parts of the code generation.
+
+  \item \textbf{Seung Hee.}
+    Seung Hee implemented lowering, constant folding, block reordering, and the
+    Xi interpreter. She also worked on tested all three and on testing code
+    generation.
+
+  \item \textbf{Michael.}
+    Michael tested and debugged lowering, constant folding, block reordering,
+    and the Xi interpreter.
+\end{itemize}
+Ralph and Alice focused mainly on code generation while Seung Hee and Michael
+focused on lowering, block reordering, constant folding, and Xi evaluation. The
+work was divided in this way because none of these tasks depended on each other
+and because code generation was considerably more complex than any of the other
+parts.
+
+\section{Known Problems}\label{sec:problems}
+Currently we do not support UTF-8 as OCaml does not have good support for
+unicode escapes. We also sometimes report incorrect file positions in our error
+messages.
+
+\section{Comments}\label{sec:comments}
+We spent about 80 hours total on the assignment. The assignment overall
+introduced important concepts about type checking. We really appreciated
+the type checking specification. It was very thorough and the case analysis
+really helped structure our code.
+
+\end{document}

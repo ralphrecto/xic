@@ -3,6 +3,10 @@
 set -euo pipefail
 
 main() {
+    if [[ $# == 0 ]]; then
+        echo "usage: irtest test.xi..."
+    fi
+
     for f in "$@"; do
         nonce=TEMP
         dname=$(dirname $f)
@@ -12,6 +16,8 @@ main() {
         # don't do anything for remnant dummy programs
         if [[ "$fname" != "$nonce"* ]]; then
             cat "$pervasive_file" "$f" > "$dname/$nonce-$fname"
+            # run stuff
+            # diff stuff
         fi
     done
 }

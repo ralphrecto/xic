@@ -214,12 +214,16 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
   match t with
   | TBool | TInt -> Temp (fresh_temp ())
   | TArray ((at', t'), index) ->
-    let fill () = match t' with
+    let fill () = 
+			match t' with
       | TInt | TBool -> const 0
-      | TArray _ -> gen_decl_help (at', t') in
-    let array_size = match index with
+      | TArray _ -> gen_decl_help (at', t') 
+		in
+    let array_size = 
+			match index with
       | Some index_expr -> gen_expr index_expr
-      | None -> const 0 in
+      | None -> const 0 
+		in
 
     (* helpful temps *)
     let size_tmp = Temp (fresh_temp ()) in
@@ -269,7 +273,8 @@ and gen_decl_help ((_, t): typ) : Ir.expr =
 
 and gen_stmt ((_, s): Typecheck.stmt) =
   match s with
-  | Decl varlist -> begin
+  | Decl varlist -> 
+		begin
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
@@ -277,7 +282,8 @@ and gen_stmt ((_, s): Typecheck.stmt) =
         | _ -> seq in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
-  | DeclAsgn ([(_,v)], exp) -> begin
+  | DeclAsgn ([(_,v)], exp) -> 
+		begin
       match v with
       | AVar (_, AId (var_id, t)) ->
         let (_, var_id') = var_id in
@@ -296,19 +302,21 @@ and gen_stmt ((_, s): Typecheck.stmt) =
           if i = 0 then gen_expr (TupleT tlist, rawexp)
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
-      | _ -> (i+1, seq) in
+      | _ -> (i+1, seq) 
+		in
     let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
-  | Asgn ((lhs_typ, lhs), fullrhs) -> begin
+  | Asgn ((lhs_typ, lhs), fullrhs) -> 
+		begin
       match lhs with
       | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr fullrhs)
       | Index (arr, index) ->
           let mem_loc = gen_expr arr in
           Move (Mem (mem_loc$$(gen_expr index), NORMAL), gen_expr fullrhs)
       | _ -> failwith "impossible"
-  end
+  	end
   | Block stmts -> Seq (List.map ~f:gen_stmt stmts)
   | Return exprlist ->
       let mov_ret (i, seq) expr  =
@@ -319,7 +327,9 @@ and gen_stmt ((_, s): Typecheck.stmt) =
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
-    Seq ([ gen_control pred t_label f_label; Label t_label;
+    Seq ([ 
+				gen_control pred t_label f_label; 
+				Label t_label;
         gen_stmt t;
         Label f_label;
       ])

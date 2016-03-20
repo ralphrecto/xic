@@ -70,7 +70,7 @@ xic ("Test --parse") ["../pa2"] "--parse" {
     beauty.xi (Syntax, "Unexpected token ==");
 }
 
-xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
+xic ("Test --typecheck") ["../pa3"] "-libpath $(testpath) --typecheck" {
     ex01.xi;
     ex02.xi;
     ex03.xi;
@@ -97,4 +97,10 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     arrayinit2-full.xi;
     arrayinit2.xi (Semantic, "Name .* cannot be resolved");
     mdarrays.xi;
+}
+
+xic ("Test --irgen") "-libpath $(testpath) --irgen" {
+    ex01.xi;
+    ack.xi;
+    primes.xi;
 }

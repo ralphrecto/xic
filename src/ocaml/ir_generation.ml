@@ -312,7 +312,8 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
         Move (Temp (id_to_temp var_id'), gen_expr callnames exp)
-      | _ -> Seq []
+      | Underscore ->
+        Exp (gen_expr callnames exp)
     end
   | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
     (* TODO: assumptions:
@@ -326,8 +327,10 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
           if i = 0 then gen_expr callnames (TupleT tlist, rawexp)
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
-      | _ -> (i+1, seq) 
-    in
+      | Underscore ->
+          if i = 0 then 
+            (i + 1, Exp (gen_expr callnames (TupleT tlist, rawexp)) :: seq)
+          else (i + 1 , seq) in
     let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"

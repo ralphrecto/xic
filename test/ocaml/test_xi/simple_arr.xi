@@ -1,9 +1,9 @@
 main (args : int[][]) {
     // Testing length()
-    print (string_of_int    (foo13 ()));
-    print (string_of_int    (foo14 ()));
-    print (string_of_int    (foo15 ()));
-    print (string_of_int    (foo16 ()));
+    println (string_of_int    (foo13 ()));
+    println (string_of_int    (foo14 ()));
+    println (string_of_int    (foo15 ()));
+    println (string_of_int    (foo16 ()));
 }
 
 foo12 () : int[] {

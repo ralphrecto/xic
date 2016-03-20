@@ -332,4 +332,4 @@ and eval_unop op e1 =
   | _ -> failwith "shouldn't happen -- unop"
 
 let eval (p: Typecheck.prog) : unit =
-  ignore (eval_prog String.Map.empty p)
+  ignore (get_main_val (eval_prog String.Map.empty p))

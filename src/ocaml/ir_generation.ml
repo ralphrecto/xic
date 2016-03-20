@@ -98,6 +98,9 @@ let retreg i = "_RET" ^ (string_of_int i)
  * argument values into func calls *)
 let argreg i = "_ARG" ^ (string_of_int i)
 
+let print_int (i : Ir.expr) : Ir.stmt =
+  Exp (Call ((Name "_Ireadln_ai"), [(Call (Name ("_IunparseInt_aii"), [i]))]))
+
 let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   match b_code with
   | MINUS    -> SUB
@@ -142,7 +145,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
       (* Array concatenation *)
-      | ArrayT _, PLUS, ArrayT _ ->
+      | (ArrayT _ | EmptyArray), PLUS, (ArrayT _ | EmptyArray) ->
         let incr_ir e = (BinOp (e, ADD, const 1)) in
 
         let arr1, arr2 = gen_expr callnames (t1, e1), gen_expr callnames (t2, e2) in

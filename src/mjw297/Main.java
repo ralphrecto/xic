@@ -217,7 +217,7 @@ public class Main {
 
     private void printError(String kind, String filename, String line, String col, String msg) {
         System.out.println(String.format(
-            "%s error at %s:%s%s: %s",
+            "%s error at %s:%s:%s: %s",
             kind, filename, line, col, msg
         ));
     }

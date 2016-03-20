@@ -22,8 +22,8 @@ type flags = {
 
 let resmap ~f =
   List.map ~f:(function
-    | Ok x -> Ok (f x)
-    | Error e-> Error e)
+      | Ok x -> Ok (f x)
+      | Error e-> Error e)
 
 let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
   if b then f x else x
@@ -35,48 +35,48 @@ let format_err_msg ((row, col), msg) =
 
 let main flags asts () : unit Deferred.t =
   let typechecked = asts
-    |> List.map ~f:StdString.trim
-    |> List.map ~f:Sexp.of_string
-    |> List.map ~f:Pos.full_prog_of_sexp
-    |> List.map ~f:(fun (FullProg (prog, interfaces)) ->
-        match prog_typecheck (FullProg (prog, interfaces)) with
-        | Ok p ->
-            let callables =
-              List.fold_left
-              ~f:(fun acc (_, Interface clist) -> clist @ acc)
-              ~init:[] interfaces in
-            Ok (abi_callable_decl_names callables, p)
-        | Error e -> Error e) in
+                    |> List.map ~f:StdString.trim
+                    |> List.map ~f:Sexp.of_string
+                    |> List.map ~f:Pos.full_prog_of_sexp
+                    |> List.map ~f:(fun (FullProg (prog, interfaces)) ->
+                        match prog_typecheck (FullProg (prog, interfaces)) with
+                        | Ok p ->
+                          let callables =
+                            List.fold_left
+                              ~f:(fun acc (_, Interface clist) -> clist @ acc)
+                              ~init:[] interfaces in
+                          Ok (abi_callable_decl_names callables, p)
+                        | Error e -> Error e) in
   if flags.typecheck then begin
     typechecked
-      |> resmap ~f:snd
-      |> List.map ~f:(function
+    |> resmap ~f:snd
+    |> List.map ~f:(function
         | Ok _ -> "Valid Xi Program"
         | Error e -> format_err_msg e)
-      |> List.iter ~f:print_endline
-      |> return
+    |> List.iter ~f:print_endline
+    |> return
   end
   else if flags.xirun then
     typechecked
-      |> resmap ~f:snd 
-      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
-      |> resmap ~f:(eval_prog String.Map.empty)
-      |> resmap ~f:get_main_val
-      |> resmap ~f:(function Some v -> string_of_value v | None -> "no return")
-      |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
-      |> List.iter ~f:print_endline
-      |> return
+    |> resmap ~f:snd 
+    |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
+    |> resmap ~f:(eval_prog String.Map.empty)
+    |> resmap ~f:get_main_val
+    |> resmap ~f:(function Some v -> string_of_value v | None -> "no return")
+    |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
+    |> List.iter ~f:print_endline
+    |> return
   else if flags.irgen then
     typechecked
-      |> do_if flags.ast_cfold (resmap ~f:(fun (a, b) -> (a, ast_constant_folding b)))
-      |> resmap ~f:(fun (callnames, p) -> gen_comp_unit callnames p)
-      |> do_if flags.ir_cfold (resmap ~f:ir_constant_folding)
-      |> do_if flags.lower (resmap ~f:lower_comp_unit)
-      |> do_if flags.lower (resmap ~f:block_reorder_comp_unit)
-      |> resmap ~f:sexp_of_comp_unit
-      |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
-      |> List.iter ~f:print_endline
-      |> return
+    |> do_if flags.ast_cfold (resmap ~f:(fun (a, b) -> (a, ast_constant_folding b)))
+    |> resmap ~f:(fun (callnames, p) -> gen_comp_unit callnames p)
+    |> do_if flags.ir_cfold (resmap ~f:ir_constant_folding)
+    |> do_if flags.lower (resmap ~f:lower_comp_unit)
+    |> do_if flags.lower (resmap ~f:block_reorder_comp_unit)
+    |> resmap ~f:sexp_of_comp_unit
+    |> List.map ~f:(function Ok s -> s | Error e -> format_err_msg e)
+    |> List.iter ~f:print_endline
+    |> return
   else return ()
 
 

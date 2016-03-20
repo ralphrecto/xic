@@ -120,8 +120,8 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   | Int       i              -> Const i
   | Bool      b              -> if b then Const (1L) else Const (0L)
   | String    s              ->
-      let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
-      gen_expr callnames (ArrayT IntT, Array (List.rev elms))
+    let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
+    gen_expr callnames (ArrayT IntT, Array (List.rev elms))
   | Char      c              -> Const (Int64.of_int (Char.to_int c))
   | Array elts               ->
     let arr_len = List.length elts in
@@ -155,33 +155,33 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
         let i, j = Temp (fresh_temp ()), Temp (fresh_temp ()) in
         ESeq (
           Seq ([
-            Move (arrtmp1, arr1);
-            Move (arrtmp2, arr2);
-            Move (lenarr1, Mem(arrtmp1$(-1), NORMAL));
-            Move (lenarr2, Mem(arrtmp2$(-1), NORMAL));
-            Move (newarr1, (BinOp (lenarr1, ADD, lenarr2)) |> incr_ir |> malloc_word_ir );
-            Move (Mem (newarr1, NORMAL), BinOp (lenarr1, ADD, lenarr2));
-            Move (newarr1, BinOp (newarr1, ADD, word));
+              Move (arrtmp1, arr1);
+              Move (arrtmp2, arr2);
+              Move (lenarr1, Mem(arrtmp1$(-1), NORMAL));
+              Move (lenarr2, Mem(arrtmp2$(-1), NORMAL));
+              Move (newarr1, (BinOp (lenarr1, ADD, lenarr2)) |> incr_ir |> malloc_word_ir );
+              Move (Mem (newarr1, NORMAL), BinOp (lenarr1, ADD, lenarr2));
+              Move (newarr1, BinOp (newarr1, ADD, word));
 
-            Move (i, const 0);  
-            Label while_lbl1;
-            CJump (BinOp(i, LT, lenarr1), t1_lbl, f1_lbl);
-            Label t1_lbl;
-            Move (Mem (newarr1$$(i), NORMAL), Mem (arrtmp1$$(i), NORMAL));
-            Move (i, incr_ir i);
-            Jump (Name while_lbl1);
-            Label f1_lbl;
+              Move (i, const 0);  
+              Label while_lbl1;
+              CJump (BinOp(i, LT, lenarr1), t1_lbl, f1_lbl);
+              Label t1_lbl;
+              Move (Mem (newarr1$$(i), NORMAL), Mem (arrtmp1$$(i), NORMAL));
+              Move (i, incr_ir i);
+              Jump (Name while_lbl1);
+              Label f1_lbl;
 
-            Move (newarr2, BinOp (newarr1, ADD, lenarr1) |> incr_ir);
-            Move (j, const 0);
-            Label while_lbl2;
-            CJump (BinOp(j, LT, lenarr2), t2_lbl, f2_lbl);
-            Label t2_lbl;
-            Move (Mem (newarr2$$(j), NORMAL), Mem (arrtmp2$$(j), NORMAL));
-            Move (j, incr_ir j);
-            Jump (Name while_lbl2);
-            Label f2_lbl;
-          ]),
+              Move (newarr2, BinOp (newarr1, ADD, lenarr1) |> incr_ir);
+              Move (j, const 0);
+              Label while_lbl2;
+              CJump (BinOp(j, LT, lenarr2), t2_lbl, f2_lbl);
+              Label t2_lbl;
+              Move (Mem (newarr2$$(j), NORMAL), Mem (arrtmp2$$(j), NORMAL));
+              Move (j, incr_ir j);
+              Jump (Name while_lbl2);
+              Label f2_lbl;
+            ]),
           newarr1
         )
       | _ -> BinOp (gen_expr callnames (t1, e1), ir_of_ast_binop op, gen_expr callnames (t2, e2))
@@ -189,28 +189,28 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr callnames e1)
   | UnOp     (BANG,   e1)    -> not_expr (gen_expr callnames e1)
   | Index    (a, i)          ->
-      let index     = gen_expr callnames i in
-      let addr      = gen_expr callnames a in
-      let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
-      let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
-      let t_label = fresh_label () in
-      let f_label = fresh_label () in
-      ESeq (Seq ([
-          CJump (in_bounds, t_label, f_label);
-          Label f_label;
-          Exp (Call (Name out_of_bounds_proc, []));
-          Label t_label;
-        ]),
-        Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
+    let index     = gen_expr callnames i in
+    let addr      = gen_expr callnames a in
+    let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
+    let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
+    let t_label = fresh_label () in
+    let f_label = fresh_label () in
+    ESeq (Seq ([
+        CJump (in_bounds, t_label, f_label);
+        Label f_label;
+        Exp (Call (Name out_of_bounds_proc, []));
+        Label t_label;
+      ]),
+          Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
       )
   | Length    a              -> BinOp (Mem (gen_expr callnames a, NORMAL), SUB, word)
   | FuncCall ((_, id), args) ->
-      let name = match String.Map.find callnames id with
-        | Some s -> s
-        | None -> failwith "impossible: calling an unknown function" in
-      let args_ir =
-        List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm)::acc) ~init:[] in
-      Call (Name name, args_ir)
+    let name = match String.Map.find callnames id with
+      | Some s -> s
+      | None -> failwith "impossible: calling an unknown function" in
+    let args_ir =
+      List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm)::acc) ~init:[] in
+    Call (Name name, args_ir)
 
 and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_label f_label =
   match e with
@@ -239,15 +239,15 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
   | TBool | TInt -> Temp (fresh_temp ())
   | TArray ((at', t'), index) ->
     let fill () = 
-			match t' with
+      match t' with
       | TInt | TBool -> const 0
       | TArray _ -> gen_decl_help callnames (at', t') 
-		in
+    in
     let array_size = 
-			match index with
+      match index with
       | Some index_expr -> gen_expr callnames index_expr
       | None -> const 0 
-		in
+    in
 
     (* helpful temps *)
     let size_tmp = Temp (fresh_temp ()) in
@@ -298,7 +298,7 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
 and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   match s with
   | Decl varlist -> 
-		begin
+    begin
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
@@ -307,7 +307,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
   | DeclAsgn ([(_,v)], exp) -> 
-		begin
+    begin
       match v with
       | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
@@ -327,33 +327,33 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
       | _ -> (i+1, seq) 
-		in
+    in
     let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
   | Asgn ((_, lhs), fullrhs) -> 
-		begin
+    begin
       match lhs with
       | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr callnames fullrhs)
       | Index (arr, index) ->
-          let mem_loc = gen_expr callnames arr in
-          Move (Mem (mem_loc$$(gen_expr callnames index), NORMAL), gen_expr callnames fullrhs)
+        let mem_loc = gen_expr callnames arr in
+        Move (Mem (mem_loc$$(gen_expr callnames index), NORMAL), gen_expr callnames fullrhs)
       | _ -> failwith "impossible"
-  	end
+    end
   | Block stmts -> Seq (List.map ~f:(gen_stmt callnames) stmts)
   | Return exprlist ->
-      let mov_ret (i, seq) expr  =
-        let mov = Move (Temp (retreg i), gen_expr callnames expr) in
-        (i + 1, mov :: seq) in
-      let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
-      Seq (moves @ [Ir.Return])
+    let mov_ret (i, seq) expr  =
+      let mov = Move (Temp (retreg i), gen_expr callnames expr) in
+      (i + 1, mov :: seq) in
+    let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
+    Seq (moves @ [Ir.Return])
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
     Seq ([ 
-				gen_control callnames pred t_label f_label; 
-				Label t_label;
+        gen_control callnames pred t_label f_label; 
+        Label t_label;
         gen_stmt callnames t;
         Label f_label;
       ])
@@ -403,7 +403,7 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
     let seq' =
       match av with
       | (_, AId ((_, idstr), _)) ->
-          Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+        Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
       | _ -> seq
     in
     (i + 1, seq')
@@ -509,15 +509,15 @@ let connect_blocks blocks =
   let rec help blocks acc =
     match blocks with
     | (Block (_, (CJump _ | Jump _ | Return)::_) as h1)::h2::tl ->
-        help (h2::tl) (h1::acc)
+      help (h2::tl) (h1::acc)
     | Block (l1, stmts1)::(Block (l2, _) as h2)::tl ->
-        let jump_nextblock = Jump (Name l2) in
-        let new_block = Block (l1, jump_nextblock::stmts1) in
-        help (h2::tl) (new_block::acc)
+      let jump_nextblock = Jump (Name l2) in
+      let new_block = Block (l1, jump_nextblock::stmts1) in
+      help (h2::tl) (new_block::acc)
     | [Block (_, (CJump _ | Jump _ | Return)::_) as h1] -> help [] (h1::acc)
     | [Block (l, stmts)] ->
-        let new_block = Block (l, Return::stmts) in
-        help [] (new_block::acc)
+      let new_block = Block (l, Return::stmts) in
+      help [] (new_block::acc)
     | [] -> List.rev acc
   in
   help blocks []
@@ -532,7 +532,7 @@ let create_graph blocks =
         | Jump _::_ -> failwith "error -- invalid jump"
         | Return::_ -> help (b2::tl) (Node (l1, [])::graph)
         | _ -> help (b2::tl) (Node (l1, [l2])::graph)
-    end
+      end
     | [Block(l, ss)] -> begin
         match ss with
         | CJump (_, tru, fls)::_ -> help [] (Node (l, [tru; fls])::graph)
@@ -540,7 +540,7 @@ let create_graph blocks =
         | Jump _::_ -> failwith "error -- invalid jump"
         | Return::_ -> help [] (Node (l, [])::graph)
         | _ -> help [] (Node (l, [])::graph)
-    end
+      end
     | [] -> List.rev graph
   in
   help blocks []
@@ -562,9 +562,9 @@ let valid_trace graph trace =
   not (List.contains_dup trace) &&
   List.for_all trace ~f:(in_graph graph) &&
   List.for_all (Util.pairs trace) ~f:(fun (l1, l2) ->
-    let (Node (_, ls)) = get_node graph l1 in
-    List.mem ls l2
-  )
+      let (Node (_, ls)) = get_node graph l1 in
+      List.mem ls l2
+    )
 
 let find_trace graph root =
   let rec help graph (Node (l, adj)) acc =
@@ -582,22 +582,22 @@ let valid_seq graph seq =
   | [], _::_ | _::_, [] -> false
   | _::_, []::_ -> false
   | n::_, (l::_)::_ ->
-      let graph_labels = List.map graph ~f:node_label in
-      let seq_labels = List.concat seq in
-      node_label n = l &&
-      Util.all_eq graph_labels seq_labels &&
-      not (List.contains_dup seq_labels) &&
-      List.for_all seq ~f:(valid_trace graph)
+    let graph_labels = List.map graph ~f:node_label in
+    let seq_labels = List.concat seq in
+    node_label n = l &&
+    Util.all_eq graph_labels seq_labels &&
+    not (List.contains_dup seq_labels) &&
+    List.for_all seq ~f:(valid_trace graph)
 
 let find_seq graph =
   let rec help graph acc =
     match graph with
     | [] -> List.rev acc
     | n::ns ->
-        let trace = find_trace ns n in
-        let not_in_trace l = not (List.mem trace l) in
-        let rest = List.filter graph ~f:(fun (Node(l,_))-> not_in_trace l) in
-        help rest (trace::acc)
+      let trace = find_trace ns n in
+      let not_in_trace l = not (List.mem trace l) in
+      let rest = List.filter graph ~f:(fun (Node(l,_))-> not_in_trace l) in
+      help rest (trace::acc)
   in
   help graph []
 
@@ -607,29 +607,29 @@ let tidy blocks =
     | (Block(l1,ss1) as b1)::(Block(l2,_) as b2)::btl -> begin
         match ss1 with
         | CJump (e, lt, lf)::sstl ->
-            if lf = l2 then
-              help (b2::btl) (Block(l1, CJumpOne(e, lt)::sstl)::acc)
-            else if lt = l2 then
-              help (b2::btl) (Block (l1, CJumpOne(not_expr e, lf)::sstl)::acc)
-            else
-              let new_cjump = CJumpOne (e, lt) in
-              let new_jump = Jump (Name lf) in
-              help (b2::btl) (Block (l1, new_jump::new_cjump::sstl)::acc)
+          if lf = l2 then
+            help (b2::btl) (Block(l1, CJumpOne(e, lt)::sstl)::acc)
+          else if lt = l2 then
+            help (b2::btl) (Block (l1, CJumpOne(not_expr e, lf)::sstl)::acc)
+          else
+            let new_cjump = CJumpOne (e, lt) in
+            let new_jump = Jump (Name lf) in
+            help (b2::btl) (Block (l1, new_jump::new_cjump::sstl)::acc)
         | Jump (Name l')::sstl ->
-            if l' = l2
-              then help (b2::btl) (Block (l1, sstl)::acc)
-              else help (b2::btl) (b1::acc)
+          if l' = l2
+          then help (b2::btl) (Block (l1, sstl)::acc)
+          else help (b2::btl) (b1::acc)
         | Jump _::_ -> failwith "error -- invalid jump"
         | _ -> help (b2::btl) (b1::acc)
-    end
+      end
     | [Block(l,ss) as b] -> begin
         match ss with
         | CJump (e, lt, lf)::sstl ->
-            let new_cjump = CJumpOne (e, lt) in
-            let new_jump = Jump (Name lf) in
-            help [] ((Block (l, new_jump::new_cjump::sstl))::acc)
+          let new_cjump = CJumpOne (e, lt) in
+          let new_jump = Jump (Name lf) in
+          help [] ((Block (l, new_jump::new_cjump::sstl))::acc)
         | _ -> help [] (b::acc)
-    end
+      end
     | [] -> List.rev acc
   in
   help blocks []

@@ -19,7 +19,7 @@ val string_of_graph : graph -> string
  * Temp and Label respectively. Internally, fresh temps are generated as temp
  * 0, temp 1, temp 2, etc. The same goes for fresh labels. Moreover, we expose
  * a way to reset the fresh temp and fresh label counts to make testing easier.
- *)
+*)
 val temp  : int -> string
 val label : int -> string
 val reset_fresh_temp : unit -> unit
@@ -50,7 +50,7 @@ val lower_comp_unit : Ir.comp_unit -> Ir.comp_unit
  * block itself.
  *
  *   gen_block [Label "a"; Exp 1; Exp 2] = [Block ("a", [Exp 2; Exp 1])]
- *)
+*)
 val gen_block : Ir.stmt list -> block list
 
 (* `connect_blocks blocks` iterates through blocks and if a block does not end
@@ -69,7 +69,7 @@ val create_graph : block list -> graph
  *     - li != lj for all i \neq j
  *     - l1 -> l2 -> ... -> ln
  *     - li in g for all i
- *)
+*)
 val valid_trace : graph -> string list -> bool
 val find_trace : graph -> node -> string list
 
@@ -79,7 +79,7 @@ val find_trace : graph -> node -> string list
  *     - seq partitions graph
  *     - no duplicate labels
  *     - all traces are valid
- *)
+*)
 val valid_seq : graph -> string list list -> bool
 val find_seq : graph -> string list list
 

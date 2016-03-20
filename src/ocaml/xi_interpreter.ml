@@ -14,8 +14,8 @@ type context = (store option) String.Map.t
 
 let of_bool (b: bool) : value =
   if b
-    then Int 1L
-    else Int 0L
+  then Int 1L
+  else Int 0L
 
 let to_bool (i: int64) : bool =
   match i with
@@ -32,10 +32,10 @@ let rec string_of_value (v: value) =
 
 let string_of_values (vs: value list) : string =
   List.map vs ~f:(function
-    | Int i -> Char.of_int_exn (Int64.to_int_exn i)
-    | Array _
-    | Tuple _ -> failwith "invalid parseInt argument"
-  )
+      | Int i -> Char.of_int_exn (Int64.to_int_exn i)
+      | Array _
+      | Tuple _ -> failwith "invalid parseInt argument"
+    )
   |> String.of_char_list
 
 let id_of_avar ((_, av): avar) =
@@ -116,11 +116,11 @@ and eval_callable (store: context) ((_, c): Typecheck.callable) : context =
 
 and eval_stmts store ss =
   List.fold_left ~f:(fun (store', res) s ->
-										match res, (eval_stmt store' s) with
-										| Some _, (s', _) -> (s', res)
-										| None, evaled -> evaled)
-								 ~init:(store, None)
-								 ss
+      match res, (eval_stmt store' s) with
+      | Some _, (s', _) -> (s', res)
+      | None, evaled -> evaled)
+    ~init:(store, None)
+    ss
 
 and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option =
   match s with
@@ -152,22 +152,22 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
       | (_, Id (_,i)), e2' ->
         let store' = bind_ids_vals store [(Some i, e2')] in
         (store', None)
-			| (_, Index(e1, e2)), e2' ->
-				begin
-					match (eval_expr store e1), (eval_expr store e2) with
-					| Array l, Int i ->
-						let i' = Long.to_int i in
-						let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
-						l := new_l;
-						(store, None)
-					| _ -> failwith "shouldn't happen in asgn"
-				end
+      | (_, Index(e1, e2)), e2' ->
+        begin
+          match (eval_expr store e1), (eval_expr store e2) with
+          | Array l, Int i ->
+            let i' = Long.to_int i in
+            let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
+            l := new_l;
+            (store, None)
+          | _ -> failwith "shouldn't happen in asgn"
+        end
       | _ -> failwith "shouldn't happen - asgn left is not a var or array indexing"
     end
   | Block slist ->
-      let (store', v) = eval_stmts store slist in
-      let store'' = String.Map.(filteri store' ~f:(fun ~key ~data:_ -> mem store key)) in
-      (store'', v)
+    let (store', v) = eval_stmts store slist in
+    let store'' = String.Map.(filteri store' ~f:(fun ~key ~data:_ -> mem store key)) in
+    (store'', v)
   | Return elist ->
     begin
       match elist with
@@ -234,12 +234,12 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
   | Bool false -> Int 0L
   | Bool true -> Int 1L
   | String s ->
-      let chars = String.to_list_rev (String.rev s) in
-      Array (ref (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars))
+    let chars = String.to_list_rev (String.rev s) in
+    Array (ref (List.map ~f:(fun ch -> eval_expr c (t, Char ch)) chars))
   | Char c -> Int (Int64.of_int (Char.to_int c))
   | Array l ->
-		let new_l = ref (List.map ~f:(eval_expr c) l) in
-		Array new_l
+    let new_l = ref (List.map ~f:(eval_expr c) l) in
+    Array new_l
   | Id (_, i) ->
     begin
       match String.Map.find c i with
@@ -321,7 +321,7 @@ and eval_binop e1 op e2 =
   | Int i1, BAR, Int i2 -> of_bool (to_bool i1 || to_bool i2)
   | Array vs1, PLUS, Array vs2 -> Array (ref ((!vs1) @ (!vs2)))
   | Array vs1, EQEQ, Array vs2 -> of_bool (phys_equal vs1 vs2)
-	| Array vs1, NEQ, Array vs2 -> of_bool (not (phys_equal vs1 vs2))
+  | Array vs1, NEQ, Array vs2 -> of_bool (not (phys_equal vs1 vs2))
   | _ -> failwith "shouldn't happen -- binop"
 
 and eval_unop op e1 =

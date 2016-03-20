@@ -8,9 +8,9 @@ let rec abi_type_name (e: Typecheck.Expr.t) = match e with
   | UnitT -> "p" (* p for procedure *)
   | ArrayT t' -> "a" ^ (abi_type_name t')
   | TupleT tlist ->
-      let open List in
-      let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:abi_type_name tlist) in
-      "t" ^ (string_of_int (length tlist)) ^ tnames
+    let open List in
+    let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:abi_type_name tlist) in
+    "t" ^ (string_of_int (length tlist)) ^ tnames
   | EmptyArray -> failwith "impossible"
 
 let abi_function_name =
@@ -37,7 +37,7 @@ let abi_callable_name (c: Typecheck.callable) : string =
     (abi_function_name func_name)
     (abi_type_name args_t)
     (abi_type_name ret_t)
- 
+
 (* id name -> ABI compliant name *)
 let abi_callable_decl_names (callables: Pos.callable_decl list) =
   let f map (callable: Pos.callable_decl) = 

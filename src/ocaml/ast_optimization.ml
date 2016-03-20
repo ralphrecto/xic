@@ -73,16 +73,16 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     | Return exprlist -> (ts, Return (List.map ~f:fold_expr exprlist))
     | If (pred, branch) -> (ts, If (fold_expr pred, fold_stmt branch)) 
     | IfElse (pred, tbr, fbr) ->
-        (ts, IfElse (fold_expr pred, fold_stmt tbr, fold_stmt fbr))
+      (ts, IfElse (fold_expr pred, fold_stmt tbr, fold_stmt fbr))
     | While (pred, stmt) -> (ts, While (fold_expr pred, fold_stmt stmt)) 
     | ProcCall (id, args) -> (ts, ProcCall (id, List.map ~f:fold_expr args))
     | _ -> (ts, s) in
   let fold_callable ((tc, c): Typecheck.callable) =
     match c with
     | Func (id, avars, typs, block) -> 
-        (tc, Func (id, avars, typs, fold_stmt block))
+      (tc, Func (id, avars, typs, fold_stmt block))
     | Proc (id, avars, block) ->
-        (tc, Proc (id, avars, fold_stmt block)) in
+      (tc, Proc (id, avars, fold_stmt block)) in
   let (Prog (uses, callables)) = prog in
   (prog_type, Prog (uses, List.map ~f:fold_callable callables))  
 

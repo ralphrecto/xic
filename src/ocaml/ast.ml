@@ -278,7 +278,7 @@ end
  *     module Abbreviations = Ast.Abbreviate(D)
  *
  * Then you can build dummy terms like Abbreviations.(one + two - three)
- *)
+*)
 module type DUMMIES = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]

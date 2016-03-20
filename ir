@@ -1,0 +1,8 @@
+#! /bin/bash
+
+main() {
+    readonly dir="$(dirname $0)"
+    java -cp "$dir/bin:$CLASSPATH:$dir/lib/*" mjw297.IrInterpreter "$@"
+}
+
+main "$@"

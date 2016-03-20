@@ -172,7 +172,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
               Jump (Name while_lbl1);
               Label f1_lbl;
 
-              Move (newarr2, BinOp (newarr1, ADD, lenarr1) |> incr_ir);
+              Move (newarr2,  newarr1$$(lenarr1));
               Move (j, const 0);
               Label while_lbl2;
               CJump (BinOp(j, LT, lenarr2), t2_lbl, f2_lbl);

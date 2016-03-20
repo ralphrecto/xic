@@ -203,7 +203,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
       ]),
           Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
       )
-  | Length    a              -> BinOp (Mem (gen_expr callnames a, NORMAL), SUB, word)
+  | Length    a              -> Mem (BinOp(gen_expr callnames a, SUB, word), NORMAL)
   | FuncCall ((_, id), args) ->
     let name = match String.Map.find callnames id with
       | Some s -> s

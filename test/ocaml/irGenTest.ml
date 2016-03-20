@@ -17,6 +17,7 @@ let optionize (f: 'a -> 'b) =
   fun x -> Some (f x)
 
 let main programs () =
+  (*
   programs
     |> List.map ~f:StdString.trim
     |> List.map ~f:Sexp.of_string
@@ -27,7 +28,8 @@ let main programs () =
     |> flatmap ~f:(optionize Ir_printer.sexp_of_comp_unit)
     |> List.map ~f:(function Some s -> s | None -> "gen error")
     |> List.iter ~f:Async_print.print_endline
-    |> return
+    *)
+  return ()
 
 let () =
   Command.async

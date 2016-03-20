@@ -2,6 +2,7 @@ module Long = Int64
 open Core.Std
 open Async.Std
 open Ir
+open Ir_util
 open Ast
 open Typecheck
 
@@ -113,37 +114,6 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   | NEQ      -> NEQ
   | AMP      -> AND
   | BAR      -> OR
-
-(* Format callable names according to Xi ABI *)
-let format_callable_name (c: Typecheck.callable) : string =
-  let rec type_name (e: Typecheck.Expr.t) = match e with
-    | IntT -> "i"
-    | BoolT -> "b"
-    | UnitT -> "p" (* p for procedure *)
-    | ArrayT t' -> "a" ^ (type_name t')
-    | TupleT tlist ->
-        let open List in
-        let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:type_name tlist) in
-        "t" ^ (string_of_int (length tlist)) ^ tnames
-    | EmptyArray -> failwith "impossible" in
-  let function_name =
-    let f c = if c = '_' then "__" else String.of_char c in
-    String.concat_map ~f in
-  let (fname, argnames, retnames) =
-    match c with
-    | (argt, rett), Func ((_, idstr), _, _, _)
-    | (argt, rett), Proc ((_, idstr), _, _) ->
-        function_name idstr, type_name argt, type_name rett in
-  Printf.sprintf "_I%s_%s%s" fname retnames argnames
-
-(* id name -> ABI compliant name *)
-let callable_name_map (callables: Typecheck.callable list) : string String.Map.t =
-  let f map (callable: Typecheck.callable) = 
-    let name = match callable with
-      | (_, Func ((_, idstr), _, _, _))
-      | (_, Proc ((_, idstr), _, _)) -> idstr in
-    String.Map.add map ~key:name ~data:(format_callable_name callable) in
-  List.fold_left ~f ~init:String.Map.empty callables
 
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
@@ -439,15 +409,14 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (name, (format_callable_name c, Seq(moves @ [gen_stmt callnames body])))
+  (abi_callable_name c, Seq(moves @ [gen_stmt callnames body]))
 
-and gen_comp_unit ((_, program): Typecheck.prog) : Ir.comp_unit =
-  (* TODO: fix comp unit name to program name *)
+and gen_comp_unit (callnames : string String.Map.t) ((_, program): Typecheck.prog) =
   let Ast.S.Prog (_, callables) = program in
-  let callnames = callable_name_map callables in
+  let callnames = abi_callable_names callables in
   let callables' = List.map ~f:(gen_func_decl callnames) callables in
-  let f map (orig_name, (cname, block)) =
-    String.Map.add map ~key:orig_name ~data:(cname, block) in
+  let f map (cname, block) =
+    String.Map.add map ~key:cname ~data:(cname, block) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", callable_map)
 

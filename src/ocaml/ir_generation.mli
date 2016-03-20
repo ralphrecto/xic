@@ -34,8 +34,8 @@ val gen_expr : string String.Map.t -> Typecheck.expr -> Ir.expr
  * boolean -> true label -> false label -> resulting jumps *)
 val gen_control : string String.Map.t -> Typecheck.expr -> string -> string -> Ir.stmt
 val gen_stmt : string String.Map.t -> Typecheck.stmt -> Ir.stmt
-val gen_func_decl : string String.Map.t -> Typecheck.callable -> string * Ir.func_decl
-val gen_comp_unit : Typecheck.prog -> Ir.comp_unit
+val gen_func_decl : string String.Map.t -> Typecheck.callable -> Ir.func_decl
+val gen_comp_unit : string String.Map.t -> Typecheck.prog -> Ir.comp_unit
 
 (* IR lowering *)
 val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr

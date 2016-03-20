@@ -468,6 +468,21 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AId (_, typ) -> Expr.of_typ typ
   | AUnderscore typ -> Expr.of_typ typ
 
+let func_decl_types ((_, c): Pos.callable_decl) : Expr.t * Expr.t =
+  let tuple_or_nah (l: Expr.t list) : Expr.t =
+    match l with
+    | [hd] -> hd
+    | _::_ -> TupleT l
+    | _ -> failwith "wat" in
+  match c with
+  | FuncDecl (_, args, rets) ->
+      let args_t = List.map ~f:avar_to_expr_t args in
+      let rets_t = List.map ~f:Expr.of_typ rets in
+      (tuple_or_nah args_t, tuple_or_nah rets_t)
+  | ProcDecl (_, args) -> 
+      let args_t = List.map ~f:avar_to_expr_t args in
+      (tuple_or_nah args_t, UnitT)
+
 let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
   match call with | FuncDecl ((_, id), args, rets) ->
     begin

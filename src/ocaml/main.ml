@@ -4,6 +4,7 @@ open Async.Std
 open Typecheck
 open Ast_optimization
 open Ir
+open Ir_util
 open Ir_generation
 open Ir_printer
 open Printf
@@ -37,9 +38,18 @@ let main flags asts () : unit Deferred.t =
     |> List.map ~f:StdString.trim
     |> List.map ~f:Sexp.of_string
     |> List.map ~f:Pos.full_prog_of_sexp
-    |> List.map ~f:prog_typecheck in
+    |> List.map ~f:(fun (FullProg (prog, interfaces)) ->
+        match prog_typecheck (FullProg (prog, interfaces)) with
+        | Ok p ->
+            let callables =
+              List.fold_left
+              ~f:(fun acc (_, Interface clist) -> clist @ acc)
+              ~init:[] interfaces in
+            Ok (abi_callable_decl_names callables, p)
+        | Error e -> Error e) in
   if flags.typecheck then begin
     typechecked
+      |> resmap ~f:snd
       |> List.map ~f:(function
         | Ok _ -> "Valid Xi Program"
         | Error e -> format_err_msg e)
@@ -48,6 +58,7 @@ let main flags asts () : unit Deferred.t =
   end
   else if flags.xirun then
     typechecked
+      |> resmap ~f:snd 
       |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
       |> resmap ~f:(eval_prog String.Map.empty)
       |> resmap ~f:get_main_val
@@ -57,8 +68,8 @@ let main flags asts () : unit Deferred.t =
       |> return
   else if flags.irgen then
     typechecked
-      |> do_if flags.ast_cfold (resmap ~f:ast_constant_folding)
-      |> resmap ~f:gen_comp_unit
+      |> do_if flags.ast_cfold (resmap ~f:(fun (a, b) -> (a, ast_constant_folding b)))
+      |> resmap ~f:(fun (callnames, p) -> gen_comp_unit callnames p)
       |> do_if flags.ir_cfold (resmap ~f:ir_constant_folding)
       |> do_if flags.lower (resmap ~f:lower_comp_unit)
       |> do_if flags.lower (resmap ~f:block_reorder_comp_unit)

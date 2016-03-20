@@ -186,24 +186,27 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
         )
       | _ -> BinOp (gen_expr callnames (t1, e1), ir_of_ast_binop op, gen_expr callnames (t2, e2))
     end
-  | UnOp     (UMINUS, e1)    -> BinOp (Const (0L), SUB, gen_expr callnames e1)
-  | UnOp     (BANG,   e1)    -> not_expr (gen_expr callnames e1)
-  | Index    (a, i)          ->
-    let index     = gen_expr callnames i in
-    let addr      = gen_expr callnames a in
-    let len       = Mem (BinOp (addr, SUB, word), NORMAL) in
-    let in_bounds = BinOp (BinOp (index, LT, len), AND, BinOp (index, GEQ, Const(0L))) in
+  | UnOp (UMINUS, e1) -> BinOp (Const (0L), SUB, gen_expr callnames e1)
+  | UnOp (BANG, e1) -> not_expr (gen_expr callnames e1)
+  | Index (a, i) ->
+    let index = gen_expr callnames i in
+    let addr = gen_expr callnames a in
+    let index_tmp = Temp (fresh_temp ()) in
+    let addr_tmp = Temp (fresh_temp ()) in
+    let len = Mem (BinOp (addr_tmp, SUB, word), NORMAL) in
+    let in_bounds = BinOp (BinOp (index_tmp, LT, len), AND, BinOp (index_tmp, GEQ, Const(0L))) in
     let t_label = fresh_label () in
     let f_label = fresh_label () in
     ESeq (Seq ([
+        Move (index_tmp, index);
+        Move (addr_tmp, addr);
         CJump (in_bounds, t_label, f_label);
         Label f_label;
         Exp (Call (Name out_of_bounds_proc, []));
         Label t_label;
       ]),
-          Mem (BinOp (addr, ADD, BinOp (word, MUL, index)), NORMAL)
-      )
-  | Length    a              -> Mem (BinOp(gen_expr callnames a, SUB, word), NORMAL)
+      Mem (BinOp (addr_tmp, ADD, BinOp (word, MUL, index_tmp)), NORMAL))
+  | Length a -> Mem (BinOp(gen_expr callnames a, SUB, word), NORMAL)
   | FuncCall ((_, id), args) ->
     let name = match String.Map.find callnames id with
       | Some s -> s
@@ -312,7 +315,8 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
         Move (Temp (id_to_temp var_id'), gen_expr callnames exp)
-      | _ -> Seq []
+      | AVar _ | Underscore ->
+        Exp (gen_expr callnames exp)
     end
   | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
     (* TODO: assumptions:
@@ -326,9 +330,12 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
           if i = 0 then gen_expr callnames (TupleT tlist, rawexp)
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
-      | _ -> (i+1, seq) 
-    in
-    let (_, ret_seq) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
+      | AVar _ | Underscore ->
+          if i = 0 then 
+            (i + 1, Exp (gen_expr callnames (TupleT tlist, rawexp)) :: seq)
+          else (i + 1 , seq) in
+    let (_, ret_seq_) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
+    let ret_seq = List.rev ret_seq_ in
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"

@@ -44,9 +44,6 @@ public class Main {
     @Option(name = "--irgen", usage = "Generate intermediate code")
     private static boolean irGenMode = false;
 
-    @Option(name = "--irrun", usage = "Generate and interpret intermediate code")
-    private static boolean irRunMode = false;
-
     @Option(name = "-O", usage = "Disable optimizations")
     private static boolean noOptimize = false;
 
@@ -61,9 +58,6 @@ public class Main {
 
     @Option(name = "-compilerpath", hidden = true, required = true)
     private static String compilerPath;
-
-    @Option(name = "--xirun", usage = "Evaluate Xi code")
-    private static boolean xiRunMode = false;
 
     @Option(name = "--ast-cfold", usage = "Constant fold on AST")
     private static boolean astCfoldMode = false;
@@ -375,13 +369,17 @@ public class Main {
 
     /* binArgs are additional options to pass to the OCaml binary
      *  returns List<Tuple<source, stdout>> */
-    public List<Tuple<XiSource, String>> callOCaml(List<String> filenames, List<String> binArgs) {
-        Tuple<List<Tuple<XiSource, XicException>>,List<Tuple<XiSource, FullProgram<Position>>>>
-            fullyParsed = fullParse(filenames);
+    public List<Tuple<XiSource, String>> callOCaml(List<String> filenames,
+                                                   List<String> binArgs,
+                                                   String extension) {
+        Tuple<
+            List<Tuple<XiSource, XicException>>,
+            List<Tuple<XiSource, FullProgram<Position>>>
+        > fullyParsed = fullParse(filenames);
 
         List<Tuple<XiSource, XicException>> errors = fullyParsed.fst;
         errors.forEach(t -> {
-            writeParseError(t.snd, t.fst.filename, diagPathOut(t.fst, "typed"));
+            writeParseError(t.snd, t.fst.filename, diagPathOut(t.fst, extension));
         });
 
         List<Tuple<XiSource, FullProgram<Position>>> programs = fullyParsed.snd;
@@ -392,6 +390,12 @@ public class Main {
             sexpOut.flush();
             return baos.toString();
         });
+
+        for (Tuple<XiSource, FullProgram<Position>> t : programs) {
+            XiSource src = t.fst;
+            binArgs.add("--outputs");
+            binArgs.add(diagPathOut(t.fst, extension));
+        }
         List<String> args = new ArrayList<>();
         args.add("./bin/main.byte");
         args.addAll(binArgs);
@@ -439,27 +443,13 @@ public class Main {
 
     void doTypecheck(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        if (typecheckMode) {
-            binArgs.add("--typecheck");
-        } else {
-            binArgs.add("--xirun");
-        }
-        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
+        binArgs.add("--typecheck");
+        List<Tuple<XiSource, String>> stdOuts =
+            callOCaml(filenames, binArgs, "typechecked");
 
         stdOuts.forEach(t -> {
-            String fileOut = null;
             if (t.snd.startsWith("ERROR")) {
-                fileOut = doError(t.snd, t.fst.filename);
-            } else {
-                if (typecheckMode) {
-                    fileOut = t.snd;
-                } else {
-                    System.out.println(t.snd);
-                }
-            }
-
-            if (typecheckMode) {
-                writeToFile(diagPathOut(t.fst, "typed"), fileOut);
+                doError(t.snd, t.fst.filename);
             }
         });
 
@@ -467,7 +457,7 @@ public class Main {
     }
 
     // generation
-    // --typecheck
+    // --ir-gen
     // --ir-gen --ast-cfold ?
     // --ir-gen --ir-cfold ?
     // --ir-gen --lower
@@ -493,75 +483,15 @@ public class Main {
             binArgs.addAll(blkreorder);
         }
 
-        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
+        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs, "ir");
 
         stdOuts.forEach(t -> {
-            String fileOut = null;
             if (t.snd.startsWith("ERROR")) {
-                fileOut = doError(t.snd, t.fst.filename);
-            } else {
-                fileOut = t.snd;
+                doError(t.snd, t.fst.filename);
             }
-
-            /*
-            String parentDir = t.fst.file.getParent();
-            String outputFilename = parentDir == null ?
-                t.fst.changeExtension("ir") :
-                String.format("%s/%s.ir",
-                    Files.simplifyPath(parentDir),
-                    Files.getNameWithoutExtension(t.fst.filename)
-                );
-            */
-            writeToFile(diagPathOut(t.fst, "ir"), fileOut);
         });
 
         System.exit(0);
-    }
-
-    // running
-    // --typecheck --xirun
-    // --irrun --ast-cfold ?
-    // --irrun --ir-cfold ?
-    // --irrun --lower
-    // --irrun --blkreorder
-    void doIRRun(List<String> filenames) {
-        List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-
-        List<String> astcfold =
-            noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
-        List<String> ircfold =
-            noOptimize ? astcfold : Util.concat(astcfold, Util.singleton("--ir-cfold"));
-        List<String> lower = Util.concat(ircfold, Util.singleton("--lower"));
-        List<String> blkreorder = Util.concat(lower, Util.singleton("--blkreorder"));
-
-        if (astCfoldMode) {
-            binArgs.addAll(astcfold);
-        } else if (irCfoldMode) {
-            binArgs.addAll(ircfold);
-        } else if (lowerMode) {
-            binArgs.addAll(lower);
-        } else if (blkReorderMode) {
-            binArgs.addAll(blkreorder);
-        }
-
-        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs);
-        stdOuts.forEach(t -> {
-            if (t.snd.startsWith("ERROR")) {
-                String[] errOut = t.snd.split(":::");
-                printError("Semantic",
-                    t.fst.filename, errOut[1], errOut[2], errOut[3]
-                );
-            } else {
-                IRParser parser = new IRParser(new IRLexer(new StringReader(t.snd)));
-                try {
-                    IRSimulator sim = new IRSimulator((IRCompUnit) parser.parse().value);
-                    sim.call("_Imain_paai", 0l);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     /**
@@ -591,12 +521,10 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
-            } else if (typecheckMode || xiRunMode) {
+            } else if (typecheckMode) {
                 doTypecheck(arguments);
             } else if (irGenMode) {
                 doIRGen(arguments);
-            } else if (irRunMode) {
-                doIRRun(arguments);
             } else {
                 System.out.println("No options passed.");
                 printUsage();

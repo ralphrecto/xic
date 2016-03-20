@@ -130,13 +130,13 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
 
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
-  | Int       i              -> Const i
-  | Bool      b              -> if b then Const (1L) else Const (0L)
-  | String    s              ->
+  | Int i -> Const i
+  | Bool b -> if b then Const (1L) else Const (0L)
+  | String s ->
     let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
     gen_expr callnames (ArrayT IntT, Array (List.rev elms))
-  | Char      c              -> Const (Int64.of_int (Char.to_int c))
-  | Array elts               ->
+  | Char c -> Const (Int64.of_int (Char.to_int c))
+  | Array elts ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
@@ -151,7 +151,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
       ),
       loc_tmp$(1)
     )
-  | Id       (_, id)         -> Temp (id_to_temp id)
+  | Id (_, id) -> Temp (id_to_temp id)
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
       (* Array concatenation *)

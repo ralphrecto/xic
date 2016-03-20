@@ -62,6 +62,9 @@ public class Main {
     @Option(name = "--ast-cfold", usage = "Constant fold on AST")
     private static boolean astCfoldMode = false;
 
+    @Option(name = "--nothing", usage = "No IR optimization")
+    private static boolean nothingMode = false;
+
     @Option(name = "--ir-cfold", usage = "Constant fold on IR")
     private static boolean irCfoldMode = false;
 
@@ -457,7 +460,7 @@ public class Main {
     }
 
     // generation
-    // --ir-gen
+    // --typecheck
     // --ir-gen --ast-cfold ?
     // --ir-gen --ir-cfold ?
     // --ir-gen --lower
@@ -466,20 +469,21 @@ public class Main {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--irgen");
 
-        List<String> astcfold =
-            noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
-        List<String> ircfold =
-            noOptimize ? astcfold : Util.concat(astcfold, Util.singleton("--ir-cfold"));
-        List<String> lower = Util.concat(ircfold, Util.singleton("--lower"));
-        List<String> blkreorder = Util.concat(lower, Util.singleton("--blkreorder"));
+        List<String> astcfold   = noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
+        List<String> nothing    =                                  Util.concat(astcfold, Util.singleton("--nothing"));
+        List<String> ircfold    = noOptimize ? nothing :           Util.concat(nothing, Util.singleton("--ir-cfold"));
+        List<String> lower      =                                  Util.concat(ircfold, Util.singleton("--lower"));
+        List<String> blkreorder =                                  Util.concat(lower, Util.singleton("--blkreorder"));
 
         if (astCfoldMode) {
             binArgs.addAll(astcfold);
+        } else if (nothingMode) {
+            binArgs.addAll(nothing);
         } else if (irCfoldMode) {
             binArgs.addAll(ircfold);
         } else if (lowerMode) {
             binArgs.addAll(lower);
-        } else if (blkReorderMode) {
+        } else {
             binArgs.addAll(blkreorder);
         }
 
@@ -499,7 +503,6 @@ public class Main {
      * @param args The command line arguments
      */
     private void doMain(String[] args) {
-
         try {
             parser.parseArgument(args);
 

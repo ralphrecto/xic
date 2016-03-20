@@ -17,32 +17,47 @@ main() {
         # don't do anything for temp files
         if [[ "$fname" != "$nonce"* ]]; then
             tempname="$dname/$nonce-$fname"
+            tempname_noext="$dname/$(basename $dname/$nonce-$fname .xi)"
+
             cat "$pervasive_file" "$f" > "$tempname"
 
-            outputfiles[0]="$dname/$noext.nothing-out"
-            outputfiles[1]="$dname/$noext.astfolded-out"
-            outputfiles[2]="$dname/$noext.rawir-out"
-            outputfiles[3]="$dname/$noext.irfolded-out"
-            outputfiles[4]="$dname/$noext.lowered-out"
-            outputfiles[5]="$dname/$noext.ir-out"
+            # outputfiles[0]="$dname/$noext.nothing-out"
+            # outputfiles[1]="$dname/$noext.astfolded-out"
+            outputfiles[0]="$tempname_noext.nothing-out"
+            outputfiles[1]="$tempname_noext.ir-cfold-out"
+            outputfiles[2]="$tempname_noext.lower-out"
+            outputfiles[3]="$tempname_noext.blkreorder-out"
 
             # TODO: run stuff
             libpath="-libpath $dname"
-            ./xic --typecheck $libpath "$tempname" || true
-            ./xic --irgen --ast-cfold $libpath "$tempname" || true
-            ./xic --irgen --ir-cfold $libpath "$tempname" || true
-            ./xic --irgen --lower $libpath "$tempname" || true
-            ./xic --irgen --blkreorder $libpath "$tempname" || true
+            # ./xic --typecheck $libpath "$tempname"
+            # ./xic --irgen --ast-cfold $libpath "$tempname"
+            ./xic --irgen --nothing $libpath "$tempname"
+            mv "$tempname_noext.ir" "$tempname_noext.nothing"
 
-            # for ((i = 0; i < ${#outputfiles[*]}; i++)); do
-                # for ((j = i+1; j < ${#outputfiles[*]}; j++)); do
-                    # filea="${outputfiles[$i]}"
-                    # fileb="${outputfiles[$j]}"
-                    # if ! diff "$filea" "$fileb" > /dev/null; then
-                        # echo "$filea and $fileb" differ
-                    # fi
-                # done
-            # done
+            ./xic --irgen --ir-cfold $libpath "$tempname"
+            mv "$tempname_noext.ir" "$tempname_noext.ir-cfold"
+
+            ./xic --irgen --lower $libpath "$tempname"
+            mv "$tempname_noext.ir" "$tempname_noext.lower"
+
+            ./xic --irgen --blkreorder $libpath "$tempname"
+            mv "$tempname_noext.ir" "$tempname_noext.blkreorder"
+
+            ./ir "$tempname_noext.nothing" &> "${outputfiles[0]}" || true
+            ./ir "$tempname_noext.ir-cfold" &> "${outputfiles[1]}" || true
+            ./ir "$tempname_noext.lower" &> "${outputfiles[2]}" || true
+            ./ir "$tempname_noext.blkreorder" &> "${outputfiles[3]}" || true
+
+            for ((i = 0; i < ${#outputfiles[*]}; i++)); do
+                for ((j = i+1; j < ${#outputfiles[*]}; j++)); do
+                    filea="${outputfiles[$i]}"
+                    fileb="${outputfiles[$j]}"
+                    if ! diff "$filea" "$fileb" > /dev/null; then
+                        echo "$filea and $fileb" differ
+                    fi
+                done
+            done
         fi
     done
 }

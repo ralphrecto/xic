@@ -14,6 +14,7 @@ type flags = {
   typecheck:  bool;
   irgen:      bool;
   ast_cfold:  bool;
+  nothing:    bool;
   lower:      bool;
   ir_cfold:   bool;
   blkreorder: bool;
@@ -63,6 +64,7 @@ let main flags asts () : unit Deferred.t =
         typed >>| fun (callnames, ast) ->
         let ast = do_if flags.ast_cfold ast_constant_folding ast in
         let ir = gen_comp_unit callnames ast in
+        let ir = do_if flags.ir_cfold ir_constant_folding ir in
         let ir = do_if flags.lower lower_comp_unit ir in
         let ir = do_if flags.blkreorder block_reorder_comp_unit ir in
         sexp_of_comp_unit ir
@@ -81,17 +83,19 @@ let () =
       +> flag "--typecheck"  no_arg ~doc:""
       +> flag "--irgen"      no_arg ~doc:""
       +> flag "--ast-cfold"  no_arg ~doc:""
+      +> flag "--nothing"    no_arg ~doc:""
       +> flag "--lower"      no_arg ~doc:""
       +> flag "--ir-cfold"   no_arg ~doc:""
       +> flag "--blkreorder" no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun tc irg afold ifold l b os asts ->
+    (fun tc irg afold nothing ifold l b os asts ->
        let flags = {
          typecheck  = tc;
          irgen      = irg;
          ast_cfold  = afold;
+         nothing    = nothing;
          lower      = l;
          ir_cfold   = ifold;
          blkreorder = b;

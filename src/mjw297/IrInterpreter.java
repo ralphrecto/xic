@@ -10,7 +10,7 @@ import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
 public class IrInterpreter {
     public static void main(String[] args) throws Exception {
         if (args.length != 1)  {
-            System.err.println("usage: xi ir_file");
+            System.err.println("usage: ./ir ir_file");
             System.exit(-1);
         }
 

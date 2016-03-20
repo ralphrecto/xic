@@ -1,4 +1,5 @@
 use io;
+use conv;
 
 // parsing and pretty printing
 string_of_bool(x: bool) : int[] {
@@ -10,7 +11,8 @@ string_of_bool(x: bool) : int[] {
 }
 
 int_of_string(s: int[]) : int {
-    return parseInt(s);
+    x:int, b:bool = parseInt(s);
+    return x;
 }
 
 string_of_int(x: int) : int[] {

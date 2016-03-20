@@ -7,5 +7,3 @@ getchar() : int       // Read a single character from standard input.
                       // Returns -1 if the end of input has been reached.
 eof() : bool          // Test for end of file on standard input.
 
-parseInt(str: int[]) : int
-unparseInt(x: int) : int[]

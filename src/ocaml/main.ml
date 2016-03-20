@@ -12,6 +12,7 @@ open Xi_interpreter
 
 type flags = {
   typecheck:  bool;
+  tcdebug:    bool;
   irgen:      bool;
   ast_cfold:  bool;
   nothing:    bool;
@@ -54,9 +55,13 @@ let main flags asts () : unit Deferred.t =
   if flags.typecheck then begin
     Deferred.List.iter (List.zip_exn typeds flags.outputs) ~f:(fun (typed, out) ->
       match typed with
-      | Ok _ -> Writer.save out ~contents:"Valid Xi Program"
-      | Error e -> return (print_endline (format_err_msg e))
-    )
+      | Ok (_, p) ->
+          if flags.tcdebug then
+            let sexp = Typecheck.sexp_of_prog p in
+            Writer.save out ~contents:(Sexp.to_string sexp)
+          else
+            Writer.save out ~contents:"Valid Xi Program"
+      | Error e -> return (print_endline (format_err_msg e)))
   end else if flags.irgen then
     Deferred.List.iter (List.zip_exn typeds flags.outputs) ~f:(fun (typed, out) ->
       let ir = begin
@@ -81,6 +86,7 @@ let () =
     Command.Spec.(
       empty
       +> flag "--typecheck"  no_arg ~doc:""
+      +> flag "--tcdebug"    no_arg ~doc:""
       +> flag "--irgen"      no_arg ~doc:""
       +> flag "--ast-cfold"  no_arg ~doc:""
       +> flag "--nothing"    no_arg ~doc:""
@@ -90,9 +96,10 @@ let () =
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun tc irg afold nothing ifold l b os asts ->
+    (fun tc tcd irg afold nothing ifold l b os asts ->
        let flags = {
          typecheck  = tc;
+         tcdebug    = tcd;
          irgen      = irg;
          ast_cfold  = afold;
          nothing    = nothing;

@@ -17,6 +17,11 @@ main (args : int[][]) {
     println (string_of_int    (foo14 ()));
     println (string_of_int    (foo15 ()));
     println (string_of_int    (foo16 ()));
+    
+    // Testing indexing
+    println (string_of_int    (foo17 ()));
+    println (string_of_1array (foo18 ()));
+    println (string_of_int    (foo19 ()));
 }
 
 foo1 () : int[][] {
@@ -85,4 +90,16 @@ foo15 (): int {
 
 foo16 (): int {
     return length(foo12());
+}
+
+foo17 (): int {
+    return {1}[0];
+}
+
+foo18 (): int[] {
+    return {{0}, {1}}[0];
+}
+
+foo19 (): int {
+    return {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {0}}[1][2];
 }

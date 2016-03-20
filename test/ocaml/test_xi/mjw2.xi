@@ -12,11 +12,13 @@ is_prime(x: int) : bool {
     return true;
 }
 
-main(args:int[][]) {
-    xs: int[] = range(0, 50);
+main(_: int[][]) {
+    xs: int[] = range(0, 10);
     bs: bool[length(xs)];
     i: int = 0;
     while (i < length(xs)) {
         bs[i] = is_prime(xs[i]);
+        i = i + 1;
     }
+    println(string_of_1barray(bs));
 }

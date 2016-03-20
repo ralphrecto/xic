@@ -8,8 +8,10 @@ type graph = node list
 (* label, stmts in block *)
 type block = Block of string * Ir.stmt list
 
-val string_of_node  : node -> string
-val string_of_graph : graph -> string
+val string_of_node   : node -> string
+val string_of_graph  : graph -> string
+val string_of_block  : block -> string
+val string_of_blocks : block list -> string
 
 (* naming *)
 (* The implementation of certain functions, like lowering, generate fresh temps

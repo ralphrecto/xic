@@ -134,19 +134,6 @@ module PairEq = struct
 end
 
 module BlocksEq = struct
-  let indent (ss: stmt list) : string =
-    List.map ~f:string_of_stmt ss
-    |> List.map ~f:(fun s -> "  " ^ s)
-    |> String.concat ~sep:"\n"
-
-  let string_of_block (Block (l, ss)) =
-    match ss with
-    | [] -> sprintf "%s:" l
-    | _  -> sprintf "%s:\n%s" l (indent ss)
-
-  let string_of_blocks bs =
-    "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs)) ^ "\n"
-
   let (===) (a: block list) (b: block list) : unit =
     let uniq_labels blocks =
       List.map ~f:(fun (Block (l, _)) -> l) blocks
@@ -245,7 +232,7 @@ let test_ir_expr () =
 
   (* Array tests *)
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 1 )) ::
       (move ( mem ( Temp (Ir_gen.temp 0) )) zero             ) ::
@@ -256,7 +243,7 @@ let test_ir_expr () =
   gen_expr callnames earr;
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )      ) ::
       (move ( mem ( Temp (Ir_gen.temp 0) )) one                    ) ::
@@ -268,7 +255,7 @@ let test_ir_expr () =
   gen_expr callnames (iarr [zerot]);
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )          ) ::
       (move ( mem ( Temp (Ir_gen.temp 0) )) two                        ) ::
@@ -281,7 +268,7 @@ let test_ir_expr () =
   gen_expr callnames (iarr [zerot; onet]);
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4)           ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 3L)                 ) ::
@@ -296,7 +283,7 @@ let test_ir_expr () =
 
   (* [[]] *)
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2))::
       (move (mem (Temp (Ir_gen.temp 0))) one)::
@@ -316,7 +303,7 @@ let test_ir_expr () =
 
   (* [[], [], [1,2]] *)
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4))::
       (move (mem (Temp (Ir_gen.temp 0))) (const 3L))::
@@ -354,7 +341,7 @@ let test_ir_expr () =
 
   (* String Tests *)
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 1)) ::
       (move (mem (Temp (Ir_gen.temp 0))) zero            ) ::
@@ -365,7 +352,7 @@ let test_ir_expr () =
   gen_expr callnames (EmptyArray, String "");
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2)              ) ::
       (move (mem (Temp (Ir_gen.temp 0))) one                           ) ::
@@ -377,7 +364,7 @@ let test_ir_expr () =
   gen_expr callnames (EmptyArray, String "A");
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                  ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                        ) ::
@@ -396,7 +383,7 @@ let test_ir_expr () =
   gen_expr callnames (ArrayT IntT, String "OCaml <3");
 
   Ir_gen.reset_fresh_temp ();
-  eseq 
+  eseq
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                  ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                        ) ::
@@ -425,7 +412,7 @@ let test_ir_stmt () =
 	(* Vars *)
 	let create_int_avar (id : string) : Typecheck.avar =
 		(IntT, AId (((), id), (IntT, TInt)))
-	in	
+	in
 
 	let create_int_var (id : string) : Typecheck.var =
 		(IntT, AVar (create_int_avar id))
@@ -437,14 +424,14 @@ let test_ir_stmt () =
 
 	(* Decl tests *)
 
-	(* ints *)		
+	(* ints *)
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "hello"]));
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"]));
-	
+
 	(* bools *)
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"]));
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
-	
+
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in

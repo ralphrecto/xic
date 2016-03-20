@@ -2,7 +2,7 @@
 
 main() {
     readonly dir="$(dirname $0)"
-    java -cp "$dir/bin:$CLASSPATH:$dir/lib/*" mjw297.IrInterpreter "$@"
+    java -cp "$dir/bin:$dir/lib*:$CLASSPATH" mjw297.IrInterpreter "$@"
 }
 
 main "$@"

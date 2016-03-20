@@ -1,8 +1,8 @@
 main (args : int[][]) {
-    print (string_of_2array (foo1 ()));
-    print (string_of_3array (foo2 ()));
-    print (string_of_1array (foo3 ()));
-    print (string_of_1array (foo4 ()));
+    println (string_of_2array (foo1 ()));
+    println (string_of_3array (foo2 ()));
+    println (string_of_1array (foo3 ()));
+    println (string_of_1array (foo4 ()));
 }
 
 foo1 () : int[][] {
@@ -18,5 +18,8 @@ foo3 () : int[] {
 }
 
 foo4 () : int[] {
-    return {1} + {};
+    x:int[] = {1,2} + {};
+    println(string_of_int (length(x)));
+    println(string_of_1array(x));
+    return x;
 }

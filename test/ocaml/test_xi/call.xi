@@ -1,30 +1,30 @@
 main (args : int[][]) {
     {
-      print ("Expecting false. Actual: " + string_of_bool (foo()));
-      print (string_of_bool (eq (17)));
-      print (string_of_int (mod (13110, 10000)));
+      println ("Expecting false. Actual: " + string_of_bool (foo()));
+      println (string_of_bool (eq (17)));
+      println (string_of_int (mod (13110, 10000)));
     }
    
     {
       // Testing multiple return
       x:int, y:int, z:int = square(1, 2, 3); 
-      print (string_of_int(x));
-      print (string_of_int(y));
-      print (string_of_int(z));
+      println (string_of_int(x));
+      println (string_of_int(y));
+      println (string_of_int(z));
     }
 
     {
       // Testing weird array cases
       a:int[] = {10, 20, 30};
       b:int[], c:int[] = arr2(a, a);
-      print ("Expecting 40. Actual: " + string_of_int (a[2]));
-      print ("Expecting true. Actual: " + string_of_bool (arr_eq (b, c)));
+      println ("Expecting 40. Actual: " + string_of_int (a[2]));
+      println ("Expecting true. Actual: " + string_of_bool (arr_eq (b, c)));
 
       d:int[] = {17, 18, 19};
       e:int[3];
       e = d;
       arr1(d);
-      print ("Expecting true. Actual: " + string_of_bool (e[0] == 42));
+      println ("Expecting true. Actual: " + string_of_bool (e[0] == 42));
     }
 }
 

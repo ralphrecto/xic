@@ -165,7 +165,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
 
               Move (i, const 0);  
               Label while_lbl1;
-              CJump (BinOp(i, LT, lenarr1), t1_lbl, f1_lbl);
+              CJump (BinOp(BinOp(i, LT, lenarr1), AND, BinOp(lenarr1, GT, const 0)), t1_lbl, f1_lbl);
               Label t1_lbl;
               Move (Mem (newarr1$$(i), NORMAL), Mem (arrtmp1$$(i), NORMAL));
               Move (i, incr_ir i);
@@ -175,7 +175,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
               Move (newarr2,  newarr1$$(lenarr1));
               Move (j, const 0);
               Label while_lbl2;
-              CJump (BinOp(j, LT, lenarr2), t2_lbl, f2_lbl);
+              CJump (BinOp(BinOp(j, LT, lenarr2), AND, BinOp(lenarr2, GT, const 0)), t2_lbl, f2_lbl);
               Label t2_lbl;
               Move (Mem (newarr2$$(j), NORMAL), Mem (arrtmp2$$(j), NORMAL));
               Move (j, incr_ir j);

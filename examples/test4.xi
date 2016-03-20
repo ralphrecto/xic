@@ -13,6 +13,7 @@ foo(a:int): bool, int {
 
 main(a:int[][]) {
     _, i: int = foo(5);
+    println(unparseInt(i));
     println("making b...");
     b: int[i][];
     println("indexing b...");

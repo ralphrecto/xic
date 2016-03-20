@@ -115,11 +115,11 @@ and eval_callable (store: context) ((_, c): Typecheck.callable) : context =
     String.Map.add store ~key: id ~data: (Some (Function (args, stmt)))
 
 and eval_stmts store ss =
-  List.fold_left ~f:(fun (store', res) s -> 
+  List.fold_left ~f:(fun (store', res) s ->
 										match res, (eval_stmt store' s) with
 										| Some _, (s', _) -> (s', res)
-										| None, evaled -> evaled) 
-								 ~init:(store, None) 
+										| None, evaled -> evaled)
+								 ~init:(store, None)
 								 ss
 
 and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option =
@@ -331,3 +331,5 @@ and eval_unop op e1 =
   | BANG, Int i -> Int (Int64.(1L - i))
   | _ -> failwith "shouldn't happen -- unop"
 
+let eval (p: Typecheck.prog) : unit =
+  ignore (eval_prog String.Map.empty p)

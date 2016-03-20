@@ -16,7 +16,8 @@ main() {
 
         # don't do anything for temp files
         if [[ "$fname" != "$nonce"* ]]; then
-            cat "$pervasive_file" "$f" > "$dname/$nonce-$fname"
+            tempname="$dname/$nonce-$fname"
+            cat "$pervasive_file" "$f" > "$tempname"
 
             outputfiles[0]="$dname/$noext.nothing-out"
             outputfiles[1]="$dname/$noext.astfolded-out"
@@ -26,16 +27,22 @@ main() {
             outputfiles[5]="$dname/$noext.ir-out"
 
             # TODO: run stuff
+            libpath="-libpath $dname"
+            ./xic --typecheck $libpath "$tempname" || true
+            ./xic --irgen --ast-cfold $libpath "$tempname" || true
+            ./xic --irgen --ir-cfold $libpath "$tempname" || true
+            ./xic --irgen --lower $libpath "$tempname" || true
+            ./xic --irgen --blkreorder $libpath "$tempname" || true
 
-            for ((i = 0; i < ${#outputfiles[*]}; i++)); do
-                for ((j = i+1; j < ${#outputfiles[*]}; j++)); do
-                    filea="${outputfiles[$i]}"
-                    fileb="${outputfiles[$j]}"
-                    if ! diff "$filea" "$fileb" > /dev/null; then
-                        echo "$filea and $fileb" differ
-                    fi
-                done
-            done
+            # for ((i = 0; i < ${#outputfiles[*]}; i++)); do
+                # for ((j = i+1; j < ${#outputfiles[*]}; j++)); do
+                    # filea="${outputfiles[$i]}"
+                    # fileb="${outputfiles[$j]}"
+                    # if ! diff "$filea" "$fileb" > /dev/null; then
+                        # echo "$filea and $fileb" differ
+                    # fi
+                # done
+            # done
         fi
     done
 }

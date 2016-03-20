@@ -18,8 +18,5 @@ foo3 () : int[] {
 }
 
 foo4 () : int[] {
-    x:int[] = {1,2} + {};
-    println(string_of_int (length(x)));
-    println(string_of_1array(x));
-    return x;
+    return {1} + {};
 }

@@ -1,4 +1,4 @@
-main () {
+main (args : int[][]) {
     print (string_of_int (5));
     print (string_of_bool (true));
     print (string_of_bool (false));

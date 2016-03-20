@@ -456,13 +456,11 @@ let rec lower_expr e =
       (temp_move::(List.rev_append s1 acc), (Temp temp)::temps)
     in
     let (name_s, name_e) = lower_expr e' in
-    let temp_name = fresh_temp () in
-    let temp_move_name = Move (Temp temp_name, name_e) in
     let (arg_stmts, arg_temps) = List.fold_left ~f: call_fold ~init: ([], []) es in
-    let fn_stmts = name_s @ (temp_move_name :: (List.rev arg_stmts)) in
+    let fn_stmts = name_s @ (List.rev arg_stmts) in
     let fn_args = List.rev arg_temps in
     let temp_fn = fresh_temp () in
-    let temp_move_fn = Move (Temp temp_fn, Call(Temp temp_name, fn_args)) in
+    let temp_move_fn = Move (Temp temp_fn, Call(name_e, fn_args)) in
     (fn_stmts @ [temp_move_fn], Temp temp_fn)
   | ESeq (s, e') ->
     let s1 = lower_stmt s in
@@ -487,9 +485,7 @@ and lower_stmt s =
   | Move (dest, e') ->
     let (dest_s, dest') = lower_expr dest in
     let (e_s, e'') = lower_expr e' in
-    let temp = fresh_temp () in
-    let temp_move = Move (Temp temp, dest') in
-    dest_s @ [temp_move] @ e_s @ [Move(Temp temp, e'')]
+    dest_s @ e_s @ [Move(dest', e'')]
   | Seq ss -> List.concat_map ~f:lower_stmt ss
   | Label _
   | Return -> [s]

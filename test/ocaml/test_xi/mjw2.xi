@@ -12,12 +12,11 @@ is_prime(x: int) : bool {
     return true;
 }
 
-main() {
+main(args:int[][]) {
     xs: int[] = range(0, 50);
     bs: bool[length(xs)];
     i: int = 0;
     while (i < length(xs)) {
         bs[i] = is_prime(xs[i]);
     }
-    print
 }

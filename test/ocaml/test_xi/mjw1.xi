@@ -11,7 +11,7 @@ increment(xs: int[]) : int[] {
     return xs;
 }
 
-main() {
+main(args:int[][]) {
     {
         xs: int[][] = {{}, {1}, {1,2}};
         println(string_of_2array(xs));

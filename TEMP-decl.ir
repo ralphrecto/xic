@@ -1,1 +1,0 @@
-(COMPUNIT program_name (FUNC _Ihello_ip (SEQ (SEQ (SEQ (MOVE (TEMP _RET0) (CONST 3)) (RETURN))))) (FUNC _Imain_paai (SEQ (MOVE (TEMP _TEMPargs) (TEMP _ARG0)) (SEQ (MOVE (TEMP _TEMPx) (CALL (NAME _Ihello_ip) )) (SEQ (RETURN))))))

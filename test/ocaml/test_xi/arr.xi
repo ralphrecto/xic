@@ -1,22 +1,22 @@
 main (args : int[][]) {
-    print (string_of_2array (foo1 ()));
-    print (string_of_3array (foo2 ()));
-    print (string_of_1array (foo3 ()));
-    print (string_of_1array (foo4 ()));
-    print (string_of_1array (foo5 ()));
-    print (string_of_1array (foo6 ()));
-    print (string_of_2array (foo7 ()));
-    print (string_of_int    (foo8 ()));
-    print (string_of_1array (foo9 ()));
-    print (string_of_1array (foo10 ()));
-    print (string_of_1array (foo11 ()));
-    print (string_of_1array (bar ()));
+    println (string_of_2array (foo1 ()));
+    println (string_of_3array (foo2 ()));
+    println (string_of_1array (foo3 ()));
+    println (string_of_1array (foo4 ()));
+    println (string_of_1array (foo5 ()));
+    println (string_of_1array (foo6 ()));
+    println (string_of_2array (foo7 ()));
+    println (string_of_int    (foo8 ()));
+    println (string_of_1array (foo9 ()));
+    println (string_of_1array (foo10 ()));
+    println (string_of_1array (foo11 ()));
+    println (string_of_1array (bar ()));
 
     // Testing length()
-    print (string_of_int    (foo13 ()));
-    print (string_of_int    (foo14 ()));
-    print (string_of_int    (foo15 ()));
-    print (string_of_int    (foo16 ()));
+    println (string_of_int    (foo13 ()));
+    println (string_of_int    (foo14 ()));
+    println (string_of_int    (foo15 ()));
+    println (string_of_int    (foo16 ()));
 }
 
 foo1 () : int[][] {

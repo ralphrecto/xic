@@ -1,1 +1,5 @@
 TEMP*
+*.lexed
+*.parsed
+*.typed
+*.ir

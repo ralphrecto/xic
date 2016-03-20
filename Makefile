@@ -28,7 +28,7 @@ JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
 OCAML_MAIN  = src/ocaml/main
-OCAML_SRCS  = $(OCAML_MAIN).ml
+OCAML_SRCS  = $(OCAML_MAIN).ml src/ocaml/xi.ml
 OCAML_TESTS = $(shell find test -name '*Test.ml')
 OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
 OCAML_TESTS_BIN = $(OCAML_TESTS:.ml=.byte)

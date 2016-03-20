@@ -473,7 +473,7 @@ let func_decl_types ((_, c): Pos.callable_decl) : Expr.t * Expr.t =
     match l with
     | [hd] -> hd
     | _::_ -> TupleT l
-    | _ -> failwith "wat" in
+    | [] -> UnitT in
   match c with
   | FuncDecl (_, args, rets) ->
     let args_t = List.map ~f:avar_to_expr_t args in

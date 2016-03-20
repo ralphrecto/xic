@@ -25,8 +25,8 @@ let abi_callable_decl_name (c: Pos.callable_decl) : string =
     | (_, ProcDecl ((_, idstr), _)) -> idstr in
   Printf.sprintf "_I%s_%s%s"
     (abi_function_name func_name)
-    (abi_type_name args_t)
     (abi_type_name ret_t)
+    (abi_type_name args_t)
 
 let abi_callable_name (c: Typecheck.callable) : string =
   let (args_t, ret_t, func_name) =
@@ -35,8 +35,8 @@ let abi_callable_name (c: Typecheck.callable) : string =
     | ((arg_t, ret_t), Proc ((_, idstr), _, _)) -> (arg_t, ret_t, idstr) in
   Printf.sprintf "_I%s_%s%s"
     (abi_function_name func_name)
-    (abi_type_name args_t)
     (abi_type_name ret_t)
+    (abi_type_name args_t)
 
 (* id name -> ABI compliant name *)
 let abi_callable_decl_names (callables: Pos.callable_decl list) =

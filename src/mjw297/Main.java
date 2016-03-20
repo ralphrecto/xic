@@ -503,6 +503,7 @@ public class Main {
                 fileOut = t.snd;
             }
 
+            /*
             String parentDir = t.fst.file.getParent();
             String outputFilename = parentDir == null ?
                 t.fst.changeExtension("ir") :
@@ -510,7 +511,8 @@ public class Main {
                     Files.simplifyPath(parentDir),
                     Files.getNameWithoutExtension(t.fst.filename)
                 );
-            writeToFile(outputFilename, fileOut);
+            */
+            writeToFile(diagPathOut(t.fst, "ir"), fileOut);
         });
 
         System.exit(0);

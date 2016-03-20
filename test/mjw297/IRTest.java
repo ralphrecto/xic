@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;

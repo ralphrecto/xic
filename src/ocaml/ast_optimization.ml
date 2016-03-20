@@ -4,7 +4,7 @@ open Async.Std
 open Ast.S
 open Typecheck
 
-let rec ast_constant_folding ((prog_type, prog): Typecheck.prog) =
+let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
   let rec fold_expr ((t, e): Typecheck.expr) =
     let open Long in
     let open Big_int in

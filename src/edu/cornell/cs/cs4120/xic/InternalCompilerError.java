@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic;
 import polyglot.util.SerialVersionUID;
 
 /** Exception thrown when the compiler is confused. */
+@SuppressWarnings("serial")
 public class InternalCompilerError extends RuntimeException {
     private static final long serialVersionUID = SerialVersionUID.generate();
 

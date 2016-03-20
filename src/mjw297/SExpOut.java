@@ -8,6 +8,7 @@ import mjw297.Ast.*;
 import java.io.OutputStream;
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 class SExpOut implements Ast.NodeVisitor<Position, Void> {
     SExpPrinter printer;
     SExpOut(OutputStream o) {

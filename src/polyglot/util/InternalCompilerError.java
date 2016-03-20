@@ -1,6 +1,7 @@
 package polyglot.util;
 
 /** Exception thrown when the compiler is confused. */
+@SuppressWarnings("serial")
 public class InternalCompilerError extends RuntimeException {
     private static final long serialVersionUID = SerialVersionUID.generate();
 

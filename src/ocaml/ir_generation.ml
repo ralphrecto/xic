@@ -399,7 +399,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
     Exp (Call (Name name, List.map ~f:(gen_expr callnames) args))
 
 and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) = 
-  let (name, args, body) =
+  let (_, args, body) =
     match c with
     | (_, Func ((_, name), args, _, body)) ->
       (name, args, body)

@@ -13,8 +13,21 @@ type block = Block of string * Ir.stmt list
 let string_of_node (Node (l, ls)) =
   sprintf "%s -> %s" l (Util.commas ls)
 
+let indent (ss: Ir.stmt list) : string =
+  List.map ~f:Ir.string_of_stmt ss
+  |> List.map ~f:(fun s -> "  " ^ s)
+  |> String.concat ~sep:"\n"
+
 let string_of_graph g =
   Util.join (List.map ~f:string_of_node g)
+
+let string_of_block (Block (l, ss)) =
+  match ss with
+  | [] -> sprintf "%s:" l
+  | _  -> sprintf "%s:\n%s" l (indent ss)
+
+let string_of_blocks bs =
+  "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs)) ^ "\n"
 
 (******************************************************************************)
 (* Naming Helpers                                                             *)
@@ -163,7 +176,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
               Move (Mem (newarr1, NORMAL), BinOp (lenarr1, ADD, lenarr2));
               Move (newarr1, BinOp (newarr1, ADD, word));
 
-              Move (i, const 0);  
+              Move (i, const 0);
               Label while_lbl1;
               CJump (BinOp(BinOp(i, LT, lenarr1), AND, BinOp(lenarr1, GT, const 0)), t1_lbl, f1_lbl);
               Label t1_lbl;
@@ -241,15 +254,15 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
   match t with
   | TBool | TInt -> Temp (fresh_temp ())
   | TArray ((at', t'), index) ->
-    let fill () = 
+    let fill () =
       match t' with
       | TInt | TBool -> const 0
-      | TArray _ -> gen_decl_help callnames (at', t') 
+      | TArray _ -> gen_decl_help callnames (at', t')
     in
-    let array_size = 
+    let array_size =
       match index with
       | Some index_expr -> gen_expr callnames index_expr
-      | None -> const 0 
+      | None -> const 0
     in
 
     (* helpful temps *)
@@ -300,7 +313,7 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
 
 and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   match s with
-  | Decl varlist -> 
+  | Decl varlist ->
     begin
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
@@ -309,7 +322,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
         | _ -> seq in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
-  | DeclAsgn ([(_,v)], exp) -> 
+  | DeclAsgn ([(_,v)], exp) ->
     begin
       match v with
       | AVar (_, AId (var_id, _)) ->
@@ -331,7 +344,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
           else Temp (retreg i) in
         (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
       | AVar _ | Underscore ->
-          if i = 0 then 
+          if i = 0 then
             (i + 1, Exp (gen_expr callnames (TupleT tlist, rawexp)) :: seq)
           else (i + 1 , seq) in
     let (_, ret_seq_) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
@@ -339,7 +352,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
     Seq (ret_seq)
   | DeclAsgn (_::_, _) -> failwith "impossible"
   | DeclAsgn ([], _) -> failwith "impossible"
-  | Asgn ((_, lhs), fullrhs) -> 
+  | Asgn ((_, lhs), fullrhs) ->
     begin
       match lhs with
       | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr callnames fullrhs)
@@ -358,8 +371,8 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   | If (pred, t) ->
     let t_label = fresh_label () in
     let f_label = fresh_label () in
-    Seq ([ 
-        gen_control callnames pred t_label f_label; 
+    Seq ([
+        gen_control callnames pred t_label f_label;
         Label t_label;
         gen_stmt callnames t;
         Label f_label;
@@ -395,7 +408,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       | None -> failwith "impossible: calling unknown function" in
     Exp (Call (Name name, List.map ~f:(gen_expr callnames) args))
 
-and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) = 
+and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
   let (_, args, body) =
     match c with
     | (_, Func ((_, name), args, _, body)) ->
@@ -421,7 +434,7 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
 and gen_comp_unit (decl_callnames : string String.Map.t) ((_, program): Typecheck.prog) =
   let Ast.S.Prog (_, callables) = program in
   let func_callnames = abi_callable_names callables in
-  let callnames = 
+  let callnames =
     String.Map.fold
       ~f:(fun ~key ~data acc -> String.Map.add ~key ~data acc)
       ~init:decl_callnames
@@ -643,12 +656,18 @@ let tidy blocks =
   help blocks []
 
 let block_reorder (stmts: Ir.stmt list) =
+  let debug = false in
   let blocks = connect_blocks (gen_block stmts) in
+  (if debug then printf "blocks:\n%s\n" (string_of_blocks blocks));
   let graph = create_graph blocks in
+  (if debug then printf "graph:\n%s\n" (string_of_graph graph));
   let seq = List.concat (find_seq graph) in
+  (if debug then printf "seq:\n%s\n" (Util.commas seq));
   let get_block l = List.find_exn blocks ~f:(fun (Block(l', _)) -> l' = l) in
   let blocks = List.map seq ~f:get_block in
+  (if debug then printf "blocks:\n%s\n" (string_of_blocks blocks));
   let tidied = tidy blocks in
+  (if debug then printf "tidied:\n%s\n" (string_of_blocks tidied));
   List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) tidied
 
 let block_to_stmt blist =
@@ -734,7 +753,7 @@ let ir_constant_folding comp_unit =
     | CJumpOne (e, s) -> CJumpOne (fold_expr e, s)
     | Jump e -> Jump (fold_expr e)
     | Exp e -> Exp (fold_expr e)
-    | Label _ as l -> l 
+    | Label _ as l -> l
     | Move (e1, e2) -> Move (fold_expr e1, fold_expr e2)
     | Seq (stmtlist) -> Seq (List.map ~f:fold_stmt stmtlist)
     | Return -> Return in

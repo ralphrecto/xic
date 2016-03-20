@@ -60,16 +60,19 @@ and sexp_of_stmt = function
   | Move ((Temp _ | Mem _) as dest, e) ->
     of_atoms ["MOVE"; sexp_of_expr dest; sexp_of_expr e]
   | Move (_, _) -> failwith "Malformed Move IR node"
-  | Seq (st_list) -> begin
-      of_atoms [
-        "SEQ";
-        List.map ~f:sexp_of_stmt st_list |> of_atoms_np]
-    end
+  | Seq ([]) -> ""
+  | Seq (st_list) -> 
+    of_atoms [
+      "SEQ";
+      List.map ~f:sexp_of_stmt st_list |> of_atoms_np]
   | Return -> of_atoms ["RETURN"]
 
 and sexp_of_func_decl (name, block) =
   of_atoms ["FUNC"; name; sexp_of_stmt block]
 
 and sexp_of_comp_unit ((name, func_decls): comp_unit) =
-  let fs = func_decls |> String.Map.data |> List.map ~f:sexp_of_func_decl |> of_atoms_np in
+  let fs = func_decls
+    |> String.Map.data
+    |> List.map ~f:sexp_of_func_decl
+    |> of_atoms_np in
   of_atoms [ "COMPUNIT"; name; fs]

@@ -1,4 +1,4 @@
-main () {
+main (args : int[][]) {
     print (string_of_2array (foo1 ()));
     print (string_of_3array (foo2 ()));
     print (string_of_1array (foo3 ()));

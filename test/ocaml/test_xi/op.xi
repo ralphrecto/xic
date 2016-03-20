@@ -1,4 +1,4 @@
-main () {
+main (args : int[][]) {
     // Testing binops
     print (string_of_int (1 + 7));
     print (string_of_int ('a' + 2));

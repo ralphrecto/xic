@@ -1,4 +1,4 @@
-main () {
+main (args : int[][]) {
     {
       print ("Expecting false. Actual: " + string_of_bool (foo()));
       print (string_of_bool (eq (17)));

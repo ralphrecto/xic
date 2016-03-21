@@ -131,6 +131,7 @@ clean:
 	rm -f  p1.zip
 	rm -f  p2.zip
 	rm -f  p3.zip
+	rm -f  p4.zip
 	corebuild -clean
 	@echo
 
@@ -141,6 +142,9 @@ p2.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).ja
 	zip -r $@ $^
 
 p3.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).java src lib xic bin test doc Makefile README.md vagrant xic-build
+	zip -r $@ $^
+
+p4.zip: clean src ir irtest lib xic bin/edu bin/mjw297/ bin/polyglot/  test Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
 print-%:

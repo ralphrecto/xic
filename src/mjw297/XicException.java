@@ -117,7 +117,7 @@ public abstract class XicException extends Exception {
     public static class SyntaxException extends XicException {
         public SyntaxException(int row, int column, String symbol) {
             super(ErrorCode.SYNTAX, row, column, String.format(
-                  "error:Unexpected token %s", row, column, symbol), ErrorType.SYNTACTIC);
+                  "error:Unexpected token %s", symbol), ErrorType.SYNTACTIC);
         }
     }
 

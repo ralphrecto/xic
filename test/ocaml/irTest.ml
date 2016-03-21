@@ -465,11 +465,11 @@ let test_lower_expr () =
   lower_expr (BinOp (eseq one, ADD, eseq one));
 
   (* Call *)
-  (stmts@[Move (t 1, Name "f")]@
-   stmts@[Move (t 2, one)]@
-   stmts@[Move (t 3, two)]@
-   [Move (t 4, Call(t 1, [t 2; t 3]))],
-   t 4)
+  (stmts@
+   stmts@[Move (t 1, one)]@
+   stmts@[Move (t 2, two)]@
+   [Move (t 3, Call(Name "f", [t 1; t 2]))],
+   t 3)
   ===
   lower_expr (Call (eseq (Name "f"), [eseq one; eseq two]));
 
@@ -504,7 +504,7 @@ let test_lower_stmt () =
   stmts === lower_stmt (Exp (eseq one));
 
   (* Move *)
-  stmts@[Move (t 5, one)]@stmts2@[Move (t 5, two)]
+  stmts@stmts2@[Move (one, two)]
   ===
   lower_stmt (Move (eseq one, eseq2 two));
 
@@ -1402,7 +1402,7 @@ let test_reorder () =
   expected === (block_reorder stmts);
 
   ()
-	
+
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)

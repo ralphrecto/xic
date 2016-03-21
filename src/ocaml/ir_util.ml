@@ -2,14 +2,14 @@ open Core.Std
 open Async.Std
 open Typecheck
 
-let rec abi_type_name (e: Typecheck.Expr.t) = match e with
+let rec abi_type_name (is_arg: bool) (e: Typecheck.Expr.t) = match e with
   | IntT -> "i"
   | BoolT -> "b"
-  | UnitT -> "p" (* p for procedure *)
-  | ArrayT t' -> "a" ^ (abi_type_name t')
+  | UnitT -> if is_arg then "" else "p" 
+  | ArrayT t' -> "a" ^ (abi_type_name is_arg t')
   | TupleT tlist ->
     let open List in
-    let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:abi_type_name tlist) in
+    let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:(abi_type_name is_arg) tlist) in
     "t" ^ (string_of_int (length tlist)) ^ tnames
   | EmptyArray -> failwith "impossible"
 
@@ -25,8 +25,8 @@ let abi_callable_decl_name (c: Pos.callable_decl) : string =
     | (_, ProcDecl ((_, idstr), _)) -> idstr in
   Printf.sprintf "_I%s_%s%s"
     (abi_function_name func_name)
-    (abi_type_name ret_t)
-    (abi_type_name args_t)
+    (abi_type_name false ret_t)
+    (abi_type_name true args_t)
 
 let abi_callable_name (c: Typecheck.callable) : string =
   let (args_t, ret_t, func_name) =
@@ -35,8 +35,8 @@ let abi_callable_name (c: Typecheck.callable) : string =
     | ((arg_t, ret_t), Proc ((_, idstr), _, _)) -> (arg_t, ret_t, idstr) in
   Printf.sprintf "_I%s_%s%s"
     (abi_function_name func_name)
-    (abi_type_name ret_t)
-    (abi_type_name args_t)
+    (abi_type_name false ret_t)
+    (abi_type_name true args_t)
 
 (* id name -> ABI compliant name *)
 let abi_callable_decl_names (callables: Pos.callable_decl list) =

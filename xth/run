@@ -1,0 +1,6 @@
+#!/bin/bash
+
+./xth -compilerpath ../../compilers \
+      -testpath tests/pa4 \
+      -workpath ../../compilers/ \
+      tests/pa4/xthScript

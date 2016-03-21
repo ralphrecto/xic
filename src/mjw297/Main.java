@@ -38,8 +38,11 @@ public class Main {
     @Option(name = "--parse", usage = "Generate output from syntactic analysis")
     private static boolean parseMode = false;
 
-    @Option(name = "--typecheck", usage = "Generate output from syntactic analysis")
+    @Option(name = "--typecheck", usage = "Generate output from semantic analysis")
     private static boolean typecheckMode = false;
+
+    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking")
+    private static boolean typecheckDebugMode = false;
 
     @Option(name = "--irgen", usage = "Generate intermediate code")
     private static boolean irGenMode = false;
@@ -447,12 +450,16 @@ public class Main {
     void doTypecheck(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--typecheck");
+        if (typecheckDebugMode) {
+            binArgs.add("--tcdebug");
+        }
+
         List<Tuple<XiSource, String>> stdOuts =
-            callOCaml(filenames, binArgs, "typechecked");
+            callOCaml(filenames, binArgs, "typed");
 
         stdOuts.forEach(t -> {
             if (t.snd.startsWith("ERROR")) {
-                doError(t.snd, t.fst.filename);
+                writeToFile(diagPathOut(t.fst, "typed"), doError(t.snd, t.fst.filename));
             }
         });
 
@@ -524,7 +531,7 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
-            } else if (typecheckMode) {
+            } else if (typecheckMode || typecheckDebugMode) {
                 doTypecheck(arguments);
             } else if (irGenMode) {
                 doIRGen(arguments);

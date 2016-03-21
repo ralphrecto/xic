@@ -130,13 +130,13 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
 
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
-  | Int       i              -> Const i
-  | Bool      b              -> if b then Const (1L) else Const (0L)
-  | String    s              ->
+  | Int i -> Const i
+  | Bool b -> if b then Const (1L) else Const (0L)
+  | String s ->
     let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
     gen_expr callnames (ArrayT IntT, Array (List.rev elms))
-  | Char      c              -> Const (Int64.of_int (Char.to_int c))
-  | Array elts               ->
+  | Char c -> Const (Int64.of_int (Char.to_int c))
+  | Array elts ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
@@ -151,7 +151,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
       ),
       loc_tmp$(1)
     )
-  | Id       (_, id)         -> Temp (id_to_temp id)
+  | Id (_, id) -> Temp (id_to_temp id)
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
       (* Array concatenation *)
@@ -656,22 +656,16 @@ let tidy blocks =
   help blocks []
 
 let block_reorder (stmts: Ir.stmt list) =
-  let debug = false in
   let blocks = connect_blocks (gen_block stmts) in
-  (if debug then printf "blocks:\n%s\n" (string_of_blocks blocks));
   let graph = create_graph blocks in
-  (if debug then printf "graph:\n%s\n" (string_of_graph graph));
   let seq = List.concat (find_seq graph) in
-  (if debug then printf "seq:\n%s\n" (Util.commas seq));
   let get_block l = List.find_exn blocks ~f:(fun (Block(l', _)) -> l' = l) in
   let blocks = List.map seq ~f:get_block in
-  (if debug then printf "blocks:\n%s\n" (string_of_blocks blocks));
   let tidied = tidy blocks in
-  (if debug then printf "tidied:\n%s\n" (string_of_blocks tidied));
   List.map ~f: (fun (Block (l, s)) -> Block (l, List.rev s)) tidied
 
 let block_to_stmt blist =
-  let stmt_list = List.fold_right ~f:(fun (Block (_, stmts)) acc -> stmts@acc) ~init:[] blist in
+  let stmt_list = List.fold_right ~f:(fun (Block (l, stmts)) acc -> (Label l)::stmts@acc) ~init:[] blist in
   Seq (stmt_list)
 
 let block_reorder_func_decl fd =

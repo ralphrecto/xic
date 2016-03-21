@@ -15,7 +15,7 @@ main() {
         pervasive_file="$dname/pervasives.xi"
 
         # don't do anything for temp files
-        if [[ "$fname" != "$nonce"* ]]; then
+        if [[ "$fname" != "$nonce"* ]] && [[ "$fname" != "pervasives.xi" ]] ; then
             tempname="$dname/$nonce-$fname"
             tempname_noext="$dname/$(basename $dname/$nonce-$fname .xi)"
 

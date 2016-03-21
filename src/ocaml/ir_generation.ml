@@ -685,11 +685,8 @@ let ir_constant_folding comp_unit =
     let open Long in
     let open Big_int in
     match e with
-    | BinOp (Const 0L, ADD, Const i)
-    | BinOp (Const i, (ADD|SUB), Const 0L)
-    | BinOp (Const i, (MUL|DIV), Const 1L)
-    | BinOp (Const 1L, MUL, Const i) -> Const i
-    | BinOp (Const 0L, SUB, Const i) -> Const (neg i)
+    | BinOp (Const i1, MOD, Const 0L)
+    | BinOp (Const i1, DIV, Const 0L) -> e
     | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
     | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
     | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
@@ -703,12 +700,6 @@ let ir_constant_folding comp_unit =
       Const result
     | BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
     | BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
-    | BinOp (Const 1L, (AND|OR), Const 1L) -> Const 1L
-    | BinOp (Const 0L, (AND|OR), Const 0L) -> Const 0L
-    | BinOp (Const 1L, OR, Const _)
-    | BinOp (Const _, OR, Const 1L) -> Const 1L
-    | BinOp (Const 0L, AND, Const _)
-    | BinOp (Const _, AND, Const 0L) -> Const 0L
     | BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
     | BinOp (Const i1, OR, Const i2) -> Const (logor i1 i2)
     | BinOp (Const i1, XOR, Const i2) -> Const (logxor i1 i2)

@@ -9,11 +9,10 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     let open Long in
     let open Big_int in
     match e with
-    | BinOp ((_, Int 0L), PLUS, (_, Int i))
-    | BinOp ((_, Int i), (PLUS|MINUS), (_, Int 0L))
-    | BinOp ((_, Int 1L), STAR, (_, Int i))
-    | BinOp ((_, Int i), (STAR|DIV), (_, Int 1L)) -> (t, Int i)
-    | BinOp ((_, Int 0L), MINUS, (_, Int i)) -> (t, Int (neg i))
+    (* don't fold failing expressions *)
+    | BinOp ((_, Int i), DIV, (_, Int 0L))
+    | BinOp ((_, Int i), MOD, (_, Int 0L)) -> (t, e)
+
     | BinOp ((_, Int i1), MINUS, (_, Int i2)) -> (t, Int (sub i1 i2))
     | BinOp ((_, Int i1), STAR, (_, Int i2)) -> (t, Int (mul i1 i2))
     | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) ->
@@ -35,18 +34,15 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     | BinOp ((_, Int i1), NEQ, (_, Int i2)) -> (t, Bool ((compare i1 i2) <> 0))
     | BinOp ((_, Bool b1), EQEQ, (_, Bool b2)) -> (t, Bool (b1 = b2))
     | BinOp ((_, Bool b1), NEQ, (_, Bool b2)) -> (t, Bool (b1 <> b2))
-    | BinOp ((_, Bool false), AMP, _) 
-    | BinOp (_, AMP, (_, Bool false)) -> (t, Bool false)
-    | BinOp ((_, Bool true), BAR, _)
-    | BinOp (_, BAR, (_, Bool true)) -> (t, Bool true)
     | BinOp ((_, Bool b1), AMP, (_, Bool b2)) -> (t, Bool (b1 && b2))
     | BinOp ((_, Bool b1), BAR, (_, Bool b2)) -> (t, Bool (b1 || b2))
+    | BinOp ((_, Array l1), PLUS, (_, Array l2)) -> (t, Array (l1 @ l2))
     | UnOp (UMINUS, (_, Int i)) -> (t, Int (neg i))
     | UnOp (BANG, (_, Bool b))  -> (t, Bool (not b))
     | BinOp (e1, op, e2) ->
       begin
         match (fold_expr e1), (fold_expr e2) with
-        | (((_, Int _) | (_, Bool _ )) as c1), (((_, Int _ ) | (_, Bool _ )) as c2) -> 
+        | (((_, Int _) | (_, Bool _ )) as c1), (((_, Int _ ) | (_, Bool _ )) as c2) ->
           fold_expr ((t, BinOp (c1, op, c2)))
         | e1', e2' -> (t, BinOp (e1', op, e2'))
       end
@@ -65,18 +61,18 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     | String _
     | Char _
     | Id _ -> (t, e) in
-  let rec fold_stmt ((ts, s): Typecheck.stmt) = 
+  let rec fold_stmt ((ts, s): Typecheck.stmt) =
     match s with
     | DeclAsgn (varlist, e) -> (ts, DeclAsgn (varlist, fold_expr e))
     | Asgn (e1, e2) -> (ts, Asgn (fold_expr e1, fold_expr e2))
-    | Block stmtlist -> (ts, Block (List.map ~f:fold_stmt stmtlist)) 
+    | Block stmtlist -> (ts, Block (List.map ~f:fold_stmt stmtlist))
     | Return exprlist -> (ts, Return (List.map ~f:fold_expr exprlist))
-    | If (pred, branch) -> 
+    | If (pred, branch) ->
 			begin
 				match (fold_expr pred) with
 				| (_, Bool true) -> fold_stmt branch
 				| (_, Bool false) -> (ts, Block [])
-				| b -> (ts, If (b, fold_stmt branch)) 
+				| b -> (ts, If (b, fold_stmt branch))
 			end
     | IfElse (pred, tbr, fbr) ->
 			begin
@@ -85,20 +81,20 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
 				| (_, Bool false) -> fold_stmt fbr
 				| b -> (ts, IfElse (b, fold_stmt tbr, fold_stmt fbr))
 			end
-    | While (pred, stmt) -> 
-			begin	
+    | While (pred, stmt) ->
+			begin
 				match (fold_expr pred) with
 				| (_, Bool false) -> (ts, Block [])
-				| b -> (ts, While (b, fold_stmt stmt)) 
+				| b -> (ts, While (b, fold_stmt stmt))
 			end
     | ProcCall (id, args) -> (ts, ProcCall (id, List.map ~f:fold_expr args))
     | _ -> (ts, s) in
   let fold_callable ((tc, c): Typecheck.callable) =
     match c with
-    | Func (id, avars, typs, block) -> 
+    | Func (id, avars, typs, block) ->
       (tc, Func (id, avars, typs, fold_stmt block))
     | Proc (id, avars, block) ->
       (tc, Proc (id, avars, fold_stmt block)) in
   let (Prog (uses, callables)) = prog in
-  (prog_type, Prog (uses, List.map ~f:fold_callable callables))  
+  (prog_type, Prog (uses, List.map ~f:fold_callable callables))
 

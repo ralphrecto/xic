@@ -23,15 +23,19 @@ main() {
 
             # outputfiles[0]="$dname/$noext.nothing-out"
             # outputfiles[1]="$dname/$noext.astfolded-out"
-            outputfiles[0]="$tempname_noext.nothing-out"
-            outputfiles[1]="$tempname_noext.ir-cfold-out"
-            outputfiles[2]="$tempname_noext.lower-out"
-            outputfiles[3]="$tempname_noext.blkreorder-out"
+            outputfiles[0]="$tempname_noext.typed-out"
+            outputfiles[1]="$tempname_noext.nothing-out"
+            outputfiles[2]="$tempname_noext.ir-cfold-out"
+            outputfiles[3]="$tempname_noext.lower-out"
+            outputfiles[4]="$tempname_noext.blkreorder-out"
 
             # TODO: run stuff
             libpath="-libpath $dname"
             # ./xic --typecheck $libpath "$tempname"
             # ./xic --irgen --ast-cfold $libpath "$tempname"
+            ./xic --tcdebug $libpath "$tempname"
+            # mv "$tempname_noext.typed" "$tempname_noext.typed"
+
             ./xic --irgen --nothing $libpath "$tempname"
             mv "$tempname_noext.ir" "$tempname_noext.nothing"
 
@@ -44,10 +48,11 @@ main() {
             ./xic --irgen --blkreorder $libpath "$tempname"
             mv "$tempname_noext.ir" "$tempname_noext.blkreorder"
 
-            ./ir "$tempname_noext.nothing" &> "${outputfiles[0]}" || true
-            ./ir "$tempname_noext.ir-cfold" &> "${outputfiles[1]}" || true
-            ./ir "$tempname_noext.lower" &> "${outputfiles[2]}" || true
-            ./ir "$tempname_noext.blkreorder" &> "${outputfiles[3]}" || true
+            ./xi "$tempname_noext.typed" &> "${outputfiles[0]}" || true
+            ./ir "$tempname_noext.nothing" &> "${outputfiles[1]}" || true
+            ./ir "$tempname_noext.ir-cfold" &> "${outputfiles[2]}" || true
+            ./ir "$tempname_noext.lower" &> "${outputfiles[3]}" || true
+            ./ir "$tempname_noext.blkreorder" &> "${outputfiles[4]}" || true
 
             for ((i = 0; i < ${#outputfiles[*]}; i++)); do
                 for ((j = i+1; j < ${#outputfiles[*]}; j++)); do

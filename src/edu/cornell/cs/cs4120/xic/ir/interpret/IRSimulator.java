@@ -69,7 +69,7 @@ public class IRSimulator {
 
     protected static int debugLevel = 0;
 
-    public static final int DEFAULT_HEAP_SIZE = 10240;
+    public static final int DEFAULT_HEAP_SIZE = 20480;
 
     /**
      * Construct an IR interpreter with a default heap size

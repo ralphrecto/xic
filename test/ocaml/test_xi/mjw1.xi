@@ -19,7 +19,7 @@ main(args:int[][]) {
         xs[2] = xs[0];
         println(string_of_2array(xs));
 
-        xs[1] = xs[1] + {xs[1][1]};
+        xs[1] = xs[1] + {xs[1][0]};
         println(string_of_2array(xs));
 
         xs[0] = {} + {} + "a" + "" + {} + {}
@@ -69,11 +69,11 @@ main(args:int[][]) {
         four: int[][][][];
         five: int[][][][][];
 
-        one = "" + {1} + "";
+        one = "" + "" + {1} + "";
         two = {} + {one} + {one, one} + {one} + {};
         three = {{one}} + {} + {two} + {two, {one}} + {two} + {} + {{two[0]}};
         four = {three} + {{two}} + {{{one}}};
-        five = "" + "" + {four};
+        five = {four} + "" + "" + {four};
 
         println(string_of_1array(one));
         println(string_of_2array(two));
@@ -87,11 +87,11 @@ main(args:int[][]) {
         four = four + four + four;
         five = five;
 
-        println(string_of_1array(one));
-        println(string_of_2array(two));
-        println(string_of_3array(three));
-        println(string_of_4array(four));
-        println(string_of_5array(five));
+        // println(string_of_1array(one));
+        // println(string_of_2array(two));
+        // println(string_of_3array(three));
+        // println(string_of_4array(four));
+        // println(string_of_5array(five));
     }
 
     {

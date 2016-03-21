@@ -1,4 +1,4 @@
-main() {
+main(_: int[][]) {
 	// print 2
 	{
 		x: int = 3;
@@ -6,15 +6,15 @@ main() {
 			x = 2;
 		} else {
 			x = 4;
-		}	
+		}
 		print(string_of_int(x));
 	}
 	// print 3
 	{
 		x:int = 3;
 		if (x != 3) {
-			x = 4;				
-		} 
+			x = 4;
+		}
 		print(string_of_int(x));
 	}
 	// print 2
@@ -39,8 +39,8 @@ main() {
 			} else {
 				w = 11;
 				v = 4;
-			}	
-		}	
+			}
+		}
 		print(string_of_int(w));
 		print(string_of_int(v));
 	}

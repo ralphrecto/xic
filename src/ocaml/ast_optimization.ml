@@ -71,10 +71,26 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     | Asgn (e1, e2) -> (ts, Asgn (fold_expr e1, fold_expr e2))
     | Block stmtlist -> (ts, Block (List.map ~f:fold_stmt stmtlist)) 
     | Return exprlist -> (ts, Return (List.map ~f:fold_expr exprlist))
-    | If (pred, branch) -> (ts, If (fold_expr pred, fold_stmt branch)) 
+    | If (pred, branch) -> 
+			begin
+				match (fold_expr pred) with
+				| (_, Bool true) -> fold_stmt branch
+				| (_, Bool false) -> (ts, Block [])
+				| b -> (ts, If (b, fold_stmt branch)) 
+			end
     | IfElse (pred, tbr, fbr) ->
-      (ts, IfElse (fold_expr pred, fold_stmt tbr, fold_stmt fbr))
-    | While (pred, stmt) -> (ts, While (fold_expr pred, fold_stmt stmt)) 
+			begin
+				match (fold_expr pred) with
+				| (_, Bool true) -> fold_stmt tbr
+				| (_, Bool false) -> fold_stmt fbr
+				| b -> (ts, IfElse (b, fold_stmt tbr, fold_stmt fbr))
+			end
+    | While (pred, stmt) -> 
+			begin	
+				match (fold_expr pred) with
+				| (_, Bool false) -> (ts, Block [])
+				| b -> (ts, While (b, fold_stmt stmt)) 
+			end
     | ProcCall (id, args) -> (ts, ProcCall (id, List.map ~f:fold_expr args))
     | _ -> (ts, s) in
   let fold_callable ((tc, c): Typecheck.callable) =

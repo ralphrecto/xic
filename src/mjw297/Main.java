@@ -459,7 +459,7 @@ public class Main {
 
         stdOuts.forEach(t -> {
             if (t.snd.startsWith("ERROR")) {
-                doError(t.snd, t.fst.filename);
+                writeToFile(diagPathOut(t.fst, "typed"), doError(t.snd, t.fst.filename));
             }
         });
 

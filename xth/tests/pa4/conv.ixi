@@ -1,0 +1,9 @@
+// String conversion functions
+
+// If "str" contains a sequence of ASCII characters that correctly represent
+// an integer constant n, return (n, true). Otherwise return (0, false).
+parseInt(str: int[]): int, bool
+
+// Return a sequence of ASCII characters representing the
+// integer n.
+unparseInt(n: int): int[]

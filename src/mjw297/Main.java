@@ -455,7 +455,7 @@ public class Main {
         }
 
         List<Tuple<XiSource, String>> stdOuts =
-            callOCaml(filenames, binArgs, "typechecked");
+            callOCaml(filenames, binArgs, "typed");
 
         stdOuts.forEach(t -> {
             if (t.snd.startsWith("ERROR")) {

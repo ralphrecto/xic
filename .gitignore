@@ -6,6 +6,9 @@ src/mjw297/Parser.java
 src/mjw297/InterfaceParser.java
 src/mjw297/Sym.java
 *.lexed
+*.parsed
+*.typed
+*.ir
 parseScript.results
 
 ################################################################################

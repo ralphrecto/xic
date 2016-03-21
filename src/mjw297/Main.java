@@ -41,7 +41,7 @@ public class Main {
     @Option(name = "--typecheck", usage = "Generate output from semantic analysis")
     private static boolean typecheckMode = false;
 
-    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking")
+    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking", hidden = true)
     private static boolean typecheckDebugMode = false;
 
     @Option(name = "--irgen", usage = "Generate intermediate code")
@@ -62,19 +62,19 @@ public class Main {
     @Option(name = "-compilerpath", hidden = true, required = true)
     private static String compilerPath;
 
-    @Option(name = "--ast-cfold", usage = "Constant fold on AST")
+    @Option(name = "--ast-cfold", usage = "Constant fold on AST", hidden = true)
     private static boolean astCfoldMode = false;
 
-    @Option(name = "--nothing", usage = "No IR optimization")
+    @Option(name = "--nothing", usage = "No IR optimization", hidden = true)
     private static boolean nothingMode = false;
 
-    @Option(name = "--ir-cfold", usage = "Constant fold on IR")
+    @Option(name = "--ir-cfold", usage = "Constant fold on IR", hidden = true)
     private static boolean irCfoldMode = false;
 
-    @Option(name = "--lower", usage = "Lower IR")
+    @Option(name = "--lower", usage = "Lower IR", hidden = true)
     private static boolean lowerMode = false;
 
-    @Option(name = "--blkreorder", usage = "Reorder blocks")
+    @Option(name = "--blkreorder", usage = "Reorder blocks", hidden = true)
     private static boolean blkReorderMode = false;
 
     @Argument(usage = "Other non-optional arguments.", hidden = true)

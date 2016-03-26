@@ -1,1 +1,2 @@
-x:int[2] = {2,3} should not be a valid DeclAsgn but we are currently allowing this.
+1. x:int[2] = {2,3} should not be a valid DeclAsgn but we are currently allowing this.
+2. fix escapes in pretty printing

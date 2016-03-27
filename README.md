@@ -30,8 +30,8 @@ the Java runtime on our compiler's compiled `.class` files.
 | rbx |      |      | callee-saved |
 | rcx | ARG4 |      |              |
 | rdx | ARG3 |      |              |
-| rsx | ARG2 |      |              |
-| rdx | ARG1 | RET2 |              |
+| rsi | ARG2 |      |              |
+| rdi | ARG1 | RET2 |              |
 | rbp |      |      | callee-saved |
 | rsp |      |      |              |
 | r8  | ARG5 |      |              |

@@ -23,6 +23,26 @@ After you run `make src`, you can execute our compiler's main executable:
 [`xic`](xic), which is actually just a dirt simple shell script that invokes
 the Java runtime on our compiler's compiled `.class` files.
 
+## x86-64 ##
+|     |      |      |              |
+| --- | ---- | ---- | ------------ |
+| rax |      | RET1 |              |
+| rbx |      |      | callee-saved |
+| rcx | ARG4 |      |              |
+| rdx | ARG3 |      |              |
+| rsx | ARG2 |      |              |
+| rdx | ARG1 | RET2 |              |
+| rbp |      |      | callee-saved |
+| rsp |      |      |              |
+| r8  | ARG5 |      |              |
+| r9  | ARG6 |      |              |
+| r10 |      |      |              |
+| r11 |      |      |              |
+| r12 |      |      | callee-saved |
+| r13 |      |      | callee-saved |
+| r14 |      |      | callee-saved |
+| r15 |      |      | callee-saved |
+
 ## Virtual Machine ##
 A virtual machine, managed by [vagrant][], can be found in the
 [`vagrant`](vagrant) directory. The virtual machine comes with a standard

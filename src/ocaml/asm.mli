@@ -7,12 +7,15 @@ type label = string
 
 type const = int64
 
-type abstract_reg = int
+type abstract_reg =
+  | Fake of string
+  | Real of reg
 
 type reg =
   | Rax
   | Rbx
   | Rcx
+  | Cl
   | Rdx
   | Rsi
   | Rdi

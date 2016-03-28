@@ -1,0 +1,117 @@
+# 1 "examples/fact.S"
+# 1 "<command-line>"
+# 1 "/usr/include/stdc-predef.h" 1 3 4
+# 1 "<command-line>" 2
+# 1 "examples/fact.S"
+# 1 "examples/defs.h" 1
+# 2 "examples/fact.S" 2
+ .text
+ .globl _Ifactorial
+ .align 4
+_Ifactorial:
+ pushq %rbp
+ movq %rsp, %rbp
+Ltmp2:
+ subq $32, %rsp
+ movq %rdi, -16(%rbp)
+ cmpq $1, -16(%rbp)
+ jg LBB0_2
+
+ movq $1, -8(%rbp)
+ jmp LBB0_3
+LBB0_2:
+ movq -16(%rbp), %rax
+ movq -16(%rbp), %rcx
+ subq $1, %rcx
+ movq %rcx, %rdi
+ movq %rax, -24(%rbp) ## 8-byte Spill
+ callq _Ifactorial
+ movq -24(%rbp), %rcx ## 8-byte Reload
+ imulq %rax, %rcx
+ movq %rcx, -8(%rbp)
+LBB0_3:
+ movq -8(%rbp), %rax
+ addq $32, %rsp
+ popq %rbp
+ retq
+
+ .globl _Imain_paai
+ .align 4
+_Imain_paai:
+ pushq %rbp
+Ltmp3:
+Ltmp4:
+ movq %rsp, %rbp
+Ltmp5:
+ subq $48, %rsp
+ movq %rdi, -8(%rbp)
+LBB1_1:
+ callq _Ieof_b
+ cmpq $0, %rax
+ setne %cl
+ xorb $1, %cl
+ testb $1, %cl
+ jne LBB1_2
+ jmp LBB1_5
+LBB1_2:
+ leaq _prompt(%rip), %rax
+ addq $8, %rax
+ movq %rax, %rdi
+ callq _Iprintln_pai
+ callq _Ireadln_ai
+ movq %rax, -16(%rbp)
+ movq -16(%rbp), %rdi
+ callq _IparseInt_t2ibai
+ movq %rax, -40(%rbp)
+ movq -32(%rbp), %rax
+ movq %rdx, %rax
+ movq %rax, -32(%rbp)
+ cmpq $0, -32(%rbp)
+ je LBB1_4
+
+ movq -40(%rbp), %rdi
+ callq _Ifactorial
+ movq %rax, -48(%rbp)
+ movq -40(%rbp), %rdi
+ callq _IunparseInt_aii
+ movq %rax, -24(%rbp)
+ movq -24(%rbp), %rdi
+ callq _Iprint_pai
+ leaq _is(%rip), %rax
+ addq $8, %rax
+ movq %rax, %rdi
+ callq _Iprint_pai
+ movq -48(%rbp), %rdi
+ callq _IunparseInt_aii
+ movq %rax, -24(%rbp)
+ movq -24(%rbp), %rdi
+ callq _Iprintln_pai
+LBB1_4:
+ jmp LBB1_1
+LBB1_5:
+ addq $48, %rsp
+ popq %rbp
+ retq
+
+ .data
+ .globl _prompt
+ .align 4
+_prompt: ## string constant
+ .quad 7
+ .quad 78 ## 0x4e N
+ .quad 117 ## 0x75 u
+ .quad 109 ## 0x6d m
+ .quad 98 ## 0x62 b
+ .quad 101 ## 0x65 e
+ .quad 114 ## 0x72 r
+ .quad 63 ## 0x3f ?
+
+ .globl _is
+ .align 4
+_is: ## string constant
+ .quad 5
+ .quad 33 ## 0x21 !
+ .quad 32 ## 0x20
+ .quad 105 ## 0x69 i
+ .quad 115 ## 0x73 s
+ .quad 32 ## 0x20

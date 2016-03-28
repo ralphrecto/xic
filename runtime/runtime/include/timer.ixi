@@ -1,0 +1,10 @@
+// Returns an opaque representation of current time.
+// Note: the contents of the returned array are implementation specific
+// and should not be accessed directly.
+getTimestamp(): int[]
+
+// Returns the time elapsed from r to l (e.g. l - r) in milliseconds,
+// when given two arrays returned by getTimestamp().
+// The behavior when the arrays are not from that function is undefined.
+// The useful range is about 24 days.
+timestampDifference(l:int[], r:int[]): int

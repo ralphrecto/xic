@@ -10,6 +10,8 @@ open Ir_printer
 open Printf
 open Xi_interpreter
 
+module TodoRemoveThis_ItsOnlyUsedToBuildAsm = Asm
+
 type flags = {
   typecheck:  bool;
   tcdebug:    bool;

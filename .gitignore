@@ -10,6 +10,8 @@ src/mjw297/Sym.java
 *.typed
 *.ir
 parseScript.results
+*.zip
+xifilt
 
 ################################################################################
 # vagrant

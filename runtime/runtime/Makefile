@@ -1,17 +1,21 @@
-CFLAGS=-g -Wall -O2 -m64 -fno-stack-protector
-#CFLAGS=-g -Wall -O2 -fno-stack-protector
+# Compilation
 CC=gcc
+CFLAGS=-g -Wall -O2 -m64 -fno-stack-protector
+ABI_FLAG=$(shell ./platform-flags.sh)
 
 # Boehm-Demers-Weiser collector
 GCLIBDIR = gc-7.2
 GCLIBZIP = gc-7.2f.tar.gz
 GCLIB = $(GCLIBDIR)/.libs/libgc.a
-
 GCLIBURL = http://hboehm.info/gc/gc_source/$(GCLIBZIP)
 
-ABI_FLAG=$(shell ./platform-flags.sh)
+# Examples to build
+EXAMPLES := $(wildcard examples/*.S)
+EXAMPLES := $(basename $(EXAMPLES))
+EXAMPLES := $(filter-out examples/init,$(EXAMPLES))
+EXAMPLES := $(EXAMPLES) examples/fact-init
 
-all: xifilt libxi.a examples/arr examples/fact examples/fact-init
+all: xifilt libxi.a $(EXAMPLES)
 
 xifilt: demangle/demangle.o
 	gcc $(ABI_FLAG) -o $@ $^
@@ -21,7 +25,7 @@ libxi.a: $(GCLIB) libxi/libxi.o
 	cp $(GCLIB) $@
 	ar rcs $@ libxi/libxi.o
 
-%.o: %.c	
+%.o: %.c
 	gcc $(CFLAGS) $(ABI_FLAG) -c -o $@ $<
 
 $(GCLIB): $(GCLIBDIR)/configure
@@ -35,13 +39,9 @@ $(GCLIBDIR)/configure:
 	tar -xzvf $(GCLIBZIP)
 	cp ../gcconfig.h $(GCLIBDIR)/include/private/
 
-examples/fact:
-	./linkxi.sh examples/fact.S -o examples/fact
-	gcc -E examples/fact.S -o examples/fact.sx
-
-examples/arr:
-	./linkxi.sh examples/arr.S -o examples/arr
-	gcc -E examples/arr.S -o examples/arr.sx
+examples/%: examples/%.S
+	./linkxi.sh $< -o $@
+	gcc -E $< -o $@.sx
 
 examples/fact-init:
 	./linkxi.sh examples/init.S examples/fact.S -o examples/fact-init
@@ -51,7 +51,8 @@ clean:
 	rm -f libxi.a xifilt
 	rm -f libxi/libxi.o
 	rm -f demangle/demangle.o
-	rm -f examples/fact examples/arr examples/fact-init
+	rm -f examples/*.sx
+	rm -f $(EXAMPLES)
 	rm -f *~
 
 clobber: clean
@@ -71,3 +72,6 @@ tarballs: $(GCLIBDIR)/configure
 	make clean
 	cd .. && tar cvz --exclude=CVS --exclude="*~" ${FILES} > runtime.tar.gz
 	cd .. && zip runtime.zip -r ${FILES} -x '*CVS*' -x "*~"
+
+print-%:
+	@echo $*=$($*)

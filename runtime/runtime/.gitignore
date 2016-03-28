@@ -1,0 +1,7 @@
+xifilt
+examples/*.sx
+examples/arr
+examples/fact
+examples/fact-init
+examples/modes
+*.tar.gz

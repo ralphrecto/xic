@@ -10,3 +10,10 @@ convenience so that expr func calls (which necessarily only return 1
 value) do not need to do anything weird like moving stuff from _RET0.
 This means that in DeclAsgns with multiple variables, move the first
 variable from the IRCall, the second from _RET1, etc.
+
+Assembly
+- Java style shifting: for a << b, mod b by word size before shifting
+
+- Treat bools only as the lowest order byte in a word. This way we can
+just use byte-wise operations and not worry about properly zeroing out
+the rest of the bits, which don't matter (e.g. use setne, sete etc.)

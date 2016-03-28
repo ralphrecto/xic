@@ -12,72 +12,57 @@ let munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | BinOp (e1, opcode, e2) -> begin
     let (reg1, asm1) = munch_expr e1 in
     let (reg2, asm2) = munch_expr e2 in
+
+    let cmp_action set_func =
+      let cmp_asm = [
+        cmpq (Reg reg1) (Reg reg2);
+        set_func (Reg reg2);
+      ] in
+      (reg2, asm1 @ asm2 @ cmp_asm) in
+
+    (* Java style shifting: mod RHS operand by word size *)
+    let shift_action shift_func =
+      let shift_asm = [
+        movq (Reg reg2) (Reg (Real Rcx));
+        shift_func (Reg (Real Cl)) (Reg reg1);
+      ] in
+      (reg1, asm1 @ asm2 @ shift_asm) in
+
       match opcode with
       | ADD -> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
       | SUB -> (reg2, asm1 @ asm2 @ [subq (Reg reg1) (Reg reg2)])
-      | MUL -> begin
+      | MUL | HMUL -> begin
         let mul_asm = [
           movq (Reg reg2) (Reg (Real Rax));
           imulq (Reg reg1);
         ] in
-        (Reg (Real Rax), asm1 @ asm2 @ mul_asm)
+        let r = if opcode = MUL then Rax else Rdx in
+        (Reg (Real r), asm1 @ asm2 @ mul_asm)
       end
-      | HMUL-> begin
-        let hmul_asm = [
-          movq (Reg reg2) (Reg (Real Rax));
-          imulq (Reg reg1);
-        ] in
-        (Reg (Real Rdx), asm1 @ asm2 @ hmul_asm)
-      end
-      | DIV-> begin
+      | DIV | MOD -> begin
         let div_asm = [
           movq (Reg reg1) (Reg (Real Rax));
           idivq (Reg reg2);
         ] in
-        (Reg (Real Rax), asm1 @ asm2 @ div_asm)
-      end
-      | MOD-> begin
-        let mod_asm = [
-          movq (Reg reg1) (Reg (Real Rax));
-          idivq (Reg reg2);
-        ] in
-        (Reg (Real Rdx), asm1 @ asm2 @ mod_asm)
+        let r = if opcode = DIV then Rax else Rdx in
+        (Reg (Real r), asm1 @ asm2 @ div_asm)
       end
       | AND-> (reg2, asm1 @ asm2 @ [andq (Reg reg1) (Reg reg2)])
       | OR-> (reg2, asm1 @ asm2 @ [orq (Reg reg1) (Reg reg2)])
       | XOR-> (reg2, asm1 @ asm2 @ [xorq (Reg reg1) (Reg reg2)])
-      (* Java style shifting: mod RHS operand by word size *)
-      | LSHIFT-> begin
-        let lshift_asm = [
-          movq (Reg reg2) (Reg (Real Rcx));
-          salq (Reg (Real Cl)) (Reg reg1);
-        ] in
-        (reg1, asm1 @ asm2 @ lshift_asm)
-      end
-      | RSHIFT-> begin
-        let rshift_asm = [
-          movq (Reg reg2) (Reg (Real Rcx));
-          shrq (Reg (Real Cl)) (Reg reg1);
-        ] in
-        (reg1, asm1 @ asm2 @ rshift_asm)
-      end
-      | ARSHIFT-> begin
-        let arshift_asm = [
-          movq (Reg reg2) (Reg (Real Rcx));
-          sarq (Reg (Real Cl)) (Reg reg1);
-        ] in
-        (reg1, asm1 @ asm2 @ rshift_asm)
-      end
-      | EQ-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | NEQ-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | LT-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | GT-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | LEQ-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | GEQ-> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
+      | LSHIFT -> shift_action salq
+      | RSHIFT -> shift_action shrq
+      | ARSHIFT -> shift_action sarq
+      | EQ -> cmp_action sete
+      | NEQ-> cmp_action setne
+      | LT -> cmp_action setl 
+      | GT -> cmp_action setg
+      | LEQ -> cmp_action setle
+      | GEQ -> cmp_action setge
   end
-  | Call of expr * expr list
-  | Const of Int64.t
-  | Mem of expr * mem_type
-  | Name of string
-  | Temp of string
+  | Call (func, arglist) -> failwith "implement me"
+  | Const c -> failwith "implement me"
+  | Mem (e, memtype) -> failwith "implement me"
+  | Name str -> failwith "implement me"
+  | Temp str -> failwith "implement me"
   | ESeq _ -> failwith "eseq shouldn't exist"

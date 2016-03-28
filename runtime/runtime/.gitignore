@@ -5,3 +5,4 @@ examples/fact
 examples/fact-init
 examples/modes
 *.tar.gz
+gc-7.2/

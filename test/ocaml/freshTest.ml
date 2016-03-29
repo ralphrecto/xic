@@ -40,6 +40,13 @@ let test_reset () =
   "foo5" === FreshFoo.fresh ();
   ()
 
+let test_get () =
+  Some 1 === FreshFoo.get "foo1";
+  Some 2 === FreshFoo.get "foo2";
+  None   === FreshFoo.get "foo";
+  None   === FreshFoo.get "bar1";
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -48,6 +55,7 @@ let main () =
       "test_fresh" >:: test_fresh;
       "test_gen"   >:: test_gen;
       "test_reset" >:: test_reset;
+      "test_get"   >:: test_get;
     ] |> run_test_tt_main
 
 let _ = main ()

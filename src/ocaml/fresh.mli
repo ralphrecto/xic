@@ -31,6 +31,13 @@ open Core.Std
  *     print_endline (FreshReg.fresh ()); (* prints asm_reg1 *)
  *     FreshReg.reset ();
  *     print_endline (FreshReg.fresh ())  (* prints asm_reg0 *)
+ *
+ * The integer suffix of a fresh name can also be parsed with get.
+ *
+ *     FreshReg.get "asm_reg0"    = Some 0
+ *     FreshReg.get "asm_reg1"    = Some 1
+ *     FreshReg.get "foo1"        = None
+ *     FreshReg.get "asm_regoops" = None
  *)
 module type Name = sig
   val name: string
@@ -40,6 +47,7 @@ module type S = sig
   val gen   : int  -> string
   val fresh : unit -> string
   val reset : unit -> unit
+  val get   : string -> int option
 end
 
 module Make(N: Name): S

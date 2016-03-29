@@ -21,3 +21,5 @@ val all_eq: 'a list -> 'a list -> bool
 
 (* Increment and return the old value of an int ref. *)
 val get_and_incr: int ref -> int
+
+val int_of_string: string -> int option

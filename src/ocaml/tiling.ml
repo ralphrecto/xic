@@ -77,33 +77,29 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 		begin
 			match e1 with
 			| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
-				let fresh_l = FreshLabel.fresh () in
+				let tru_label = Asm.Label tru in
 				let cond_jump =
 					match op with
-					| EQ -> jne (Asm.Label fresh_l);
-					| NEQ -> je (Asm.Label fresh_l);
-					| LT -> jge (Asm.Label fresh_l);
-					| GT -> jle (Asm.Label fresh_l);
-					| LEQ -> jg (Asm.Label fresh_l);
-					| GEQ -> jl (Asm.Label fresh_l);
+					| EQ -> je tru_label
+					| NEQ -> jne tru_label
+					| LT -> jl tru_label 
+					| GT -> jg tru_label 
+					| LEQ -> jle tru_label 
+					| GEQ -> jge tru_label 
 				in
 				let (e1_reg, e1_lst) = munch_expr e1 in
 				let (e2_reg, e2_lst) = munch_expr e2 in
 				let jump_lst = [
 					cmpq (Reg e2_reg) (Reg e1_reg);
 					cond_jump;
-					jmp (Asm.Label tru);
-					label_op fresh_l;
 				] in
 				e1_lst @ e2_lst @ jump_lst
 			| _ ->
 				let (binop_reg, binop_lst) = munch_expr e1 in
-				let fresh_l = FreshLabel.fresh () in
+				let tru_label = Asm.Label tru in
 				let jump_lst = [
 					cmpq (Const 0L) (Reg binop_reg);
-					jz (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
+					jnz tru_label;
 				] in
 				binop_lst @ jump_lst
 		end

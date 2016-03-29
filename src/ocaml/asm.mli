@@ -49,6 +49,7 @@ type 'reg operand =
 
 type 'reg asm_template =
   | Op of string * 'reg operand list  (* size <= 3 *)
+  | Lab of label
   | Directive of string * string list (* e.g. .align 4, .globl foo *)
 
 type abstract_asm = abstract_reg asm_template
@@ -58,6 +59,18 @@ type asm = reg asm_template
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
+val string_of_const : const -> string
+val string_of_label : label -> string
+val string_of_reg : reg -> string
+val string_of_abstract_reg : abstract_reg -> string
+val string_of_scale : scale -> string
+val string_of_mem : ('reg -> string) -> 'reg mem -> string
+val string_of_operand : ('reg -> string) -> 'reg operand -> string
+val string_of_asm_template : ('reg -> string) -> 'reg asm_template -> string
+val string_of_abstract_asm : abstract_asm -> string
+val string_of_asm : asm -> string
+val string_of_asms : asm list -> string
+
 (* Returns all the _unique_ fakes names in a register, operand, or assembly
  * instruction. *)
 val fakes_of_reg      : abstract_reg              -> string list

@@ -82,6 +82,8 @@ let unop_arith_generic
 
 let addq src dest = binop_arith_generic "addq" src dest
 let subq src dest = binop_arith_generic "subq" src dest
+let incq dest = unop_arith_generic "incq" dest
+let decq dest = unop_arith_generic "decq" dest
 let imulq src = unop_arith_generic "imulq" src
 let idivq src = unop_arith_generic "idivq" src
 
@@ -103,7 +105,7 @@ let shift_generic shiftname a b =
   | (Reg _ | Const _ ), (Mem _ | Reg _ ) -> Op (shiftname, [a; b])
   | _ -> die ()
 
-let salq a b = shift_generic "salq" a b
+let shlq a b = shift_generic "shlq" a b
 let shrq a b = shift_generic "shrq" a b
 let sarq a b = shift_generic "sarq" a b
 

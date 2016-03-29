@@ -4,59 +4,79 @@ open Asm
 module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
 
+let binop_to_instr (op: Ir.binop_code) =
+	match op with
+	| ADD -> addq
+	| SUB -> subq
+	| AND -> andq 
+	| OR -> orq
+	| XOR -> xorq
+	| _ -> failwith "shouldn't happen -- binop_to_instr"
+	
+let cmp_to_instr (op: Ir.binop_code) =
+	match op with
+	| EQ -> sete
+	| NEQ -> setne
+	| LT -> setl 
+	| GT -> setg
+	| LEQ -> setle
+	| GEQ -> setge
+	| _ -> failwith "shouldn't happen -- cmp_to_instr"
+
+let shift_to_instr (op: Ir.binop_code) =
+	match op with
+	| LSHIFT -> shlq
+	| RSHIFT -> shrq
+	| ARSHIFT -> sarq 
+	| _ -> failwith "shouldn't happen -- shift_to_instr"
+
+let non_imm_cmp op reg1 reg2 = 
+	[cmpq (Reg reg1) (Reg reg2); (cmp_to_instr op) (Reg reg2)]
+
+let imm_cmp op const reg =
+	[cmpq (Asm.Const const) (Reg reg); (cmp_to_instr op) (Reg reg)]
+
+(* Java style shifting: mod RHS operand by word size *)
+let non_imm_shift op reg1 reg2 =
+	[movq (Reg reg2) (Reg (Real Rcx)); (shift_to_instr op) (Reg (Real Cl)) (Reg reg1)]
+
+let imm_shift op const reg =
+	[(shift_to_instr op) (Asm.Const const) (Reg reg)]
+
+let imm_binop op const reg =
+	[(binop_to_instr op) (Asm.Const const) (Reg reg)]
+	
+let non_imm_binop op reg1 reg2 =
+	[(binop_to_instr op) (Reg reg1) (Reg reg2)]
+	
 let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
-  | BinOp (e1, opcode, e2) -> begin
-    let (reg1, asm1) = munch_expr e1 in
-    let (reg2, asm2) = munch_expr e2 in
-
-    let cmp_action set_func =
-      let cmp_asm = [
-        cmpq (Reg reg1) (Reg reg2);
-        set_func (Reg reg2);
-      ] in
-      (reg2, asm1 @ asm2 @ cmp_asm) in
-
-    (* Java style shifting: mod RHS operand by word size *)
-    let shift_action shift_func =
-      let shift_asm = [
-        movq (Reg reg2) (Reg (Real Rcx));
-        shift_func (Reg (Real Cl)) (Reg reg1);
-      ] in
-      (reg1, asm1 @ asm2 @ shift_asm) in
-
-      match opcode with
-      | ADD -> (reg2, asm1 @ asm2 @ [addq (Reg reg1) (Reg reg2)])
-      | SUB -> (reg2, asm1 @ asm2 @ [subq (Reg reg1) (Reg reg2)])
-      | MUL | HMUL -> begin
-        let mul_asm = [
-          movq (Reg reg2) (Reg (Real Rax));
-          imulq (Reg reg1);
-        ] in
-        let r = if opcode = MUL then Rax else Rdx in
-        (Real r, asm1 @ asm2 @ mul_asm)
-      end
-      | DIV | MOD -> begin
-        let div_asm = [
-          movq (Reg reg1) (Reg (Real Rax));
-          idivq (Reg reg2);
-        ] in
-        let r = if opcode = DIV then Rax else Rdx in
-        (Real r, asm1 @ asm2 @ div_asm)
-      end
-      | AND-> (reg2, asm1 @ asm2 @ [andq (Reg reg1) (Reg reg2)])
-      | OR-> (reg2, asm1 @ asm2 @ [orq (Reg reg1) (Reg reg2)])
-      | XOR-> (reg2, asm1 @ asm2 @ [xorq (Reg reg1) (Reg reg2)])
-      | LSHIFT -> shift_action salq
-      | RSHIFT -> shift_action shrq
-      | ARSHIFT -> shift_action sarq
-      | EQ -> cmp_action sete
-      | NEQ-> cmp_action setne
-      | LT -> cmp_action setl
-      | GT -> cmp_action setg
-      | LEQ -> cmp_action setle
-      | GEQ -> cmp_action setge
-  end
+  | BinOp (e1, opcode, e2) -> 
+		begin
+			let (reg1, asm1) = munch_expr e1 in
+			let (reg2, asm2) = munch_expr e2 in
+			match opcode with
+			| ADD | SUB | AND | OR | XOR ->
+				(reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
+			| LSHIFT | RSHIFT | ARSHIFT ->
+			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
+			| EQ | NEQ | LT | GT | LEQ | GEQ ->
+			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))	
+			| MUL | HMUL ->
+				let mul_asm = [
+					movq (Reg reg2) (Reg (Real Rax));
+					imulq (Reg reg1);
+				] in
+				let r = if opcode = MUL then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ mul_asm)
+			| DIV | MOD -> 
+				let div_asm = [
+					movq (Reg reg1) (Reg (Real Rax));
+					idivq (Reg reg2);
+				] in
+				let r = if opcode = DIV then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ div_asm)	  	
+		end
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
@@ -115,6 +135,89 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
   | Return -> [leave; ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"
+
+let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
+  match e with
+	(* incr cases *)
+  | BinOp (e1, ADD, Const 1L)
+  | BinOp (Const 1L, ADD, e1) -> 
+		let (reg1, asm1) = chomp_expr e1 in
+		(reg1, asm1 @ [incq (Reg reg1)])		
+	(* decr case *)
+	| BinOp (e1, SUB, Const 1L) ->
+		let (reg1, asm1) = chomp_expr e1 in
+		(reg1, asm1 @ [decq (Reg reg1)])
+	(* binop with immediate cases *)
+	|	BinOp (e1, ((ADD|SUB|AND|OR|XOR) as op), (Const x as e2))
+	| BinOp ((Const x as e2), ((ADD|SUB|AND|OR|XOR) as op), e1) ->
+		let (reg1, asm1) = chomp_expr e1 in
+		let (reg2, asm2) = chomp_expr e2 in
+		let max_int32 = Int64.of_int32_exn (Int32.max_value) in
+		let min_int32 = Int64.of_int32_exn (Int32.min_value) in
+		(* checking if immidiate is within 32 bits *)
+		if min_int32 <= x || x <= max_int32 then
+			(reg1, asm1 @ (imm_binop op x reg1))	
+		else
+			(reg2, asm1 @ asm2 @ (non_imm_binop op reg1 reg2))
+	| BinOp (e1, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2))
+	| BinOp ((Const x as e2), ((LSHIFT|RSHIFT|ARSHIFT) as op), e1) ->
+		let (reg1, asm1) = chomp_expr e1 in
+		let (reg2, asm2) = chomp_expr e2 in
+		(* checking if shift is within 8 bits *)
+		if Int64.neg(128L) <= x || x <= 128L then
+			(reg1, asm1 @ (imm_shift op x reg1)) 
+		else 
+			(reg1, asm1 @ asm2 @ (non_imm_shift op reg1 reg2))
+	| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
+	| BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+		let (reg1, asm1) = chomp_expr e1 in
+		let (reg2, asm2) = chomp_expr e2 in
+		let max_int32 = Int64.of_int32_exn (Int32.max_value) in
+		let min_int32 = Int64.of_int32_exn (Int32.min_value) in
+		if min_int32 <= x || x <= max_int32 then
+			(reg1, asm1 @ (imm_cmp op x reg1))
+		else
+			(reg2, asm1 @ asm2 @ (non_imm_cmp op reg1 reg2))
+	(* binop with non-immediate cases *)
+  | BinOp (e1, opcode, e2) -> 
+		begin
+			let (reg1, asm1) = chomp_expr e1 in
+			let (reg2, asm2) = chomp_expr e2 in
+			match opcode with
+			| ADD | SUB | AND | OR | XOR ->
+				(reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
+			| LSHIFT | RSHIFT | ARSHIFT ->
+			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
+			| EQ | NEQ | LT | GT | LEQ | GEQ ->
+			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))	
+			| MUL | HMUL ->
+				let mul_asm = [
+					movq (Reg reg2) (Reg (Real Rax));
+					imulq (Reg reg1);
+				] in
+				let r = if opcode = MUL then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ mul_asm)
+			| DIV | MOD -> 
+				let div_asm = [
+					movq (Reg reg1) (Reg (Real Rax));
+					idivq (Reg reg2);
+				] in
+				let r = if opcode = DIV then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ div_asm)
+  	end
+  | Call (func, arglist) -> failwith "implement me"
+  | Const c ->
+      let new_tmp = FreshReg.fresh () in
+      (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
+  | Mem (e, memtype) ->
+      let (e_reg, e_asm) = chomp_expr e in
+      let new_tmp = FreshReg.fresh () in
+      (Fake new_tmp, [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
+  | Name str ->
+      let new_tmp = FreshReg.fresh () in
+      (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
+  | Temp str -> (Fake str, [])
+  | ESeq _ -> failwith "eseq shouldn't exist"
 
 let register_allocate asms =
   (*

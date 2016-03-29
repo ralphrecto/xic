@@ -62,6 +62,8 @@ type asm = reg asm_template
 (* arithmetic *)
 val addq : 'reg operand -> 'reg operand -> 'reg asm_template
 val subq : 'reg operand -> 'reg operand -> 'reg asm_template
+val incq : 'reg operand -> 'reg asm_template
+val decq : 'reg operand -> 'reg asm_template
 val imulq : 'reg operand -> 'reg asm_template
 val idivq : 'reg operand -> 'reg asm_template
 
@@ -71,7 +73,7 @@ val orq : 'reg operand -> 'reg operand -> 'reg asm_template
 val xorq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* shifts *)
-val salq : 'reg operand -> 'reg operand -> 'reg asm_template
+val shlq : 'reg operand -> 'reg operand -> 'reg asm_template
 val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 

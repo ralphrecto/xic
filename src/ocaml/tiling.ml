@@ -86,6 +86,7 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 					| GT -> jg tru_label 
 					| LEQ -> jle tru_label 
 					| GEQ -> jge tru_label 
+					| _ -> failwith "can't happen"
 				in
 				let (e1_reg, e1_lst) = munch_expr e1 in
 				let (e2_reg, e2_lst) = munch_expr e2 in
@@ -111,7 +112,7 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 		let (e2_reg, e2_lst) = munch_expr e2 in
 		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
   | Seq s_list -> List.map ~f:munch_stmt s_list |> List.concat
-  | Return -> [ret]
+  | Return -> [leave; ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"
 

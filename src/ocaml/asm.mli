@@ -97,6 +97,7 @@ val pop  : 'reg operand -> 'reg asm_template
 val jmp  : 'reg operand -> 'reg asm_template
 val je   : 'reg operand -> 'reg asm_template
 val jne  : 'reg operand -> 'reg asm_template
+val jnz  : 'reg operand -> 'reg asm_template
 val jz   : 'reg operand -> 'reg asm_template
 val jg   : 'reg operand -> 'reg asm_template
 val jge  : 'reg operand -> 'reg asm_template
@@ -106,4 +107,5 @@ val call : 'reg operand -> 'reg asm_template
 
 (* zeroops *)
 val label_op : string -> 'reg asm_template
+val leave : 'reg asm_template 
 val ret : 'reg asm_template

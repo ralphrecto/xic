@@ -175,4 +175,5 @@ let call l = unop_label "call" l
 
 (* zeroops *)
 let label_op l = Op (l^":", [])
-let ret = Op ("ret", [])
+let leave = Op ("leave", [])
+let ret = Op ("retq", [])

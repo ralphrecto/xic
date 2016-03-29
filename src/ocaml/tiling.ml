@@ -61,8 +61,15 @@ let munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       | GEQ -> cmp_action setge
   end
   | Call (func, arglist) -> failwith "implement me"
-  | Const c -> failwith "implement me"
-  | Mem (e, memtype) -> failwith "implement me"
-  | Name str -> failwith "implement me"
-  | Temp str -> failwith "implement me"
+  | Const c ->
+      let new_tmp = fresh_temp () in
+      (new_tmp, [mov (Asm.Const c) (Reg new_tmp)])
+  | Mem (e, memtype) -> 
+      let (e_reg, e_asm) = munch_expr e in
+      let new_tmp = fresh_temp () in
+      (new_tmp, [mov (Mem (Base e_reg)) (Reg new_tmp)])
+  | Name str ->
+      let new_tmp = fresh_temp () in
+      (new_tmp, [mov (Label str) (Reg new_tmp)])
+  | Temp str -> (str, [])
   | ESeq _ -> failwith "eseq shouldn't exist"

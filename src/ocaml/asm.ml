@@ -110,11 +110,14 @@ let sarq a b = shift_generic "sarq" a b
 
 
 (* move/setting operations *)
-let movq src dest = 
+let mov_generic mov_name src dest = 
   match src, dest with
   | Mem _, Mem _ -> die ()
-  | _, (Mem _ | Reg _ ) -> BinOp ("movq", src, dest)
+  | _, (Mem _ | Reg _ ) -> BinOp (mov_name, src, dest)
   | _ -> die ()
+
+let mov src dest = mov_generic "mov" src dest
+let movq src dest = mov_generic "movq" src dest
 
 let set_generic setname dest =
   match dest with

@@ -77,6 +77,7 @@ val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* move/setting operations *)
+val mov : 'reg operand -> 'reg operand -> 'reg asm_template
 val movq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sete : 'reg operand -> 'reg asm_template
 val setne : 'reg operand -> 'reg asm_template

@@ -49,11 +49,117 @@ type 'reg operand =
 
 type 'reg asm_template =
   | Op of string * 'reg operand list
+  | Lab of label
   | Directive of string * string list
 
 type abstract_asm = abstract_reg asm_template
 
 type asm = reg asm_template
+
+(******************************************************************************)
+(* functions                                                                  *)
+(******************************************************************************)
+let string_of_const n =
+  sprintf "$%s" (Int64.to_string n)
+
+let string_of_label l =
+  l
+
+let string_of_reg reg =
+  match reg with
+  | Rax -> "%rax"
+  | Rbx -> "%rbx"
+  | Rcx -> "%rcx"
+  | Cl  -> "%cl"
+  | Rdx -> "%rdx"
+  | Rsi -> "%rsi"
+  | Rdi -> "%rdi"
+  | Rbp -> "%rbp"
+  | Rsp -> "%rsp"
+  | R8  -> "%r8"
+  | R9  -> "%r9"
+  | R10 -> "%r10"
+  | R11 -> "%r11"
+  | R12 -> "%r12"
+  | R13 -> "%r13"
+  | R14 -> "%r14"
+  | R15 -> "%r15"
+
+let string_of_abstract_reg reg =
+  match reg with
+  | Fake s -> "%" ^ s
+  | Real r -> string_of_reg r
+
+let string_of_scale scale =
+  match scale with
+  | One   -> "1"
+  | Two   -> "2"
+  | Four  -> "4"
+  | Eight -> "8"
+
+let string_of_mem f mem =
+  let soc = string_of_const in
+  let sos = string_of_scale in
+
+  match mem with
+  | Base (None, b) -> sprintf "(%s)" (f b)
+  | Base (Some n, b) -> sprintf "%s(%s)" (soc n) (f b)
+  | Off (None, o, s) -> sprintf "(,%s,%s)" (f o) (sos s)
+  | Off (Some n, o, s) -> sprintf "%s(,%s,%s)" (soc n) (f o) (sos s)
+  | BaseOff (None, b, o, s) -> sprintf "(%s,%s,%s)" (f b) (f o) (sos s)
+  | BaseOff (Some n, b, o, s) -> sprintf "%s(%s,%s,%s)" (soc n) (f b) (f o) (sos s)
+
+let string_of_operand f o =
+  match o with
+  | Label l -> string_of_label l
+  | Reg r -> f r
+  | Const c -> string_of_const c
+  | Mem m -> string_of_mem f m
+
+let string_of_asm_template f asm =
+  let comma_spaces ss = String.concat ~sep:", " ss in
+  let soo = string_of_operand f in
+  match asm with
+  | Op (s, operands) -> sprintf "    %s %s" s (comma_spaces (List.map ~f:soo operands))
+  | Lab s -> s ^ ":"
+  | Directive (d, args) -> sprintf "    .%s %s" d (comma_spaces args)
+
+let string_of_abstract_asm asm =
+  string_of_asm_template string_of_abstract_reg asm
+
+let string_of_asm asm =
+  string_of_asm_template string_of_reg asm
+
+let string_of_asms asms =
+  Util.join (List.map ~f:string_of_asm asms)
+
+let fakes_of_reg r =
+  match r with
+  | Fake s -> [s]
+  | Real _ -> []
+
+let fakes_of_regs rs =
+  List.dedup (List.concat_map ~f:fakes_of_reg rs)
+
+let fakes_of_operand o =
+  match o with
+  | Reg r -> fakes_of_reg r
+  | Mem (Base (_, r)) -> fakes_of_reg r
+  | Mem (Off (_, r, _)) -> fakes_of_reg r
+  | Mem (BaseOff (_, r1, r2, _)) -> fakes_of_regs [r1; r2]
+  | Label _
+  | Const _ -> []
+
+let fakes_of_operands os =
+  List.dedup (List.concat_map ~f:fakes_of_operand os)
+
+let fakes_of_asm asm =
+  match asm with
+  | Op (_, operands) -> List.dedup (List.concat_map ~f:fakes_of_operand operands)
+  | Directive _ -> []
+
+let fakes_of_asms asms =
+  List.dedup (List.concat_map ~f:fakes_of_asm asms)
 
 (******************************************************************************)
 (* instructions                                                               *)
@@ -178,4 +284,4 @@ let call l = unop_label "call" l
 (* zeroops *)
 let label_op l = Op (l^":", [])
 let leave = Op ("leave", [])
-let ret = Op ("retq", [])
+let ret = Lab "retq"

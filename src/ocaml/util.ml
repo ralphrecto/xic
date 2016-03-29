@@ -27,3 +27,5 @@ let get_and_incr (r: int ref) : int =
   incr r;
   x
 
+let int_of_string s =
+  try Some (Int.of_string s) with _ -> None

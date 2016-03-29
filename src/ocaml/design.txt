@@ -17,3 +17,5 @@ Assembly
 - Treat bools only as the lowest order byte in a word. This way we can
 just use byte-wise operations and not worry about properly zeroing out
 the rest of the bits, which don't matter (e.g. use setne, sete etc.)
+
+- We assume that abstract assembly generation never uses R13, R14, or R15.

@@ -117,21 +117,24 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 	| CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
-  (* env maps each fake name to an index, starting at 1, into the stack. For
-   * example, if the fake name "foo" is mapped to n in env, then Reg (Fake
-   * "foo") will be spilled to -8n(%rbp). *)
-  let env =
+  (* spill_env maps each fake name to an index, starting at 1, into the stack.
+   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
+   * (Fake "foo") will be spilled to -8n(%rbp). *)
+  let spill_env =
     fakes_of_asms asms
     |> List.mapi ~f:(fun i asm -> (asm, i + 1))
     |> String.Map.of_alist_exn
   in
 
-  let spill_address (env: int String.Map.t) (fake: string) : reg operand =
-    let i = String.Map.find_exn env fake in
+  (* Given an environment and name, return the memory address that fake is
+   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
+  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
+    let i = String.Map.find_exn spill_env fake in
     let offset = Int64.of_int (-8 * i) in
     Mem (Base (Some offset, Rbp))
   in
 
+  (* Recursively applies f to all the abstract_registers in asm. *)
   let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
     match asm with
     | Op (s, operands) ->
@@ -147,9 +150,14 @@ let register_allocate asms =
     | Directive (d, args) -> Directive (d, args)
   in
 
-  let translate_reg (r: abstract_reg) : reg =
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
+
+  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
     match r with
-    | Fake r -> Rax
+    | Fake s -> String.Map.find_exn reg_env s
     | Real r -> r
   in
 
@@ -170,11 +178,16 @@ let register_allocate asms =
     match asm with
     | Op (op, operands) ->
       let fakes = fakes_of_operands operands in
-      let pre = List.map fakes ~f:(fun fake -> mov (spill fake) (Reg Rax)) in
-      let translation = [abstract_reg_map translate_reg asm] in
-      let post = List.map fakes ~f:(fun fake -> mov (Reg Rax) (spill fake)) in
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
+      let reg_env = String.Map.of_alist_exn fake_to_real in
+      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
+
+      let pre = List.map fakes ~f:(fun fake -> mov (spill fake) (fake_to_op fake)) in
+      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
+      let post = List.map fakes ~f:(fun fake -> mov (fake_to_op fake) (spill fake)) in
       pre @ translation @ post
     | Directive _ -> []
   in
 
-  List.concat_map ~f:(allocate env) asms
+  List.concat_map ~f:(allocate spill_env) asms

@@ -114,3 +114,74 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
   | Return -> [ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"
+
+let register_allocate asms =
+  (* [fakes_of_operand ] returns the names of all the fake registers in asm. *)
+
+  (* [fakes asm] returns the names of all the fake registers in asm. *)
+  let fakes_of_asm asm =
+    match asm with
+    | BinOp (_, Reg (Fake s1), Reg (Fake s2)) -> [s1; s2]
+    | BinOp (_, Reg (Fake s1), _)
+    | BinOp (_, _, Reg (Fake s1)) -> [s1]
+    | BinOp _ -> []
+    | UnOp (_, Reg (Fake s)) -> [s]
+    | UnOp _ -> []
+    | ZeroOp _ -> []
+  in
+
+  (* [reals asm] returns all of the real registers in asm. *)
+  let fakes asm =
+    match asm with
+    | BinOp (_, Reg (Fake s1), Reg (Fake s2)) -> [s1; s2]
+    | BinOp (_, Reg (Fake s1), _)
+    | BinOp (_, _, Reg (Fake s1)) -> [s1]
+    | BinOp _ -> []
+    | UnOp (_, Reg (Fake s)) -> [s]
+    | UnOp _ -> []
+    | ZeroOp _ -> []
+  in
+
+  (* env maps each fake name to an index, starting at 1, into the stack. For
+   * example, if the fake name "foo" is mapped to n in env, then Reg (Fake
+   * "foo") will be spilled to -8n(%rbp). *)
+  let env =
+    List.concat_map ~f:fakes asms
+    |> List.dedup
+    |> List.mapi ~f:(fun i asm -> (asm, i + 1))
+    |> String.Map.of_alist_exn
+  in
+
+  let translate name env =
+    let i = String.Map.find_exn env name in
+    let offset = Int64.of_int (-8 * i) in
+    Mem (Base (Some offset, Rax))
+  in
+
+  (* op "foo", "bar", "baz"
+   *
+   * mov -8(%rbp), %rax  \
+   * mov -16(%rbp), %rbx  } pre
+   * mov -24(%rbp), %rcx /
+   *
+   * op %rax, %rbx, %rcx  } translation
+   *
+   * mov %rax, -8(%rbp)  \
+   * mov %rbx, -16(%rbp)  } post
+   * mov %rcx, -24(%rbp) /
+   *)
+  let allocate asm env =
+    let (op, args) =
+      match asm with
+      | BinOp (s, a, b) -> (s, [a; b])
+      | UnOp (s, a) -> (s, [a])
+      | ZeroOp s  -> (s, [])
+    in
+    let pre = List.map args ~f:(fun fake -> failwith "a") in
+    let translation = failwith "" in
+    let post = failwith "A"  in
+    pre @ translation @ post
+  in
+
+  (* help asms env [] *)
+  failwith "a"

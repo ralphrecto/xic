@@ -413,7 +413,8 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
     (i + 1, seq')
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
-  (abi_callable_name c, Seq(moves @ [gen_stmt callnames body]))
+  let (typ, _) = c in
+  (abi_callable_name c, Seq(moves @ [gen_stmt callnames body]), typ)
 
 and gen_comp_unit (decl_callnames : string String.Map.t) ((_, program): Typecheck.prog) =
   let Ast.S.Prog (_, callables) = program in
@@ -424,8 +425,8 @@ and gen_comp_unit (decl_callnames : string String.Map.t) ((_, program): Typechec
       ~init:decl_callnames
       func_callnames in
   let callables' = List.map ~f:(gen_func_decl callnames) callables in
-  let f map (cname, block) =
-    String.Map.add map ~key:cname ~data:(cname, block) in
+  let f map (cname, block, typ) =
+    String.Map.add map ~key:cname ~data:(cname, block, typ) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty callables' in
   ("program_name", callable_map)
 
@@ -485,8 +486,8 @@ and lower_stmt s =
   | Return -> [s]
   | CJumpOne _ -> failwith "this node shouldn't exist"
 
-let lower_func_decl (i, s) =
-  (i, Seq (lower_stmt s))
+let lower_func_decl (i, s, t) =
+  (i, Seq (lower_stmt s), t)
 
 let lower_comp_unit (id, funcs) =
   (id, String.Map.map ~f:(fun data -> lower_func_decl data) funcs)
@@ -654,7 +655,7 @@ let block_to_stmt blist =
 
 let block_reorder_func_decl fd =
   match fd with
-  | id, Seq stmts -> (id, block_reorder stmts |> block_to_stmt)
+  | id, Seq stmts, t -> (id, block_reorder stmts |> block_to_stmt, t)
   | _ -> failwith "can't happen"
 
 let block_reorder_comp_unit (id, funcs) =
@@ -664,7 +665,7 @@ let block_reorder_comp_unit (id, funcs) =
 (* IR-Level Constant Folding                                                  *)
 (******************************************************************************)
 
-let ir_constant_folding comp_unit =
+let ir_constant_folding (comp_unit: Ir.comp_unit) : Ir.comp_unit =
   let rec fold_expr e =
     let open Long in
     let open Big_int in
@@ -726,7 +727,7 @@ let ir_constant_folding comp_unit =
     | Move (e1, e2) -> Move (fold_expr e1, fold_expr e2)
     | Seq (stmtlist) -> Seq (List.map ~f:fold_stmt stmtlist)
     | Return -> Return in
-  let fold_func_decl (f, s) = (f, fold_stmt s) in
+  let fold_func_decl (fname, stmt, typ) = (fname, fold_stmt stmt, typ) in
   let (id, funcs) = comp_unit in
   (id, String.Map.map ~f:fold_func_decl funcs)
 

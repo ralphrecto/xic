@@ -67,7 +67,7 @@ and sexp_of_stmt = function
       List.map ~f:sexp_of_stmt st_list |> of_atoms_np]
   | Return -> of_atoms ["RETURN"]
 
-and sexp_of_func_decl (name, block) =
+and sexp_of_func_decl (name, block, _) =
   of_atoms ["FUNC"; name; sexp_of_stmt block]
 
 and sexp_of_comp_unit ((name, func_decls): comp_unit) =

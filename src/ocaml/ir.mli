@@ -1,5 +1,6 @@
 open Core.Std
 open Async.Std
+open Typecheck
 
 (* no ESeq or Call in lowered ir *)
 type expr =
@@ -54,7 +55,8 @@ and stmt =
   | Seq of stmt list
   | Return
 
-and func_decl = string * stmt
+(* function name, block, type *)
+and func_decl = string * stmt * (Expr.t * Expr.t)
 
 (* name, functions *)
 and comp_unit = string * func_decl String.Map.t

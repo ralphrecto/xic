@@ -122,7 +122,7 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
   | Move (e1, e2) -> 
 		let (e1_reg, e1_lst) = munch_expr e1 in
 		let (e2_reg, e2_lst) = munch_expr e2 in
-		e1_lst @ e2_lst @ [movq (Reg e1_reg) (Reg e2_reg)]
+		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
   | Seq s_list -> List.map ~f:munch_stmt s_list |> List.concat
   | Return -> [ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"

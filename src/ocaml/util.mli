@@ -18,3 +18,6 @@ val pairs: 'a list -> ('a * 'a) list
 
 (* all_eq xs ys <==> (a in xs \iff a \in ys) *)
 val all_eq: 'a list -> 'a list -> bool
+
+(* Increment and return the old value of an int ref. *)
+val get_and_incr: int ref -> int

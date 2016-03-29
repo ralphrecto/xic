@@ -1,17 +1,8 @@
 open Core.Std
 open Asm
 
-let fresh_reg =
-  let counter = ref (-1) in
-  fun () ->
-    incr counter;
-    "_asmreg" ^ (string_of_int !counter)
-
-let fresh_label =
-	let counter = ref (-1) in
-	fun () ->
-		incr counter;
-		"_asmlabel" ^ (string_of_int !counter)	
+module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
+module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
 
 let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
@@ -61,35 +52,35 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       | ARSHIFT -> shift_action sarq
       | EQ -> cmp_action sete
       | NEQ-> cmp_action setne
-      | LT -> cmp_action setl 
+      | LT -> cmp_action setl
       | GT -> cmp_action setg
       | LEQ -> cmp_action setle
       | GEQ -> cmp_action setge
   end
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
-      let new_tmp = fresh_reg () in
+      let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
-  | Mem (e, memtype) -> 
+  | Mem (e, memtype) ->
       let (e_reg, e_asm) = munch_expr e in
-      let new_tmp = fresh_reg () in
+      let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Name str ->
-      let new_tmp = fresh_reg () in
+      let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
   | ESeq _ -> failwith "eseq shouldn't exist"
 
 let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
-	match s with 
-  | CJumpOne (e1, tru) -> 
+	match s with
+  | CJumpOne (e1, tru) ->
 		begin
 			match e1 with
 			| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
-				let fresh_l = fresh_label () in
-				let cond_jump = 
+				let fresh_l = FreshLabel.fresh () in
+				let cond_jump =
 					match op with
-					| EQ -> jne (Asm.Label fresh_l); 
+					| EQ -> jne (Asm.Label fresh_l);
 					| NEQ -> je (Asm.Label fresh_l);
 					| LT -> jge (Asm.Label fresh_l);
 					| GT -> jle (Asm.Label fresh_l);
@@ -104,22 +95,22 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 					jmp (Asm.Label tru);
 					label_op fresh_l;
 				] in
-				e1_lst @ e2_lst @ jump_lst		
-			| _ -> 
+				e1_lst @ e2_lst @ jump_lst
+			| _ ->
 				let (binop_reg, binop_lst) = munch_expr e1 in
-				let fresh_l = fresh_label () in
+				let fresh_l = FreshLabel.fresh () in
 				let jump_lst = [
 					cmpq (Const 0L) (Reg binop_reg);
 					jz (Asm.Label fresh_l);
 					jmp (Asm.Label tru);
 					label_op fresh_l;
-				] in			
+				] in
 				binop_lst @ jump_lst
 		end
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (munch_expr e)
   | Label l -> [label_op l]
-  | Move (e1, e2) -> 
+  | Move (e1, e2) ->
 		let (e1_reg, e1_lst) = munch_expr e1 in
 		let (e2_reg, e2_lst) = munch_expr e2 in
 		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]

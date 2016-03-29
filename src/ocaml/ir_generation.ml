@@ -37,32 +37,16 @@ let string_of_blocks bs =
  * with alphabetic characters. *)
 let id_to_temp (idstr: string) : string = "_TEMP" ^ idstr
 
-(* Increment and return the *old* value of r. *)
-let get_and_incr (r: int ref) : int =
-  let x = !r in
-  incr r;
-  x
+module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
+module FreshLabel = Fresh.Make(struct let name = "__label" end)
 
-let num_temp  = ref 0
-let num_label = ref 0
+let temp             = FreshTemp.gen
+let fresh_temp       = FreshTemp.fresh
+let reset_fresh_temp = FreshTemp.reset
 
-let reset_fresh_temp () =
-  num_temp := 0
-
-let reset_fresh_label () =
-  num_label := 0
-
-let temp n =
-  sprintf "__temp%d" n
-
-let label n =
-  sprintf "__label%d" n
-
-let fresh_temp () =
-  temp (get_and_incr num_temp)
-
-let fresh_label () =
-  label (get_and_incr num_label)
+let label             = FreshLabel.gen
+let fresh_label       = FreshLabel.fresh
+let reset_fresh_label = FreshLabel.reset
 
 (******************************************************************************)
 (* IR Generation                                                              *)

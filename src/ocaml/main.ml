@@ -12,6 +12,7 @@ open Xi_interpreter
 
 module TodoRemoveThis_ItsOnlyUsedToBuildAsm = Asm
 module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
+module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
 
 type flags = {
   typecheck:  bool;

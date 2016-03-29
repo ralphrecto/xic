@@ -21,3 +21,9 @@ let all_eq xs ys =
     List.for_all xs ~f:(List.mem ys)
   in
   xs <= ys && ys <= xs
+
+let get_and_incr (r: int ref) : int =
+  let x = !r in
+  incr r;
+  x
+

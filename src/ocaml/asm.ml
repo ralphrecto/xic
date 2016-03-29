@@ -11,7 +11,7 @@ type reg =
   | Rax
   | Rbx
   | Rcx
-  | Cl
+	| Cl
   | Rdx
   | Rsi
   | Rdi
@@ -166,10 +166,14 @@ let unop_label (op: string) (l: 'reg operand) =
 let jmp  l = unop_label "jmp"  l
 let je   l = unop_label "je"   l
 let jne  l = unop_label "jne"  l
+let jnz  l = unop_label "jnz"  l
 let jz   l = unop_label "jz"   l
 let jg   l = unop_label "jg"   l
 let jge  l = unop_label "jge"  l
 let jl   l = unop_label "jl"   l
 let jle  l = unop_label "jle"  l
 let call l = unop_label "call" l
+
+(* zeroops *)
+let label_op l = ZeroOp (l^":")
 let ret = ZeroOp "ret"

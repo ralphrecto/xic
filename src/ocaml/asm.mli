@@ -104,4 +104,7 @@ val jge  : 'reg operand -> 'reg asm_template
 val jl   : 'reg operand -> 'reg asm_template
 val jle  : 'reg operand -> 'reg asm_template
 val call : 'reg operand -> 'reg asm_template
+
+(* zeroops *)
+val label_op : string -> 'reg asm_template	 
 val ret : 'reg asm_template

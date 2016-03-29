@@ -11,6 +11,7 @@ open Printf
 open Xi_interpreter
 
 module TodoRemoveThis_ItsOnlyUsedToBuildAsm = Asm
+module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
 
 type flags = {
   typecheck:  bool;

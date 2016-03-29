@@ -47,10 +47,9 @@ type 'reg operand =
   | Const of const
   | Mem   of 'reg mem
 
-type 'reg asm_template = private
-  | BinOp  of string * 'reg operand * 'reg operand (* add %rax, %rbx *)
-  | UnOp   of string * 'reg operand                (* jl foo *)
-  | ZeroOp of string                               (* return *)
+type 'reg asm_template =
+  | Op of string * 'reg operand list  (* size <= 3 *)
+  | Directive of string * string list (* e.g. .align 4, .globl foo *)
 
 type abstract_asm = abstract_reg asm_template
 
@@ -72,7 +71,7 @@ val orq : 'reg operand -> 'reg operand -> 'reg asm_template
 val xorq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* shifts *)
-val salq : 'reg operand -> 'reg operand -> 'reg asm_template 
+val salq : 'reg operand -> 'reg operand -> 'reg asm_template
 val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 
@@ -106,5 +105,5 @@ val jle  : 'reg operand -> 'reg asm_template
 val call : 'reg operand -> 'reg asm_template
 
 (* zeroops *)
-val label_op : string -> 'reg asm_template	 
+val label_op : string -> 'reg asm_template
 val ret : 'reg asm_template

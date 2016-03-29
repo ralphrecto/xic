@@ -48,9 +48,8 @@ type 'reg operand =
   | Mem   of 'reg mem
 
 type 'reg asm_template =
-  | BinOp  of string * 'reg operand * 'reg operand
-  | UnOp   of string * 'reg operand
-  | ZeroOp of string
+  | Op of string * 'reg operand list
+  | Directive of string * string list
 
 type abstract_asm = abstract_reg asm_template
 
@@ -70,15 +69,15 @@ let binop_arith_generic (arith_name: string)
   | Reg _, Mem _
   | Mem _, Reg _
   | Const _, Reg _
-  | Const _, Mem _ -> BinOp (arith_name, src, dest)
-  | _ -> die ()  
+  | Const _, Mem _ -> Op (arith_name, [src; dest])
+  | _ -> die ()
 
 let unop_arith_generic
   (arith_name: string)
   (src: 'reg operand)
     : 'reg asm_template =
   match src with
-  | (Reg _ | Mem _ ) -> UnOp (arith_name, src)
+  | (Reg _ | Mem _ ) -> Op (arith_name, [src])
   | _ -> die ()
 
 let addq src dest = binop_arith_generic "addq" src dest
@@ -88,12 +87,12 @@ let idivq src = unop_arith_generic "idivq" src
 
 
 (* logical/bitwise operations *)
-let logic_generic logic_name src dest = 
+let logic_generic logic_name src dest =
   match src, dest with
-  | _, (Mem _ | Reg _) -> BinOp (logic_name, src, dest)
+  | _, (Mem _ | Reg _) -> Op (logic_name, [src; dest])
   | _ -> die ()
 
-let andq src dest = logic_generic "andq" src dest 
+let andq src dest = logic_generic "andq" src dest
 let orq src dest = logic_generic "orq" src dest
 let xorq src dest = logic_generic "xorq" src dest
 
@@ -101,7 +100,7 @@ let xorq src dest = logic_generic "xorq" src dest
 (* shifts *)
 let shift_generic shiftname a b =
   match a, b with
-  | (Reg _ | Const _ ), (Mem _ | Reg _ ) -> BinOp (shiftname, a, b)
+  | (Reg _ | Const _ ), (Mem _ | Reg _ ) -> Op (shiftname, [a; b])
   | _ -> die ()
 
 let salq a b = shift_generic "salq" a b
@@ -110,10 +109,10 @@ let sarq a b = shift_generic "sarq" a b
 
 
 (* move/setting operations *)
-let mov_generic mov_name src dest = 
+let mov_generic mov_name src dest =
   match src, dest with
   | Mem _, Mem _ -> die ()
-  | _, (Mem _ | Reg _ ) -> BinOp (mov_name, src, dest)
+  | _, (Mem _ | Reg _ ) -> Op (mov_name, [src; dest])
   | _ -> die ()
 
 let mov src dest = mov_generic "mov" src dest
@@ -121,7 +120,7 @@ let movq src dest = mov_generic "movq" src dest
 
 let set_generic setname dest =
   match dest with
-  | Mem _ | Reg _ -> UnOp (setname, dest)
+  | Mem _ | Reg _ -> Op (setname, [dest])
   | _ -> die ()
 
 let sete dest = set_generic "sete" dest
@@ -136,31 +135,31 @@ let setge dest = set_generic "setge" dest
 let cmpq a b =
   match a, b with
   | Mem _, Mem _ -> die ()
-  | _, (Reg _ | Mem _) -> BinOp ("cmpq", a, b)
+  | _, (Reg _ | Mem _) -> Op ("cmpq", [a; b])
   | _ -> die ()
 
 let leaq (a: 'reg operand) (b: 'reg operand) : 'reg asm_template =
   match a, b with
-  | Mem _, Reg _ -> BinOp ("leaq", a, b)
+  | Mem _, Reg _ -> Op ("leaq", [a; b])
   | _ -> failwith "bad"
 
 
 (* stack operations *)
 let push a =
   match a with
-  | Reg _ | Mem _ | Const _ -> UnOp ("push", a)
+  | Reg _ | Mem _ | Const _ -> Op ("push", [a])
   | _ -> die ()
 
 let pop a =
   match a with
-  | Reg _ | Mem _ -> UnOp ("pop", a)
+  | Reg _ | Mem _ -> Op ("pop", [a])
   | _ -> die ()
 
 
 (* jumps *)
 let unop_label (op: string) (l: 'reg operand) =
   match l with
-  | Label _ -> UnOp (op, l)
+  | Label _ -> Op (op, [l])
   | _ -> die ()
 
 let jmp  l = unop_label "jmp"  l
@@ -175,5 +174,5 @@ let jle  l = unop_label "jle"  l
 let call l = unop_label "call" l
 
 (* zeroops *)
-let label_op l = ZeroOp (l^":")
-let ret = ZeroOp "ret"
+let label_op l = Op (l^":", [])
+let ret = Op ("ret", [])

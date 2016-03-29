@@ -116,6 +116,7 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 	| CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
+  (*
   (* [fakes_of_operand ] returns the names of all the fake registers in asm. *)
 
   (* [fakes asm] returns the names of all the fake registers in asm. *)
@@ -185,3 +186,5 @@ let register_allocate asms =
 
   (* help asms env [] *)
   failwith "a"
+  *)
+  failwith "TODO"

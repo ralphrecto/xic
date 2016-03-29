@@ -85,72 +85,26 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
   | CJumpOne (e1, tru) -> 
 		begin
 			match e1 with
-			| BinOp (e1, EQ, e2) ->
+			| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
+				let fresh_l = fresh_label () in
+				let cond_jump = 
+					match op with
+					| EQ -> jne (Asm.Label fresh_l); 
+					| NEQ -> je (Asm.Label fresh_l);
+					| LT -> jge (Asm.Label fresh_l);
+					| GT -> jle (Asm.Label fresh_l);
+					| LEQ -> jg (Asm.Label fresh_l);
+					| GEQ -> jl (Asm.Label fresh_l);
+				in
 				let (e1_reg, e1_lst) = munch_expr e1 in
 				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
 				let jump_lst = [
 					cmpq (Reg e2_reg) (Reg e1_reg);
-					jne (Asm.Label fresh_l); 
+					cond_jump;
 					jmp (Asm.Label tru);
 					label_op fresh_l;
 				] in
-				e1_lst @ e2_lst @ jump_lst
-			| BinOp (e1, NEQ, e2) ->
-				let (e1_reg, e1_lst) = munch_expr e1 in
-				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);	
-					je (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
-				] in
-				e1_lst @ e2_lst @ jump_lst	
-			| BinOp (e1, LT, e2) -> 
-				let (e1_reg, e1_lst) = munch_expr e1 in
-				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);	
-					jge (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
-				] in
-				e1_lst @ e2_lst @ jump_lst
-			| BinOp (e1, GT, e2) ->
-				let (e1_reg, e1_lst) = munch_expr e1 in
-				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);	
-					jle (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
-				] in
-				e1_lst @ e2_lst @ jump_lst
-			| BinOp (e1, LEQ, e2) ->
-				let (e1_reg, e1_lst) = munch_expr e1 in
-				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);	
-					jg (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
-				] in
-				e1_lst @ e2_lst @ jump_lst
-			| BinOp (e1, GEQ, e2) ->
-				let (e1_reg, e1_lst) = munch_expr e1 in
-				let (e2_reg, e2_lst) = munch_expr e2 in
-				let fresh_l = fresh_label () in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);	
-					jl (Asm.Label fresh_l);
-					jmp (Asm.Label tru);
-					label_op fresh_l;
-				] in
-				e1_lst @ e2_lst @ jump_lst
+				e1_lst @ e2_lst @ jump_lst		
 			| _ -> 
 				let (binop_reg, binop_lst) = munch_expr e1 in
 				let fresh_l = fresh_label () in
@@ -163,10 +117,13 @@ let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
 				binop_lst @ jump_lst
 		end
   | Jump (Name s) -> [jmp (Asm.Label s)]
-	| Jump _ -> failwith "jump to a non label shouldn't exist"
   | Exp e -> snd (munch_expr e)
   | Label l -> [label_op l]
-  | Move (e1, e2) -> failwith "didn't implement"
+  | Move (e1, e2) -> 
+		let (e1_reg, e1_lst) = munch_expr e1 in
+		let (e2_reg, e2_lst) = munch_expr e2 in
+		e1_lst @ e2_lst @ [movq (Reg e1_reg) (Reg e2_reg)]
   | Seq s_list -> List.map ~f:munch_stmt s_list |> List.concat
   | Return -> [ret]
+	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"

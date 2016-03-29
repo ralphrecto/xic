@@ -58,6 +58,37 @@ type asm = reg asm_template
 (******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)
+let fakes_of_reg r =
+  match r with
+  | Fake s -> [s]
+  | Real _ -> []
+
+let fakes_of_regs rs =
+  List.dedup (List.concat_map ~f:fakes_of_reg rs)
+
+let fakes_of_operand o =
+  match o with
+  | Reg r -> fakes_of_reg r
+  | Mem (Base (_, r)) -> fakes_of_reg r
+  | Mem (Off (_, r, _)) -> fakes_of_reg r
+  | Mem (BaseOff (_, r1, r2, _)) -> fakes_of_regs [r1; r2]
+  | Label _
+  | Const _ -> []
+
+let fakes_of_operands os =
+  List.dedup (List.concat_map ~f:fakes_of_operand os)
+
+let fakes_of_asm asm =
+  match asm with
+  | Op (_, operands) -> List.dedup (List.concat_map ~f:fakes_of_operand operands)
+  | Directive _ -> []
+
+let fakes_of_asms asms =
+  List.dedup (List.concat_map ~f:fakes_of_asm asms)
+
+(******************************************************************************)
+(* instructions                                                               *)
+(******************************************************************************)
 let die () =
   failwith "invalid assembly instruction"
 
@@ -175,4 +206,5 @@ let call l = unop_label "call" l
 
 (* zeroops *)
 let label_op l = Op (l^":", [])
-let ret = Op ("ret", [])
+let leave = Op ("leave", [])
+let ret = Op ("retq", [])

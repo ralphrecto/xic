@@ -66,17 +66,25 @@ let test_get_and_incr () =
   3 === get_and_incr x;
   ()
 
+let test_string_of_int () =
+  Some 1 === int_of_string "1";
+  Some 2 === int_of_string "2";
+  Some (-1) === int_of_string "-1";
+  None === int_of_string "foo";
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
-      "test_init"         >:: test_init;
-      "test_join"         >:: test_join;
-      "test_commas"       >:: test_commas;
-      "test_pairs"        >:: test_pairs;
-      "test_all_eq"       >:: test_all_eq;
-      "test_get_and_incr" >:: test_get_and_incr;
+      "test_init"          >:: test_init;
+      "test_join"          >:: test_join;
+      "test_commas"        >:: test_commas;
+      "test_pairs"         >:: test_pairs;
+      "test_all_eq"        >:: test_all_eq;
+      "test_get_and_incr"  >:: test_get_and_incr;
+      "test_string_of_int" >:: test_string_of_int;
     ] |> run_test_tt_main
 
 let _ = main ()

@@ -56,9 +56,20 @@ type abstract_asm = abstract_reg asm_template
 type asm = reg asm_template
 
 (******************************************************************************)
+(* functions                                                                  *)
+(******************************************************************************)
+(* Returns all the _unique_ fakes names in a register, operand, or assembly
+ * instruction. *)
+val fakes_of_reg      : abstract_reg              -> string list
+val fakes_of_regs     : abstract_reg list         -> string list
+val fakes_of_operand  : abstract_reg operand      -> string list
+val fakes_of_operands : abstract_reg operand list -> string list
+val fakes_of_asm      : abstract_asm              -> string list
+val fakes_of_asms     : abstract_asm list         -> string list
+
+(******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)
-
 (* arithmetic *)
 val addq : 'reg operand -> 'reg operand -> 'reg asm_template
 val subq : 'reg operand -> 'reg operand -> 'reg asm_template
@@ -97,6 +108,7 @@ val pop  : 'reg operand -> 'reg asm_template
 val jmp  : 'reg operand -> 'reg asm_template
 val je   : 'reg operand -> 'reg asm_template
 val jne  : 'reg operand -> 'reg asm_template
+val jnz  : 'reg operand -> 'reg asm_template
 val jz   : 'reg operand -> 'reg asm_template
 val jg   : 'reg operand -> 'reg asm_template
 val jge  : 'reg operand -> 'reg asm_template
@@ -106,4 +118,5 @@ val call : 'reg operand -> 'reg asm_template
 
 (* zeroops *)
 val label_op : string -> 'reg asm_template
+val leave : 'reg asm_template
 val ret : 'reg asm_template

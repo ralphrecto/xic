@@ -95,10 +95,11 @@ and munch_stmt (fcontexts: func_contexts) (s: Ir.stmt) =
 					match op with
 					| EQ -> je tru_label
 					| NEQ -> jne tru_label
-					| LT -> jl tru_label 
-					| GT -> jg tru_label 
-					| LEQ -> jle tru_label 
-					| GEQ -> jge tru_label 
+					| LT -> jl tru_label
+					| GT -> jg tru_label
+					| LEQ -> jle tru_label
+					| GEQ -> jge tru_label
+					| _ -> failwith "can't happen"
 				in
 				let (e1_reg, e1_lst) = munch_expr fcontexts e1 in
 				let (e2_reg, e2_lst) = munch_expr fcontexts e2 in
@@ -124,7 +125,7 @@ and munch_stmt (fcontexts: func_contexts) (s: Ir.stmt) =
 		let (e2_reg, e2_lst) = munch_expr fcontexts e2 in
 		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
   | Seq s_list -> List.map ~f:(munch_stmt fcontexts) s_list |> List.concat
-  | Return -> [ret]
+  | Return -> [leave; ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"
 
@@ -144,47 +145,48 @@ and munch_comp_unit ((prog_name, func_decls): Ir.comp_unit) =
 
 
 let register_allocate asms =
-  (*
-  (* [fakes_of_operand ] returns the names of all the fake registers in asm. *)
-
-  (* [fakes asm] returns the names of all the fake registers in asm. *)
-  let fakes_of_asm asm =
-    match asm with
-    | BinOp (_, Reg (Fake s1), Reg (Fake s2)) -> [s1; s2]
-    | BinOp (_, Reg (Fake s1), _)
-    | BinOp (_, _, Reg (Fake s1)) -> [s1]
-    | BinOp _ -> []
-    | UnOp (_, Reg (Fake s)) -> [s]
-    | UnOp _ -> []
-    | ZeroOp _ -> []
-  in
-
-  (* [reals asm] returns all of the real registers in asm. *)
-  let fakes asm =
-    match asm with
-    | BinOp (_, Reg (Fake s1), Reg (Fake s2)) -> [s1; s2]
-    | BinOp (_, Reg (Fake s1), _)
-    | BinOp (_, _, Reg (Fake s1)) -> [s1]
-    | BinOp _ -> []
-    | UnOp (_, Reg (Fake s)) -> [s]
-    | UnOp _ -> []
-    | ZeroOp _ -> []
-  in
-
-  (* env maps each fake name to an index, starting at 1, into the stack. For
-   * example, if the fake name "foo" is mapped to n in env, then Reg (Fake
-   * "foo") will be spilled to -8n(%rbp). *)
-  let env =
-    List.concat_map ~f:fakes asms
-    |> List.dedup
+  (* spill_env maps each fake name to an index, starting at 1, into the stack.
+   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
+   * (Fake "foo") will be spilled to -8n(%rbp). *)
+  let spill_env =
+    fakes_of_asms asms
     |> List.mapi ~f:(fun i asm -> (asm, i + 1))
     |> String.Map.of_alist_exn
   in
 
-  let translate name env =
-    let i = String.Map.find_exn env name in
+  (* Given an environment and name, return the memory address that fake is
+   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
+  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
+    let i = String.Map.find_exn spill_env fake in
     let offset = Int64.of_int (-8 * i) in
-    Mem (Base (Some offset, Rax))
+    Mem (Base (Some offset, Rbp))
+  in
+
+  (* Recursively applies f to all the abstract_registers in asm. *)
+  let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
+    match asm with
+    | Op (s, operands) ->
+        Op (s, List.map operands ~f:(fun operand ->
+          match operand with
+          | Reg r -> Reg (f r)
+          | Mem (Base (n, base)) -> Mem (Base (n, f base))
+          | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
+          | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
+          | Label l -> Label l
+          | Const c -> Const c
+        ))
+    | Directive (d, args) -> Directive (d, args)
+  in
+
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
+
+  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
+    match r with
+    | Fake s -> String.Map.find_exn reg_env s
+    | Real r -> r
   in
 
   (* op "foo", "bar", "baz"
@@ -199,20 +201,21 @@ let register_allocate asms =
    * mov %rbx, -16(%rbp)  } post
    * mov %rcx, -24(%rbp) /
    *)
-  let allocate asm env =
-    let (op, args) =
-      match asm with
-      | BinOp (s, a, b) -> (s, [a; b])
-      | UnOp (s, a) -> (s, [a])
-      | ZeroOp s  -> (s, [])
-    in
-    let pre = List.map args ~f:(fun fake -> failwith "a") in
-    let translation = failwith "" in
-    let post = failwith "A"  in
-    pre @ translation @ post
+  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
+    let spill = spill_address env in
+    match asm with
+    | Op (op, operands) ->
+      let fakes = fakes_of_operands operands in
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
+      let reg_env = String.Map.of_alist_exn fake_to_real in
+      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
+
+      let pre = List.map fakes ~f:(fun fake -> mov (spill fake) (fake_to_op fake)) in
+      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
+      let post = List.map fakes ~f:(fun fake -> mov (fake_to_op fake) (spill fake)) in
+      pre @ translation @ post
+    | Directive _ -> []
   in
 
-  (* help asms env [] *)
-  failwith "a"
-  *)
-  failwith "TODO"
+  List.concat_map ~f:(allocate spill_env) asms

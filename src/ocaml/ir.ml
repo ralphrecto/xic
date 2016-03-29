@@ -1,5 +1,6 @@
 open Core.Std
 open Async.Std
+open Typecheck
 
 type expr =
   | BinOp of expr * binop_code * expr
@@ -44,7 +45,7 @@ and stmt =
   | Seq of stmt list
   | Return
 
-and func_decl = string * stmt
+and func_decl = string * stmt * (Expr.t * Expr.t)
 
 and comp_unit = string * func_decl String.Map.t
 

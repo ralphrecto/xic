@@ -63,8 +63,14 @@ let rec munch_expr
   match e with
   | BinOp (e1, opcode, e2) ->
     begin
-      let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
-      let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
+      (* ensure that we don't clobber user tmps *)
+      let update (reg, asm) =
+        match reg with
+        | Fake s when String.is_prefix s ~prefix:user_temp_prefix ->
+            let new_tmp = Fake (FreshReg.fresh ()) in
+            (new_tmp, movq (Reg reg) (Reg new_tmp) :: asm) in
+      let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 |> update in
+      let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 |> update in
       match opcode with
       | ADD | SUB | AND | OR | XOR ->
         (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))

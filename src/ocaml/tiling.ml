@@ -6,7 +6,7 @@ open Func_context
 
 module FreshReg     = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel   = Fresh.Make(struct let name = "_asmlabel" end)
-module FreshRetPtr = Fresh.Make(struct let name = "_asmretptr" end)
+module FreshRetPtr  = Fresh.Make(struct let name = "_asmretptr" end)
 
 let max_int32 = Int64.of_int32_exn (Int32.max_value)
 let min_int32 = Int64.of_int32_exn (Int32.min_value)
@@ -87,7 +87,6 @@ let rec munch_expr
         let r = if opcode = DIV then Rax else Rdx in
         (Real r, asm1 @ asm2 @ div_asm)
     end
-  | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
@@ -116,14 +115,32 @@ let rec munch_expr
               let i' = (max 0 (curr_ctx.num_rets - 2)) + i in
               let argmov = 
                 if i' < 2 then
-                  movq (Reg (Real (arg_reg i'))) (Reg new_tmp)
+                   movq (Reg (Real (arg_reg i'))) (Reg new_tmp)
                 else
                   (* +1 to skip rip *)
                   movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
           | None -> (Fake str, [])
   end
-  | Call (Name (fname), arglist) -> failwith "finish me"
+  | Call (Name (fname), arglist) ->
+      let callee_ctx = String.Map.find_exn fcontexts fname in
+      let (arg_regs, arg_asms) =
+        List.unzip (List.map ~f:(munch_expr curr_ctx fcontexts) arglist) in
+      let (ret_regs, ret_asms) =
+        let f i =
+          let new_tmp = Fake (FreshReg.fresh ()) in
+          let asm = leaq (Mem ((i+curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
+          (new_tmp, asm) in
+        List.range 0 (max 0 (callee_ctx.num_rets -2))
+          |> List.map ~f
+          |> List.unzip in
+      let f i argsrc =
+        let dest =
+          if i < 6 then Reg (Real (arg_reg i))
+          else Mem ((i-6)$(Real Rsp)) in
+        movq (Reg argsrc) dest in
+      let mov_asms = List.mapi ~f (ret_regs @ arg_regs) in
+      (Real Rax, (List.concat arg_asms) @ ret_asms @ mov_asms @ [call (Label fname)])
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "ESeq shouldn't exist"
 

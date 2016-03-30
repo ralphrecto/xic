@@ -73,6 +73,14 @@ let ret_reg = function
   | 1 -> Rsi
   | _ -> failwith "nth_ret_reg: bad arg num"
 
+let ( $ ) n reg =
+  Base (Some (Int64.of_int n), reg)
+
+let const n =
+  Const (Int64.of_int n)
+
+let num_caller_save = 9
+
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
@@ -279,6 +287,11 @@ let push a =
 let pop a =
   match a with
   | Reg _ | Mem _ -> Op ("pop", [a])
+  | _ -> die ()
+
+let enter a b =
+  match a, b with
+  | Const _, Const _ -> Op ("enter", [a; b])
   | _ -> die ()
 
 

@@ -150,7 +150,38 @@ and munch_stmt
 and munch_func_decl
     (fcontexts: func_contexts)
     ((fname, stmt, _): Ir.func_decl) = 
-  munch_stmt (String.Map.find_exn fcontexts fname) fcontexts stmt
+
+  let curr_ctx = String.Map.find_exn fcontexts fname in
+  let body_asm = munch_stmt curr_ctx fcontexts stmt in
+  let num_temps = List.length (fakes_of_asms body_asm) in
+
+  let label = [Lab fname] in
+  (* TODO: add directives *)
+  let directives = [] in
+
+  (* Building function prologue
+   *  - use enter to save rbp, update rbp/rsp,
+   *      allocate num_temps + num_caller_save words on stack
+   *  - Align stack if not aligned to 16 bytes. To maintain this,
+   *      we maintain the invariant that all stackframes have
+   *      16k words for some k\in N. This should work if the
+   *      bottom of the stack is a multiple of 16.
+   *  - allocate space for tuple returns + argument passing *)
+  let tot_temps = num_temps + num_caller_save in
+  let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
+  (* saved rip + saved rbp + temps + rets n args  *)
+  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
+  let prologue =
+    let init = [enter (const tot_temps) (const 0)] in
+    let padding =
+      if tot_stack_size mod 16 = 0 then []
+      else [push (const 0)] in
+    let rets_n_args =
+      [movq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
+    init @ padding @ rets_n_args in
+
+  label @ directives @ prologue @ body_asm
+ 
 
 and munch_comp_unit
     (fcontexts: func_contexts)

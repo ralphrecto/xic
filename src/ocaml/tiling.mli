@@ -19,7 +19,7 @@ val munch_stmt : Ir.stmt -> Asm.abstract_asm list
  * -8(%rbp), the next fake names is spilled to -16(%rbp), etc.
  *
  * Next, for each assembly instruction the values of each fake register is read
- * from the register before the instruction and written to the stack after the
+ * from the stack before the instruction and written to the stack after the
  * instruction. The fake registers are assigned to registers r13, r14, and r15
  * in the order they appear. For example, the following abstract assembly.
  *

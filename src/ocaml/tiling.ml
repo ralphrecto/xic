@@ -6,6 +6,9 @@ open Func_context
 module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
 
+let max_int32 = Int64.of_int32_exn (Int32.max_value)
+let min_int32 = Int64.of_int32_exn (Int32.min_value)
+
 let binop_to_instr (op: Ir.binop_code) =
   match op with
   | ADD -> addq
@@ -57,31 +60,31 @@ let rec munch_expr
     (e: Ir.expr) =
   match e with
   | BinOp (e1, opcode, e2) ->
-  	begin
-			let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
-			let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
-			match opcode with
-			| ADD | SUB | AND | OR | XOR ->
-				(reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
-			| LSHIFT | RSHIFT | ARSHIFT ->
-			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
-			| EQ | NEQ | LT | GT | LEQ | GEQ ->
-			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
-			| MUL | HMUL ->
-				let mul_asm = [
-					movq (Reg reg2) (Reg (Real Rax));
-					imulq (Reg reg1);
-				] in
-				let r = if opcode = MUL then Rax else Rdx in
-				(Real r, asm1 @ asm2 @ mul_asm)
-			| DIV | MOD ->
-				let div_asm = [
-					movq (Reg reg1) (Reg (Real Rax));
-					idivq (Reg reg2);
-				] in
-				let r = if opcode = DIV then Rax else Rdx in
-				(Real r, asm1 @ asm2 @ div_asm)
-		end
+    begin
+      let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
+      let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
+      match opcode with
+      | ADD | SUB | AND | OR | XOR ->
+        (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
+      | LSHIFT | RSHIFT | ARSHIFT ->
+        (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
+      | EQ | NEQ | LT | GT | LEQ | GEQ ->
+        (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
+      | MUL | HMUL ->
+        let mul_asm = [
+          movq (Reg reg2) (Reg (Real Rax));
+          imulq (Reg reg1);
+        ] in
+        let r = if opcode = MUL then Rax else Rdx in
+        (Real r, asm1 @ asm2 @ mul_asm)
+      | DIV | MOD ->
+        let div_asm = [
+          movq (Reg reg1) (Reg (Real Rax));
+          idivq (Reg reg2);
+        ] in
+        let r = if opcode = DIV then Rax else Rdx in
+        (Real r, asm1 @ asm2 @ div_asm)
+    end
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
@@ -103,45 +106,45 @@ and munch_stmt
     (curr_ctx: func_context)
     (fcontexts: func_contexts)
     (s: Ir.stmt) =
-	match s with
+  match s with
   | CJumpOne (e1, tru) ->
-		begin
-			match e1 with
-			| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
-				let tru_label = Asm.Label tru in
-				let cond_jump =
-					match op with
-					| EQ -> je tru_label
-					| NEQ -> jne tru_label
-					| LT -> jl tru_label
-					| GT -> jg tru_label
-					| LEQ -> jle tru_label
-					| GEQ -> jge tru_label
-					| _ -> failwith "can't happen"
-				in
-				let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-				let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-				let jump_lst = [
-					cmpq (Reg e2_reg) (Reg e1_reg);
-					cond_jump;
-				] in
-				e1_lst @ e2_lst @ jump_lst
-			| _ ->
-				let (binop_reg, binop_lst) = munch_expr curr_ctx fcontexts e1 in
-				let tru_label = Asm.Label tru in
-				let jump_lst = [
-					cmpq (Const 0L) (Reg binop_reg);
-					jnz tru_label;
-				] in
-				binop_lst @ jump_lst
-		end
+    begin
+      match e1 with
+      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
+        let tru_label = Asm.Label tru in
+        let cond_jump =
+          match op with
+          | EQ -> je tru_label
+          | NEQ -> jne tru_label
+          | LT -> jl tru_label
+          | GT -> jg tru_label
+          | LEQ -> jle tru_label
+          | GEQ -> jge tru_label
+          | _ -> failwith "can't happen"
+        in
+        let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+        let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+        let jump_lst = [
+          cmpq (Reg e2_reg) (Reg e1_reg);
+          cond_jump;
+        ] in
+        e1_lst @ e2_lst @ jump_lst
+      | _ ->
+        let (binop_reg, binop_lst) = munch_expr curr_ctx fcontexts e1 in
+        let tru_label = Asm.Label tru in
+        let jump_lst = [
+          cmpq (Const 0L) (Reg binop_reg);
+          jnz tru_label;
+        ] in
+        binop_lst @ jump_lst
+    end
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
   | Move (e1, e2) ->
-		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
+    let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+    let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+    e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
   | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret]
   | Jump _ -> failwith "jump to a non label shouldn't exist"
@@ -188,9 +191,46 @@ and munch_comp_unit
     ((prog_name, func_decls): Ir.comp_unit) =
   List.concat_map ~f:(munch_func_decl fcontexts) (String.Map.data func_decls)
 
+(* displacement is only allowed to be 32 bits *)
+let get_displ (op: Ir.binop_code) x =
+  if min_int32 <= x && x <= max_int32 then
+    match op with
+    | ADD -> Some x 
+    | SUB -> Some (Int64.neg x)
+    | _ -> failwith "shouldn't happen -- get_displ" 
+  else 
+    None
+
+(* mem operation of the binop: reg1 * {1,2,4,8} + reg2 +/- constant *)
+let binop_mem_mult_add (m: Ir.expr) reg1 reg2 displ =
+  match m with
+  | Const 1L -> BaseOff (displ, reg2, reg1, One)
+  | Const 2L -> BaseOff (displ, reg2, reg1, Two)
+  | Const 4L -> BaseOff (displ, reg2, reg1, Four)
+  | Const 8L -> BaseOff (displ, reg2, reg1, Eight)
+  | _ -> failwith "cannot happen -- binop_mem_mult_add" 
+
+(* mem operation of the binop: reg * {1,2,3,4,5,8,9} +/- const *)
+let binop_mem_mul (m: Ir.expr) reg1 displ =
+ match m with
+  | Const 1L -> Off (displ, reg1, One)
+  | Const 2L -> Off (displ, reg1, Two)   
+  | Const 3L -> BaseOff (displ, reg1, reg1, Two)
+  | Const 4L -> Off (displ, reg1, Four) 
+  | Const 5L -> BaseOff (displ, reg1, reg1, Four) 
+  | Const 8L -> Off (displ, reg1, Eight) 
+  | Const 9L -> BaseOff (displ, reg1, reg1, Eight)
+  | _ -> failwith "cannot happen -- binop_mem_mul" 
+
+(* mem operation of the binop: reg1 + reg2 +/- const *)
+let binop_mem_add reg1 reg2 displ = 
+  BaseOff (displ, reg1, reg2, One)
+
+(* mem operation of the binop reg +/- const *)
+let binop_mem_const_add reg1 displ =
+  Base (displ, reg1)
+
 let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
-  let max_int32 = Int64.of_int32_exn (Int32.max_value) in
-  let min_int32 = Int64.of_int32_exn (Int32.min_value) in
   match e with
   (* neg case *)
   | BinOp (Const 0L, SUB, e1) ->
@@ -206,82 +246,57 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg1, asm1) = chomp_expr e1 in
     (reg1, asm1 @ [decq (Reg reg1)])
   (* lea cases with constants *)
+  (*  
+    * multiply constant (1,2,4,8) is denoted as m
+    * operation of constant is denoted as op 
+    * subtraction is only allowed when constant is on right hand side
+    * e1 is expression that is being multiplied
+    * e2 is expression that is getting added
+    * e3 is constant that is being added
+  *)
   (* reg1 = reg1 * {1,2,4,8} + reg2 +/- const *)
   (* c + (r1 * {1,2,4,8} + r2) *)
-  | BinOp ((Const x as e3), (ADD as op), BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c)), ADD, e2))
-  | BinOp ((Const x as e3), (ADD as op), BinOp (BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1), ADD, e2))
+  | BinOp ((Const x as e3), (ADD as op), BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m)), ADD, e2))
+  | BinOp ((Const x as e3), (ADD as op), BinOp (BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1), ADD, e2))
   (* c + (r2 + r1 * {1,2,4,8}) *)
-  | BinOp ((Const x as e3), (ADD as op), BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c))))
-  | BinOp ((Const x as e3), (ADD as op), BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1)))
+  | BinOp ((Const x as e3), (ADD as op), BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m))))
+  | BinOp ((Const x as e3), (ADD as op), BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1)))
   (* (r1 * {1,2,4,8} + r2) +/- c *)
-  | BinOp (BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c)), ADD, e2), (ADD|SUB as op), (Const x as e3))
-  | BinOp (BinOp (BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1), ADD, e2), (ADD|SUB as op), (Const x as e3))
+  | BinOp (BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m)), ADD, e2), (ADD|SUB as op), (Const x as e3))
+  | BinOp (BinOp (BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1), ADD, e2), (ADD|SUB as op), (Const x as e3))
   (* (r2 + r1 * {1,2,4,8}) +/- c *)
-  | BinOp (BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c))), (ADD|SUB as op), (Const x as e3))
-  | BinOp (BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1)), (ADD|SUB as op), (Const x as e3))
+  | BinOp (BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m))), (ADD|SUB as op), (Const x as e3))
+  | BinOp (BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1)), (ADD|SUB as op), (Const x as e3))
   (* r2 + (r1 * {1,2,4,8} +/- c *)
-  | BinOp (e2, ADD, BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c)), (ADD|SUB as op), (Const x as e3)))
-  | BinOp (e2, ADD, BinOp (BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1), (ADD|SUB as op), (Const x as e3)))
+  | BinOp (e2, ADD, BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m)), (ADD|SUB as op), (Const x as e3)))
+  | BinOp (e2, ADD, BinOp (BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1), (ADD|SUB as op), (Const x as e3)))
   (* r2 + (c + r1 * {1,2,4,8}) *)
-  | BinOp (e2, ADD, BinOp ((Const x as e3), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c))))
-  | BinOp (e2, ADD, BinOp ((Const x as e3), (ADD as op), BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1)))
+  | BinOp (e2, ADD, BinOp ((Const x as e3), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m))))
+  | BinOp (e2, ADD, BinOp ((Const x as e3), (ADD as op), BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1)))
   (* (r1 * {1,2,4,8} +/- c) + r2 *)
-  | BinOp (BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c)), (ADD|SUB as op), (Const x as e3)), ADD, e2)
-  | BinOp (BinOp (BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1), (ADD|SUB as op), (Const x as e3)), ADD, e2)
+  | BinOp (BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m)), (ADD|SUB as op), (Const x as e3)), ADD, e2)
+  | BinOp (BinOp (BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1), (ADD|SUB as op), (Const x as e3)), ADD, e2)
   (* (c + r1 * {1,2,4,8}) + r2 *)
-  | BinOp (BinOp ((Const x as e3), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c))), ADD, e2)
-  | BinOp (BinOp ((Const x as e3), (ADD as op), BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1)), ADD, e2) ->
+  | BinOp (BinOp ((Const x as e3), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m))), ADD, e2)
+  | BinOp (BinOp ((Const x as e3), (ADD as op), BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1)), ADD, e2) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
     let (reg3, asm3) = chomp_expr e3 in
-    let displacement =
-      if min_int32 <= x && x <= max_int32 then
-        match op with
-        | ADD -> Some x
-        | SUB -> Some (Int64.neg x)   
-        | _ -> failwith "cannot happen -- lea reg1 = reg1 * {1,2,4,8} + reg2 +/- const displacement"
-      else
-        None
-    in
-    let binop_mem =
-      match mult_c with
-      | Const 1L -> BaseOff (displacement, reg2, reg1, One)
-      | Const 2L -> BaseOff (displacement, reg2, reg1, Two)
-      | Const 4L -> BaseOff (displacement, reg2, reg1, Four)
-      | Const 8L -> BaseOff (displacement, reg2, reg1, Eight)
-      | _ -> failwith "cannot happen -- lea reg1 = reg1 * {1,2,4,8} + reg2 +/- const binop_mem" 
-    in
+    let displ = get_displ op x in 
+    let binop_mem = binop_mem_mult_add m reg1 reg2 displ in
     if min_int32 <= x && x <= max_int32 then
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
     else
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1))
   (* reg = reg * {1,2,3,4,5,8,9} +/ const *)
-  | BinOp (BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as mult_const)), (ADD|SUB as op), (Const x as e2))  
-  | BinOp (BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as mult_const), MUL, e1), (ADD|SUB as op), (Const x as e2))  
-  | BinOp ((Const x as e2), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as mult_const))) 
-  | BinOp ((Const x as e2), (ADD as op), BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as mult_const), MUL, e1)) ->
+  | BinOp (BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as m)), (ADD|SUB as op), (Const x as e2))  
+  | BinOp (BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as m), MUL, e1), (ADD|SUB as op), (Const x as e2))  
+  | BinOp ((Const x as e2), (ADD as op), BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as m))) 
+  | BinOp ((Const x as e2), (ADD as op), BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as m), MUL, e1)) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
-    let displacement = 
-      if min_int32 <= x && x <= max_int32 then
-        match op with
-        | ADD -> Some x
-        | SUB -> Some (Int64.neg x)
-        | _ -> failwith "cannot happen -- lea reg = reg * {1,2,3,4,5,8,9} +/- const displacement"
-      else 
-        None
-    in
-    let binop_mem =
-      match mult_const with
-      | Const 1L -> Off (displacement, reg1, One)
-      | Const 2L -> Off (displacement, reg1, Two)   
-      | Const 3L -> BaseOff (displacement, reg1, reg1, Two)
-      | Const 4L -> Off (displacement, reg1, Four) 
-      | Const 5L -> BaseOff (displacement, reg1, reg1, Four) 
-      | Const 8L -> Off (displacement, reg1, Eight) 
-      | Const 9L -> BaseOff (displacement, reg1, reg1, Eight)
-      | _ -> failwith "cannot happen -- lea reg = reg * {1,2,3,4,5,8,9} +/- const binop_mem" 
-    in
+    let displ = get_displ op x in
+    let binop_mem = binop_mem_mul m reg1 displ in
     if min_int32 <= x && x <= max_int32 then
       (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
     else
@@ -296,13 +311,9 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
     let (reg3, asm3) = chomp_expr e3 in   
+    let displ = get_displ op x in 
+    let binop_mem = binop_mem_add reg1 reg2 displ in
     if min_int32 <= x && x <= max_int32 then
-      let binop_mem =
-        match op with
-        | ADD -> BaseOff (Some x, reg1, reg2, One)
-        | SUB -> BaseOff (Some (Int64.neg x), reg1, reg2, One)
-        | _ -> failwith "cannot happen -- lea reg2 = reg1 + reg2 +/- const"
-      in
       (reg2, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg2)]) 
     else 
      (reg3, asm1 @ asm2 @ (non_imm_binop ADD reg1 reg2) @ (non_imm_binop op reg2 reg3))
@@ -311,51 +322,33 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | BinOp ((Const x as e2), (ADD as op), e1) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
+    let displ = get_displ op x in
+    let binop_mem = binop_mem_const_add reg1 displ in
     if min_int32 <= x && x <= max_int32 then
-      let binop_mem = 
-        match op with
-        | ADD -> Base (Some x, reg1) 
-        | SUB -> Base (Some (Int64.neg x), reg1)
-        | _ -> failwith "cannot happen -- lea reg = reg +/- const"
-      in
       (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])  
     else  
       (reg1, asm1 @ asm2 @ (non_imm_binop op reg2 reg1)) 
   (* lea cases without constants *)
-  | BinOp (BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1), ADD, e2)
-  | BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c)), ADD, e2)
-  | BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as mult_c), MUL, e1))
-  | BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as mult_c))) ->
+  (* r1 * {1,2,4,8} + r2 *)
+  | BinOp (BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1), ADD, e2)
+  | BinOp (BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m)), ADD, e2)
+  | BinOp (e2, ADD, BinOp ((Const (1L|2L|4L|8L) as m), MUL, e1))
+  | BinOp (e2, ADD, BinOp (e1, MUL, (Const (1L|2L|4L|8L) as m))) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
-    let binop_mem =
-      match mult_c with
-      | Const 1L -> BaseOff (None, reg2, reg1, One)
-      | Const 2L -> BaseOff (None, reg2, reg1, Two)
-      | Const 4L -> BaseOff (None, reg2, reg1, Four)
-      | Const 8L -> BaseOff (None, reg2, reg1, Eight)
-      | _ -> failwith "cannot happen -- lea reg1 = reg1 * {1,2,4,8} + reg2 +/- const binop_mem" 
-    in 
+    let binop_mem = binop_mem_mult_add m reg1 reg2 None in 
     (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
-  | BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as mult_c)) 
-  | BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as mult_c), MUL, e1) ->
+  (* r * {1,2,3,4,5,8,9} *)
+  | BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as m)) 
+  | BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as m), MUL, e1) ->
     let (reg1, asm1) = chomp_expr e1 in
-    let binop_mem =
-      match mult_c with
-      | Const 1L -> Off (None, reg1, One)
-      | Const 2L -> Off (None, reg1, Two)   
-      | Const 3L -> BaseOff (None, reg1, reg1, Two)
-      | Const 4L -> Off (None, reg1, Four) 
-      | Const 5L -> BaseOff (None, reg1, reg1, Four) 
-      | Const 8L -> Off (None, reg1, Eight) 
-      | Const 9L -> BaseOff (None, reg1, reg1, Eight)
-      | _ -> failwith "cannot happen -- lea reg = reg * {1,2,3,4,5,8,9} +/- const binop_mem" 
-    in
+    let binop_mem = binop_mem_mul m reg1 None in
     (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
+  (* r1 + r2 *)
   | BinOp (e1, ADD, e2) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
-    let binop_mem = BaseOff (None, reg1, reg2, One) in
+    let binop_mem = binop_mem_add reg1 reg2 None in 
     (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)]) 
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)

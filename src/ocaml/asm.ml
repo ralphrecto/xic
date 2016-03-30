@@ -283,6 +283,6 @@ let jle  l = unop_label "jle"  l
 let call l = unop_label "call" l
 
 (* zeroops *)
-let label_op l = Op (l^":", [])
+let label_op l = Lab l
 let leave = Op ("leave", [])
-let ret = Lab "retq"
+let ret = Op ("retq", [])

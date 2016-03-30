@@ -38,5 +38,7 @@ the rest of the bits, which don't matter (e.g. use setne, sete etc.)
   the appropriate variable temps. If we return n values for n > 2, then
   the first (n-2) arguments to the function are pointers. Thus "_ARG0"
   in this case is actually the (n-2+1)th argument, "_ARG1" the nth, etc. 
+  In this case we also need to move the ret pointers into appropriate
+  fresh temps. This should probably be done in the prologue.
 
   dest = _ARGi is not generated in our IR. 

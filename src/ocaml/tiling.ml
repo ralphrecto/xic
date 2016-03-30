@@ -1,10 +1,12 @@
 open Core.Std
 open Asm
 open Typecheck
+open Ir_generation
 open Func_context
 
-module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
-module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
+module FreshReg     = Fresh.Make(struct let name = "_asmreg" end)
+module FreshLabel   = Fresh.Make(struct let name = "_asmlabel" end)
+module FreshRetPtr = Fresh.Make(struct let name = "_asmretptr" end)
 
 let binop_to_instr (op: Ir.binop_code) =
   match op with
@@ -93,9 +95,31 @@ let rec munch_expr
   | Name str ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
-  | Temp str -> (Fake str, [])
-  | Call (Name (fname), arglist) ->
-      failwith "finish me"
+  | Temp str -> begin
+      let new_tmp = Fake (FreshReg.fresh ()) in
+      match FreshRetReg.get str with
+      (* moving rets from callee return *)
+      | Some i ->
+          let retmov =
+            if i < 2 then
+               movq (Reg (Real (ret_reg i))) (Reg new_tmp)
+            else
+               movq (Mem ((i-2+curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
+          (new_tmp, [retmov])
+      | None ->
+          (* moving passed arguments as callee into vars *)
+          match FreshArgReg.get str with
+          | Some i ->
+              let i' = (max 0 (curr_ctx.num_rets - 2)) + i in
+              let argmov = 
+                if i' < 2 then
+                   movq (Reg (Real (arg_reg i'))) (Reg new_tmp)
+                else
+                   movq (Mem ((i'-6)$(Real Rsp))) (Reg new_tmp) in
+              (new_tmp, [argmov])
+          | None -> (Fake str, [])
+  end
+  | Call (Name (fname), arglist) -> failwith "finish me"
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "ESeq shouldn't exist"
 
@@ -138,14 +162,25 @@ and munch_stmt
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
-  | Move (e1, e2) ->
+  | Move (Name n, e) -> begin
+      let dest =
+        match FreshRetReg.get n with
+        | Some i ->
+            if i < 2 then Reg (Real (ret_reg i))
+            else Reg (Fake (FreshRetPtr.gen (i-2)))
+        | None -> Reg (Fake n) in
+        let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
+        e_lst @ [movq (Reg e_reg) dest]
+  end
+  | Move (Mem (e1, _), e2) ->
 		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
 		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
+		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
   | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
-  | Return -> [leave; ret]
-  | Jump _ -> failwith "jump to a non label shouldn't exist"
-  | CJump _ -> failwith "cjump shouldn't exist"
+  | Return -> [leave; ret] 
+  | Move _ -> failwith "Move has a non TEMP/MEM lhs"
+	| Jump _ -> failwith "jump to a non label shouldn't exist"
+	| CJump _ -> failwith "cjump shouldn't exist"
 
 and munch_func_decl
     (fcontexts: func_contexts)
@@ -164,9 +199,10 @@ and munch_func_decl
    *      allocate num_temps + num_caller_save words on stack
    *  - Align stack if not aligned to 16 bytes. To maintain this,
    *      we maintain the invariant that all stackframes have
-   *      16k words for some k\in N. This should work if the
+   *      16k bytes for some k\in N. This should work if the
    *      bottom of the stack is a multiple of 16.
-   *  - allocate space for tuple returns + argument passing *)
+   *  - allocate space for tuple returns + argument passing
+   *  - move passed mult. ret pointers into fresh temps *)
   let tot_temps = num_temps + num_caller_save in
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
   (* saved rip + saved rbp + temps + rets n args  *)
@@ -178,7 +214,15 @@ and munch_func_decl
       else [push (const 0)] in
     let rets_n_args =
       [movq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
-    init @ padding @ rets_n_args in
+    let ret_ptr_mov = 
+      let f i =
+        let ret_tmp = Fake (FreshRetPtr.gen i) in
+        if i < 2 then
+          movq (Reg (Real (arg_reg i))) (Reg ret_tmp)
+        else
+          movq (Mem ((i-2)$(Real Rsp))) (Reg ret_tmp) in
+      List.map ~f (List.range 0 (curr_ctx.num_rets - 2)) in
+    init @ padding @ rets_n_args @ ret_ptr_mov in
 
   label @ directives @ prologue @ body_asm
  

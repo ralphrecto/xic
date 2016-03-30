@@ -430,6 +430,7 @@ and gen_comp_unit (decl_callnames : string String.Map.t) ((_, program): Typechec
   let f map (cname, block, typ) =
     String.Map.add map ~key:cname ~data:(cname, block, typ) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty callables' in
+  (* TODO: put actual program name *)
   ("program_name", callable_map)
 
 

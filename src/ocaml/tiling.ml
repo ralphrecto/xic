@@ -1,16 +1,10 @@
 open Core.Std
 open Asm
 open Typecheck
+open Func_context
 
 module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
-
-type func_context = {
-  num_args : int;
-  num_rets : int;
-}
-
-type func_contexts = func_context String.Map.t
 
 let binop_to_instr (op: Ir.binop_code) =
 	match op with
@@ -57,12 +51,15 @@ let imm_binop op const reg =
 let non_imm_binop op reg1 reg2 =
 	[(binop_to_instr op) (Reg reg1) (Reg reg2)]
 
-let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
+let rec munch_expr
+    (curr_ctx: func_context)
+    (fcontexts: func_contexts)
+    (e: Ir.expr) =
   match e with
   | BinOp (e1, opcode, e2) ->
 		begin
-			let (reg1, asm1) = munch_expr e1 in
-			let (reg2, asm2) = munch_expr e2 in
+			let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
+			let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
 			match opcode with
 			| ADD | SUB | AND | OR | XOR ->
 				(reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
@@ -90,7 +87,7 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
   | Mem (e, _) ->
-      let (e_reg, e_asm) = munch_expr e in
+      let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Name str ->
@@ -98,11 +95,14 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
   | Call (Name (fname), arglist) ->
-      failwith "implement me" 
+      failwith "finish me"
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "ESeq shouldn't exist"
 
-and munch_stmt (fcontexts: func_contexts) (s: Ir.stmt) =
+and munch_stmt
+    (curr_ctx: func_context)
+    (fcontexts: func_contexts)
+    (s: Ir.stmt) =
 	match s with
   | CJumpOne (e1, tru) ->
 		begin
@@ -119,15 +119,15 @@ and munch_stmt (fcontexts: func_contexts) (s: Ir.stmt) =
 					| GEQ -> jge tru_label
 					| _ -> failwith "can't happen"
 				in
-				let (e1_reg, e1_lst) = munch_expr fcontexts e1 in
-				let (e2_reg, e2_lst) = munch_expr fcontexts e2 in
+				let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+				let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
 				let jump_lst = [
 					cmpq (Reg e2_reg) (Reg e1_reg);
 					cond_jump;
 				] in
 				e1_lst @ e2_lst @ jump_lst
 			| _ ->
-				let (binop_reg, binop_lst) = munch_expr fcontexts e1 in
+				let (binop_reg, binop_lst) = munch_expr curr_ctx fcontexts e1 in
 				let tru_label = Asm.Label tru in
 				let jump_lst = [
 					cmpq (Const 0L) (Reg binop_reg);
@@ -136,33 +136,27 @@ and munch_stmt (fcontexts: func_contexts) (s: Ir.stmt) =
 				binop_lst @ jump_lst
 		end
   | Jump (Name s) -> [jmp (Asm.Label s)]
-  | Exp e -> snd (munch_expr fcontexts e)
+  | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
   | Move (e1, e2) ->
-		let (e1_reg, e1_lst) = munch_expr fcontexts e1 in
-		let (e2_reg, e2_lst) = munch_expr fcontexts e2 in
+		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
 		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
-  | Seq s_list -> List.map ~f:(munch_stmt fcontexts) s_list |> List.concat
+  | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret]
 	| Jump _ -> failwith "jump to a non label shouldn't exist"
 	| CJump _ -> failwith "cjump shouldn't exist"
 
-<<<<<<< HEAD
-and munch_func_decl (fcontexts: func_contexts) ((fname, stmt, _): Ir.func_decl) = 
-  munch_stmt fcontexts stmt
+and munch_func_decl
+    (fcontexts: func_contexts)
+    ((fname, stmt, _): Ir.func_decl) = 
+  munch_stmt (String.Map.find_exn fcontexts fname) fcontexts stmt
 
-and munch_comp_unit ((prog_name, func_decls): Ir.comp_unit) =
-  let get_context (_, _, (argtyps, rettyps)) = 
-    let type_num (e: Expr.t) : int =
-      match e with
-      | TupleT tlist -> List.length tlist
-      | _ -> 1 in
-    { num_args = type_num argtyps;
-      num_rets = type_num rettyps; } in
-  let fcontexts = String.Map.map ~f:get_context func_decls in
+and munch_comp_unit
+    (fcontexts: func_contexts)
+    ((prog_name, func_decls): Ir.comp_unit) =
   List.concat_map ~f:(munch_func_decl fcontexts) (String.Map.data func_decls)
 
-=======
 let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
 	(* incr cases *)
@@ -245,7 +239,6 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
   | ESeq _ -> failwith "eseq shouldn't exist"
->>>>>>> 269ceb0e6ce073332757abc474c8e2eeb05bc46b
 
 let register_allocate asms =
   (* spill_env maps each fake name to an index, starting at 1, into the stack.

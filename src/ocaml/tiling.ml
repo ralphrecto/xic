@@ -227,14 +227,14 @@ and munch_stmt
         e_lst @ [movq (Reg e_reg) dest]
   end
   | Move (Mem (e1, _), e2) ->
-		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
+    let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+    let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+    e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
   | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret] 
   | Move _ -> failwith "Move has a non TEMP/MEM lhs"
-	| Jump _ -> failwith "jump to a non label shouldn't exist"
-	| CJump _ -> failwith "cjump shouldn't exist"
+  | Jump _ -> failwith "jump to a non label shouldn't exist"
+  | CJump _ -> failwith "cjump shouldn't exist"
 
 and munch_func_decl
     (fcontexts: func_contexts)
@@ -598,14 +598,14 @@ and chomp_stmt
         asm @ [movq (Reg reg) dest]
   end
   | Move (Mem (e1, _), e2) ->
-		let (reg1, asm1) = chomp_expr e1 in
-		let (reg2, asm2) = chomp_expr e2 in
-		asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
+    let (reg1, asm1) = chomp_expr e1 in
+    let (reg2, asm2) = chomp_expr e2 in
+    asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret] 
   | Move _ -> failwith "Move has a non TEMP/MEM lhs"
-	| Jump _ -> failwith "jump to a non label shouldn't exist"
-	| CJump _ -> failwith "cjump shouldn't exist"
+  | Jump _ -> failwith "jump to a non label shouldn't exist"
+  | CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
   (* spill_env maps each fake name to an index, starting at 1, into the stack.

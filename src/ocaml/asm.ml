@@ -11,7 +11,7 @@ type reg =
   | Rax
   | Rbx
   | Rcx
-	| Cl
+  | Cl
   | Rdx
   | Rsi
   | Rdi

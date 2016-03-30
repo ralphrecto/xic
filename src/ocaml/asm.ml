@@ -57,6 +57,31 @@ type abstract_asm = abstract_reg asm_template
 type asm = reg asm_template
 
 (******************************************************************************)
+(* important register helpers                                                 *)
+(******************************************************************************)
+let arg_reg = function
+  | 0 -> Rdi
+  | 1 -> Rsi
+  | 2 -> Rdx
+  | 3 -> Rcx
+  | 4 -> R8
+  | 5 -> R9
+  | _ -> failwith "nth_arg_reg: bad arg num"
+
+let ret_reg = function
+  | 0 -> Rdi
+  | 1 -> Rsi
+  | _ -> failwith "nth_ret_reg: bad arg num"
+
+let ( $ ) n reg =
+  Base (Some (Int64.of_int n), reg)
+
+let const n =
+  Const (Int64.of_int n)
+
+let num_caller_save = 9
+
+(******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
 let string_of_const n =
@@ -270,6 +295,11 @@ let push a =
 let pop a =
   match a with
   | Reg _ | Mem _ -> Op ("pop", [a])
+  | _ -> die ()
+
+let enter a b =
+  match a, b with
+  | Const _, Const _ -> Op ("enter", [a; b])
   | _ -> die ()
 
 

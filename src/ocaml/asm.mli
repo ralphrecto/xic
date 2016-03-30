@@ -57,6 +57,22 @@ type abstract_asm = abstract_reg asm_template
 type asm = reg asm_template
 
 (******************************************************************************)
+(* asm helpers                                                                *)
+(******************************************************************************)
+(* function argument registers, 0 to 5 *)
+val arg_reg : int -> reg
+(* return value registers, 0 to 1 *)
+val ret_reg : int -> reg
+
+(* offsets n words from reg contents *)
+val ( $ ) : int -> abstract_reg -> abstract_reg mem
+
+val const : int -> abstract_reg operand 
+
+(* helpful constants *)
+val num_caller_save : int
+
+(******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
 (* Pretty prints assembly using the GNU assembler syntax. *)
@@ -134,6 +150,7 @@ val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 (* stack operations *)
 val push : 'reg operand -> 'reg asm_template
 val pop  : 'reg operand -> 'reg asm_template
+val enter : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* jumps *)
 val jmp  : 'reg operand -> 'reg asm_template

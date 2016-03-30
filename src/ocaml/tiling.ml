@@ -1,5 +1,7 @@
 open Core.Std
 open Asm
+open Typecheck
+open Func_context
 
 module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
@@ -49,92 +51,142 @@ let imm_binop op const reg =
 let non_imm_binop op reg1 reg2 =
   [(binop_to_instr op) (Reg reg1) (Reg reg2)]
 
-let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
+let rec munch_expr
+    (curr_ctx: func_context)
+    (fcontexts: func_contexts)
+    (e: Ir.expr) =
   match e with
   | BinOp (e1, opcode, e2) ->
-    begin
-      let (reg1, asm1) = munch_expr e1 in
-      let (reg2, asm2) = munch_expr e2 in
-      match opcode with
-      | ADD | SUB | AND | OR | XOR ->
-        (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
-      | LSHIFT | RSHIFT | ARSHIFT ->
-        (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
-      | EQ | NEQ | LT | GT | LEQ | GEQ ->
-        (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
-      | MUL | HMUL ->
-        let mul_asm = [
-          movq (Reg reg2) (Reg (Real Rax));
-          imulq (Reg reg1);
-        ] in
-        let r = if opcode = MUL then Rax else Rdx in
-        (Real r, asm1 @ asm2 @ mul_asm)
-      | DIV | MOD ->
-        let div_asm = [
-          movq (Reg reg1) (Reg (Real Rax));
-          idivq (Reg reg2);
-        ] in
-        let r = if opcode = DIV then Rax else Rdx in
-        (Real r, asm1 @ asm2 @ div_asm)
-    end
+  	begin
+			let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
+			let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
+			match opcode with
+			| ADD | SUB | AND | OR | XOR ->
+				(reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
+			| LSHIFT | RSHIFT | ARSHIFT ->
+			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
+			| EQ | NEQ | LT | GT | LEQ | GEQ ->
+			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
+			| MUL | HMUL ->
+				let mul_asm = [
+					movq (Reg reg2) (Reg (Real Rax));
+					imulq (Reg reg1);
+				] in
+				let r = if opcode = MUL then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ mul_asm)
+			| DIV | MOD ->
+				let div_asm = [
+					movq (Reg reg1) (Reg (Real Rax));
+					idivq (Reg reg2);
+				] in
+				let r = if opcode = DIV then Rax else Rdx in
+				(Real r, asm1 @ asm2 @ div_asm)
+		end
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
   | Mem (e, _) ->
-      let (e_reg, e_asm) = munch_expr e in
+      let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Name str ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
-  | ESeq _ -> failwith "eseq shouldn't exist"
+  | Call (Name (fname), arglist) ->
+      failwith "finish me"
+  | Call _ -> failwith "Call should always have a Name first"
+  | ESeq _ -> failwith "ESeq shouldn't exist"
 
-let rec munch_stmt (s: Ir.stmt) : abstract_asm list =
-  match s with
+and munch_stmt
+    (curr_ctx: func_context)
+    (fcontexts: func_contexts)
+    (s: Ir.stmt) =
+	match s with
   | CJumpOne (e1, tru) ->
-    begin
-      match e1 with
-      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
-        let tru_label = Asm.Label tru in
-        let cond_jump =
-          match op with
-          | EQ -> je tru_label
-          | NEQ -> jne tru_label
-          | LT -> jl tru_label
-          | GT -> jg tru_label
-          | LEQ -> jle tru_label
-          | GEQ -> jge tru_label
-          | _ -> failwith "can't happen"
-        in
-        let (e1_reg, e1_lst) = munch_expr e1 in
-        let (e2_reg, e2_lst) = munch_expr e2 in
-        let jump_lst = [
-          cmpq (Reg e2_reg) (Reg e1_reg);
-          cond_jump;
-        ] in
-        e1_lst @ e2_lst @ jump_lst
-      | _ ->
-        let (binop_reg, binop_lst) = munch_expr e1 in
-        let tru_label = Asm.Label tru in
-        let jump_lst = [
-          cmpq (Const 0L) (Reg binop_reg);
-          jnz tru_label;
-        ] in
-        binop_lst @ jump_lst
-    end
+		begin
+			match e1 with
+			| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
+				let tru_label = Asm.Label tru in
+				let cond_jump =
+					match op with
+					| EQ -> je tru_label
+					| NEQ -> jne tru_label
+					| LT -> jl tru_label
+					| GT -> jg tru_label
+					| LEQ -> jle tru_label
+					| GEQ -> jge tru_label
+					| _ -> failwith "can't happen"
+				in
+				let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+				let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+				let jump_lst = [
+					cmpq (Reg e2_reg) (Reg e1_reg);
+					cond_jump;
+				] in
+				e1_lst @ e2_lst @ jump_lst
+			| _ ->
+				let (binop_reg, binop_lst) = munch_expr curr_ctx fcontexts e1 in
+				let tru_label = Asm.Label tru in
+				let jump_lst = [
+					cmpq (Const 0L) (Reg binop_reg);
+					jnz tru_label;
+				] in
+				binop_lst @ jump_lst
+		end
   | Jump (Name s) -> [jmp (Asm.Label s)]
-  | Exp e -> snd (munch_expr e)
+  | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
   | Move (e1, e2) ->
-    let (e1_reg, e1_lst) = munch_expr e1 in
-    let (e2_reg, e2_lst) = munch_expr e2 in
-    e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
-  | Seq s_list -> List.map ~f:munch_stmt s_list |> List.concat
+		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Reg e1_reg)]
+  | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret]
   | Jump _ -> failwith "jump to a non label shouldn't exist"
   | CJump _ -> failwith "cjump shouldn't exist"
+
+and munch_func_decl
+    (fcontexts: func_contexts)
+    ((fname, stmt, _): Ir.func_decl) = 
+
+  let curr_ctx = String.Map.find_exn fcontexts fname in
+  let body_asm = munch_stmt curr_ctx fcontexts stmt in
+  let num_temps = List.length (fakes_of_asms body_asm) in
+
+  let label = [Lab fname] in
+  (* TODO: add directives *)
+  let directives = [] in
+
+  (* Building function prologue
+   *  - use enter to save rbp, update rbp/rsp,
+   *      allocate num_temps + num_caller_save words on stack
+   *  - Align stack if not aligned to 16 bytes. To maintain this,
+   *      we maintain the invariant that all stackframes have
+   *      16k words for some k\in N. This should work if the
+   *      bottom of the stack is a multiple of 16.
+   *  - allocate space for tuple returns + argument passing *)
+  let tot_temps = num_temps + num_caller_save in
+  let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
+  (* saved rip + saved rbp + temps + rets n args  *)
+  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
+  let prologue =
+    let init = [enter (const tot_temps) (const 0)] in
+    let padding =
+      if tot_stack_size mod 16 = 0 then []
+      else [push (const 0)] in
+    let rets_n_args =
+      [movq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
+    init @ padding @ rets_n_args in
+
+  label @ directives @ prologue @ body_asm
+ 
+
+and munch_comp_unit
+    (fcontexts: func_contexts)
+    ((prog_name, func_decls): Ir.comp_unit) =
+  List.concat_map ~f:(munch_func_decl fcontexts) (String.Map.data func_decls)
 
 let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   let max_int32 = Int64.of_int32_exn (Int32.max_value) in
@@ -414,24 +466,14 @@ let register_allocate asms =
    * present in abstract assembly. *)
   let unused_regs = [R13; R14; R15] in
 
+  (* Translate fake registers using the register environment and leave real
+   * registers alone. *)
   let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
     match r with
     | Fake s -> String.Map.find_exn reg_env s
     | Real r -> r
   in
 
-  (* op "foo", "bar", "baz"
-   *
-   * mov -8(%rbp), %rax  \
-   * mov -16(%rbp), %rbx  } pre
-   * mov -24(%rbp), %rcx /
-   *
-   * op %rax, %rbx, %rcx  } translation
-   *
-   * mov %rax, -8(%rbp)  \
-   * mov %rbx, -16(%rbp)  } post
-   * mov %rcx, -24(%rbp) /
-   *)
   let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
     let spill = spill_address env in
     match asm with

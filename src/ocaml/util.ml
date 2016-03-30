@@ -29,3 +29,11 @@ let get_and_incr (r: int ref) : int =
 
 let int_of_string s =
   try Some (Int.of_string s) with _ -> None
+
+let ordered_dedup xs =
+  let rec help xs acc =
+    match xs with
+    | x::xs -> if List.mem xs x then help xs acc else help xs (x::acc)
+    | [] -> acc
+  in
+  help (List.rev xs) []

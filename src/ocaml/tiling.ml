@@ -116,9 +116,10 @@ let rec munch_expr
               let i' = (max 0 (curr_ctx.num_rets - 2)) + i in
               let argmov = 
                 if i' < 2 then
-                   movq (Reg (Real (arg_reg i'))) (Reg new_tmp)
+                  movq (Reg (Real (arg_reg i'))) (Reg new_tmp)
                 else
-                   movq (Mem ((i'-6)$(Real Rsp))) (Reg new_tmp) in
+                  (* +1 to skip rip *)
+                  movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
           | None -> (Fake str, [])
   end

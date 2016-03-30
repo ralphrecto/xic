@@ -59,6 +59,7 @@ type asm = reg asm_template
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
+(* Pretty prints assembly using the GNU assembler syntax. *)
 val string_of_const : const -> string
 val string_of_label : label -> string
 val string_of_reg : reg -> string
@@ -72,7 +73,18 @@ val string_of_asm : asm -> string
 val string_of_asms : asm list -> string
 
 (* Returns all the _unique_ fakes names in a register, operand, or assembly
- * instruction. *)
+ * instruction. The returned names are returned in the order in which they
+ * first appear. For example, calling fakes_of_asms on the following assembly:
+ *
+ *     mov %rax %foo
+ *     mov %bar %rbx
+ *     push -8(%baz, %moo, 4)
+ *     leave
+ *     svd %bar, %baz, %foo
+ *     ret
+ *
+ * returns ["foo"; "bar"; "baz"; "moo"].
+ * *)
 val fakes_of_reg      : abstract_reg              -> string list
 val fakes_of_regs     : abstract_reg list         -> string list
 val fakes_of_operand  : abstract_reg operand      -> string list

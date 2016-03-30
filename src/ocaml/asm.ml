@@ -56,6 +56,23 @@ type abstract_asm = abstract_reg asm_template
 type asm = reg asm_template
 
 (******************************************************************************)
+(* important register helpers                                                 *)
+(******************************************************************************)
+let arg_reg = function
+  | 0 -> Rdi
+  | 1 -> Rsi
+  | 2 -> Rdx
+  | 3 -> Rcx
+  | 4 -> R8
+  | 5 -> R9
+  | _ -> failwith "nth_arg_reg: bad arg num"
+
+let ret_reg = function
+  | 0 -> Rdi
+  | 1 -> Rsi
+  | _ -> failwith "nth_ret_reg: bad arg num"
+
+(******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)
 let fakes_of_reg r =

@@ -39,6 +39,8 @@ let id_to_temp (idstr: string) : string = "_TEMP" ^ idstr
 
 module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
 module FreshLabel = Fresh.Make(struct let name = "__label" end)
+module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
+module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -47,6 +49,14 @@ let reset_fresh_temp = FreshTemp.reset
 let label             = FreshLabel.gen
 let fresh_label       = FreshLabel.fresh
 let reset_fresh_label = FreshLabel.reset
+
+(* name for ith return register; use for returning
+ * values from func calls *)
+let retreg = FreshRetReg.gen
+
+(* name for ith arg register; use for passing
+ * argument values into func calls *)
+let argreg = FreshArgReg.gen
 
 (******************************************************************************)
 (* IR Generation                                                              *)
@@ -86,14 +96,6 @@ let ( $ ) (x: Ir.expr) (y: int) =
 (* x $$ y == y words offset from x *)
 let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
   BinOp(x, ADD, BinOp(y, MUL, const word_size))
-
-(* name for ith return register; use for returning
- * values from func calls *)
-let retreg i = "_RET" ^ (string_of_int i)
-
-(* name for ith arg register; use for passing
- * argument values into func calls *)
-let argreg i = "_ARG" ^ (string_of_int i)
 
 let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   match b_code with

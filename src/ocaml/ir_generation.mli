@@ -27,6 +27,9 @@ val label : int -> string
 val reset_fresh_temp : unit -> unit
 val reset_fresh_label : unit -> unit
 
+module FreshArgReg : Fresh.S
+module FreshRetReg : Fresh.S
+
 (* Mallocs n words *)
 val malloc_word : int -> Ir.expr
 

@@ -56,6 +56,14 @@ type abstract_asm = abstract_reg asm_template
 type asm = reg asm_template
 
 (******************************************************************************)
+(* important register helpers                                                 *)
+(******************************************************************************)
+(* function argument registers, 0 to 5 *)
+val arg_reg : int -> reg
+(* return value registers, 0 to 1 *)
+val ret_reg : int -> reg
+
+(******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
 (* Returns all the _unique_ fakes names in a register, operand, or assembly

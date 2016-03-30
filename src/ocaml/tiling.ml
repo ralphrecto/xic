@@ -218,8 +218,7 @@ and munch_func_decl
   let num_temps = List.length (fakes_of_asms body_asm) in
 
   let label = [Lab fname] in
-  (* TODO: add directives *)
-  let directives = [] in
+  let directives = [globl fname; align 4] in
 
   (* Building function prologue
    *  - use enter to save rbp, update rbp/rsp,
@@ -257,7 +256,11 @@ and munch_func_decl
 and munch_comp_unit
     (fcontexts: func_contexts)
     ((prog_name, func_decls): Ir.comp_unit) =
-  List.concat_map ~f:(munch_func_decl fcontexts) (String.Map.data func_decls)
+  let decl_list = String.Map.data func_decls in
+  let fun_asm = List.concat_map ~f:(munch_func_decl fcontexts) decl_list in
+  let directives = [text] in
+  directives @ fun_asm
+
 
 (* displacement is only allowed to be 32 bits *)
 let get_displ (op: Ir.binop_code) x =

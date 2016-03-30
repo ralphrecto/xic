@@ -22,4 +22,11 @@ val all_eq: 'a list -> 'a list -> bool
 (* Increment and return the old value of an int ref. *)
 val get_and_incr: int ref -> int
 
+(* int_of_string "1" = Some 1
+ * int_of_string "2" = Some 2
+ * int_of_string "foo" = None *)
 val int_of_string: string -> int option
+
+(* ordered_dedup [1;2;3] = [1;2;3]
+ * ordered_dedup [1;2;1;1;3;2;2;3;3] = [1;2;3] *)
+val ordered_dedup: 'a list -> 'a list

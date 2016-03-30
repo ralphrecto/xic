@@ -73,6 +73,14 @@ let test_string_of_int () =
   None === int_of_string "foo";
   ()
 
+let test_ordered_dedup xs =
+  [] === ordered_dedup [];
+  [1] === ordered_dedup [1];
+  [1] === ordered_dedup [1;1];
+  [1;2] === ordered_dedup [1;1;2;2];
+  [1;2;3] === ordered_dedup [1;2;1;1;3;2;2;3;3];
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -85,6 +93,7 @@ let main () =
       "test_all_eq"        >:: test_all_eq;
       "test_get_and_incr"  >:: test_get_and_incr;
       "test_string_of_int" >:: test_string_of_int;
+      "test_ordered_dedup" >:: test_ordered_dedup;
     ] |> run_test_tt_main
 
 let _ = main ()

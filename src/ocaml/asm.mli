@@ -49,6 +49,7 @@ type 'reg operand =
 
 type 'reg asm_template =
   | Op of string * 'reg operand list  (* size <= 3 *)
+  | Lab of label
   | Directive of string * string list (* e.g. .align 4, .globl foo *)
 
 type abstract_asm = abstract_reg asm_template
@@ -66,8 +67,32 @@ val ret_reg : int -> reg
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
+(* Pretty prints assembly using the GNU assembler syntax. *)
+val string_of_const : const -> string
+val string_of_label : label -> string
+val string_of_reg : reg -> string
+val string_of_abstract_reg : abstract_reg -> string
+val string_of_scale : scale -> string
+val string_of_mem : ('reg -> string) -> 'reg mem -> string
+val string_of_operand : ('reg -> string) -> 'reg operand -> string
+val string_of_asm_template : ('reg -> string) -> 'reg asm_template -> string
+val string_of_abstract_asm : abstract_asm -> string
+val string_of_asm : asm -> string
+val string_of_asms : asm list -> string
+
 (* Returns all the _unique_ fakes names in a register, operand, or assembly
- * instruction. *)
+ * instruction. The returned names are returned in the order in which they
+ * first appear. For example, calling fakes_of_asms on the following assembly:
+ *
+ *     mov %rax %foo
+ *     mov %bar %rbx
+ *     push -8(%baz, %moo, 4)
+ *     leave
+ *     svd %bar, %baz, %foo
+ *     ret
+ *
+ * returns ["foo"; "bar"; "baz"; "moo"].
+ * *)
 val fakes_of_reg      : abstract_reg              -> string list
 val fakes_of_regs     : abstract_reg list         -> string list
 val fakes_of_operand  : abstract_reg operand      -> string list
@@ -81,6 +106,8 @@ val fakes_of_asms     : abstract_asm list         -> string list
 (* arithmetic *)
 val addq : 'reg operand -> 'reg operand -> 'reg asm_template
 val subq : 'reg operand -> 'reg operand -> 'reg asm_template
+val incq : 'reg operand -> 'reg asm_template
+val decq : 'reg operand -> 'reg asm_template
 val imulq : 'reg operand -> 'reg asm_template
 val idivq : 'reg operand -> 'reg asm_template
 
@@ -90,7 +117,7 @@ val orq : 'reg operand -> 'reg operand -> 'reg asm_template
 val xorq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* shifts *)
-val salq : 'reg operand -> 'reg operand -> 'reg asm_template
+val shlq : 'reg operand -> 'reg operand -> 'reg asm_template
 val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 

@@ -5,7 +5,7 @@ type func_context = {
   (* number of args/rets of this function *)
   num_args : int;
   num_rets : int;
-  (* max number of args/rets of all functions called by this function *)
+  (* max number of args/rets spilled of all functions called by this function *)
   max_args : int;
   (* includes ret pointer args *)
   max_rets : int;

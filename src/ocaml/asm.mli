@@ -102,6 +102,7 @@ val incq : 'reg operand -> 'reg asm_template
 val decq : 'reg operand -> 'reg asm_template
 val imulq : 'reg operand -> 'reg asm_template
 val idivq : 'reg operand -> 'reg asm_template
+val negq : 'reg operand -> 'reg asm_template
 
 (* logical/bitwise operations *)
 val andq : 'reg operand -> 'reg operand -> 'reg asm_template
@@ -122,6 +123,9 @@ val setl : 'reg operand -> 'reg asm_template
 val setg : 'reg operand -> 'reg asm_template
 val setle : 'reg operand -> 'reg asm_template
 val setge : 'reg operand -> 'reg asm_template
+
+(* load effective address *)
+val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* comparisons *)
 val cmpq : 'reg operand -> 'reg operand -> 'reg asm_template

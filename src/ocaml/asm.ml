@@ -193,7 +193,7 @@ let incq dest = unop_arith_generic "incq" dest
 let decq dest = unop_arith_generic "decq" dest
 let imulq src = unop_arith_generic "imulq" src
 let idivq src = unop_arith_generic "idivq" src
-
+let negq src = unop_arith_generic "negq" src 
 
 (* logical/bitwise operations *)
 let logic_generic logic_name src dest =
@@ -239,6 +239,14 @@ let setg dest = set_generic "setg" dest
 let setle dest = set_generic "setle" dest
 let setge dest = set_generic "setge" dest
 
+(* laod effective address *)
+let load_address_generic load_name src dest =
+  match src, dest with
+  | Mem _, Reg _ -> Op (load_name, [src; dest])
+  | _ -> die ()
+
+(* offset must be 32 bits *)
+let leaq src dest = load_address_generic "leaq" src dest 
 
 (* comparisons *)
 let cmpq a b =

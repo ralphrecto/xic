@@ -411,7 +411,6 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   (*  
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * e1 is expression that is being multiplied
-    * e2 is expression that is being added
   *)
   | BinOp (e1, MUL, (Const (1L|2L|3L|4L|5L|8L|9L) as m)) 
   | BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as m), MUL, e1) ->

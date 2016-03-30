@@ -71,11 +71,10 @@ let get_context_map
       let f = function
         | Some ctx ->
             let (max_args, max_rets) = ctx_max_stmt stmt in
-            Some {ctx with max_args = max_args; max_rets = max_rets}
+            (* include ret pointers as args *)
+            let max_args' = max_args + (max 0 (ctx.num_rets - 2)) in
+            Some {ctx with max_args = max_args'; max_rets = max_rets}
         | None -> None in
       String.Map.change ctxmap fname ~f in
 
-    List.fold_left
-      ~f:map_update
-      ~init:init_context_map 
-      ir_func_decls
+    List.fold_left ~f:map_update ~init:init_context_map ir_func_decls

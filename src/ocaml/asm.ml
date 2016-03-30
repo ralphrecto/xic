@@ -193,6 +193,16 @@ let fakes_of_asms asms =
 let die () =
   failwith "invalid assembly instruction"
 
+(* assembler directives *)
+let text : abstract_asm = Directive ("text", [])
+
+let globl (label: string) : abstract_asm =
+  Directive ("globl", [label])
+
+let align (n: int) : abstract_asm =
+  if n < 1 then die ()
+  else Directive ("align", [string_of_int n])
+
 (* arithmetic *)
 let binop_arith_generic (arith_name: string)
   (src: 'reg operand) (dest: 'reg operand) : 'reg asm_template =

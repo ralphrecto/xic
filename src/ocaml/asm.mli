@@ -111,6 +111,11 @@ val fakes_of_asms     : abstract_asm list         -> string list
 (******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)
+(*assembler directives *)
+val text : abstract_asm
+val globl : string -> abstract_asm
+val align : int -> abstract_asm
+
 (* arithmetic *)
 val addq : 'reg operand -> 'reg operand -> 'reg asm_template
 val subq : 'reg operand -> 'reg operand -> 'reg asm_template

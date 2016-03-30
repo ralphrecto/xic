@@ -35,12 +35,14 @@ let string_of_blocks bs =
 (* Convert an id string to a temp string. The temp string
  * should not be a possible identifier. Identifiers begin
  * with alphabetic characters. *)
-let id_to_temp (idstr: string) : string = "_TEMP" ^ idstr
+let user_temp_prefix = "_usrtmp"
+let id_to_temp (idstr: string) : string = user_temp_prefix ^ idstr
 
 module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
 module FreshLabel = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
 module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
+
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh

@@ -105,8 +105,14 @@ let rec munch_expr
   match e with
   | BinOp (e1, opcode, e2) ->
     begin
-      let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
-      let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
+      (* ensure that we don't clobber user tmps *)
+      let update (reg, asm) =
+        match reg with
+        | Fake s when String.is_prefix s ~prefix:user_temp_prefix ->
+            let new_tmp = Fake (FreshReg.fresh ()) in
+            (new_tmp, movq (Reg reg) (Reg new_tmp) :: asm) in
+      let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 |> update in
+      let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 |> update in
       match opcode with
       | ADD | SUB | AND | OR | XOR ->
         (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
@@ -245,8 +251,7 @@ and munch_func_decl
   let num_temps = List.length (fakes_of_asms body_asm) in
 
   let label = [Lab fname] in
-  (* TODO: add directives *)
-  let directives = [] in
+  let directives = [globl fname; align 4] in
 
   (* Building function prologue
    *  - use enter to save rbp, update rbp/rsp,
@@ -283,7 +288,11 @@ and munch_func_decl
 and munch_comp_unit
     (fcontexts: func_contexts)
     ((prog_name, func_decls): Ir.comp_unit) =
-  List.concat_map ~f:(munch_func_decl fcontexts) (String.Map.data func_decls)
+  let decl_list = String.Map.data func_decls in
+  let fun_asm = List.concat_map ~f:(munch_func_decl fcontexts) decl_list in
+  let directives = [text] in
+  directives @ fun_asm
+
 
 (* displacement is only allowed to be 32 bits *)
 let get_displ (op: Ir.binop_code) x =

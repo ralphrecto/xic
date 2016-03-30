@@ -20,6 +20,53 @@ the rest of the bits, which don't matter (e.g. use setne, sete etc.)
 
 - We assume that abstract assembly generation never uses R13, R14, or R15.
 
+- Stack frame design.
+  
+  We compute static stack frames for each function - that is, during the
+  duration of the function's lifetime, the stack pointer should not
+  move except when calling other functions. This is computed in the
+  following manner for a function f, supposing that G is the set of functions
+  that f calls:
+    - If the generated abstract asm body of f contains n fake temps, and
+    - max_ret = max(0, \max_{g\in G} num_return_values(g) - 2), and
+    - max_args = max(
+          0, 
+          // include max_ret bc we need to pass in pointers
+          (\max_{g\in G} num_arguments(g)) + max_ret -6 
+      )
+  
+  then the stack frame of f should have 1 + 1 + 9 + n + max_ret + max_args words,
+  with 1 word for the saved rip, 1 word for the saved rbp, and 9 words for all
+  caller save registers. There is optionally an additional word to keep the stack
+  aligned to 16 bytes. It is laid out in the following manner:
+
+              __________________________________
+              |           saved rip            |
+              ----------------------------------
+              |           saved rbp            |
+              ----------------------------------
+              |                                |
+              |          caller saves          |
+              |                                |
+              ----------------------------------
+              |                                |
+              |          fake temps            |
+              |                                |
+              ----------------------------------
+              |                                |
+              |       space for ret vals       |
+              |                                |
+              ----------------------------------
+              |                                |
+              |      space for func args       |
+      rsp ->  |                                |
+              ----------------------------------
+  
+  The top of the stack should always be the first space for func args spilled
+  to the stack. You can then access the space for ret vals and func args
+  without knowing how many caller saves/fake temps there are by using rsp as
+  a base.
+
 - Consider Move(dest, src) with Temps regarding _ARGi and _RETi.
 
   If dest = _RETi, then we are the callee returning values to the caller,

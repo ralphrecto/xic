@@ -81,10 +81,10 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
-  | Mem (e, memtype) ->
+  | Mem (e, _) ->
       let (e_reg, e_asm) = munch_expr e in
       let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
+      (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Name str ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
@@ -209,10 +209,10 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
-  | Mem (e, memtype) ->
+  | Mem (e, _) ->
       let (e_reg, e_asm) = chomp_expr e in
       let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
+      (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Name str ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
@@ -280,7 +280,7 @@ let register_allocate asms =
   let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
     let spill = spill_address env in
     match asm with
-    | Op (op, operands) ->
+    | Op (_, operands) ->
       let fakes = fakes_of_operands operands in
       let unused_regs = List.take unused_regs (List.length fakes) in
       let fake_to_real = List.zip_exn fakes unused_regs in

@@ -19,3 +19,24 @@ just use byte-wise operations and not worry about properly zeroing out
 the rest of the bits, which don't matter (e.g. use setne, sete etc.)
 
 - We assume that abstract assembly generation never uses R13, R14, or R15.
+
+- Consider Move(dest, src) with Temps regarding _ARGi and _RETi.
+
+  If dest = _RETi, then we are the callee returning values to the caller,
+  so we stick these in the rdi/rsi/pointers passed as args. The callee
+  knows how many return values it has so it knows how many of the passed
+  args are pointers. If this function returns n > 2 values, then the
+  first (n-2) arguments are pointers, (i.e. first registers then stack
+  locations), so look here for where to stick the values.
+
+  If src = _RETi, then we are the caller moving values from the callee
+  return. These should be in the allocated multi-return space, which can
+  be calculated given the height of the block for passing in arguments
+  to functions via the stack in the stackframe is fixed.
+
+  If src = _ARGi, then we are the callee moving passed arguments into
+  the appropriate variable temps. If we return n values for n > 2, then
+  the first (n-2) arguments to the function are pointers. Thus "_ARG0"
+  in this case is actually the (n-2+1)th argument, "_ARG1" the nth, etc. 
+
+  dest = _ARGi is not generated in our IR. 

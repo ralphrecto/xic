@@ -139,7 +139,7 @@ let fakes_of_reg r =
   | Real _ -> []
 
 let fakes_of_regs rs =
-  List.dedup (List.concat_map ~f:fakes_of_reg rs)
+  Util.ordered_dedup (List.concat_map ~f:fakes_of_reg rs)
 
 let fakes_of_operand o =
   match o with
@@ -151,15 +151,16 @@ let fakes_of_operand o =
   | Const _ -> []
 
 let fakes_of_operands os =
-  List.dedup (List.concat_map ~f:fakes_of_operand os)
+  Util.ordered_dedup (List.concat_map ~f:fakes_of_operand os)
 
 let fakes_of_asm asm =
   match asm with
-  | Op (_, operands) -> List.dedup (List.concat_map ~f:fakes_of_operand operands)
+  | Op (_, ops) -> Util.ordered_dedup (List.concat_map ~f:fakes_of_operand ops)
+  | Lab _
   | Directive _ -> []
 
 let fakes_of_asms asms =
-  List.dedup (List.concat_map ~f:fakes_of_asm asms)
+  Util.ordered_dedup (List.concat_map ~f:fakes_of_asm asms)
 
 (******************************************************************************)
 (* instructions                                                               *)

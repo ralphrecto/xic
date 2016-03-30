@@ -8,16 +8,16 @@ let binop_to_instr (op: Ir.binop_code) =
 	match op with
 	| ADD -> addq
 	| SUB -> subq
-	| AND -> andq 
+	| AND -> andq
 	| OR -> orq
 	| XOR -> xorq
 	| _ -> failwith "shouldn't happen -- binop_to_instr"
-	
+
 let cmp_to_instr (op: Ir.binop_code) =
 	match op with
 	| EQ -> sete
 	| NEQ -> setne
-	| LT -> setl 
+	| LT -> setl
 	| GT -> setg
 	| LEQ -> setle
 	| GEQ -> setge
@@ -27,10 +27,10 @@ let shift_to_instr (op: Ir.binop_code) =
 	match op with
 	| LSHIFT -> shlq
 	| RSHIFT -> shrq
-	| ARSHIFT -> sarq 
+	| ARSHIFT -> sarq
 	| _ -> failwith "shouldn't happen -- shift_to_instr"
 
-let non_imm_cmp op reg1 reg2 = 
+let non_imm_cmp op reg1 reg2 =
 	[cmpq (Reg reg1) (Reg reg2); (cmp_to_instr op) (Reg reg2)]
 
 let imm_cmp op const reg =
@@ -45,13 +45,13 @@ let imm_shift op const reg =
 
 let imm_binop op const reg =
 	[(binop_to_instr op) (Asm.Const const) (Reg reg)]
-	
+
 let non_imm_binop op reg1 reg2 =
 	[(binop_to_instr op) (Reg reg1) (Reg reg2)]
-	
+
 let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
-  | BinOp (e1, opcode, e2) -> 
+  | BinOp (e1, opcode, e2) ->
 		begin
 			let (reg1, asm1) = munch_expr e1 in
 			let (reg2, asm2) = munch_expr e2 in
@@ -61,7 +61,7 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 			| LSHIFT | RSHIFT | ARSHIFT ->
 			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
 			| EQ | NEQ | LT | GT | LEQ | GEQ ->
-			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))	
+			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
 			| MUL | HMUL ->
 				let mul_asm = [
 					movq (Reg reg2) (Reg (Real Rax));
@@ -69,13 +69,13 @@ let rec munch_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 				] in
 				let r = if opcode = MUL then Rax else Rdx in
 				(Real r, asm1 @ asm2 @ mul_asm)
-			| DIV | MOD -> 
+			| DIV | MOD ->
 				let div_asm = [
 					movq (Reg reg1) (Reg (Real Rax));
 					idivq (Reg reg2);
 				] in
 				let r = if opcode = DIV then Rax else Rdx in
-				(Real r, asm1 @ asm2 @ div_asm)	  	
+				(Real r, asm1 @ asm2 @ div_asm)
 		end
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
@@ -140,9 +140,9 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
 	(* incr cases *)
   | BinOp (e1, ADD, Const 1L)
-  | BinOp (Const 1L, ADD, e1) -> 
+  | BinOp (Const 1L, ADD, e1) ->
 		let (reg1, asm1) = chomp_expr e1 in
-		(reg1, asm1 @ [incq (Reg reg1)])		
+		(reg1, asm1 @ [incq (Reg reg1)])
 	(* decr case *)
 	| BinOp (e1, SUB, Const 1L) ->
 		let (reg1, asm1) = chomp_expr e1 in
@@ -156,7 +156,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 		let min_int32 = Int64.of_int32_exn (Int32.min_value) in
 		(* checking if immidiate is within 32 bits *)
 		if min_int32 <= x || x <= max_int32 then
-			(reg1, asm1 @ (imm_binop op x reg1))	
+			(reg1, asm1 @ (imm_binop op x reg1))
 		else
 			(reg2, asm1 @ asm2 @ (non_imm_binop op reg1 reg2))
 	| BinOp (e1, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2))
@@ -165,8 +165,8 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 		let (reg2, asm2) = chomp_expr e2 in
 		(* checking if shift is within 8 bits *)
 		if Int64.neg(128L) <= x || x <= 128L then
-			(reg1, asm1 @ (imm_shift op x reg1)) 
-		else 
+			(reg1, asm1 @ (imm_shift op x reg1))
+		else
 			(reg1, asm1 @ asm2 @ (non_imm_shift op reg1 reg2))
 	| BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
 	| BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
@@ -179,7 +179,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 		else
 			(reg2, asm1 @ asm2 @ (non_imm_cmp op reg1 reg2))
 	(* binop with non-immediate cases *)
-  | BinOp (e1, opcode, e2) -> 
+  | BinOp (e1, opcode, e2) ->
 		begin
 			let (reg1, asm1) = chomp_expr e1 in
 			let (reg2, asm2) = chomp_expr e2 in
@@ -189,7 +189,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 			| LSHIFT | RSHIFT | ARSHIFT ->
 			 	(reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
 			| EQ | NEQ | LT | GT | LEQ | GEQ ->
-			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))	
+			  (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
 			| MUL | HMUL ->
 				let mul_asm = [
 					movq (Reg reg2) (Reg (Real Rax));
@@ -197,7 +197,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
 				] in
 				let r = if opcode = MUL then Rax else Rdx in
 				(Real r, asm1 @ asm2 @ mul_asm)
-			| DIV | MOD -> 
+			| DIV | MOD ->
 				let div_asm = [
 					movq (Reg reg1) (Reg (Real Rax));
 					idivq (Reg reg2);
@@ -250,6 +250,7 @@ let register_allocate asms =
           | Label l -> Label l
           | Const c -> Const c
         ))
+    | Lab l -> Lab l
     | Directive (d, args) -> Directive (d, args)
   in
 
@@ -290,7 +291,8 @@ let register_allocate asms =
       let translation = [abstract_reg_map (translate_reg reg_env) asm] in
       let post = List.map fakes ~f:(fun fake -> mov (fake_to_op fake) (spill fake)) in
       pre @ translation @ post
-    | Directive _ -> []
+    | Lab l -> [Lab l]
+    | Directive (d, args) -> [Directive (d, args)]
   in
 
   List.concat_map ~f:(allocate spill_env) asms

@@ -263,15 +263,16 @@ let setl dest = set_generic "setl" dest
 let setg dest = set_generic "setg" dest
 let setle dest = set_generic "setle" dest
 let setge dest = set_generic "setge" dest
+let setz dest = set_generic "setz" dest
+let setnz dest = set_generic "setnz" dest
+let sets dest = set_generic "sets" dest
+let setns dest = set_generic "setns" dest
 
 (* laod effective address *)
-let load_address_generic load_name src dest =
+let leaq src dest =
   match src, dest with
-  | Mem _, Reg _ -> Op (load_name, [src; dest])
+  | Mem _, Reg _ -> Op ("leaq", [src; dest])
   | _ -> die ()
-
-(* offset must be 32 bits *)
-let leaq src dest = load_address_generic "leaq" src dest 
 
 (* comparisons *)
 let cmpq a b =
@@ -280,11 +281,11 @@ let cmpq a b =
   | _, (Reg _ | Mem _) -> Op ("cmpq", [a; b])
   | _ -> die ()
 
-let leaq (a: 'reg operand) (b: 'reg operand) : 'reg asm_template =
+(* test *)
+let test a b =
   match a, b with
-  | Mem _, Reg _ -> Op ("leaq", [a; b])
-  | _ -> failwith "bad"
-
+  | Reg _, (Reg _ | Mem _) -> Op ("test", [a; b])
+  | _ -> die ()
 
 (* stack operations *)
 let push a =
@@ -318,6 +319,8 @@ let jg   l = unop_label "jg"   l
 let jge  l = unop_label "jge"  l
 let jl   l = unop_label "jl"   l
 let jle  l = unop_label "jle"  l
+let js   l = unop_label "js"   l
+let jns  l = unop_label "jns"  l
 let call l = unop_label "call" l
 
 (* zeroops *)

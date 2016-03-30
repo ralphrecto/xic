@@ -259,24 +259,14 @@ let register_allocate asms =
    * present in abstract assembly. *)
   let unused_regs = [R13; R14; R15] in
 
+  (* Translate fake registers using the register environment and leave real
+   * registers alone. *)
   let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
     match r with
     | Fake s -> String.Map.find_exn reg_env s
     | Real r -> r
   in
 
-  (* op "foo", "bar", "baz"
-   *
-   * mov -8(%rbp), %rax  \
-   * mov -16(%rbp), %rbx  } pre
-   * mov -24(%rbp), %rcx /
-   *
-   * op %rax, %rbx, %rcx  } translation
-   *
-   * mov %rax, -8(%rbp)  \
-   * mov %rbx, -16(%rbp)  } post
-   * mov %rcx, -24(%rbp) /
-   *)
   let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
     let spill = spill_address env in
     match asm with

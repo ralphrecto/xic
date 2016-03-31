@@ -22,6 +22,7 @@ val string_of_blocks : block list -> string
  * 0, temp 1, temp 2, etc. The same goes for fresh labels. Moreover, we expose
  * a way to reset the fresh temp and fresh label counts to make testing easier.
 *)
+val user_temp_prefix : string
 val temp  : int -> string
 val label : int -> string
 val reset_fresh_temp : unit -> unit

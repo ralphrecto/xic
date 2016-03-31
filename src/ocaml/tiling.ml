@@ -110,7 +110,8 @@ let rec munch_expr
         match reg with
         | Fake s when String.is_prefix s ~prefix:user_temp_prefix ->
             let new_tmp = Fake (FreshReg.fresh ()) in
-            (new_tmp, movq (Reg reg) (Reg new_tmp) :: asm) in
+            (new_tmp, movq (Reg reg) (Reg new_tmp) :: asm)
+        | _ -> (reg, asm) in
       let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 |> update in
       let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 |> update in
       match opcode with
@@ -142,9 +143,6 @@ let rec munch_expr
       let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
-  | Name str ->
-      let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> begin
       let new_tmp = Fake (FreshReg.fresh ()) in
       match FreshRetReg.get str with
@@ -189,6 +187,7 @@ let rec munch_expr
         movq (Reg argsrc) dest in
       let mov_asms = List.mapi ~f (ret_regs @ arg_regs) in
       (Real Rax, (List.concat arg_asms) @ ret_asms @ mov_asms @ [call (Label fname)])
+  | Name _ -> failwith "Name should never be munched by itself"
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "ESeq shouldn't exist"
 

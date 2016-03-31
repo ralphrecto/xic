@@ -222,7 +222,7 @@ and munch_stmt
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
-  | Move (Name n, e) -> begin
+  | Move (Temp n, e) -> begin
       let dest =
         match FreshRetReg.get n with
         | Some i ->

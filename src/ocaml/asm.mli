@@ -154,6 +154,7 @@ val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* stack operations *)
 val push : 'reg operand -> 'reg asm_template
+val pushq : 'reg operand -> 'reg asm_template
 val pop  : 'reg operand -> 'reg asm_template
 val enter : 'reg operand -> 'reg operand -> 'reg asm_template
 

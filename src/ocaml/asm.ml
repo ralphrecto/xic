@@ -302,6 +302,11 @@ let push a =
   | Reg _ | Mem _ | Const _ -> Op ("push", [a])
   | _ -> die ()
 
+let pushq a =
+  match a with
+  | Reg _ | Mem _ | Const _ -> Op ("pushq", [a])
+  | _ -> die ()
+
 let pop a =
   match a with
   | Reg _ | Mem _ -> Op ("pop", [a])

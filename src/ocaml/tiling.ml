@@ -236,21 +236,21 @@ and munch_func_decl
   let prologue =
     let init = [enter (const tot_temps) (const 0)] in
     let padding =
-      if tot_stack_size mod 16 = 0 then []
-      else [push (const 0)] in
+      if tot_stack_size mod 2 = 0 then []
+      else [pushq (const 0)] in
     let rets_n_args =
-      [movq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
+      [subq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
     let ret_ptr_mov = 
       let f i =
         let ret_tmp = Fake (FreshRetPtr.gen i) in
         if i < 2 then
           movq (Reg (Real (arg_reg i))) (Reg ret_tmp)
         else
-          movq (Mem ((i-2)$(Real Rsp))) (Reg ret_tmp) in
+          movq (Mem ((i-2)$(Real Rbp))) (Reg ret_tmp) in
       List.map ~f (List.range 0 (curr_ctx.num_rets - 2)) in
     init @ padding @ rets_n_args @ ret_ptr_mov in
 
-  label @ directives @ prologue @ body_asm
+  directives @ label @ prologue @ body_asm
  
 
 and munch_comp_unit

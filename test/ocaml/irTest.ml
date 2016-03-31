@@ -184,8 +184,8 @@ let test_ir_expr () =
   let binop12 = BinOp (one, ADD, two) in
   let unopminus x = BinOp (zero, SUB, x) in
   let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
-  let x = temp "_TEMPx" in
-  let y = temp "_TEMPy" in
+  let x = temp "x" in
+  let y = temp "y" in
   let word = const 8L in
 
   (* Typecheck exprs *)

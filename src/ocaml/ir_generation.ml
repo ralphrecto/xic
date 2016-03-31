@@ -32,12 +32,6 @@ let string_of_blocks bs =
 (******************************************************************************)
 (* Naming Helpers                                                             *)
 (******************************************************************************)
-(* Convert an id string to a temp string. The temp string
- * should not be a possible identifier. Identifiers begin
- * with alphabetic characters. *)
-let user_temp_prefix = "_usrtmp"
-let id_to_temp (idstr: string) : string = user_temp_prefix ^ idstr
-
 module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
 module FreshLabel = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
@@ -139,7 +133,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
       ),
       loc_tmp$(1)
     )
-  | Id (_, id) -> Temp (id_to_temp id)
+  | Id (_, id) -> Temp id
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
       (* Array concatenation *)
@@ -306,7 +300,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       let gen_var_decls ((_, x): Typecheck.var) seq =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
-          Move (Temp (id_to_temp idstr), gen_decl_help callnames (at, TArray (t, i))) :: seq
+          Move (Temp idstr, gen_decl_help callnames (at, TArray (t, i))) :: seq
         | _ -> seq in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
@@ -315,7 +309,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       match v with
       | AVar (_, AId (var_id, _)) ->
         let (_, var_id') = var_id in
-        Move (Temp (id_to_temp var_id'), gen_expr callnames exp)
+        Move (Temp var_id', gen_expr callnames exp)
       | AVar _ | Underscore ->
         Exp (gen_expr callnames exp)
     end
@@ -330,7 +324,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
         let retval =
           if i = 0 then gen_expr callnames (TupleT tlist, rawexp)
           else Temp (retreg i) in
-        (i + 1, Move (Temp (id_to_temp idstr), retval) :: seq)
+        (i + 1, Move (Temp idstr, retval) :: seq)
       | AVar _ | Underscore ->
           if i = 0 then
             (i + 1, Exp (gen_expr callnames (TupleT tlist, rawexp)) :: seq)
@@ -343,7 +337,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   | Asgn ((_, lhs), fullrhs) ->
     begin
       match lhs with
-      | Id (_, idstr) -> Move (Temp (id_to_temp idstr), gen_expr callnames fullrhs)
+      | Id (_, idstr) -> Move (Temp idstr, gen_expr callnames fullrhs)
       | Index (arr, index) ->
         let mem_loc = gen_expr callnames arr in
         Move (Mem (mem_loc$$(gen_expr callnames index), NORMAL), gen_expr callnames fullrhs)
@@ -411,7 +405,7 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
     let seq' =
       match av with
       | (_, AId ((_, idstr), _)) ->
-        Move (Temp (id_to_temp idstr), Temp (argreg i)) :: seq
+        Move (Temp idstr, Temp (argreg i)) :: seq
       | _ -> seq
     in
     (i + 1, seq')

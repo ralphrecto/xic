@@ -144,6 +144,10 @@ val setl : 'reg operand -> 'reg asm_template
 val setg : 'reg operand -> 'reg asm_template
 val setle : 'reg operand -> 'reg asm_template
 val setge : 'reg operand -> 'reg asm_template
+val setz : 'reg operand -> 'reg asm_template
+val setnz : 'reg operand -> 'reg asm_template
+val sets : 'reg operand -> 'reg asm_template
+val setns : 'reg operand -> 'reg asm_template
 
 (* load effective address *)
 val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
@@ -151,6 +155,9 @@ val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 (* comparisons *)
 val cmpq : 'reg operand -> 'reg operand -> 'reg asm_template
 val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
+
+(* test *)
+val test : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* stack operations *)
 val push : 'reg operand -> 'reg asm_template
@@ -168,6 +175,8 @@ val jg   : 'reg operand -> 'reg asm_template
 val jge  : 'reg operand -> 'reg asm_template
 val jl   : 'reg operand -> 'reg asm_template
 val jle  : 'reg operand -> 'reg asm_template
+val js   : 'reg operand -> 'reg asm_template
+val jns  : 'reg operand -> 'reg asm_template
 val call : 'reg operand -> 'reg asm_template
 
 (* zeroops *)

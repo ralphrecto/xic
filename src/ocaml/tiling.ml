@@ -30,6 +30,16 @@ let cmp_to_instr (op: Ir.binop_code) =
   | GEQ -> setge
   | _ -> failwith "shouldn't happen -- cmp_to_instr"
 
+let cmp_zero_to_instr (op: Ir.binop_code) =
+  match op with
+  | EQ -> setz
+  | NEQ -> setnz
+  | LT -> sets 
+  | GT -> setg 
+  | LEQ -> setle
+  | GEQ -> setns
+  | _ -> failwith "shouldn't happen -- cmp_zero_to_instr"
+
 let shift_to_instr (op: Ir.binop_code) =
   match op with
   | LSHIFT -> shlq
@@ -37,8 +47,40 @@ let shift_to_instr (op: Ir.binop_code) =
   | ARSHIFT -> sarq
   | _ -> failwith "shouldn't happen -- shift_to_instr"
 
+let cmp_to_jump_instr (op: Ir.binop_code) label =
+  match op with
+  | EQ -> je label
+  | NEQ -> jne label
+  | LT -> jl label
+  | GT -> jg label
+  | LEQ -> jle label
+  | GEQ -> jge label
+  | _ -> failwith "shouldn't happen cmp_to_jump_instr"
+
+let cmp_zero_to_jump_instr (op: Ir.binop_code) label =
+  match op with
+  | EQ -> jz label
+  | NEQ -> jnz label
+  | LT -> js label
+  | GT -> jg label
+  | LEQ -> jle label
+  | GEQ -> jns label
+  | _ -> failwith "shouldn't happen cmp_zero_to_jump_instr"
+
+let cmp_zero_jump op reg label =
+  [test (Reg reg) (Reg reg); (cmp_zero_to_jump_instr op label)]
+
+let non_imm_cmp_jump op reg1 reg2 label =
+  [cmpq (Reg reg2) (Reg reg1); (cmp_to_jump_instr op label)]
+
+let imm_cmp_jump op reg const label =
+  [cmpq (Asm.Const const) (Reg reg); (cmp_to_jump_instr op label)]
+
 let non_imm_cmp op reg1 reg2 =
   [cmpq (Reg reg1) (Reg reg2); (cmp_to_instr op) (Reg reg2)]
+
+let cmp_zero op reg1 =
+  [test (Reg reg1) (Reg reg1); (cmp_zero_to_instr op) (Reg reg1)]
 
 let imm_cmp op const reg =
   [cmpq (Asm.Const const) (Reg reg); (cmp_to_instr op) (Reg reg)]
@@ -160,16 +202,7 @@ and munch_stmt
       match e1 with
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
         let tru_label = Asm.Label tru in
-        let cond_jump =
-          match op with
-          | EQ -> je tru_label
-          | NEQ -> jne tru_label
-          | LT -> jl tru_label
-          | GT -> jg tru_label
-          | LEQ -> jle tru_label
-          | GEQ -> jge tru_label
-          | _ -> failwith "can't happen"
-        in
+        let cond_jump = cmp_to_jump_instr op tru_label in
         let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
         let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
         let jump_lst = [
@@ -200,14 +233,14 @@ and munch_stmt
         e_lst @ [movq (Reg e_reg) dest]
   end
   | Move (Mem (e1, _), e2) ->
-		let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-		let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-		e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
+    let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+    let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+    e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
   | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
   | Return -> [leave; ret] 
   | Move _ -> failwith "Move has a non TEMP/MEM lhs"
-	| Jump _ -> failwith "jump to a non label shouldn't exist"
-	| CJump _ -> failwith "cjump shouldn't exist"
+  | Jump _ -> failwith "jump to a non label shouldn't exist"
+  | CJump _ -> failwith "cjump shouldn't exist"
 
 and munch_func_decl
     (fcontexts: func_contexts)
@@ -251,7 +284,6 @@ and munch_func_decl
     init @ padding @ rets_n_args @ ret_ptr_mov in
 
   directives @ label @ prologue @ body_asm
- 
 
 and munch_comp_unit
     (fcontexts: func_contexts)
@@ -453,6 +485,11 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg2, asm2) = chomp_expr e2 in
     let binop_mem = binop_mem_add reg1 reg2 None in 
     (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)]) 
+  (* comparisons with zeros *)
+  | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
+  | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+    let (reg1, asm1) = chomp_expr e1 in
+    (reg1, asm1 @ (cmp_zero op reg1))
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)
   | BinOp (e1, ((AND|OR|XOR) as op), (Const x as e2))
@@ -487,7 +524,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       let (reg1, asm1) = chomp_expr e1 in
       let (reg2, asm2) = chomp_expr e2 in
       match opcode with
-      | SUB | AND | OR | XOR ->
+      | ADD | SUB | AND | OR | XOR ->
         (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
       | LSHIFT | RSHIFT | ARSHIFT ->
         (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
@@ -521,6 +558,63 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
   | ESeq _ -> failwith "eseq shouldn't exist"
+
+and chomp_stmt
+    (curr_ctx: func_context)
+    (fcontexts: func_contexts)
+    (s: Ir.stmt) =
+  match s with
+  | CJumpOne (e1, tru) ->
+    begin
+      let tru_label = Asm.Label tru in
+      match e1 with
+      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
+      | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+        let (reg1, asm1) = chomp_expr e1 in
+        asm1 @ (cmp_zero_jump op reg1 tru_label)
+      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
+      | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+        let (reg1, asm1) = chomp_expr e1 in
+        let (reg2, asm2) = chomp_expr e2 in
+        if min_int32 <= x && x <= max_int32 then
+          asm1 @ (imm_cmp_jump op reg1 x tru_label)
+        else 
+          asm1 @ asm2 @ (non_imm_cmp_jump op reg1 reg2 tru_label)
+      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
+        let (reg1, asm1) = chomp_expr e1 in
+        let (reg2, asm2) = chomp_expr e2 in
+        asm1 @ asm2 @ (non_imm_cmp_jump op reg1 reg2 tru_label)
+      | _ ->
+        let (binop_reg, binop_lst) = chomp_expr e1 in
+        let tru_label = Asm.Label tru in
+        let jump_lst = [
+          cmpq (Const 0L) (Reg binop_reg);
+          jnz tru_label;
+        ] in
+        binop_lst @ jump_lst
+    end
+  | Jump (Name s) -> [jmp (Asm.Label s)]
+  | Exp e -> snd (chomp_expr e)
+  | Label l -> [label_op l]
+  | Move (Name n, e) -> begin
+      let dest =
+        match FreshRetReg.get n with
+        | Some i ->
+            if i < 2 then Reg (Real (ret_reg i))
+            else Reg (Fake (FreshRetPtr.gen (i-2)))
+        | None -> Reg (Fake n) in
+        let (reg, asm) = chomp_expr e in
+        asm @ [movq (Reg reg) dest]
+  end
+  | Move (Mem (e1, _), e2) ->
+    let (reg1, asm1) = chomp_expr e1 in
+    let (reg2, asm2) = chomp_expr e2 in
+    asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
+  | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
+  | Return -> [leave; ret] 
+  | Move _ -> failwith "Move has a non TEMP/MEM lhs"
+  | Jump _ -> failwith "jump to a non label shouldn't exist"
+  | CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
   (* spill_env maps each fake name to an index, starting at 1, into the stack.

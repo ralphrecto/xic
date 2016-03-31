@@ -261,7 +261,8 @@ and munch_func_decl
    *      16k bytes for some k\in N. This should work if the
    *      bottom of the stack is a multiple of 16.
    *  - allocate space for tuple returns + argument passing
-   *  - move passed mult. ret pointers into fresh temps *)
+   *  - move passed mult. ret pointers into fresh temps 
+  *)
   let tot_temps = num_temps + num_caller_save in
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
   (* saved rip + saved rbp + temps + rets n args  *)
@@ -335,6 +336,15 @@ let binop_mem_const_add reg1 displ =
 
 let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   match e with
+  (* mod 2 case *)
+  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
+  | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
+    let (reg1, asm1) = chomp_expr e1 in
+    [bt (Asm.Const 0L) reg1; setnc reg1]
+  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
+  | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
+    let (reg1, asm1) = chomp_expr e1 in
+    [bt (Asm.Const 0L) reg1; setc reg1]
   (* neg case *)
   | BinOp (Const 0L, SUB, e1) ->
     let (reg1, asm1) = chomp_expr e1 in
@@ -349,8 +359,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg1, asm1) = chomp_expr e1 in
     (reg1, asm1 @ [decq (Reg reg1)])
   (* lea cases with constants *)
-  (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const *)
-  (*  
+  (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const
     * multiply constant (1,2,4,8) is denoted as m
     * operation of constant is denoted as op 
     * subtraction is only allowed when constant is on right hand side
@@ -391,8 +400,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
     else
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1))
-  (* lea-case2: reg = reg * {1,2,3,4,5,8,9} +/ const *)
-  (*  
+  (* lea-case2: reg = reg * {1,2,3,4,5,8,9} +/ const 
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * operation of constant is denoted as op 
     * subtraction is only allowed when constant is on right hand side
@@ -411,8 +419,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
     else
       (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm2 @ (non_imm_binop op reg2 reg1))
-  (* lea-case3: reg2 = reg1 + reg2 +/- const *)
-  (*  
+  (* lea-case3: reg2 = reg1 + reg2 +/- const
     * operation of constant is denoted as op 
     * subtraction is only allowed when constant is on right hand side
     * e1, e2 are expressions that are being added
@@ -433,8 +440,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       (reg2, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg2)]) 
     else 
      (reg3, asm1 @ asm2 @ (non_imm_binop ADD reg1 reg2) @ (non_imm_binop op reg2 reg3))
-  (* lea-case4: reg = reg +/- const *)
-  (*  
+  (* lea-case4: reg = reg +/- const
     * operation of constant is denoted as op 
     * subtraction is only allowed when constant is on right hand side
     * e1 is expression that is being added
@@ -451,8 +457,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     else  
       (reg1, asm1 @ asm2 @ (non_imm_binop op reg2 reg1)) 
   (* lea cases without constants *)
-  (* lea-case5: reg1 = reg1 * {1,2,4,8} + reg2 *)
-  (*  
+  (* lea-case5: reg1 = reg1 * {1,2,4,8} + reg2
     * multiply constant (1,2,4,8) is denoted as m
     * e1 is expression that is being multiplied
     * e2 is expression that is being added
@@ -465,8 +470,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg2, asm2) = chomp_expr e2 in
     let binop_mem = binop_mem_mult_add m reg1 reg2 None in 
     (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
-  (* lea-case6: reg1 = reg1 * {1,2,3,4,5,8,9} *)
-  (*  
+  (* lea-case6: reg1 = reg1 * {1,2,3,4,5,8,9}
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * e1 is expression that is being multiplied
   *)
@@ -475,8 +479,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let (reg1, asm1) = chomp_expr e1 in
     let binop_mem = binop_mem_mul m reg1 None in
     (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
-  (* lea-case7: reg1 = reg1 + reg2 *)
-  (*  
+  (* lea-case7: reg1 = reg1 + reg2
     * e1 is expression that is being multiplied
     * e2 is expression that is being added
   *)
@@ -568,6 +571,15 @@ and chomp_stmt
     begin
       let tru_label = Asm.Label tru in
       match e1 with
+      (* mod 2 case *)
+      | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
+      | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
+        let (reg1, asm1) = chomp_expr e1 in
+        [bt (Asm.Const 0L) reg1; jnc tru_label] 
+      | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
+      | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
+        let (reg1, asm1) = chomp_expr e1 in
+        [bt (Asm.Const 0L) reg1; jc tru_label] 
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
       | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr e1 in

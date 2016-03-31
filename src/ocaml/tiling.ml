@@ -217,17 +217,16 @@ and munch_stmt
   | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
   | Move (Temp n, e) -> 
-    begin
-      let dest =
-        (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n with
-        | Some i ->
-            if i < 2 then Reg (Real (ret_reg i))
-           else Mem ((i-2)$(ret_ptr_reg))
-        | None -> Reg (Fake n) in
-        let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
-        e_lst @ [movq (Reg e_reg) dest]
-    end
+    let dest =
+      (* moving return values to _RETi before returning *)
+      match FreshRetReg.get n with
+      | Some i ->
+          if i < 2 then Reg (Real (ret_reg i))
+         else Mem ((i-2)$(ret_ptr_reg))
+      | None -> Reg (Fake n) 
+    in
+    let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
+    e_lst @ [movq (Reg e_reg) dest]
   | Move (Mem (e1, _), e2) ->
     let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
     let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
@@ -329,25 +328,20 @@ let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * ab
   (* mod 2 case *)
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
   | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    let (reg1, asm1) = chomp_expr e1 in
-    (reg1, [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
+    begin
+      let (reg1, asm1) = chomp_expr e1 in
+      match dest with
+      | Some dest_reg -> (dest_reg, [bt (Asm.Const 0L) (Reg reg1); setnc (Reg dest_reg)])
+      | None -> (reg1, [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
+    end
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
   | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    let (reg1, asm1) = chomp_expr e1 in
-    (reg1, [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
-  (* neg case *)
-  | BinOp (Const 0L, SUB, e1) ->
-    let (reg1, asm1) = chomp_expr e1 in
-    (reg1, asm1 @ [negq (Reg reg1)])
-  (* incr cases *)
-  | BinOp (e1, ADD, Const 1L)
-  | BinOp (Const 1L, ADD, e1) ->
-    let (reg1, asm1) = chomp_expr e1 in
-    (reg1, asm1 @ [incq (Reg reg1)])
-  (* decr case *)
-  | BinOp (e1, SUB, Const 1L) ->
-    let (reg1, asm1) = chomp_expr e1 in
-    (reg1, asm1 @ [decq (Reg reg1)])
+    begin
+      let (reg1, asm1) = chomp_expr e1 in
+      match dest with
+      | Some dest_reg -> (dest_reg, [bt (Asm.Const 0L) (Reg reg1); setc (Reg dest_reg)])
+      | None -> (reg1, [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
+    end
   (* lea cases with constants *)
   (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const
     * multiply constant (1,2,4,8) is denoted as m
@@ -386,9 +380,15 @@ let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * ab
     let (reg3, asm3) = chomp_expr e3 in
     let displ = get_displ op x in
     let binop_mem = binop_mem_mult_add m reg1 reg2 displ in
-    if min_int32 <= x && x <= max_int32 then
+    let is_32 = min_int32 <= x && x <= max_int32 in
+    match is_32, dest with
+    | true, Some dest_reg ->
+      (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg dest_reg)])    
+    | true, None -> 
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
-    else
+    | false, Some dest_reg -> 
+      (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1))
+    | false, None -> 
       (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1))
   (* lea-case2: reg = reg * {1,2,3,4,5,8,9} +/ const
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
@@ -459,7 +459,9 @@ let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * ab
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
     let binop_mem = binop_mem_mult_add m reg1 reg2 None in
-    (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
+    match dest with
+      | Some dest_reg ->
+      | None ->(reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
   (* lea-case6: reg1 = reg1 * {1,2,3,4,5,8,9}
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * e1 is expression that is being multiplied
@@ -468,7 +470,9 @@ let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * ab
   | BinOp ((Const (1L|2L|3L|4L|5L|8L|9L) as m), MUL, e1) ->
     let (reg1, asm1) = chomp_expr e1 in
     let binop_mem = binop_mem_mul m reg1 None in
-    (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
+    match dest with
+      | Some dest_reg ->
+      | None ->(reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
   (* lea-case7: reg1 = reg1 + reg2
     * e1 is expression that is being multiplied
     * e2 is expression that is being added
@@ -477,12 +481,16 @@ let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * ab
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in
     let binop_mem = binop_mem_add reg1 reg2 None in
-    (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
+    match dest with
+      | Some dest_reg ->
+      | None ->(reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
   (* comparisons with zeros *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
   | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
     let (reg1, asm1) = chomp_expr e1 in
-    (reg1, asm1 @ (cmp_zero op reg1))
+    match dest with
+      | Some dest_reg ->
+      | None ->(reg1, asm1 @ (cmp_zero op reg1))
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)
   | BinOp (e1, ((AND|OR|XOR) as op), (Const x as e2))
@@ -606,18 +614,56 @@ and chomp_stmt
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (chomp_expr e)
   | Label l -> [label_op l]
-  | Move (Temp n, e) -> 
+  | Move (Temp n, (Binop _ as e)) ->
+    let dest =
+      (* moving return values to _RETi before returning *)
+      match FreshRetReg.get n with
+      | Some i ->
+          if i < 2 then Reg (Real (ret_reg i))
+          else Mem ((i-2)$(ret_ptr_reg))
+      | None -> Reg (Fake n) 
+    in
+    snd (chomp_binop e Some dest)
+(*
+
+(* neg case *)
+  | BinOp (Const 0L, SUB, e1) ->
     begin
-      let dest =
-        (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n with
-        | Some i ->
-            if i < 2 then Reg (Real (ret_reg i))
-            else Mem ((i-2)$(ret_ptr_reg))
-        | None -> Reg (Fake n) in
-       let (e_reg, e_lst) = chomp_expr e in
-        e_lst @ [movq (Reg e_reg) dest]
+      let (reg1, asm1) = chomp_expr e1 in
+      match dest with
+        | Some dest_reg ->
+        | None -> (reg1, asm1 @ [negq (Reg reg1)])
     end
+  (* incr cases *)
+  | BinOp (e1, ADD, Const 1L)
+  | BinOp (Const 1L, ADD, e1) ->
+    begin
+      let (reg1, asm1) = chomp_expr e1 in
+      match dest with
+        | Some dest_reg ->
+        | None -> (reg1, asm1 @ [incq (Reg reg1)])
+    end
+  (* decr case *)
+  | BinOp (e1, SUB, Const 1L) ->
+    begin
+      let (reg1, asm1) = chomp_expr e1 in
+      match dest with
+        | Some dest_reg ->
+        | None -> (reg1, asm1 @ [decq (Reg reg1)])
+    end
+
+*)
+   | Move (Temp n, e) -> 
+    let dest =
+      (* moving return values to _RETi before returning *)
+      match FreshRetReg.get n with
+      | Some i ->
+          if i < 2 then Reg (Real (ret_reg i))
+          else Mem ((i-2)$(ret_ptr_reg))
+      | None -> Reg (Fake n) 
+    in
+    let (e_reg, e_lst) = chomp_expr e in
+    e_lst @ [movq (Reg e_reg) dest]
   | Move (Mem (e1, _), e2) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in

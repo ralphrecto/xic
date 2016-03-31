@@ -339,11 +339,11 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
   | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
     let (reg1, asm1) = chomp_expr e1 in
-    [bt (Asm.Const 0L) reg1; setnc reg1]
+    (reg1, [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
   | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
     let (reg1, asm1) = chomp_expr e1 in
-    [bt (Asm.Const 0L) reg1; setc reg1]
+    (reg1, [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
   (* neg case *)
   | BinOp (Const 0L, SUB, e1) ->
     let (reg1, asm1) = chomp_expr e1 in
@@ -574,11 +574,11 @@ and chomp_stmt
       | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
       | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
         let (reg1, asm1) = chomp_expr e1 in
-        [bt (Asm.Const 0L) reg1; jnc tru_label] 
+        [bt (Asm.Const 0L) (Reg reg1); jnc tru_label] 
       | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
       | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
         let (reg1, asm1) = chomp_expr e1 in
-        [bt (Asm.Const 0L) reg1; jc tru_label] 
+        [bt (Asm.Const 0L) (Reg reg1); jc tru_label] 
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
       | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr e1 in

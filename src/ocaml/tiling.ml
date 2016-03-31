@@ -1,7 +1,6 @@
 open Core.Std
 open Asm
 open Func_context
-open Ir
 open Ir_generation
 open Typecheck
 
@@ -14,24 +13,25 @@ let min_int32 = Int64.of_int32_exn (Int32.min_value)
 
 let binop_to_instr (op: Ir.binop_code) =
   match op with
-  | ADD -> addq
-  | SUB -> subq
-  | AND -> andq
-  | OR -> orq
-  | XOR -> xorq
+  | Ir.ADD -> addq
+  | Ir.SUB -> subq
+  | Ir.AND -> andq
+  | Ir.OR -> orq
+  | Ir.XOR -> xorq
   | _ -> failwith "shouldn't happen -- binop_to_instr"
 
 let cmp_to_instr (op: Ir.binop_code) =
   match op with
-  | EQ -> sete
-  | NEQ -> setne
-  | LT -> setl
-  | GT -> setg
-  | LEQ -> setle
-  | GEQ -> setge
+  | Ir.EQ -> sete
+  | Ir.NEQ -> setne
+  | Ir.LT -> setl
+  | Ir.GT -> setg
+  | Ir.LEQ -> setle
+  | Ir.GEQ -> setge
   | _ -> failwith "shouldn't happen -- cmp_to_instr"
 
 let cmp_zero_to_instr (op: Ir.binop_code) =
+  let open Ir in
   match op with
   | EQ -> setz
   | NEQ -> setnz
@@ -42,6 +42,7 @@ let cmp_zero_to_instr (op: Ir.binop_code) =
   | _ -> failwith "shouldn't happen -- cmp_zero_to_instr"
 
 let shift_to_instr (op: Ir.binop_code) =
+  let open Ir in
   match op with
   | LSHIFT -> shlq
   | RSHIFT -> shrq
@@ -49,6 +50,7 @@ let shift_to_instr (op: Ir.binop_code) =
   | _ -> failwith "shouldn't happen -- shift_to_instr"
 
 let cmp_to_jump_instr (op: Ir.binop_code) label =
+  let open Ir in
   match op with
   | EQ -> je label
   | NEQ -> jne label
@@ -59,6 +61,7 @@ let cmp_to_jump_instr (op: Ir.binop_code) label =
   | _ -> failwith "shouldn't happen cmp_to_jump_instr"
 
 let cmp_zero_to_jump_instr (op: Ir.binop_code) label =
+  let open Ir in
   match op with
   | EQ -> jz label
   | NEQ -> jnz label
@@ -104,40 +107,40 @@ let rec munch_expr
     (fcontexts: func_contexts)
     (e: Ir.expr) =
   match e with
-  | BinOp (e1, opcode, e2) ->
+  | Ir.BinOp (e1, opcode, e2) ->
     begin
       let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
       let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
       match opcode with
-      | ADD | SUB | AND | OR | XOR ->
+      | Ir.ADD | Ir.SUB | Ir.AND | Ir.OR | Ir.XOR ->
         (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2))
-      | LSHIFT | RSHIFT | ARSHIFT ->
+      | Ir.LSHIFT | Ir.RSHIFT | Ir.ARSHIFT ->
         (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2))
-      | EQ | NEQ | LT | GT | LEQ | GEQ ->
+      | Ir.EQ | Ir.NEQ | Ir.LT | Ir.GT | Ir.LEQ | Ir.GEQ ->
         (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2))
-      | MUL | HMUL ->
+      | Ir.MUL | Ir.HMUL ->
         let mul_asm = [
           movq (Reg reg2) (Reg (Real Rax));
           imulq (Reg reg1);
         ] in
-        let r = if opcode = MUL then Rax else Rdx in
+        let r = if opcode = Ir.MUL then Rax else Rdx in
         (Real r, asm1 @ asm2 @ mul_asm)
-      | DIV | MOD ->
+      | Ir.DIV | Ir.MOD ->
         let div_asm = [
           movq (Reg reg1) (Reg (Real Rax));
           idivq (Reg reg2);
         ] in
-        let r = if opcode = DIV then Rax else Rdx in
+        let r = if opcode = Ir.DIV then Rax else Rdx in
         (Real r, asm1 @ asm2 @ div_asm)
     end
-  | Const c ->
+  | Ir.Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
-  | Mem (e, _) ->
+  | Ir.Mem (e, _) ->
       let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
-  | Temp str -> begin
+  | Ir.Temp str -> begin
       let new_tmp = Fake (FreshReg.fresh ()) in
       match FreshRetReg.get str with
       (* moving rets from callee return *)
@@ -165,7 +168,7 @@ let rec munch_expr
               (Fake fresh, [mov (Reg (Fake str)) (Reg (Fake fresh))])
       end
   end
-  | Call (Name (fname), arglist) ->
+  | Ir.Call (Ir.Name (fname), arglist) ->
       let callee_ctx = String.Map.find_exn fcontexts fname in
       let (arg_regs, arg_asms) =
         List.unzip (List.map ~f:(munch_expr curr_ctx fcontexts) arglist) in
@@ -180,21 +183,21 @@ let rec munch_expr
           if i < 6 then Reg (Real (arg_reg i))
           else Mem ((i-6)$(Real Rsp)) in
         movq (Reg argsrc) dest in
-      let mov_asms = List.mapi ~f (ret_reg @ arg_regs) in
-      (Real Rax, (List.concat arg_asms) @ ret_asm @ mov_asms @ [call (Label fname)])
-  | Name _ -> failwith "Name should never be munched by itself"
-  | Call _ -> failwith "Call should always have a Name first"
-  | ESeq _ -> failwith "ESeq shouldn't exist"
+      let mov_asms = List.mapi ~f (ret_regs @ arg_regs) in
+      (Real Rax, (List.concat arg_asms) @ ret_asms @ mov_asms @ [call (Label fname)])
+  | Ir.Name _ -> failwith "Name should never be munched by itself"
+  | Ir.Call _ -> failwith "Call should always have a Name first"
+  | Ir.ESeq _ -> failwith "ESeq shouldn't exist"
 
 and munch_stmt
     (curr_ctx: func_context)
     (fcontexts: func_contexts)
     (s: Ir.stmt) =
   match s with
-  | CJumpOne (e1, tru) ->
+  | Ir.CJumpOne (e1, tru) ->
     begin
       match e1 with
-      | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
+      | Ir.BinOp (e1, ((Ir.EQ|Ir.NEQ|Ir.LT|Ir.GT|Ir.LEQ|Ir.GEQ) as op), e2) ->
         let tru_label = Asm.Label tru in
         let cond_jump = cmp_to_jump_instr op tru_label in
         let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
@@ -213,10 +216,10 @@ and munch_stmt
         ] in
         binop_lst @ jump_lst
     end
-  | Jump (Name s) -> [jmp (Asm.Label s)]
-  | Exp e -> snd (munch_expr curr_ctx fcontexts e)
-  | Label l -> [label_op l]
-  | Move (Temp n, e) -> begin
+  | Ir.Jump (Ir.Name s) -> [jmp (Asm.Label s)]
+  | Ir.Exp e -> snd (munch_expr curr_ctx fcontexts e)
+  | Ir.Label l -> [label_op l]
+  | Ir.Move (Ir.Temp n, e) -> begin
       let dest =
         (* moving return values to _RETi before returning *)
         match FreshRetReg.get n with
@@ -227,15 +230,15 @@ and munch_stmt
         let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
         e_lst @ [movq (Reg e_reg) dest]
   end
-  | Move (Mem (e1, _), e2) ->
+  | Ir.Move (Ir.Mem (e1, _), e2) ->
     let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
     let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
     e1_lst @ e2_lst @ [movq (Reg e2_reg) (Mem (Base (None, e1_reg)))]
-  | Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
-  | Return -> [leave; ret]
-  | Move _ -> failwith "Move has a non TEMP/MEM lhs"
-  | Jump _ -> failwith "jump to a non label shouldn't exist"
-  | CJump _ -> failwith "cjump shouldn't exist"
+  | Ir.Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
+  | Ir.Return -> [leave; ret]
+  | Ir.Move _ -> failwith "Move has a non TEMP/MEM lhs"
+  | Ir.Jump _ -> failwith "jump to a non label shouldn't exist"
+  | Ir.CJump _ -> failwith "cjump shouldn't exist"
 
 and munch_func_decl
     (fcontexts: func_contexts)
@@ -269,7 +272,7 @@ and munch_func_decl
       else [pushq (const 0)] in
     let rets_n_args =
       [subq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
-    let ret_ptr_mov = 
+    let ret_ptr_mov =
       if curr_ctx.num_rets - 2 < 1 then []
       else [movq (Reg (Real (arg_reg 0))) (Reg ret_ptr_reg)] in
     init @ padding @ rets_n_args @ ret_ptr_mov in
@@ -278,7 +281,7 @@ and munch_func_decl
 
 and munch_comp_unit
     (fcontexts: func_contexts)
-    ((prog_name, func_decls): Ir.comp_unit) =
+    ((_, func_decls): Ir.comp_unit) =
   let decl_list = String.Map.data func_decls in
   let fun_asm = List.concat_map ~f:(munch_func_decl fcontexts) decl_list in
   let directives = [text] in
@@ -286,6 +289,7 @@ and munch_comp_unit
 
 (* displacement is only allowed to be 32 bits *)
 let get_displ (op: Ir.binop_code) x =
+  let open Ir in
   if min_int32 <= x && x <= max_int32 then
     match op with
     | ADD -> Some x
@@ -297,22 +301,22 @@ let get_displ (op: Ir.binop_code) x =
 (* mem operation of the binop: reg1 * {1,2,4,8} + reg2 +/- constant *)
 let binop_mem_mult_add (m: Ir.expr) reg1 reg2 displ =
   match m with
-  | Const 1L -> BaseOff (displ, reg2, reg1, One)
-  | Const 2L -> BaseOff (displ, reg2, reg1, Two)
-  | Const 4L -> BaseOff (displ, reg2, reg1, Four)
-  | Const 8L -> BaseOff (displ, reg2, reg1, Eight)
+  | Ir.Const 1L -> BaseOff (displ, reg2, reg1, One)
+  | Ir.Const 2L -> BaseOff (displ, reg2, reg1, Two)
+  | Ir.Const 4L -> BaseOff (displ, reg2, reg1, Four)
+  | Ir.Const 8L -> BaseOff (displ, reg2, reg1, Eight)
   | _ -> failwith "cannot happen -- binop_mem_mult_add"
 
 (* mem operation of the binop: reg * {1,2,3,4,5,8,9} +/- const *)
 let binop_mem_mul (m: Ir.expr) reg1 displ =
- match m with
-  | Const 1L -> Off (displ, reg1, One)
-  | Const 2L -> Off (displ, reg1, Two)
-  | Const 3L -> BaseOff (displ, reg1, reg1, Two)
-  | Const 4L -> Off (displ, reg1, Four)
-  | Const 5L -> BaseOff (displ, reg1, reg1, Four)
-  | Const 8L -> Off (displ, reg1, Eight)
-  | Const 9L -> BaseOff (displ, reg1, reg1, Eight)
+  match m with
+  | Ir.Const 1L -> Off (displ, reg1, One)
+  | Ir.Const 2L -> Off (displ, reg1, Two)
+  | Ir.Const 3L -> BaseOff (displ, reg1, reg1, Two)
+  | Ir.Const 4L -> Off (displ, reg1, Four)
+  | Ir.Const 5L -> BaseOff (displ, reg1, reg1, Four)
+  | Ir.Const 8L -> Off (displ, reg1, Eight)
+  | Ir.Const 9L -> BaseOff (displ, reg1, reg1, Eight)
   | _ -> failwith "cannot happen -- binop_mem_mul"
 
 (* mem operation of the binop: reg1 + reg2 +/- const *)
@@ -329,11 +333,11 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
   | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
     let (reg1, asm1) = chomp_expr e1 in
-    (reg1, [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
+    (reg1, asm1@[bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
   | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
     let (reg1, asm1) = chomp_expr e1 in
-    (reg1, [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
+    (reg1, asm1@[bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
   (* neg case *)
   | BinOp (Const 0L, SUB, e1) ->
     let (reg1, asm1) = chomp_expr e1 in
@@ -426,9 +430,9 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
     let displ = get_displ op x in
     let binop_mem = binop_mem_add reg1 reg2 displ in
     if min_int32 <= x && x <= max_int32 then
-      (reg2, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg2)])
+      (reg2, asm1 @ asm2 @ asm3 @ [leaq (Mem binop_mem) (Reg reg2)])
     else
-     (reg3, asm1 @ asm2 @ (non_imm_binop ADD reg1 reg2) @ (non_imm_binop op reg2 reg3))
+     (reg3, asm1 @ asm2 @ asm3 @ (non_imm_binop ADD reg1 reg2) @ (non_imm_binop op reg2 reg3))
   (* lea-case4: reg = reg +/- const
     * operation of constant is denoted as op
     * subtraction is only allowed when constant is on right hand side
@@ -548,7 +552,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
-  | Call (func, arglist) -> failwith "implement me"
+  | Call (_func, _arglist) -> failwith "implement me"
   | ESeq _ -> failwith "eseq shouldn't exist"
 
 and chomp_stmt
@@ -564,11 +568,11 @@ and chomp_stmt
       | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
       | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
         let (reg1, asm1) = chomp_expr e1 in
-        [bt (Asm.Const 0L) (Reg reg1); jnc tru_label]
+        asm1 @ [bt (Asm.Const 0L) (Reg reg1); jnc tru_label]
       | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
       | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
         let (reg1, asm1) = chomp_expr e1 in
-        [bt (Asm.Const 0L) (Reg reg1); jc tru_label]
+        asm1 @ [bt (Asm.Const 0L) (Reg reg1); jc tru_label]
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
       | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr e1 in

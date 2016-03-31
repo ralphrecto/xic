@@ -21,7 +21,7 @@ let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
     (int_call_decls: Pos.callable_decl list)
-    ((_, func_decl_map): Ir.comp_unit) = 
+    ((_, func_decl_map): Ir.comp_unit) =
 
   let ir_func_decls = String.Map.data func_decl_map in
   let init_context_map =
@@ -57,8 +57,8 @@ let get_context_map
 
     and ctx_max_stmt (s: Ir.stmt) : (int * int) =
       match s with
-      | CJump (e, _, _) 
-      | CJumpOne (e, _) 
+      | CJump (e, _, _)
+      | CJumpOne (e, _)
       | Jump e
       | Exp e -> ctx_max_expr e
       | Move (e1, e2) ->

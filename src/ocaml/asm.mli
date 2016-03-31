@@ -67,7 +67,7 @@ val ret_reg : int -> reg
 (* offsets n words from reg contents *)
 val ( $ ) : int -> abstract_reg -> abstract_reg mem
 
-val const : int -> abstract_reg operand 
+val const : int -> abstract_reg operand
 
 (* helpful constants *)
 val num_caller_save : int
@@ -159,7 +159,6 @@ val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* comparisons *)
 val cmpq : 'reg operand -> 'reg operand -> 'reg asm_template
-val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* test *)
 val test : 'reg operand -> 'reg operand -> 'reg asm_template

@@ -10,8 +10,8 @@ let ast_constant_folding ((prog_type, prog): Typecheck.prog) =
     let open Big_int in
     match e with
     (* don't fold failing expressions *)
-    | BinOp ((_, Int i), DIV, (_, Int 0L))
-    | BinOp ((_, Int i), MOD, (_, Int 0L)) -> (t, e)
+    | BinOp ((_, Int _), DIV, (_, Int 0L))
+    | BinOp ((_, Int _), MOD, (_, Int 0L)) -> (t, e)
 
     | BinOp ((_, Int i1), MINUS, (_, Int i2)) -> (t, Int (sub i1 i2))
     | BinOp ((_, Int i1), STAR, (_, Int i2)) -> (t, Int (mul i1 i2))

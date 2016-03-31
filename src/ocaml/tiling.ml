@@ -4,9 +4,9 @@ open Typecheck
 open Ir_generation
 open Func_context
 
-module FreshReg     = Fresh.Make(struct let name = "_asmreg" end)
-module FreshLabel   = Fresh.Make(struct let name = "_asmlabel" end)
-module FreshRetPtr  = Fresh.Make(struct let name = "_asmretptr" end)
+module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
+module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
+let ret_ptr_reg   = Fake "_asmretptr"
 
 let max_int32 = Int64.of_int32_exn (Int32.max_value)
 let min_int32 = Int64.of_int32_exn (Int32.min_value)
@@ -154,7 +154,7 @@ let rec munch_expr
             else
                movq (Mem ((i-2+curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
           (new_tmp, [retmov])
-      | None ->
+      | None -> begin
           (* moving passed arguments as callee into vars *)
           match FreshArgReg.get str with
           | Some i ->
@@ -167,26 +167,25 @@ let rec munch_expr
                   movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
           | None -> (Fake str, [])
+      end
   end
   | Call (Name (fname), arglist) ->
       let callee_ctx = String.Map.find_exn fcontexts fname in
       let (arg_regs, arg_asms) =
         List.unzip (List.map ~f:(munch_expr curr_ctx fcontexts) arglist) in
-      let (ret_regs, ret_asms) =
-        let f i =
+      let (ret_reg, ret_asm) =
+        if callee_ctx.num_rets - 2 > 0 then
           let new_tmp = Fake (FreshReg.fresh ()) in
-          let asm = leaq (Mem ((i+curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
-          (new_tmp, asm) in
-        List.range 0 (max 0 (callee_ctx.num_rets -2))
-          |> List.map ~f
-          |> List.unzip in
+          let asm = leaq (Mem ((curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
+          ([new_tmp], [asm])
+        else ([], []) in
       let f i argsrc =
         let dest =
           if i < 6 then Reg (Real (arg_reg i))
           else Mem ((i-6)$(Real Rsp)) in
         movq (Reg argsrc) dest in
-      let mov_asms = List.mapi ~f (ret_regs @ arg_regs) in
-      (Real Rax, (List.concat arg_asms) @ ret_asms @ mov_asms @ [call (Label fname)])
+      let mov_asms = List.mapi ~f (ret_reg @ arg_regs) in
+      (Real Rax, (List.concat arg_asms) @ ret_asm @ mov_asms @ [call (Label fname)])
   | Name _ -> failwith "Name should never be munched by itself"
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "ESeq shouldn't exist"
@@ -223,10 +222,11 @@ and munch_stmt
   | Label l -> [label_op l]
   | Move (Temp n, e) -> begin
       let dest =
+        (* moving return values to _RETi before returning *)
         match FreshRetReg.get n with
         | Some i ->
             if i < 2 then Reg (Real (ret_reg i))
-            else Reg (Fake (FreshRetPtr.gen (i-2)))
+            else Mem ((i-2)$(ret_ptr_reg))
         | None -> Reg (Fake n) in
         let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
         e_lst @ [movq (Reg e_reg) dest]
@@ -273,13 +273,8 @@ and munch_func_decl
     let rets_n_args =
       [subq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
     let ret_ptr_mov = 
-      let f i =
-        let ret_tmp = Fake (FreshRetPtr.gen i) in
-        if i < 2 then
-          movq (Reg (Real (arg_reg i))) (Reg ret_tmp)
-        else
-          movq (Mem ((i-2)$(Real Rbp))) (Reg ret_tmp) in
-      List.map ~f (List.range 0 (curr_ctx.num_rets - 2)) in
+      if curr_ctx.num_rets - 2 < 1 then []
+      else [movq (Reg (Real (arg_reg 0))) (Reg ret_ptr_reg)] in
     init @ padding @ rets_n_args @ ret_ptr_mov in
 
   directives @ label @ prologue @ body_asm
@@ -291,7 +286,6 @@ and munch_comp_unit
   let fun_asm = List.concat_map ~f:(munch_func_decl fcontexts) decl_list in
   let directives = [text] in
   directives @ fun_asm
-
 
 (* displacement is only allowed to be 32 bits *)
 let get_displ (op: Ir.binop_code) x =
@@ -544,7 +538,6 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
         let r = if opcode = DIV then Rax else Rdx in
         (Real r, asm1 @ asm2 @ div_asm)
     end
-  | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
@@ -556,6 +549,7 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, [mov (Label str) (Reg (Fake new_tmp))])
   | Temp str -> (Fake str, [])
+  | Call (func, arglist) -> failwith "implement me"
   | ESeq _ -> failwith "eseq shouldn't exist"
 
 and chomp_stmt
@@ -597,13 +591,14 @@ and chomp_stmt
   | Label l -> [label_op l]
   | Move (Name n, e) -> begin
       let dest =
+        (* moving return values to _RETi before returning *)
         match FreshRetReg.get n with
         | Some i ->
             if i < 2 then Reg (Real (ret_reg i))
-            else Reg (Fake (FreshRetPtr.gen (i-2)))
+            else Mem ((i-2)$(ret_ptr_reg))
         | None -> Reg (Fake n) in
-        let (reg, asm) = chomp_expr e in
-        asm @ [movq (Reg reg) dest]
+        let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
+        e_lst @ [movq (Reg e_reg) dest]
   end
   | Move (Mem (e1, _), e2) ->
     let (reg1, asm1) = chomp_expr e1 in

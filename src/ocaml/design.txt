@@ -28,11 +28,11 @@ the rest of the bits, which don't matter (e.g. use setne, sete etc.)
   following manner for a function f, supposing that G is the set of functions
   that f calls:
     - If the generated abstract asm body of f contains n fake temps, and
-    - max_ret = max(0, \max_{g\in G} num_return_values(g) - 2), and
+    - max_ret = max(0, (\max_{g\in G} num_return_values(g)) - 2), and
     - max_args = max(
           0, 
           // include max_ret bc we need to pass in pointers
-          (\max_{g\in G} num_arguments(g)) + max_ret -6 
+          (\max_{g\in G} num_arguments(g)) + ((max_ret > 0) ? 1 : 0) - 6 
       )
   
   then the stack frame of f should have 1 + 1 + 9 + n + max_ret + max_args words,

@@ -73,7 +73,8 @@ let get_context_map
             let (max_args, max_rets) = ctx_max_stmt stmt in
             let max_rets' = max 0 (max_rets - 2) in
             (* include ret pointers as args *)
-            let max_args' = (max 0 (max_args + max_rets' - 6)) in
+            let ret_ptrs = if max_rets > 0 then 1 else 0 in
+            let max_args' = (max 0 (max_args + ret_ptrs - 6)) in
             Some {ctx with max_args = max_args'; max_rets = max_rets'}
         | None -> None in
       String.Map.change ctxmap fname ~f in

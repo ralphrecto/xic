@@ -240,6 +240,8 @@ let andq src dest = logic_generic "andq" src dest
 let orq src dest = logic_generic "orq" src dest
 let xorq src dest = logic_generic "xorq" src dest
 
+(* bit test *)
+let bt bit src = logic_generic "bt" bit src
 
 (* shifts *)
 let shift_generic shiftname a b =
@@ -277,6 +279,8 @@ let setz dest = set_generic "setz" dest
 let setnz dest = set_generic "setnz" dest
 let sets dest = set_generic "sets" dest
 let setns dest = set_generic "setns" dest
+let setc dest = set_generic "setc" dest
+let setnc dest = set_generic "setnc" dest
 
 (* laod effective address *)
 let leaq src dest =
@@ -336,6 +340,8 @@ let jl   l = unop_label "jl"   l
 let jle  l = unop_label "jle"  l
 let js   l = unop_label "js"   l
 let jns  l = unop_label "jns"  l
+let jc   l = unop_label "jc"   l
+let jnc  l = unop_label "jnc"  l
 let call l = unop_label "call" l
 
 (* zeroops *)

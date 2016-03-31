@@ -130,6 +130,9 @@ val andq : 'reg operand -> 'reg operand -> 'reg asm_template
 val orq : 'reg operand -> 'reg operand -> 'reg asm_template
 val xorq : 'reg operand -> 'reg operand -> 'reg asm_template
 
+(* bit test *)
+val bt : 'reg operand -> 'reg operand -> 'reg asm_template
+
 (* shifts *)
 val shlq : 'reg operand -> 'reg operand -> 'reg asm_template
 val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
@@ -148,6 +151,8 @@ val setz : 'reg operand -> 'reg asm_template
 val setnz : 'reg operand -> 'reg asm_template
 val sets : 'reg operand -> 'reg asm_template
 val setns : 'reg operand -> 'reg asm_template
+val setc : 'reg operand -> 'reg asm_template
+val setnc : 'reg operand -> 'reg asm_template
 
 (* load effective address *)
 val leaq : 'reg operand -> 'reg operand -> 'reg asm_template
@@ -177,6 +182,8 @@ val jl   : 'reg operand -> 'reg asm_template
 val jle  : 'reg operand -> 'reg asm_template
 val js   : 'reg operand -> 'reg asm_template
 val jns  : 'reg operand -> 'reg asm_template
+val jc   : 'reg operand -> 'reg asm_template
+val jnc  : 'reg operand -> 'reg asm_template
 val call : 'reg operand -> 'reg asm_template
 
 (* zeroops *)

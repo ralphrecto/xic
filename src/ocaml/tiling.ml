@@ -221,16 +221,18 @@ and munch_stmt
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
-  | Move (Temp n, e) -> begin
+  | Move (Temp n, e) -> 
+    begin
       let dest =
         match FreshRetReg.get n with
         | Some i ->
             if i < 2 then Reg (Real (ret_reg i))
             else Reg (Fake (FreshRetPtr.gen (i-2)))
-        | None -> Reg (Fake n) in
-        let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
-        e_lst @ [movq (Reg e_reg) dest]
-  end
+        | None -> Reg (Fake n) 
+      in
+      let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
+      e_lst @ [movq (Reg e_reg) dest]
+    end
   | Move (Mem (e1, _), e2) ->
     let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
     let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
@@ -333,7 +335,7 @@ let binop_mem_add reg1 reg2 displ =
 let binop_mem_const_add reg1 displ =
   Base (displ, reg1)
 
-let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
+let rec chomp_binop (e: Ir.expr) (dest: abstract_reg option) : abstract_reg * abtract_asm list =
   match e with
   (* mod 2 case *)
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
@@ -547,6 +549,11 @@ let rec chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
         let r = if opcode = DIV then Rax else Rdx in
         (Real r, asm1 @ asm2 @ div_asm)
     end
+  | _ -> failwith "shouldn't happen - chomp_binop"
+
+and chomp_expr (e: Ir.expr) : abstract_reg * abstract_asm list =
+  match e with
+  | BinOp _ -> chomp_binop e None
   | Call (func, arglist) -> failwith "implement me"
   | Const c ->
       let new_tmp = FreshReg.fresh () in
@@ -579,10 +586,12 @@ and chomp_stmt
       | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
         let (reg1, asm1) = chomp_expr e1 in
         [bt (Asm.Const 0L) (Reg reg1); jc tru_label] 
+      (* comparing with 0 *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
       | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr e1 in
         asm1 @ (cmp_zero_jump op reg1 tru_label)
+      (* comparing with constant *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
       | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr e1 in
@@ -607,16 +616,18 @@ and chomp_stmt
   | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (chomp_expr e)
   | Label l -> [label_op l]
-  | Move (Name n, e) -> begin
+  | Move (Temp n, e) -> 
+    begin
       let dest =
         match FreshRetReg.get n with
         | Some i ->
             if i < 2 then Reg (Real (ret_reg i))
             else Reg (Fake (FreshRetPtr.gen (i-2)))
         | None -> Reg (Fake n) in
-        let (reg, asm) = chomp_expr e in
-        asm @ [movq (Reg reg) dest]
-  end
+        let (reg, asm) = chomp_expr e 
+      in
+      asm @ [movq (Reg reg) dest]
+    end
   | Move (Mem (e1, _), e2) ->
     let (reg1, asm1) = chomp_expr e1 in
     let (reg2, asm2) = chomp_expr e2 in

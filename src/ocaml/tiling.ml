@@ -1,8 +1,9 @@
 open Core.Std
 open Asm
-open Typecheck
-open Ir_generation
 open Func_context
+open Ir
+open Ir_generation
+open Typecheck
 
 module FreshReg     = Fresh.Make(struct let name = "_asmreg" end)
 module FreshLabel   = Fresh.Make(struct let name = "_asmlabel" end)
@@ -105,7 +106,6 @@ let rec munch_expr
   match e with
   | BinOp (e1, opcode, e2) ->
     begin
-      (* ensure that we don't clobber user tmps *)
       let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
       let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
       match opcode with

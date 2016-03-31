@@ -183,8 +183,8 @@ let rec munch_expr
           if i < 6 then Reg (Real (arg_reg i))
           else Mem ((i-6)$(Real Rsp)) in
         movq (Reg argsrc) dest in
-      let mov_asms = List.mapi ~f (ret_regs @ arg_regs) in
-      (Real Rax, (List.concat arg_asms) @ ret_asms @ mov_asms @ [call (Label fname)])
+      let mov_asms = List.mapi ~f (ret_reg @ arg_regs) in
+      (Real Rax, (List.concat arg_asms) @ ret_asm @ mov_asms @ [call (Label fname)])
   | Ir.Name _ -> failwith "Name should never be munched by itself"
   | Ir.Call _ -> failwith "Call should always have a Name first"
   | Ir.ESeq _ -> failwith "ESeq shouldn't exist"

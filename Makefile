@@ -71,7 +71,9 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
+	@echo " HAPPY APRIL FOOLS ALICE !! " 
+	@echo "********************************************************************"
+#	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
 	@echo
 
 %.byte: %.ml

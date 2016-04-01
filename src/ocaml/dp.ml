@@ -48,75 +48,75 @@ let rec dp_stmt s =
   match s with
   | Ir.BinOp (a, Ir.ADD,a') ->
       return (dpc Addq 4, return Addq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.SUB ,a') ->
       return (dpc Op 8, return Imulq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.MUL ,a') ->
       return (dpc Imulq 1, return Fmulq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.HMUL ,a') ->
       return (dpc Fmulq 9, return Op) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.DIV ,a') ->
       return (dpc Op 10, return Lt) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.MOD ,a') ->
       return (dpc Lt 1, return Lt) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.AND ,a') ->
       return (dpc Storeq 8, return Storeq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.OR ,a') ->
       return (dpc Orq 7, return Pushq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.XOR ,a') ->
       return (dpc Orq 0, return Leaq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.LSHIFT ,a') ->
       return (dpc Pushq 10, return Leaq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.RSHIFT ,a') ->
       return (dpc Leaq 6, return Leaq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.ARSHIFT ,a') ->
       return (dpc Leaq 4, return Leaq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.EQ ,a') ->
       return (dpc Leaq 4, return (failwith "TODO")) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.NEQ ,a') ->
       return (dpc Leaq 4, return Orq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.LT ,a') ->
       return (dpc Lt 4, return Orq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.GT ,a') ->
       return (dpc Lt 4, return Orq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.LEQ ,a') ->
       return (dpc Lt 4, return Orq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.BinOp (a, Ir.GEQ ,a') ->
       return (dpc Lt 4, return Orq) >>= fun x ->
-      let ys = [x; x; x] in
+      let ys = [x;x] in
       (List.tl_exn ys) @ (return x)
   | Ir.Call (args,f) -> dp_expr [Seq [(Exp (Ir.Call (List.hd_exn f, [args])))]]
   | Ir.Const _ -> failwith "impossible should never happen"

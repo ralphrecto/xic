@@ -73,7 +73,7 @@ let test_string_of_int () =
   None === int_of_string "foo";
   ()
 
-let test_ordered_dedup xs =
+let test_ordered_dedup () =
   [] === ordered_dedup [];
   [1] === ordered_dedup [1];
   [1] === ordered_dedup [1;1];

@@ -11,7 +11,8 @@ val munch_expr : func_context -> func_contexts -> Ir.expr -> Asm.abstract_reg * 
 val munch_stmt : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_asm list
 val munch_func_decl : func_contexts -> Ir.func_decl -> Asm.abstract_asm list
 val munch_comp_unit : func_contexts -> Ir.comp_unit -> Asm.abstract_asm list
-
+val chomp_expr      : Ir.expr -> Asm.abstract_reg * Asm.abstract_asm list
+val chomp_stmt      : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_asm list
 (* Naive register allocation.
  *
  * It is assumed that you call register_allocate with the body of a function.

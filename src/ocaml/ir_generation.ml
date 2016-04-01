@@ -669,8 +669,8 @@ let ir_constant_folding (comp_unit: Ir.comp_unit) : Ir.comp_unit =
     let open Long in
     let open Big_int in
     match e with
-    | BinOp (Const i1, MOD, Const 0L)
-    | BinOp (Const i1, DIV, Const 0L) -> e
+    | BinOp (Const _, MOD, Const 0L)
+    | BinOp (Const _, DIV, Const 0L) -> e
     | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
     | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
     | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)

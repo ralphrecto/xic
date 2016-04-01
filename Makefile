@@ -37,9 +37,15 @@ OCAML_TESTS_EXE = $(notdir $(OCAML_TESTS_BIN))
 default: clean src test doc publish
 
 $(LEXER).java: $(LEXER).jflex
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
 	java -jar $(FLEXJAR) $<
 
 $(PARSER).java $(SYMBOL).java: $(PARSER).cup
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
 	java  -cp $(CUPJAR):$(CP) java_cup.Main \
 		                -destdir $(SRCDIR) \
 		                -package $(PKG) \
@@ -49,6 +55,9 @@ $(PARSER).java $(SYMBOL).java: $(PARSER).cup
 						$<
 
 $(INTERFACE_PARSER).java: $(INTERFACE_PARSER).cup
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
 	java  -cp $(CUPJAR):$(CP) java_cup.Main \
 		                -destdir $(SRCDIR) \
 		                -package $(PKG) \
@@ -60,14 +69,18 @@ $(INTERFACE_PARSER).java: $(INTERFACE_PARSER).cup
 .PHONY: src
 src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
-	@echo "* make src                                                         *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
 	@echo
 
 %.byte: %.ml
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
 	corebuild -pkgs async,oUnit \
-			  -Is   src/ocaml,test $@
+			  -Is   src/ocaml,test $@ \
+			  -cflags -warn-error,+a
 	mkdir -p $(BIN)
 	mv -f $(notdir $@) $(BIN) || true
 	rm $(notdir $@) || true
@@ -75,7 +88,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 .PHONY: doc
 doc:
 	@echo "********************************************************************"
-	@echo "* make doc                                                         *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	mkdir -p $(DOC) && javadoc $(JAVADOC_FLAGS) -d $(DOC) -cp $(CP) $(SRCS)
 	@echo
@@ -83,7 +96,7 @@ doc:
 .PHONY: test
 test: src
 	@echo "********************************************************************"
-	@echo "* make test                                                        *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	java -cp $(BIN):$(CP) org.junit.runner.JUnitCore $(TESTS)
 	for t in $(OCAML_TESTS_EXE); do \
@@ -94,7 +107,7 @@ test: src
 .PHONY: ocaml_test
 ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
-	@echo "* make ocaml_test                                                  *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	for t in $(OCAML_TESTS_EXE); do \
          ./$(BIN)/$$t; \
@@ -104,7 +117,7 @@ ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 .PHONY: publish
 publish: doc
 	@echo "********************************************************************"
-	@echo "* make publish                                                     *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	# http://stackoverflow.com/a/677212/3187068
 	if command -v ghp-import >/dev/null 2>&1; then \
@@ -120,7 +133,7 @@ publish: doc
 .PHONY: clean
 clean:
 	@echo "********************************************************************"
-	@echo "* make clean                                                       *"
+	@echo "* make $@"
 	@echo "********************************************************************"
 	rm -rf $(BIN)
 	rm -rf $(DOC)

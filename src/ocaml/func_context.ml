@@ -21,8 +21,9 @@ let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
     (int_call_decls: Pos.callable_decl list)
-    (ir_func_decls: Ir.func_decl list) = 
+    ((_, func_decl_map): Ir.comp_unit) =
 
+  let ir_func_decls = String.Map.data func_decl_map in
   let init_context_map =
     let f ctxmap (name, (arg_t, ret_t)) =
       let newctx = {
@@ -46,7 +47,7 @@ let get_context_map
       | BinOp (e1, _, e2) ->
           cmp_max (ctx_max_expr e1) (ctx_max_expr e2)
       | Call (Name fname, _) ->
-          let {num_args; num_rets} =
+          let {num_args; num_rets; _} =
             String.Map.find_exn init_context_map fname in
           (num_args, num_rets)
       | ESeq (stmt, e) ->
@@ -56,8 +57,8 @@ let get_context_map
 
     and ctx_max_stmt (s: Ir.stmt) : (int * int) =
       match s with
-      | CJump (e, _, _) 
-      | CJumpOne (e, _) 
+      | CJump (e, _, _)
+      | CJumpOne (e, _)
       | Jump e
       | Exp e -> ctx_max_expr e
       | Move (e1, e2) ->

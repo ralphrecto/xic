@@ -2,19 +2,19 @@ module Long = Int64
 open Core.Std
 open Typecheck.Expr
 open Ast.S
-open Ir
-open Ir_generation
 open OUnit
 open TestUtil
 
 let callnames = String.Map.empty
 
 module Fresh = struct
+  open Ir_generation
   let t n = Ir.Temp  (temp n)
   let l n = Ir.Label (label n)
 end
 
 module Labels = struct
+  open Ir_generation
   let label0  = label 0
   let label1  = label 1
   let label2  = label 2
@@ -92,8 +92,8 @@ module Labels = struct
   let lf  = Ir.Label labelf
 end
 
-let block l ss = Block (l, ss)
-let node l ls = Node (l, ls)
+let block l ss = Ir_generation.Block (l, ss)
+let node l ls = Ir_generation.Node (l, ls)
 let zero = Ir.Abbreviations.const 0L
 let one  = Ir.Abbreviations.const 1L
 let two  = Ir.Abbreviations.const 2L
@@ -105,6 +105,8 @@ let two  = Ir.Abbreviations.const 2L
  * expressions are equal, just do ExprEq.(a === b)` or `let open ExprEq in a
  * === b`. *)
 module ExprEq = struct
+  open Ir
+
   let (===) (a: expr) (b: expr) : unit =
     assert_equal ~printer:string_of_expr a b
 
@@ -118,34 +120,39 @@ module ExprEq = struct
 end
 
 module StmtEq = struct
+  open Ir
   let (===) (a: stmt) (b: stmt) : unit =
     assert_equal ~printer:string_of_stmt a b
 end
 
 module StmtsEq = struct
+  open Ir
   let (===) (a: stmt list) (b: stmt list) : unit =
     assert_equal ~printer:string_of_stmts a b
 end
 
 module PairEq = struct
+  open Ir
   let (===) (a: stmt list * expr) (b: stmt list * expr) : unit =
     let printer (ss, e) = sprintf "<%s; %s>" (string_of_stmts ss) (string_of_expr e) in
     assert_equal ~printer a b
 end
 
 module BlocksEq = struct
-  let (===) (a: block list) (b: block list) : unit =
+  module IRG = Ir_generation
+  let (===) (a: IRG.block list) (b: IRG.block list) : unit =
     let uniq_labels blocks =
-      List.map ~f:(fun (Block (l, _)) -> l) blocks
+      List.map ~f:(fun (IRG.Block (l, _)) -> l) blocks
       |> List.contains_dup
       |> not
     in
     assert_true (uniq_labels a);
     assert_true (uniq_labels b);
-    assert_equal ~printer:string_of_blocks a b
+    assert_equal ~printer:IRG.string_of_blocks a b
 end
 
 module GraphEq = struct
+  open Ir_generation
   let (===) (a: graph) (b: graph) : unit =
     assert_equal ~printer:string_of_graph a b
 end
@@ -164,13 +171,14 @@ let unop i op e : Typecheck.expr = (i, UnOp (op, e))
 let iunop e = unop IntT UMINUS e
 let bunop e = unop BoolT BANG e
 let id x t = (t, Id ((), x))
-let code c = Const (Int64.of_int (Char.to_int c))
+let code c = Ir.Const (Int64.of_int (Char.to_int c))
 
 module Ir_gen = Ir_generation
 
 let test_ir_expr () =
   let open ExprEq in
-  let open Abbreviations in
+  let open Ir_generation in
+  let open Ir.Abbreviations in
 
   Ir_gen.reset_fresh_temp ();
 
@@ -180,10 +188,10 @@ let test_ir_expr () =
   let two  = const 2L in
   let tru  = one in
   let fls  = zero in
-  let binop00 = BinOp (zero, ADD, zero) in
-  let binop12 = BinOp (one, ADD, two) in
-  let unopminus x = BinOp (zero, SUB, x) in
-  let unopnot x = BinOp (BinOp (x, ADD, one), MOD, two) in
+  let binop00 = Ir.BinOp (zero, ADD, zero) in
+  let binop12 = Ir.BinOp (one, ADD, two) in
+  let unopminus x = Ir.BinOp (zero, SUB, x) in
+  let unopnot x = Ir.BinOp (Ir.BinOp (x, ADD, one), MOD, two) in
   let x = temp "x" in
   let y = temp "y" in
   let word = const 8L in
@@ -211,17 +219,17 @@ let test_ir_expr () =
 
   x =/= gen_expr callnames (id "y" IntT);
 
-  (* BinOp tests *)
+  (* Ir.BinOp tests *)
   binop00 === gen_expr callnames binop00t;
   binop12  === gen_expr callnames binop12t;
-  BinOp (binop12, SUB, binop12)  === gen_expr callnames (ibinop binop12t MINUS binop12t);
-  BinOp (binop00, SUB, binop12)  === gen_expr callnames (ibinop binop00t MINUS binop12t);
-  BinOp (BinOp (tru, AND, fls), OR, BinOp (fls, OR, fls))
+  Ir.BinOp (binop12, SUB, binop12)  === gen_expr callnames (ibinop binop12t MINUS binop12t);
+  Ir.BinOp (binop00, SUB, binop12)  === gen_expr callnames (ibinop binop00t MINUS binop12t);
+  Ir.BinOp (Ir.BinOp (tru, AND, fls), OR, Ir.BinOp (fls, OR, fls))
     ===
     gen_expr callnames (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst));
 
-  BinOp (one, ADD, two)  =/= gen_expr callnames (ibinop twot PLUS onet);
-  BinOp (one, ADD, zero) =/= gen_expr callnames (bbinop onet BAR twot);
+  Ir.BinOp (one, ADD, two)  =/= gen_expr callnames (ibinop twot PLUS onet);
+  Ir.BinOp (one, ADD, zero) =/= gen_expr callnames (bbinop onet BAR twot);
 
   (* UnOp tests *)
   unopminus zero === gen_expr callnames (iunop zerot);
@@ -238,7 +246,7 @@ let test_ir_expr () =
       (move ( mem ( Temp (Ir_gen.temp 0) )) zero             ) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames earr;
 
@@ -247,10 +255,10 @@ let test_ir_expr () =
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 2 )      ) ::
       (move ( mem ( Temp (Ir_gen.temp 0) )) one                    ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
+      (move ( mem ( Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero ) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (iarr [zerot]);
 
@@ -259,11 +267,11 @@ let test_ir_expr () =
     (seq (
       (move ( Temp (Ir_gen.temp 0) ) ( Ir_gen.malloc_word 3 )          ) ::
       (move ( mem ( Temp (Ir_gen.temp 0) )) two                        ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
-      (move ( mem ( BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero     ) ::
+      (move ( mem ( Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one ) ::
+      (move ( mem ( Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero     ) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (iarr [zerot; onet]);
 
@@ -272,12 +280,12 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4)           ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 3L)                 ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) two) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero    ) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) two) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) one) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))) zero    ) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (iarr [zerot; onet; twot]);
 
@@ -287,17 +295,17 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2))::
       (move (mem (Temp (Ir_gen.temp 0))) one)::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word)))
             (eseq
               (seq (
                 (move (Temp (Ir_gen.temp 1)) (Ir_gen.malloc_word 1))::
                 (move (mem (Temp (Ir_gen.temp 1))) zero)::
                 []))
-              (BinOp (Temp (Ir_gen.temp 1), ADD, word))
+              (Ir.BinOp (Temp (Ir_gen.temp 1), ADD, word))
             ))::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr []]);
 
@@ -307,35 +315,35 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 4))::
       (move (mem (Temp (Ir_gen.temp 0))) (const 3L))::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L)))
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 24L)))
             (eseq
               (seq (
                 (move (Temp (Ir_gen.temp 3)) (Ir_gen.malloc_word 3))::
                 (move (mem (Temp (Ir_gen.temp 3))) two)::
-                (move (mem (BinOp (Temp (Ir_gen.temp 3), ADD, const 16L))) two)::
-                (move (mem (BinOp (Temp (Ir_gen.temp 3), ADD, word))) one)::
+                (move (mem (Ir.BinOp (Temp (Ir_gen.temp 3), ADD, const 16L))) two)::
+                (move (mem (Ir.BinOp (Temp (Ir_gen.temp 3), ADD, word))) one)::
                 []))
-              (BinOp (Temp (Ir_gen.temp 3), ADD, word))
+              (Ir.BinOp (Temp (Ir_gen.temp 3), ADD, word))
             ))::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L)))
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 16L)))
             (eseq
               (seq (
                 (move (Temp (Ir_gen.temp 2)) (Ir_gen.malloc_word 1))::
                 (move (mem (Temp (Ir_gen.temp 2))) zero)::
                 []))
-              (BinOp (Temp (Ir_gen.temp 2), ADD, word))
+              (Ir.BinOp (Temp (Ir_gen.temp 2), ADD, word))
             ))::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word)))
             (eseq
               (seq (
                 (move (Temp (Ir_gen.temp 1)) (Ir_gen.malloc_word 1))::
                 (move (mem (Temp (Ir_gen.temp 1))) zero)::
                 []))
-              (BinOp (Temp (Ir_gen.temp 1), ADD, word))
+              (Ir.BinOp (Temp (Ir_gen.temp 1), ADD, word))
             ))::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]);
 
@@ -347,7 +355,7 @@ let test_ir_expr () =
       (move (mem (Temp (Ir_gen.temp 0))) zero            ) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (EmptyArray, String "");
 
@@ -356,10 +364,10 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 2)              ) ::
       (move (mem (Temp (Ir_gen.temp 0))) one                           ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word))) (const 65L)) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))) (const 65L)) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (EmptyArray, String "A");
 
@@ -368,17 +376,17 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 9)                  ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 8L)                        ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (code '3')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (code '<')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (code 'l')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code 'm')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code 'a')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code 'C')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code 'O')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 64L))) (code '3')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 56L))) (code '<')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 48L))) (code ' ')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 40L))) (code 'l')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code 'm')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code 'a')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code 'C')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code 'O')) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (ArrayT IntT, String "OCaml <3");
 
@@ -387,13 +395,13 @@ let test_ir_expr () =
     (seq (
       (move (Temp (Ir_gen.temp 0)) (Ir_gen.malloc_word 5)                  ) ::
       (move (mem (Temp (Ir_gen.temp 0))) (const 4L)                        ) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code ' ')) ::
-      (move (mem (BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code ' ')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 32L))) (code ' ')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 24L))) (code ' ')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, const 16L))) (code ' ')) ::
+      (move (mem (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word)))      (code ' ')) ::
       []
     ))
-    (BinOp (Temp (Ir_gen.temp 0), ADD, word))
+    (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
   gen_expr callnames (ArrayT IntT, String "    ");
 
@@ -408,6 +416,8 @@ let test_ir_expr () =
 let test_ir_stmt () =
 	let open StmtEq in
 	let open Long in
+  let open Ir in
+  let open Ir_generation in
 
 	(* Vars *)
 	let create_int_avar (id : string) : Typecheck.avar =
@@ -435,17 +445,18 @@ let test_ir_stmt () =
 let test_lower_expr () =
   let open PairEq in
   let open Fresh in
+  let open Ir_generation in
 
   Ir_gen.reset_fresh_temp ();
 
-  let one = Const 1L in
-  let two = Const 2L in
-  let stmts = [Return; Return; CJump (one, "t", "f")] in
-  let seq = Seq stmts in
-  let eseq e = ESeq (seq, e) in
+  let one = Ir.Const 1L in
+  let two = Ir.Const 2L in
+  let stmts = [Ir.Return; Ir.Return; CJump (one, "t", "f")] in
+  let seq = Ir.Seq stmts in
+  let eseq e = Ir.ESeq (seq, e) in
 
-  (* Const *)
-  ([], Const 42L) === lower_expr (Const 42L);
+  (* Ir.Const *)
+  ([], Ir.Const 42L) === lower_expr (Ir.Const 42L);
 
   (* Name *)
   ([], Name "foo") === lower_expr (Name "foo");
@@ -456,19 +467,19 @@ let test_lower_expr () =
   (* Mem *)
   (stmts, Mem (one, NORMAL)) === lower_expr (Mem (eseq one, NORMAL));
 
-  (* ESeq *)
-  (stmts @ stmts, one) === lower_expr (ESeq (seq, eseq one));
+  (* Ir.ESeq *)
+  (stmts @ stmts, one) === lower_expr (Ir.ESeq (seq, eseq one));
 
   (* BinOp *)
-  (stmts@[Move (t 0, one)]@stmts, BinOp(t 0, ADD, one))
+  (stmts@[Ir.Move (t 0, one)]@stmts, BinOp(t 0, ADD, one))
   ===
   lower_expr (BinOp (eseq one, ADD, eseq one));
 
   (* Call *)
   (stmts@
-   stmts@[Move (t 1, one)]@
-   stmts@[Move (t 2, two)]@
-   [Move (t 3, Call(Name "f", [t 1; t 2]))],
+   stmts@[Ir.Move (t 1, one)]@
+   stmts@[Ir.Move (t 2, two)]@
+   [Ir.Move (t 3, Call(Name "f", [t 1; t 2]))],
    t 3)
   ===
   lower_expr (Call (eseq (Name "f"), [eseq one; eseq two]));
@@ -478,21 +489,22 @@ let test_lower_expr () =
 let test_lower_stmt () =
   let open StmtsEq in
   let open Fresh in
+  let open Ir_generation in
 
-  let one = Const 1L in
-  let two = Const 2L in
-  let stmts = [Return; Return; CJump (one, "t", "f")] in
-	let stmts2 = [Return; Return; CJump (one, "f", "t")] in
-  let seq = Seq stmts in
-	let seq2 = Seq stmts2 in
-  let eseq e = ESeq (seq, e) in
-	let eseq2 e = ESeq (seq2, e) in
+  let one = Ir.Const 1L in
+  let two = Ir.Const 2L in
+  let stmts = [Ir.Return; Ir.Return; Ir.CJump (one, "t", "f")] in
+	let stmts2 = [Ir.Return; Ir.Return; Ir.CJump (one, "f", "t")] in
+  let seq = Ir.Seq stmts in
+	let seq2 = Ir.Seq stmts2 in
+  let eseq e = Ir.ESeq (seq, e) in
+	let eseq2 e = Ir.ESeq (seq2, e) in
 
-  (* Label *)
-  [Label "l"] === lower_stmt (Label "l");
+  (* Ir.Label *)
+  [Ir.Label "l"] === lower_stmt (Ir.Label "l");
 
-  (* Return *)
-  [Return] === lower_stmt Return;
+  (* Ir.Return *)
+  [Ir.Return] === lower_stmt Ir.Return;
 
   (* CJump *)
   stmts@[CJump (one, "t", "f")] === lower_stmt (CJump (eseq one, "t", "f"));
@@ -503,15 +515,15 @@ let test_lower_stmt () =
   (* Exp *)
   stmts === lower_stmt (Exp (eseq one));
 
-  (* Move *)
-  stmts@stmts2@[Move (one, two)]
+  (* Ir.Move *)
+  stmts@stmts2@[Ir.Move (one, two)]
   ===
-  lower_stmt (Move (eseq one, eseq2 two));
+  lower_stmt (Ir.Move (eseq one, eseq2 two));
 
-  (* Seq ss *)
+  (* Ir.Seq ss *)
   stmts@stmts@stmts
   ===
-  lower_stmt (Seq [Seq stmts; Seq stmts; Seq stmts]);
+  lower_stmt (Ir.Seq [Ir.Seq stmts; Ir.Seq stmts; Ir.Seq stmts]);
 
   ()
 
@@ -520,6 +532,8 @@ let test_gen_block () =
   let open BlocksEq in
   let open Ir.Abbreviations in
   let open Ir.Infix in
+  let open Ir in
+  let open Ir_generation in
 
   reset_fresh_label ();
   let stmts = [] in
@@ -796,6 +810,8 @@ let test_connect_blocks () =
   let open BlocksEq in
   let open Ir.Abbreviations in
   let open Ir.Infix in
+  let open Ir in
+  let open Ir_generation in
 
   let blocks = [] in
   let expected = [] in
@@ -902,6 +918,8 @@ let test_create_graph () =
   let open GraphEq in
   let open Ir.Abbreviations in
   let open Ir.Infix in
+  let open Ir in
+  let open Ir_generation in
 
   let blocks   = [] in
   let expected = [] in
@@ -974,6 +992,9 @@ let test_create_graph () =
   ()
 
 module Graphs = struct
+  open Ir
+  open Ir_generation
+
   let n (l,ls) = Node (l, ls)
   let a, b, c, d = "a", "b", "c", "d"
   let all = [a;b;c;d]
@@ -997,6 +1018,9 @@ end
 
 let test_valid_trace () =
   let open Graphs in
+  let open Ir in
+  let open Ir_generation in
+
   (* In all graphs, single hop paths are good. *)
   List.iter graphs ~f:(fun g ->
     List.iter all ~f:(fun x -> assert_true (valid_trace g [x]))
@@ -1110,6 +1134,9 @@ let test_valid_trace () =
 
 let test_get_trace () =
   let open Graphs in
+  let open Ir in
+  let open Ir_generation in
+
   List.iter graphs ~f:(fun g ->
     List.iter all ~f:(fun x ->
       assert_true (valid_trace g (find_trace g (get_node g x)))
@@ -1118,6 +1145,8 @@ let test_get_trace () =
 
 let test_valid_seq () =
   let open Graphs in
+  let open Ir in
+  let open Ir_generation in
 
   (* In all graphs, single hop seqs are good. *)
   List.iter graphs ~f:(fun g ->
@@ -1154,6 +1183,9 @@ let test_valid_seq () =
 
 let test_find_seq () =
   let open Graphs in
+  let open Ir in
+  let open Ir_generation in
+
   List.iter graphs ~f:(fun g ->
     List.iter all ~f:(fun _ ->
       assert_true (valid_seq g (find_seq g))
@@ -1165,6 +1197,8 @@ let test_tidy () =
   let open BlocksEq in
   let open Ir.Abbreviations in
   let open Ir.Infix in
+  let open Ir in
+  let open Ir_generation in
 
   let blocks = [
   ] in
@@ -1263,6 +1297,8 @@ let test_reorder () =
   let open BlocksEq in
   let open Ir.Abbreviations in
   let open Ir.Infix in
+  let open Ir in
+  let open Ir_generation in
 
   reset_fresh_label ();
 

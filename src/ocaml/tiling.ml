@@ -711,7 +711,7 @@ and chomp_expr
       movq (Reg argsrc) dest in
     let mov_asms = List.mapi ~f (ret_reg @ arg_regs) in
     (Real Rax, (List.concat arg_asms) @ ret_asm @ mov_asms @ [call (Label fname)])
-  | Name _ -> failwith "Name should never be munched by itself"
+  | Name _ -> failwith "Name should never be chomp by itself"
   | Call _ -> failwith "Call should always have a Name first"
   | ESeq _ -> failwith "eseq shouldn't exist"
 

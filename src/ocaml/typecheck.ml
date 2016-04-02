@@ -687,4 +687,7 @@ let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
     |Use (_, id) -> ((), Use ((), id))
   in
   let use_list = List.map ~f: use_typecheck uses in
-  Ok ((), Prog (use_list, func_list))
+  let interfaces' =
+    let f (_, interface) = ((), interface) in
+    List.map ~f interfaces in
+  Ok (FullProg (((), Prog (use_list, func_list)), interfaces'))

@@ -111,4 +111,4 @@ val func_decl_typecheck: context -> Pos.callable_decl -> context Error.result
 val func_typecheck: context -> Pos.callable -> context Error.result
 val fst_func_pass: Pos.callable list -> Pos.interface list -> context Error.result
 val snd_func_pass: context -> Pos.callable -> callable Error.result
-val prog_typecheck: Pos.full_prog -> prog Error.result
+val prog_typecheck: Pos.full_prog -> full_prog Error.result

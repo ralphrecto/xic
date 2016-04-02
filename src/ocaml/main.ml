@@ -39,49 +39,79 @@ let format_err_msg ((row, col), msg) =
   let col_s = string_of_int col in
   "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
+let write (f: 'a -> string) (out: string) (tc: 'a Error.result) =
+  let contents =
+    match tc with
+    | Ok el -> f el 
+    | Error e -> format_error_msg e in
+  Writer.save out ~contents
+
+let get_callable_decls (FullProg (_, (_, interfaces))) = 
+ List.fold_left
+   ~f:(fun acc (_, Interface clist) -> clist @ acc)
+   ~init:[] interfaces
+
+let ( $ ) = Fn.compose
+
+(* actual compiler options *)
+let typecheck (ast: string) : Typecheck.full_prog Error.result = 
+  ast
+    |> StdString.trim
+    |> Sexp.of_string
+    |> Pos.full_prof_of_sexp
+    |> prog_typecheck
+
+let ir_gen (ast: string) : Ir.comp_unit Error.result = 
+  let f = 
+    let g1 = ir_gen $ ast_constant_folding in
+    let g2 = ir_constant_folding $ g1 in
+    let g3 = lower_comp_unit $ g2 in
+    block_reorder_comp_unit $ g3 in
+  Result.map (typecheck ast) ~f
+
+let ir_gen_no_opt (ast: string) : Ir.comp_unit Error.result = 
+  let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
+  Result.map (typecheck ast) ~f
+
+(* debugging paths *)
+let debug_ast_cfold (ast: string) : Typecheck.full_prog Error.result =
+  Result.map (typecheck ast) ~f:ast_constant_folding
+
+let debug_ir_gen (ast: string) : Ir.comp_unit Error.result =
+  Result.map (ast_cfold ast) ~f:gen_comp_unit
+
+let debug_ir_cfold (ast: string): Ir.comp_unit Error.result =
+  Result.map (ir_gen ast) ~f:ir_constant_folding
+
+let debug_ir_lower (ast: string): Ir.comp_unit Error.result =
+  Result.map (ir_cfold ast) ~f:lower_comp_unit
+
+let debug_ir_blkreorder (ast: string): Ir.comp_unit Error.result =
+  Result.map (ir_lower ast) ~f:block_reorder_comp_unit
+
 let main flags asts () : unit Deferred.t =
-  let open Ast.S in
-  let typeds =
-    asts
-    |> List.map ~f:StdString.trim
-    |> List.map ~f:Sexp.of_string
-    |> List.map ~f:Pos.full_prog_of_sexp
-    |> List.map ~f:(fun (FullProg (prog, interfaces)) ->
-       match prog_typecheck (FullProg (prog, interfaces)) with
-       | Ok p ->
-         let callables =
-           List.fold_left
-             ~f:(fun acc (_, Interface clist) -> clist @ acc)
-             ~init:[] interfaces in
-         Ok (abi_callable_decl_names callables, p)
-       | Error e -> Error e)
-  in
-  if flags.typecheck then begin
-    Deferred.List.iter (List.zip_exn typeds flags.outputs) ~f:(fun (typed, out) ->
-      match typed with
-      | Ok (_, p) ->
-          if flags.tcdebug then
-            let sexp = Typecheck.sexp_of_prog p in
-            Writer.save out ~contents:(Sexp.to_string sexp)
-          else
-            Writer.save out ~contents:"Valid Xi Program"
-      | Error e -> return (print_endline (format_err_msg e)))
-  end else if flags.irgen then
-    Deferred.List.iter (List.zip_exn typeds flags.outputs) ~f:(fun (typed, out) ->
-      let ir = begin
-        let open Result in
-        typed >>| fun (callnames, ast) ->
-        let ast = do_if flags.ast_cfold ast_constant_folding ast in
-        let ir = gen_comp_unit callnames ast in
-        let ir = do_if flags.ir_cfold ir_constant_folding ir in
-        let ir = do_if flags.lower lower_comp_unit ir in
-        let ir = do_if flags.blkreorder block_reorder_comp_unit ir in
-        sexp_of_comp_unit ir
-      end in
-      match ir with
-      | Ok s -> Writer.save out ~contents:s
-      | Error e -> return (print_endline (format_err_msg e))
-    )
+  let help (to_str: 'a -> string) (astf: string -> 'a Error.result) = 
+    List.zip_exn outs (List.map ~f:astf asts) |>
+    Deferred.List.iter ~f:(fun (out, elt) -> write to_str out elt) in
+
+  if flags.typecheck then
+    help (fun _ -> "Valid Xi Program") typecheck
+  else if flags.tcdebug then
+    let to_str (FullProg (prog, _): Typecheck.full_prog) : string = 
+      prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
+    help to_str typecheck
+  else if flags.ir_gen && flags.no_opt then
+    help sexp_of_comp_unit ir_gen_no_opt
+  else if flags.ir_gen then
+    help sexp_of_comp_unit ir_gen
+  else if flags.debug-ast-cfold then
+    help sexp_of_comp_unit debug_ast_cfold
+  else if flags.debug-ir-gen then
+    help sexp_of_comp_unit debug_ast_cfold
+  else if flags.debug-ir-lower then
+    help sexp_of_comp_unit debug_ir_lower
+  else if flags.debug-ir-blkreorder then
+    help sexp_of_comp_unit debug_ir_blkreorder
   else return ()
 
 let () =

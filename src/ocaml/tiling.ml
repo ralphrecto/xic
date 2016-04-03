@@ -346,9 +346,6 @@ let rec chomp_binop
   (fcontexts: func_contexts)
   (e: Ir.expr) 
   (dest: abstract_reg option) =   
-(* TODO: deep pattern match with on subexpressions to see if they are memory locations
-           if they are don't bring them into a register 
-           -- but if the destination is a memory location then bring it into a regsiter *)
   match e with
   (* mod 2 case *)
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
@@ -764,7 +761,6 @@ and chomp_stmt
   | Exp e -> snd (chomp_expr curr_ctx fcontexts e)
   | Label l -> [label_op l]
   | Move (Temp n, (BinOp _ as e)) ->
-    (* TODO: need to do better handling when destination is memory *)
     begin
       let dest =
         (* moving return values to _RETi before returning *)

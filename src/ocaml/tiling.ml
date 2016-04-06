@@ -683,34 +683,7 @@ and chomp_expr
   (e: Ir.expr) =
   match e with
   | BinOp _ -> chomp_binop curr_ctx fcontexts e None
-  | Const c ->
-      let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
-  | Mem (e, _) ->
-      let (e_reg, e_asm) = chomp_expr curr_ctx fcontexts e in
-      let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
-  | Temp str -> (Fake str, [])
-  | Call (Name (fname), arglist) ->
-    let callee_ctx = String.Map.find_exn fcontexts fname in
-    let (arg_regs, arg_asms) =
-      List.unzip (List.map ~f:(munch_expr curr_ctx fcontexts) arglist) in
-    let (ret_reg, ret_asm) =
-      if callee_ctx.num_rets - 2 > 0 then
-        let new_tmp = Fake (FreshReg.fresh ()) in
-        let asm = leaq (Mem ((curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
-        ([new_tmp], [asm])
-      else ([], []) in
-    let f i argsrc =
-      let dest =
-        if i < 6 then Reg (Real (arg_reg i))
-        else Mem ((i-6)$(Real Rsp)) in
-      movq (Reg argsrc) dest in
-    let mov_asms = List.mapi ~f (ret_reg @ arg_regs) in
-    (Real Rax, (List.concat arg_asms) @ ret_asm @ mov_asms @ [call (Label fname)])
-  | Name _ -> failwith "Name should never be chomp by itself"
-  | Call _ -> failwith "Call should always have a Name first"
-  | ESeq _ -> failwith "eseq shouldn't exist"
+  | (Const _ | Mem _ | Temp _| Call _| Name _| ESeq _) -> munch_expr curr_ctx fcontexts e
 
 and chomp_stmt
     (curr_ctx: func_context)

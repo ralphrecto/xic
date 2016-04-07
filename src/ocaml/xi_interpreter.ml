@@ -39,8 +39,7 @@ let string_of_values (vs: value list) : string =
   |> String.of_char_list
 
 (* conv, io interface file functions *)
-(* NOTE: eof() function in io not included idk how to do it *)
-
+(* NOTE: eof() function in io not included -- idk how to do it *)
 let unparseInt (n: int64) : string =
   let open Long in
   to_string n
@@ -101,7 +100,7 @@ let rec bind_ids store ids =
     in
     let rec populate_list' t count acc =
       if count > 0L then 
-        populate_list' t (Int64.pred count) (filler::acc)
+        populate_list' t (Long.pred count) (filler::acc)
       else
         acc
     in

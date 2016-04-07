@@ -188,10 +188,13 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
         begin
           match (eval_expr store e1), (eval_expr store e2) with
           | Array l, Int i ->
-            let i' = Long.to_int i in
-            let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
-            l := new_l;
-            (store, None)
+            if Int64.of_int (List.length (!l)) <= i then 
+              failwith "assigning to index out of bounds!"
+            else 
+              let i' = Long.to_int i in
+              let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
+              l := new_l;
+              (store, None)
           | _ -> failwith "shouldn't happen in asgn"
         end
       | _ -> failwith "shouldn't happen - asgn left is not a var or array indexing"

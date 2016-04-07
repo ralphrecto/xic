@@ -354,7 +354,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
           Label f_label;
           Exp (Call (Name out_of_bounds_proc, []));
           Label t_label;
-          Move (Mem (addr$$addr, NORMAL), gen_expr callnames fullrhs)
+          Move (Mem (addr_tmp$$index_temp, NORMAL), gen_expr callnames fullrhs)
         ]
       | _ -> failwith "impossible"
     end

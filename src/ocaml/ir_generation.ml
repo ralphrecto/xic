@@ -338,9 +338,24 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
     begin
       match lhs with
       | Id (_, idstr) -> Move (Temp idstr, gen_expr callnames fullrhs)
-      | Index (arr, index) ->
-        let mem_loc = gen_expr callnames arr in
-        Move (Mem (mem_loc$$(gen_expr callnames index), NORMAL), gen_expr callnames fullrhs)
+      | Index (arr, i) ->
+        let index = gen_expr callnames i in
+        let addr = gen_expr callnames arr in
+        let index_tmp = Temp (fresh_temp ()) in
+        let addr_tmp = Temp (fresh_temp ()) in
+        let len = Mem (BinOp (addr_tmp, SUB, word), NORMAL) in
+        let in_bounds = BinOp (BinOp (index_tmp, LT, len), AND, BinOp (index_tmp, GEQ, Const(0L))) in
+        let t_label = fresh_label () in
+        let f_label = fresh_label () in
+        Seq [
+          Move (index_tmp, index);
+          Move (addr_tmp, addr);
+          CJump (in_bounds, t_label, f_label);
+          Label f_label;
+          Exp (Call (Name out_of_bounds_proc, []));
+          Label t_label;
+          Move (Mem (addr$$addr, NORMAL), gen_expr callnames fullrhs)
+        ]
       | _ -> failwith "impossible"
     end
   | Block stmts -> Seq (List.map ~f:(gen_stmt callnames) stmts)

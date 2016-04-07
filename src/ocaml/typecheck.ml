@@ -39,7 +39,7 @@ module Expr = struct
     | IntT -> "int"
     | BoolT -> "bool"
     | UnitT -> "unit"
-    | ArrayT t' -> sprintf "%s[]" (to_string t')
+    | ArrayT t' -> sprintf "[%s]" (to_string t')
     | TupleT ts -> sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:to_string ts))
     | EmptyArray -> "{}"
 

@@ -8,6 +8,11 @@ module AsmsEq = struct
     assert_equal ~printer:(fun a -> "\n" ^ Asm.string_of_asms a ^ "\n") a b
 end
 
+module AbstrAsmsEq = struct 
+  let (===) (a: Asm.abstract_asm list) (b: Asm.abstract_asm list) : unit =
+    assert_equal ~printer:(fun a -> "\n" ^ Asm.string_of_abstract_asms a ^ "\n") a b 
+end
+
 module Dummy = struct
   open Func_context
   let dummy_ctx = {num_args = 0; num_rets = 0; max_args = 0; max_rets = 0;}
@@ -112,31 +117,88 @@ module Asm_Abbreviations = struct
     | _ -> failwith "invalid offset"
 end
 
-(* 
- * there isn't a separate chomp_expr test
- * because the cases other than binop are identical to munch 
- *)
-let test_chomp_binop () =
-  let open Ir_Abbreviations in
+let test_chomp () =
   let open Ir in
+  let open Ir.Infix in
+  let open Ir.Abbreviations in
   let open Asm in 
-  let open AsmsEq in
+  let open AbstrAsmsEq in
   let open Tiling in
-  let module IA = Ir_Abbreviations in
+  let open Dummy in
+  let module IA = Ir.Abbreviations in
+  
+  FreshReg.reset ();
+  let _reg0 = Reg (Fake (FreshReg.fresh ())) in
+  let reg1 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg2 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg3 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg4 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg5 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg6 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg7 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg8 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg9 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg10 = Reg (Fake (FreshReg.fresh ())) in
 
   (* mod2 == 0 with no set destination *)
   FreshReg.reset ();
-  let _mod2_cmp_0 = eq_ (mod_ (temp "x") (IA.const 2L)) (IA.const 0L) in
-  let fresh_reg = Reg (Fake (FreshReg.fresh ())) in
-  let _expected = [
+  let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 0L) in
+  let fresh_reg = reg1 in 
+  let expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     setnc fresh_reg 
   ]
   in
-  (* mod2 == 0 with set destination *)
+  let result = snd (chomp_expr dummy_ctx dummy_fcontexts expr1) in
+  expected === result;
 
- ()
+  (* mod2 == 0 with set destination *)
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 0L)) in
+  let fresh_reg = reg1 in 
+  let expected = [
+    mov (Reg (Fake "x")) fresh_reg;
+    bt (Asm.Const 0L) fresh_reg;
+    setnc (Reg (Fake "y")) 
+  ]
+  in
+  let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in
+  expected === result;
+
+  (* mod2 == 1 with no set destination *)
+  FreshReg.reset ();
+  let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 1L) in
+  let fresh_reg = reg1 in 
+  let expected = [
+    mov (Reg (Fake "x")) fresh_reg;
+    bt (Asm.Const 0L) fresh_reg;
+    setc fresh_reg 
+  ]
+  in
+  let result = snd (chomp_expr dummy_ctx dummy_fcontexts expr1) in
+  expected === result;
+
+  (* mod2 == 1 with set destination *)
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 1L)) in
+  let fresh_reg = reg1 in 
+  let expected = [
+    mov (Reg (Fake "x")) fresh_reg;
+    bt (Asm.Const 0L) fresh_reg;
+    setc (Reg (Fake "y")) 
+  ]
+  in
+  let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in
+  expected === result;
+
+  (* neg case with no set destination *)
+
+  (* neg case with set destination and same as var negating *)
+
+  (* neg case with set destination but different from var negating *)
+
+  ()
 
 
 let test_register_allocation () =
@@ -240,7 +302,7 @@ let test_register_allocation () =
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
-      "test_chomp"               >:: test_chomp_binop;
+      "test_chomp"               >:: test_chomp;
       "test_register_allocation" >:: test_register_allocation;
     ] |> run_test_tt_main
 

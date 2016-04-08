@@ -85,6 +85,7 @@ val string_of_mem : ('reg -> string) -> 'reg mem -> string
 val string_of_operand : ('reg -> string) -> 'reg operand -> string
 val string_of_asm_template : ('reg -> string) -> 'reg asm_template -> string
 val string_of_abstract_asm : abstract_asm -> string
+val string_of_abstract_asms : abstract_asm list -> string
 val string_of_asm : asm -> string
 val string_of_asms : asm list -> string
 

@@ -152,6 +152,9 @@ let string_of_asm_template f asm =
 let string_of_abstract_asm asm =
   string_of_asm_template string_of_abstract_reg asm
 
+let string_of_abstract_asms asms =
+  Util.join (List.map ~f:string_of_abstract_asm asms)
+
 let string_of_asm asm =
   string_of_asm_template string_of_reg asm
 

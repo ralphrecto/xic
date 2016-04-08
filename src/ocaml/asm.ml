@@ -26,8 +26,9 @@ type reg =
   | R14
   | R15
 
+type fake = string
 type abstract_reg =
-  | Fake of string
+  | Fake of fake
   | Real of reg
 
 type scale =
@@ -60,18 +61,18 @@ type asm = reg asm_template
 (* important register helpers                                                 *)
 (******************************************************************************)
 let arg_reg = function
-  | 0 -> Rdi
-  | 1 -> Rsi
-  | 2 -> Rdx
-  | 3 -> Rcx
-  | 4 -> R8
-  | 5 -> R9
-  | _ -> failwith "nth_arg_reg: bad arg num"
+  | 0 -> Some Rdi
+  | 1 -> Some Rsi
+  | 2 -> Some Rdx
+  | 3 -> Some Rcx
+  | 4 -> Some R8
+  | 5 -> Some R9
+  | _ -> None
 
 let ret_reg = function
-  | 0 -> Rdi
-  | 1 -> Rsi
-  | _ -> failwith "nth_ret_reg: bad arg num"
+  | 0 -> Some Rax
+  | 1 -> Some Rdx
+  | _ -> None
 
 let ( $ ) n reg =
   Base (Some (Int64.of_int n), reg)

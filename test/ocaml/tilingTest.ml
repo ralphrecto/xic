@@ -14,12 +14,9 @@ module AbstrAsmsEq = struct
 end
 
 module MunchExprEq = struct
-  let (===) ((r1, a1): (Asm.abstract_reg * Asm.abstract_asm list))
-            ((r2, a2): (Asm.abstract_reg * Asm.abstract_asm list)) : unit =
-    let printer (r, a) =
-      sprintf "\n%s\n%s\n" (Asm.string_of_abstract_reg r)
-                           (Asm.string_of_abstract_asms a)
-    in
+  let (===) ((r1, a1): (Asm.fake * Asm.abstract_asm list))
+            ((r2, a2): (Asm.fake * Asm.abstract_asm list)) : unit =
+    let printer (r, a) = sprintf "\n%s\n%s\n" r (Asm.string_of_abstract_asms a) in
     assert_equal ~printer (r1, a1) (r2, a2)
 end
 
@@ -41,8 +38,8 @@ let test_munch_expr _ =
   let open Dummy in
 
   let munch_expr = munch_expr dummy_ctx dummy_fcontexts in
-  let fakereg i = Fake (FreshReg.gen i) in
-  let fakeop i = fake (FreshReg.gen i) in
+  let gen i = FreshReg.gen i in
+  let fakeop i = fake (gen i) in
 
   let test expected input =
     FreshReg.reset ();
@@ -51,20 +48,20 @@ let test_munch_expr _ =
 
   (* basic temps *)
   let input = temp "foo" in
-  let expected = ((fakereg 0), [
+  let expected = ((gen 0), [
     movq (fake "foo") (fakeop 0)
   ]) in
   test expected input;
 
   let input = temp "bar" in
-  let expected = ((fakereg 0), [
+  let expected = ((gen 0), [
     movq (fake "bar") (fakeop 0)
   ]) in
   test expected input;
 
   (* consts *)
   let input = three in
-  let expected = ((fakereg 0), [
+  let expected = ((gen 0), [
     movq (const 3) (fakeop 0)
   ]) in
   test expected input;
@@ -72,7 +69,7 @@ let test_munch_expr _ =
   (* binops *)
   let simple_binop_test irop asmop =
     let input = irop one two in
-    let expected = ((fakereg 0), [
+    let expected = ((gen 0), [
       movq (const 1) (fakeop 0);
       movq (const 2) (fakeop 1);
       asmop (fakeop 1) (fakeop 0);
@@ -87,7 +84,7 @@ let test_munch_expr _ =
 
   let shift_binop_test irop asmop =
     let input = irop one two in
-    let expected = ((fakereg 0), [
+    let expected = ((gen 0), [
       movq (const 1) (fakeop 0);
       movq (const 2) (fakeop 1);
       movq (fakeop 1) arcx;

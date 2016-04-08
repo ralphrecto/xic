@@ -29,9 +29,9 @@ the Java runtime on our compiler's compiled `.class` files.
 | rax |      | RET1 |              |
 | rbx |      |      | callee-saved |
 | rcx | ARG4 |      |              |
-| rdx | ARG3 |      |              |
+| rdx | ARG3 | RET2 |              |
 | rsi | ARG2 |      |              |
-| rdi | ARG1 | RET2 |              |
+| rdi | ARG1 |      |              |
 | rbp |      |      | callee-saved |
 | rsp |      |      |              |
 | r8  | ARG5 |      |              |

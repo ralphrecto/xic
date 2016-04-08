@@ -26,8 +26,9 @@ type reg =
   | R14
   | R15
 
+type fake = string
 type abstract_reg =
-  | Fake of string
+  | Fake of fake
   | Real of reg
 
 type scale =
@@ -59,10 +60,10 @@ type asm = reg asm_template
 (******************************************************************************)
 (* asm helpers                                                                *)
 (******************************************************************************)
-(* function argument registers, 0 to 5 *)
-val arg_reg : int -> reg
-(* return value registers, 0 to 1 *)
-val ret_reg : int -> reg
+(* `arg_reg i` returns the ith function argument register if 0 <= i <= 5. *)
+val arg_reg : int -> reg option
+(* `ret_reg i` returns the ith return value register if 0 <= i <= 1. *)
+val ret_reg : int -> reg option
 
 (* offsets n words from reg contents *)
 val ( $ ) : int -> abstract_reg -> abstract_reg mem

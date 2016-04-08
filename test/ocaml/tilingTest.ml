@@ -8,9 +8,19 @@ module AsmsEq = struct
     assert_equal ~printer:(fun a -> "\n" ^ Asm.string_of_asms a ^ "\n") a b
 end
 
-module AbstrAsmsEq = struct 
+module AbstrAsmsEq = struct
   let (===) (a: Asm.abstract_asm list) (b: Asm.abstract_asm list) : unit =
-    assert_equal ~printer:(fun a -> "\n" ^ Asm.string_of_abstract_asms a ^ "\n") a b 
+    assert_equal ~printer:(fun a -> "\n" ^ Asm.string_of_abstract_asms a ^ "\n") a b
+end
+
+module MunchExprEq = struct
+  let (===) ((r1, a1): (Asm.abstract_reg * Asm.abstract_asm list))
+            ((r2, a2): (Asm.abstract_reg * Asm.abstract_asm list)) : unit =
+    let printer (r, a) =
+      sprintf "\n%s\n%s\n" (Asm.string_of_abstract_reg r)
+                           (Asm.string_of_abstract_asms a)
+    in
+    assert_equal ~printer (r1, a1) (r2, a2)
 end
 
 module Dummy = struct
@@ -20,21 +30,61 @@ module Dummy = struct
 end
 
 let test_munch_expr _ =
+  let open Ir in
+  let open Ir.Abbreviations in
+  let module IRA = Ir.Abbreviations in
+  let open Asm in
+  let open Asm.Abbreviations in
+  let open MunchExprEq in
+  let open Tiling in
+  let open Dummy in
+
+  let munch_expr = munch_expr dummy_ctx dummy_fcontexts in
+  let fakereg i = Fake (FreshReg.gen i) in
+  let fakeop i = fake (FreshReg.gen i) in
+
+  let test expected input =
+    FreshReg.reset ();
+    expected === munch_expr input;
+  in
+
+  (* basic temps *)
+  let input = temp "foo" in
+  let expected = ((fakereg 0), [
+    mov (fake "foo") (fakeop 0)
+  ]) in
+  test expected input;
+
+  let input = temp "bar" in
+  let expected = ((fakereg 0), [
+    mov (fake "bar") (fakeop 0)
+  ]) in
+  test expected input;
+
+  (* consts *)
+  let input = IRA.const 42L in
+  let expected = ((fakereg 0), [
+    mov (const 42) (fakeop 0)
+  ]) in
+  test expected input;
+
+  (* binops *)
+
   ()
 
 let test_chomp _ =
   let open Ir in
   let open Ir.Infix in
   let open Ir.Abbreviations in
-  let open Asm in 
+  let open Asm in
   let open AbstrAsmsEq in
   let open Tiling in
   let open Dummy in
   let module IA = Ir.Abbreviations in
-  
+
   FreshReg.reset ();
-  let _reg0 = Reg (Fake (FreshReg.fresh ())) in
-  let reg1 = Reg (Fake (FreshReg.fresh ())) in
+  let reg0 = Reg (Fake (FreshReg.fresh ())) in
+  let _reg1 = Reg (Fake (FreshReg.fresh ())) in
   let _reg2 = Reg (Fake (FreshReg.fresh ())) in
   let _reg3 = Reg (Fake (FreshReg.fresh ())) in
   let _reg4 = Reg (Fake (FreshReg.fresh ())) in
@@ -48,7 +98,7 @@ let test_chomp _ =
   (* mod2 == 0 with no set destination *)
   FreshReg.reset ();
   let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 0L) in
-  let fresh_reg = reg1 in 
+  let fresh_reg = reg0 in
   let expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
@@ -61,11 +111,11 @@ let test_chomp _ =
   (* mod2 == 0 with set destination *)
   FreshReg.reset ();
   let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 0L)) in
-  let fresh_reg = reg1 in 
+  let fresh_reg = reg0 in
   let expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setnc (Reg (Fake "y")) 
+    setnc (Reg (Fake "y"))
   ]
   in
   let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in
@@ -74,11 +124,11 @@ let test_chomp _ =
   (* mod2 == 1 with no set destination *)
   FreshReg.reset ();
   let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 1L) in
-  let fresh_reg = reg1 in 
+  let fresh_reg = reg0 in
   let expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setc fresh_reg 
+    setc fresh_reg
   ]
   in
   let result = snd (chomp_expr dummy_ctx dummy_fcontexts expr1) in
@@ -87,11 +137,11 @@ let test_chomp _ =
   (* mod2 == 1 with set destination *)
   FreshReg.reset ();
   let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 1L)) in
-  let fresh_reg = reg1 in 
+  let fresh_reg = reg0 in
   let expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setc (Reg (Fake "y")) 
+    setc (Reg (Fake "y"))
   ]
   in
   let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in

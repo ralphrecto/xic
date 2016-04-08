@@ -20,6 +20,15 @@ let binop_to_instr (op: Ir.binop_code) =
   | Ir.XOR -> xorq
   | _ -> failwith "shouldn't happen -- binop_to_instr"
 
+let binop_commutative (op: Ir.binop_code) =
+  match op with
+  | Ir.SUB -> false
+  | Ir.ADD
+  | Ir.AND
+  | Ir.OR
+  | Ir.XOR -> true
+  | _ -> failwith "shouldn't happen -- binop_commutative"
+
 let cmp_to_instr (op: Ir.binop_code) =
   match op with
   | Ir.EQ -> sete
@@ -111,7 +120,7 @@ let imm_binop op const reg dest =
 let non_imm_binop op reg1 reg2 dest =
   if reg2 = dest then 
     [(binop_to_instr op) (Reg reg1) (Reg reg2)]
-  else if reg1 = dest then 
+  else if reg1 = dest && binop_commutative op then
     [(binop_to_instr op) (Reg reg2) (Reg reg1)]
   else
     [(binop_to_instr op) (Reg reg1) (Reg reg2); movq (Reg reg2) (Reg dest)]
@@ -177,9 +186,7 @@ let rec munch_expr
                   (* +1 to skip rip *)
                   movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
-          | None ->
-              let fresh = FreshReg.fresh () in
-              (Fake fresh, [mov (Reg (Fake str)) (Reg (Fake fresh))])
+          | None -> (new_tmp, [mov (Reg (Fake str)) (Reg new_tmp)])
       end
   end
   | Ir.Call (Ir.Name (fname), arglist) ->

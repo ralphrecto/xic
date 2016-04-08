@@ -11,49 +11,7 @@ end
 module Dummy = struct
   open Func_context
   let dummy_ctx = {num_args = 0; num_rets = 0; max_args = 0; max_rets = 0;}
-  let dummy_fcontexts = String.Map.empty 
-end
-
-module Ir_Abbreviations = struct
-  open Ir
-  (* binop_codes *)
-  let add_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.ADD, e2)
-  let sub_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.SUB, e2)
-  let mul_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.MUL, e2)
-  let hmul_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.HMUL, e2)
-  let div_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.DIV, e2)
-  let mod_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.MOD, e2)
-  let and_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.AND, e2)
-  let or_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.OR, e2)
-  let xor_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.XOR, e2)
-  let lshift_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.LSHIFT, e2)
-  let rshift_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.RSHIFT, e2)
-  let arshift_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.ARSHIFT, e2)
-  let eq_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.EQ, e2)
-  let neq_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.NEQ, e2)
-  let lt_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.LT, e2)
-  let gt_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.GT, e2)
-  let leq_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.LEQ, e2)
-  let geq_ (e1: Ir.expr) (e2: Ir.expr) = Ir.BinOp (e1, Ir.GEQ, e2)
-
-  (* exprs *)
-  let call (e1: Ir.expr) (args: Ir.expr list) = Ir.Call (e1, args)
-  let const (i: Int64.t) = Ir.Const i
-  let eseq (s: Ir.stmt) (e: Ir.expr) = Ir.ESeq (s, e)
-  let mem (e: Ir.expr) (mem_type: Ir.mem_type) = Ir.Mem (e, mem_type)
-  let name (s: string) = Ir.Name s
-  let temp (s: string) = Ir.Temp s
-
-  (* stmts *)
-  let cjump (e: Ir.expr) (tru: string) (fls: string) = Ir.CJump (e, tru, fls)
-  let cjumpone (e: Ir.expr) (tru: string) = Ir.CJumpOne (e, tru)
-  let jump (e: Ir.expr) = Ir.Jump e
-  let exp (e: Ir.expr) = Ir.Exp e
-  let label (l: string) = Ir.Label l
-  let move (e1: Ir.expr) (e2: Ir.expr) = Ir.Move (e1, e2)
-  let seq (ss: Ir.stmt list) = Ir.Seq ss
-  let return = Ir.Return
-
+  let dummy_fcontexts = String.Map.empty
 end
 
 module Asm_Abbreviations = struct
@@ -112,17 +70,17 @@ module Asm_Abbreviations = struct
     | _ -> failwith "invalid offset"
 end
 
-(* 
+(*
  * there isn't a separate chomp_expr test
- * because the cases other than binop are identical to munch 
+ * because the cases other than binop are identical to munch
  *)
 let test_chomp_binop () =
-  let open Ir_Abbreviations in
+  let open Ir.Abbreviations in
   let open Ir in
-  let open Asm in 
+  let open Asm in
   let open AsmsEq in
   let open Tiling in
-  let module IA = Ir_Abbreviations in
+  let module IA = Ir.Abbreviations in
 
   (* mod2 == 0 with no set destination *)
   FreshReg.reset ();
@@ -131,7 +89,7 @@ let test_chomp_binop () =
   let _expected = [
     mov (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setnc fresh_reg 
+    setnc fresh_reg
   ]
   in
   (* mod2 == 0 with set destination *)

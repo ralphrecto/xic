@@ -85,6 +85,7 @@ module Abbreviations = struct
   let arax = Reg (Real Rax)
   let arbx = Reg (Real Rbx)
   let arcx = Reg (Real Rcx)
+  let acl  = Reg (Real Cl)
   let ardx = Reg (Real Rdx)
   let arsi = Reg (Real Rsi)
   let ardi = Reg (Real Rdi)
@@ -111,6 +112,7 @@ module Abbreviations = struct
   let rax = Reg Rax
   let rbx = Reg Rbx
   let rcx = Reg Rcx
+  let cl  = Reg Cl
   let rdx = Reg Rdx
   let rsi = Reg Rsi
   let rdi = Reg Rdi
@@ -128,6 +130,7 @@ module Abbreviations = struct
   let mrax = Mem (Base (None, Rax))
   let mrbx = Mem (Base (None, Rbx))
   let mrcx = Mem (Base (None, Rcx))
+  let mcl  = Mem (Base (None, Cl))
   let mrdx = Mem (Base (None, Rdx))
   let mrsi = Mem (Base (None, Rsi))
   let mrdi = Mem (Base (None, Rdi))
@@ -349,7 +352,7 @@ let mov_generic mov_name src dest =
   | _, (Mem _ | Reg _ ) -> Op (mov_name, [src; dest])
   | _ -> die ()
 
-let mov src dest = mov_generic "mov" src dest
+(* let mov src dest = mov_generic "mov" src dest *)
 let movq src dest = mov_generic "movq" src dest
 
 let set_generic setname dest =

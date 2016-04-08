@@ -35,6 +35,7 @@ let test_munch_expr _ =
   let module IRA = Ir.Abbreviations in
   let open Asm in
   let open Asm.Abbreviations in
+  let open Ir.Infix in
   let open MunchExprEq in
   let open Tiling in
   let open Dummy in
@@ -51,24 +52,52 @@ let test_munch_expr _ =
   (* basic temps *)
   let input = temp "foo" in
   let expected = ((fakereg 0), [
-    mov (fake "foo") (fakeop 0)
+    movq (fake "foo") (fakeop 0)
   ]) in
   test expected input;
 
   let input = temp "bar" in
   let expected = ((fakereg 0), [
-    mov (fake "bar") (fakeop 0)
+    movq (fake "bar") (fakeop 0)
   ]) in
   test expected input;
 
   (* consts *)
-  let input = IRA.const 42L in
+  let input = three in
   let expected = ((fakereg 0), [
-    mov (const 42) (fakeop 0)
+    movq (const 3) (fakeop 0)
   ]) in
   test expected input;
 
   (* binops *)
+  let simple_binop_test irop asmop =
+    let input = irop one two in
+    let expected = ((fakereg 0), [
+      movq (const 1) (fakeop 0);
+      movq (const 2) (fakeop 1);
+      asmop (fakeop 1) (fakeop 0);
+    ]) in
+    test expected input
+  in
+  simple_binop_test (+)  addq;
+  simple_binop_test (-)  subq;
+  simple_binop_test (&)  andq;
+  simple_binop_test (||) orq;
+  simple_binop_test (^)  xorq;
+
+  let shift_binop_test irop asmop =
+    let input = irop one two in
+    let expected = ((fakereg 0), [
+      movq (const 1) (fakeop 0);
+      movq (const 2) (fakeop 1);
+      movq (fakeop 1) arcx;
+      asmop acl (fakeop 0);
+    ]) in
+    test expected input
+  in
+  shift_binop_test (<<)  shlq;
+  shift_binop_test (>>)  shrq;
+  shift_binop_test (>>>) sarq;
 
   ()
 
@@ -100,7 +129,7 @@ let test_chomp _ =
   let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 0L) in
   let fresh_reg = reg0 in
   let expected = [
-    mov (Reg (Fake "x")) fresh_reg;
+    movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     setnc fresh_reg
   ]
@@ -113,7 +142,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 0L)) in
   let fresh_reg = reg0 in
   let expected = [
-    mov (Reg (Fake "x")) fresh_reg;
+    movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     setnc (Reg (Fake "y"))
   ]
@@ -126,7 +155,7 @@ let test_chomp _ =
   let expr1 = ((temp "x") % (IA.const 2L)) == (IA.const 1L) in
   let fresh_reg = reg0 in
   let expected = [
-    mov (Reg (Fake "x")) fresh_reg;
+    movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     setc fresh_reg
   ]
@@ -139,7 +168,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (((temp "x") % (IA.const 2L)) == (IA.const 1L)) in
   let fresh_reg = reg0 in
   let expected = [
-    mov (Reg (Fake "x")) fresh_reg;
+    movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     setc (Reg (Fake "y"))
   ]
@@ -165,50 +194,50 @@ let test_register_allocation _ =
   let expected = [] in
   expected === register_allocate input;
 
-  let input = [mov arax arbx] in
-  let expected = [mov rax rbx] in
+  let input = [movq arax arbx] in
+  let expected = [movq rax rbx] in
   expected === register_allocate input;
 
-  let input = [mov x arbx] in
+  let input = [movq x arbx] in
   let expected = [
-    mov (-8L $ mrbp) r13;
-    mov r13 rbx;
-    mov r13 (-8L $ mrbp);
+    movq (-8L $ mrbp) r13;
+    movq r13 rbx;
+    movq r13 (-8L $ mrbp);
   ] in
   expected === register_allocate input;
 
-  let input = [mov x y] in
+  let input = [movq x y] in
   let expected = [
-    mov (-8L $ mrbp) r13;
-    mov (-16L $ mrbp) r14;
-    mov r13 r14;
-    mov r13 (-8L $ mrbp);
-    mov r14 (-16L $ mrbp);
+    movq (-8L $ mrbp) r13;
+    movq (-16L $ mrbp) r14;
+    movq r13 r14;
+    movq r13 (-8L $ mrbp);
+    movq r14 (-16L $ mrbp);
   ] in
   expected === register_allocate input;
 
   let input = [
-    mov x y;
-    mov z x;
+    movq x y;
+    movq z x;
   ] in
   let expected = [
-    mov (-8L $ mrbp) r13;
-    mov (-16L $ mrbp) r14;
-    mov r13 r14;
-    mov r13 (-8L $ mrbp);
-    mov r14 (-16L $ mrbp);
-    mov (-24L $ mrbp) r13;
-    mov (-8L $ mrbp) r14;
-    mov r13 r14;
-    mov r13 (-24L $ mrbp);
-    mov r14 (-8L $ mrbp);
+    movq (-8L $ mrbp) r13;
+    movq (-16L $ mrbp) r14;
+    movq r13 r14;
+    movq r13 (-8L $ mrbp);
+    movq r14 (-16L $ mrbp);
+    movq (-24L $ mrbp) r13;
+    movq (-8L $ mrbp) r14;
+    movq r13 r14;
+    movq r13 (-24L $ mrbp);
+    movq r14 (-8L $ mrbp);
   ] in
   expected === register_allocate input;
 
   let input = [
     push arbp;
-    mov arsp arbp;
-    mov x y;
+    movq arsp arbp;
+    movq x y;
     andq z x;
     push a;
     leave;
@@ -216,20 +245,20 @@ let test_register_allocation _ =
   ] in
   let expected = [
     push rbp;
-    mov rsp rbp;
-    mov (-8L $ mrbp) r13;
-    mov (-16L $ mrbp) r14;
-    mov r13 r14;
-    mov r13 (-8L $ mrbp);
-    mov r14 (-16L $ mrbp);
-    mov (-24L $ mrbp) r13;
-    mov (-8L $ mrbp) r14;
+    movq rsp rbp;
+    movq (-8L $ mrbp) r13;
+    movq (-16L $ mrbp) r14;
+    movq r13 r14;
+    movq r13 (-8L $ mrbp);
+    movq r14 (-16L $ mrbp);
+    movq (-24L $ mrbp) r13;
+    movq (-8L $ mrbp) r14;
     andq r13 r14;
-    mov r13 (-24L $ mrbp);
-    mov r14 (-8L $ mrbp);
-    mov (-32L $ mrbp) r13;
+    movq r13 (-24L $ mrbp);
+    movq r14 (-8L $ mrbp);
+    movq (-32L $ mrbp) r13;
     push r13;
-    mov r13 (-32L $ mrbp);
+    movq r13 (-32L $ mrbp);
     leave;
     ret;
   ] in

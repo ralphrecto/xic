@@ -117,13 +117,15 @@ let imm_binop op const reg dest =
   else
     [(binop_to_instr op) (Asm.Const const) (Reg reg); movq (Reg reg) (Reg dest)]
 
+(* Note that `reg1 irop reg2` is compiled to `asmop reg2 reg1` not
+ * `asmop reg1 reg2`. *)
 let non_imm_binop op reg1 reg2 dest =
-  if reg2 = dest then 
-    [(binop_to_instr op) (Reg reg1) (Reg reg2)]
-  else if reg1 = dest && binop_commutative op then
+  if reg1 = dest then
     [(binop_to_instr op) (Reg reg2) (Reg reg1)]
+  else if reg2 = dest && binop_commutative op then
+    [(binop_to_instr op) (Reg reg1) (Reg reg2)]
   else
-    [(binop_to_instr op) (Reg reg1) (Reg reg2); movq (Reg reg2) (Reg dest)]
+    [(binop_to_instr op) (Reg reg2) (Reg reg1); movq (Reg reg1) (Reg dest)]
 
 let rec munch_expr
   (curr_ctx: func_context)
@@ -136,7 +138,7 @@ let rec munch_expr
       let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
       match opcode with
       | Ir.ADD | Ir.SUB | Ir.AND | Ir.OR | Ir.XOR ->
-        (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg2))
+        (reg1, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg1))
       | Ir.LSHIFT | Ir.RSHIFT | Ir.ARSHIFT ->
         (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 reg1))
       | Ir.EQ | Ir.NEQ | Ir.LT | Ir.GT | Ir.LEQ | Ir.GEQ ->
@@ -158,11 +160,11 @@ let rec munch_expr
     end
   | Ir.Const c ->
       let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, [mov (Asm.Const c) (Reg (Fake new_tmp))])
+      (Fake new_tmp, [movq (Asm.Const c) (Reg (Fake new_tmp))])
   | Ir.Mem (e, _) ->
       let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
-      (Fake new_tmp, e_asm @ [mov (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
+      (Fake new_tmp, e_asm @ [movq (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
   | Ir.Temp str -> begin
       let new_tmp = Fake (FreshReg.fresh ()) in
       match FreshRetReg.get str with
@@ -186,7 +188,7 @@ let rec munch_expr
                   (* +1 to skip rip *)
                   movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
-          | None -> (new_tmp, [mov (Reg (Fake str)) (Reg new_tmp)])
+          | None -> (new_tmp, [movq (Reg (Fake str)) (Reg new_tmp)])
       end
   end
   | Ir.Call (Ir.Name (fname), arglist) ->
@@ -836,9 +838,9 @@ let register_allocate asms =
       let reg_env = String.Map.of_alist_exn fake_to_real in
       let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
 
-      let pre = List.map fakes ~f:(fun fake -> mov (spill fake) (fake_to_op fake)) in
+      let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
       let translation = [abstract_reg_map (translate_reg reg_env) asm] in
-      let post = List.map fakes ~f:(fun fake -> mov (fake_to_op fake) (spill fake)) in
+      let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
       pre @ translation @ post
     | Lab l -> [Lab l]
     | Directive (d, args) -> [Directive (d, args)]

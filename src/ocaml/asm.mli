@@ -77,6 +77,7 @@ module Abbreviations: sig
   val arax : abstract_reg operand
   val arbx : abstract_reg operand
   val arcx : abstract_reg operand
+  val acl  : abstract_reg operand
   val ardx : abstract_reg operand
   val arsi : abstract_reg operand
   val ardi : abstract_reg operand
@@ -105,6 +106,7 @@ module Abbreviations: sig
   val rax : reg operand
   val rbx : reg operand
   val rcx : reg operand
+  val cl  : reg operand
   val rdx : reg operand
   val rsi : reg operand
   val rdi : reg operand
@@ -123,6 +125,7 @@ module Abbreviations: sig
   val mrax : reg operand
   val mrbx : reg operand
   val mrcx : reg operand
+  val mcl  : reg operand
   val mrdx : reg operand
   val mrsi : reg operand
   val mrdi : reg operand
@@ -217,7 +220,7 @@ val shrq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 
 (* move/setting operations *)
-val mov : 'reg operand -> 'reg operand -> 'reg asm_template
+(* val mov : 'reg operand -> 'reg operand -> 'reg asm_template *)
 val movq : 'reg operand -> 'reg operand -> 'reg asm_template
 val sete : 'reg operand -> 'reg asm_template
 val setne : 'reg operand -> 'reg asm_template

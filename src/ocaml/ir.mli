@@ -97,6 +97,18 @@ module Abbreviations: sig
   val gt_      : expr -> expr -> expr
   val leq_     : expr -> expr -> expr
   val geq_     : expr -> expr -> expr
+
+  val zero  : expr
+  val one   : expr
+  val two   : expr
+  val three : expr
+  val four  : expr
+  val five  : expr
+  val six   : expr
+  val seven : expr
+  val eight : expr
+  val nine  : expr
+  val ten   : expr
 end
 
 module Infix: sig

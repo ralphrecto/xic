@@ -85,6 +85,18 @@ module Abbreviations = struct
   let gt_      lhs rhs = BinOp (lhs, GT,      rhs)
   let leq_     lhs rhs = BinOp (lhs, LEQ,     rhs)
   let geq_     lhs rhs = BinOp (lhs, GEQ,     rhs)
+
+  let zero  = const 0L
+  let one   = const 1L
+  let two   = const 2L
+  let three = const 3L
+  let four  = const 4L
+  let five  = const 5L
+  let six   = const 6L
+  let seven = const 7L
+  let eight = const 8L
+  let nine  = const 9L
+  let ten   = const 10L
 end
 
 module Infix = struct

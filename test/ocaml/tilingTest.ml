@@ -14,62 +14,6 @@ module Dummy = struct
   let dummy_fcontexts = String.Map.empty
 end
 
-module Asm_Abbreviations = struct
-  open Asm
-  let arax = Reg (Real Rax)
-  let arbx = Reg (Real Rbx)
-  let arcx = Reg (Real Rcx)
-  let ardx = Reg (Real Rdx)
-  let arsi = Reg (Real Rsi)
-  let ardi = Reg (Real Rdi)
-  let arbp = Reg (Real Rbp)
-  let arsp = Reg (Real Rsp)
-  let ar8  = Reg (Real R8)
-  let ar9  = Reg (Real R9)
-  let ar10 = Reg (Real R10)
-  let ar11 = Reg (Real R11)
-  let ar12 = Reg (Real R12)
-  let ar13 = Reg (Real R13)
-  let ar14 = Reg (Real R14)
-  let ar15 = Reg (Real R15)
-
-  let fake s = Reg (Fake s)
-  let a = fake "a"
-  let b = fake "b"
-  let c = fake "c"
-  let w = fake "w"
-  let x = fake "x"
-  let y = fake "y"
-  let z = fake "z"
-
-  let rax = Reg Rax
-  let rbx = Reg Rbx
-  let rcx = Reg Rcx
-  let rdx = Reg Rdx
-  let rsi = Reg Rsi
-  let rdi = Reg Rdi
-  let rbp = Reg Rbp
-  let rsp = Reg Rsp
-  let r8  = Reg R8
-  let r9  = Reg R9
-  let r10 = Reg R10
-  let r11 = Reg R11
-  let r12 = Reg R12
-  let r13 = Reg R13
-  let r14 = Reg R14
-  let r15 = Reg R15
-
-  let mem (r: 'a) : 'a operand =
-    Mem (Base (None, r))
-
-  let ( * ) (n: int64) (mem: 'a operand) : 'a operand =
-    match mem with
-    | Mem (Base (None, b)) -> Mem (Base (Some n, b))
-    | Mem (Off (None, o, s)) -> Mem (Off (Some n, o, s))
-    | Mem (BaseOff (None, b, o, s)) -> Mem (BaseOff (Some n, b, o, s))
-    | _ -> failwith "invalid offset"
-end
-
 (*
  * there isn't a separate chomp_expr test
  * because the cases other than binop are identical to munch
@@ -96,10 +40,9 @@ let test_chomp_binop () =
 
  ()
 
-
 let test_register_allocation () =
-  let open Asm_Abbreviations in
   let open Asm in
+  let open Asm.Abbreviations in
   let open AsmsEq in
   let open Tiling in
 
@@ -113,19 +56,19 @@ let test_register_allocation () =
 
   let input = [mov x arbx] in
   let expected = [
-    mov (-8L * mem Rbp) r13;
+    mov (-8L $ mrbp) r13;
     mov r13 rbx;
-    mov r13 (-8L * mem Rbp);
+    mov r13 (-8L $ mrbp);
   ] in
   expected === register_allocate input;
 
   let input = [mov x y] in
   let expected = [
-    mov (-8L * mem Rbp) r13;
-    mov (-16L * mem Rbp) r14;
+    mov (-8L $ mrbp) r13;
+    mov (-16L $ mrbp) r14;
     mov r13 r14;
-    mov r13 (-8L * mem Rbp);
-    mov r14 (-16L * mem Rbp);
+    mov r13 (-8L $ mrbp);
+    mov r14 (-16L $ mrbp);
   ] in
   expected === register_allocate input;
 
@@ -134,16 +77,16 @@ let test_register_allocation () =
     mov z x;
   ] in
   let expected = [
-    mov (-8L * mem Rbp) r13;
-    mov (-16L * mem Rbp) r14;
+    mov (-8L $ mrbp) r13;
+    mov (-16L $ mrbp) r14;
     mov r13 r14;
-    mov r13 (-8L * mem Rbp);
-    mov r14 (-16L * mem Rbp);
-    mov (-24L * mem Rbp) r13;
-    mov (-8L * mem Rbp) r14;
+    mov r13 (-8L $ mrbp);
+    mov r14 (-16L $ mrbp);
+    mov (-24L $ mrbp) r13;
+    mov (-8L $ mrbp) r14;
     mov r13 r14;
-    mov r13 (-24L * mem Rbp);
-    mov r14 (-8L * mem Rbp);
+    mov r13 (-24L $ mrbp);
+    mov r14 (-8L $ mrbp);
   ] in
   expected === register_allocate input;
 
@@ -159,19 +102,19 @@ let test_register_allocation () =
   let expected = [
     push rbp;
     mov rsp rbp;
-    mov (-8L * mem Rbp) r13;
-    mov (-16L * mem Rbp) r14;
+    mov (-8L $ mrbp) r13;
+    mov (-16L $ mrbp) r14;
     mov r13 r14;
-    mov r13 (-8L * mem Rbp);
-    mov r14 (-16L * mem Rbp);
-    mov (-24L * mem Rbp) r13;
-    mov (-8L * mem Rbp) r14;
+    mov r13 (-8L $ mrbp);
+    mov r14 (-16L $ mrbp);
+    mov (-24L $ mrbp) r13;
+    mov (-8L $ mrbp) r14;
     andq r13 r14;
-    mov r13 (-24L * mem Rbp);
-    mov r14 (-8L * mem Rbp);
-    mov (-32L * mem Rbp) r13;
+    mov r13 (-24L $ mrbp);
+    mov r14 (-8L $ mrbp);
+    mov (-32L $ mrbp) r13;
     push r13;
-    mov r13 (-32L * mem Rbp);
+    mov r13 (-32L $ mrbp);
     leave;
     ret;
   ] in

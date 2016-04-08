@@ -72,6 +72,83 @@ val const : int -> abstract_reg operand
 (* helpful constants *)
 val num_caller_save : int
 
+module Abbreviations: sig
+  (* abstract real registers *)
+  val arax : abstract_reg operand
+  val arbx : abstract_reg operand
+  val arcx : abstract_reg operand
+  val ardx : abstract_reg operand
+  val arsi : abstract_reg operand
+  val ardi : abstract_reg operand
+  val arbp : abstract_reg operand
+  val arsp : abstract_reg operand
+  val ar8  : abstract_reg operand
+  val ar9  : abstract_reg operand
+  val ar10 : abstract_reg operand
+  val ar11 : abstract_reg operand
+  val ar12 : abstract_reg operand
+  val ar13 : abstract_reg operand
+  val ar14 : abstract_reg operand
+  val ar15 : abstract_reg operand
+
+  (* abstract fake registers *)
+  val fake : string -> abstract_reg operand
+  val a : abstract_reg operand
+  val b : abstract_reg operand
+  val c : abstract_reg operand
+  val w : abstract_reg operand
+  val x : abstract_reg operand
+  val y : abstract_reg operand
+  val z : abstract_reg operand
+
+  (* real registers *)
+  val rax : reg operand
+  val rbx : reg operand
+  val rcx : reg operand
+  val rdx : reg operand
+  val rsi : reg operand
+  val rdi : reg operand
+  val rbp : reg operand
+  val rsp : reg operand
+  val r8  : reg operand
+  val r9  : reg operand
+  val r10 : reg operand
+  val r11 : reg operand
+  val r12 : reg operand
+  val r13 : reg operand
+  val r14 : reg operand
+  val r15 : reg operand
+
+  (* Mem (Base (None, Rax)), Mem (Base (None, Rax)), ... *)
+  val mrax : reg operand
+  val mrbx : reg operand
+  val mrcx : reg operand
+  val mrdx : reg operand
+  val mrsi : reg operand
+  val mrdi : reg operand
+  val mrbp : reg operand
+  val mrsp : reg operand
+  val mr8  : reg operand
+  val mr9  : reg operand
+  val mr10 : reg operand
+  val mr11 : reg operand
+  val mr12 : reg operand
+  val mr13 : reg operand
+  val mr14 : reg operand
+  val mr15 : reg operand
+
+  (* Memory operand constructors.
+   *     mrax                 = (%rax),
+   *     8L $ mrax             = $8(%rax)
+   *     rax * 4              = (,%rax,4)
+   *     8L $ (rax * 4)        = $8(,%rax,4)
+   *     mrax + rbx * 4       = (%rax,%rbx,4)
+   *     8L $ (mrax + rbx * 4) = $8(%rax,%rbx,4) *)
+  val ( $ ) : int64 -> 'reg operand -> 'reg operand
+  val ( * ) : 'reg -> int -> 'reg operand
+  val ( + ) : 'reg operand -> 'reg operand -> 'reg operand
+end
+
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)

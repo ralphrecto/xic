@@ -1,5 +1,5 @@
 open Core.Std
-open OUnit
+open OUnit2
 open TestUtil
 open Util
 
@@ -14,14 +14,14 @@ module Dummy = struct
   let dummy_fcontexts = String.Map.empty
 end
 
-let test_munch_expr () =
+let test_munch_expr _ =
   ()
 
 (*
  * there isn't a separate chomp_expr test
  * because the cases other than binop are identical to munch
  *)
-let test_chomp_binop () =
+let test_chomp_binop _ =
   let open Ir.Abbreviations in
   let open Ir in
   let open Asm in
@@ -43,7 +43,7 @@ let test_chomp_binop () =
 
  ()
 
-let test_register_allocation () =
+let test_register_allocation _ =
   let open Asm in
   let open Asm.Abbreviations in
   let open AsmsEq in

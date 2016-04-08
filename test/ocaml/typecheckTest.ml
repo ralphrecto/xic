@@ -318,7 +318,7 @@ let three = Pos.(int 1L)
 let tru   = Pos.(bool true)
 let fls   = Pos.(bool false)
 
-let test_expr () =
+let test_expr _ =
     let open Pos in
     let open Vars in
     let open TestExpr in
@@ -817,7 +817,7 @@ let test_expr () =
 
     ()
 
-let test_stmt () =
+let test_stmt _ =
     let open Pos in
     let open Vars in
     let open TestStmt in
@@ -1516,7 +1516,7 @@ let test_stmt () =
 
     ()
 
-let test_callable () =
+let test_callable _ =
 	let open Pos in
 	let open TestCallable in
 
@@ -1625,7 +1625,7 @@ let test_callable () =
 
 	()
 
-let test_prog () =
+let test_prog _ =
 	let open Pos in
 	let open TestProg in
 	let avar_u = [] in

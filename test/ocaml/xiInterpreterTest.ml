@@ -59,7 +59,7 @@ let vals (vs: (string * value) list) : context =
 let funcs (fs: (string * (string option) list * Typecheck.stmt) list) : context =
   gam (List.map fs ~f:(fun (f, args, s) -> (f, Some (fun_ args s))))
 
-let test_eval_expr () =
+let test_eval_expr _ =
   let open ValueEq in
   let open Typecheck.Abbreviations in
 
@@ -145,7 +145,7 @@ let test_eval_expr () =
 
   ()
 
-let test_eval_stmt () =
+let test_eval_stmt _ =
   let open ConfigEq in
   let open Typecheck.Abbreviations in
 
@@ -213,17 +213,17 @@ let test_eval_stmt () =
 
 	(* if in while *)
 	(empty, Some (Int 1L)) === eval_stmt empty (block [while_ tru (block [if_ tru (return [one])]); return [two]]);
-	(empty, Some (Int 1L)) === eval_stmt empty (block [while_ tru 
-																											(block [ifelse tru (return [one]) (return [three])]); 
+	(empty, Some (Int 1L)) === eval_stmt empty (block [while_ tru
+																											(block [ifelse tru (return [one]) (return [three])]);
 																										return [two]]);
-	(empty, Some (Int 3L)) === eval_stmt empty (block [while_ tru 
-																											(block [ifelse fls (return [one]) (return [three])]); 
+	(empty, Some (Int 3L)) === eval_stmt empty (block [while_ tru
+																											(block [ifelse fls (return [one]) (return [three])]);
 																										return [two]]);
-	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls 
-																											(block [ifelse fls (return [one]) (return [three])]); 
+	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls
+																											(block [ifelse fls (return [one]) (return [three])]);
 																										return [two]]);
-	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls 
-																											(block [ifelse tru (return [one]) (return [three])]); 
+	(empty, Some (Int 2L)) === eval_stmt empty (block [while_ fls
+																											(block [ifelse tru (return [one]) (return [three])]);
 																										return [two]]);
 
 

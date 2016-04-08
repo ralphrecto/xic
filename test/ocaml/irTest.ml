@@ -175,7 +175,7 @@ let code c = Ir.Const (Int64.of_int (Char.to_int c))
 
 module Ir_gen = Ir_generation
 
-let test_ir_expr () =
+let test_ir_expr _ =
   let open ExprEq in
   let open Ir_generation in
   let open Ir.Abbreviations in
@@ -413,7 +413,7 @@ let test_ir_expr () =
 
   ()
 
-let test_ir_stmt () =
+let test_ir_stmt _ =
 	let open StmtEq in
 	let open Long in
   let open Ir in
@@ -442,7 +442,7 @@ let test_ir_stmt () =
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"]));
 	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
 
-let test_lower_expr () =
+let test_lower_expr _ =
   let open PairEq in
   let open Fresh in
   let open Ir_generation in
@@ -486,7 +486,7 @@ let test_lower_expr () =
 
   ()
 
-let test_lower_stmt () =
+let test_lower_stmt _ =
   let open StmtsEq in
   let open Fresh in
   let open Ir_generation in
@@ -527,7 +527,7 @@ let test_lower_stmt () =
 
   ()
 
-let test_gen_block () =
+let test_gen_block _ =
   let open Labels in
   let open BlocksEq in
   let open Ir.Abbreviations in
@@ -805,7 +805,7 @@ let test_gen_block () =
 
   ()
 
-let test_connect_blocks () =
+let test_connect_blocks _ =
   let open Labels in
   let open BlocksEq in
   let open Ir.Abbreviations in
@@ -913,7 +913,7 @@ let test_connect_blocks () =
 
   ()
 
-let test_create_graph () =
+let test_create_graph _ =
   let open Labels in
   let open GraphEq in
   let open Ir.Abbreviations in
@@ -1016,7 +1016,7 @@ module Graphs = struct
     List.find_exn graph ~f:(fun n -> n === l)
 end
 
-let test_valid_trace () =
+let test_valid_trace _ =
   let open Graphs in
   let open Ir in
   let open Ir_generation in
@@ -1132,7 +1132,7 @@ let test_valid_trace () =
   ] in
   List.iter bads ~f:(fun (g, t) -> assert_false (valid_trace g t))
 
-let test_get_trace () =
+let test_get_trace _ =
   let open Graphs in
   let open Ir in
   let open Ir_generation in
@@ -1143,7 +1143,7 @@ let test_get_trace () =
     )
   )
 
-let test_valid_seq () =
+let test_valid_seq _ =
   let open Graphs in
   let open Ir in
   let open Ir_generation in
@@ -1181,7 +1181,7 @@ let test_valid_seq () =
   List.iter bads ~f:(fun (g, s) -> assert_false (valid_seq g s));
   ()
 
-let test_find_seq () =
+let test_find_seq _ =
   let open Graphs in
   let open Ir in
   let open Ir_generation in
@@ -1192,7 +1192,7 @@ let test_find_seq () =
     )
   )
 
-let test_tidy () =
+let test_tidy _ =
   let open Labels in
   let open BlocksEq in
   let open Ir.Abbreviations in
@@ -1292,7 +1292,7 @@ let test_tidy () =
 
   ()
 
-let test_reorder () =
+let test_reorder _ =
   let open Labels in
   let open BlocksEq in
   let open Ir.Abbreviations in

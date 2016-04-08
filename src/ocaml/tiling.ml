@@ -153,6 +153,8 @@ let rec munch_expr
       | Ir.DIV | Ir.MOD ->
         let div_asm = [
           movq (Reg reg1) (Reg (Real Rax));
+          (* clearing up Rdx *)
+          xorq (Reg (Real Rdx)) (Reg (Real Rdx)); 
           idivq (Reg reg2);
         ] in
         let r = if opcode = Ir.DIV then Rax else Rdx in

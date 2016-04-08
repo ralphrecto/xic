@@ -1,0 +1,102 @@
+(* arithmetic instructions *)
+- addq arg1 arg2
+  * arg2 = arg1 + arg2
+  * arg1 can be a 32 bit immediate
+- subq arg1 arg2
+  * arg2 = arg2 - arg1
+  * arg1 can be a 32 bit immediate
+- incq arg1
+  * arg1 = arg1 + 1
+- decq arg1
+  * arg1 = arg1 - 1
+- negq arg1
+  * arg1 = - arg1
+- imulq arg1
+  * rax (lower 64 bits) = al (lower 8 bits of rax) * arg1
+  * rdx (higher 64 bits) = al (lower 8 bits of rax) * arg1
+- idivq arg1
+  * rdx = (rdx:rax) % arg1 
+  * rax = (rdx:rax) / arg1
+  
+(* logical/bitwise operations *)
+- andq arg1 arg2
+  * arg2 = arg1 & arg2
+  * arg1 can be a 32 bit immediate
+- orq arg1 arg2
+  * arg2 = arg1 | arg2 
+  * arg1 can be a 32 bit immediate
+- xorq arg1 arg2
+  * arg2 = arg1 ^ arg2
+  * arg1 can be a 32 bit immediate
+
+(* bit test operation *)
+- bt arg1 arg2
+  * cf (carry flag) = bit(arg1 - bit base, arg2 - bit offset) 
+  * essentially gets the bit of arg1 at position arg2
+  
+(* shift operations *)
+- shlq cl arg1
+  * arg1 = arg1 << cl
+  * cl can also be a 8 bit immediate
+- shrq cl arg1
+  * arg1 = arg1 >> cl
+  * cl can also be a 8 bit immediate
+- sarq cl arg1
+  * arg1 = arg1 >>> cl
+  * cl can also be a 8 bit immediate
+
+(* moving/setting operations *)
+- mov arg1 arg2
+  * arg2 = arg1
+  * arg1 can be a 64 bit immediate
+- movq arg1 arg2
+  * arg2 = arg2
+- sete
+- setne
+- setl 
+- setg 
+- setle
+- setge
+- setz 
+- setnz
+- sets 
+- setns
+- setc 
+- setnc
+
+(* load effective address operation *)
+- leaq
+
+(* comparison operations *)
+- cmpq
+
+(* test operation *)
+- test
+
+(* stack operations *)
+- push 
+- pushq
+- pop  
+- enter
+
+(* jump operations *)
+- jmp 
+- je  
+- jne 
+- jnz 
+- jz  
+- jg  
+- jge 
+- jl  
+- jle 
+- js  
+- jns 
+- jc  
+- jnc 
+- call
+
+(* leave operation *)
+- leave
+
+(* return operation *)
+- ret

@@ -202,9 +202,9 @@ val addq : 'reg operand -> 'reg operand -> 'reg asm_template
 val subq : 'reg operand -> 'reg operand -> 'reg asm_template
 val incq : 'reg operand -> 'reg asm_template
 val decq : 'reg operand -> 'reg asm_template
+val negq : 'reg operand -> 'reg asm_template
 val imulq : 'reg operand -> 'reg asm_template
 val idivq : 'reg operand -> 'reg asm_template
-val negq : 'reg operand -> 'reg asm_template
 
 (* logical/bitwise operations *)
 val andq : 'reg operand -> 'reg operand -> 'reg asm_template

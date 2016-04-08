@@ -10,8 +10,12 @@ Lbody:
     movq $1, %rcx
     movq $2, %rdx
     cmp  %rcx, %rdx
+
     # uncomment out this line and run make; it won't build
-    # setne %rsi
+    # setne %rdx
+
+    # this workds though
+    setne %dl
 Lepilogue:
     addq    $32, %rsp
     popq    %rbp

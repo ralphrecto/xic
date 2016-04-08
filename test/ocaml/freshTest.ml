@@ -1,5 +1,5 @@
 open Core.Std
-open OUnit
+open OUnit2
 open TestUtil
 
 module FooName = struct
@@ -8,7 +8,7 @@ end
 
 module FreshFoo = Fresh.Make(FooName)
 
-let test_fresh () =
+let test_fresh _ =
   "foo0" === FreshFoo.fresh ();
   "foo1" === FreshFoo.fresh ();
   "foo2" === FreshFoo.fresh ();
@@ -17,13 +17,13 @@ let test_fresh () =
   "foo5" === FreshFoo.fresh ();
   ()
 
-let test_gen () =
+let test_gen _ =
   "foo0" === FreshFoo.gen 0;
   "foo42" === FreshFoo.gen 42;
   "foo5430" === FreshFoo.gen 5430;
   ()
 
-let test_reset () =
+let test_reset _ =
   FreshFoo.reset ();
   "foo0" === FreshFoo.fresh ();
   "foo1" === FreshFoo.fresh ();
@@ -40,7 +40,7 @@ let test_reset () =
   "foo5" === FreshFoo.fresh ();
   ()
 
-let test_get () =
+let test_get _ =
   Some 1 === FreshFoo.get "foo1";
   Some 2 === FreshFoo.get "foo2";
   None   === FreshFoo.get "foo";

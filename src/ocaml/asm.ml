@@ -81,6 +81,91 @@ let const n =
 
 let num_caller_save = 9
 
+module Abbreviations = struct
+  let arax = Reg (Real Rax)
+  let arbx = Reg (Real Rbx)
+  let arcx = Reg (Real Rcx)
+  let ardx = Reg (Real Rdx)
+  let arsi = Reg (Real Rsi)
+  let ardi = Reg (Real Rdi)
+  let arbp = Reg (Real Rbp)
+  let arsp = Reg (Real Rsp)
+  let ar8  = Reg (Real R8)
+  let ar9  = Reg (Real R9)
+  let ar10 = Reg (Real R10)
+  let ar11 = Reg (Real R11)
+  let ar12 = Reg (Real R12)
+  let ar13 = Reg (Real R13)
+  let ar14 = Reg (Real R14)
+  let ar15 = Reg (Real R15)
+
+  let fake s = Reg (Fake s)
+  let a = fake "a"
+  let b = fake "b"
+  let c = fake "c"
+  let w = fake "w"
+  let x = fake "x"
+  let y = fake "y"
+  let z = fake "z"
+
+  let rax = Reg Rax
+  let rbx = Reg Rbx
+  let rcx = Reg Rcx
+  let rdx = Reg Rdx
+  let rsi = Reg Rsi
+  let rdi = Reg Rdi
+  let rbp = Reg Rbp
+  let rsp = Reg Rsp
+  let r8  = Reg R8
+  let r9  = Reg R9
+  let r10 = Reg R10
+  let r11 = Reg R11
+  let r12 = Reg R12
+  let r13 = Reg R13
+  let r14 = Reg R14
+  let r15 = Reg R15
+
+  let mrax = Mem (Base (None, Rax))
+  let mrbx = Mem (Base (None, Rbx))
+  let mrcx = Mem (Base (None, Rcx))
+  let mrdx = Mem (Base (None, Rdx))
+  let mrsi = Mem (Base (None, Rsi))
+  let mrdi = Mem (Base (None, Rdi))
+  let mrbp = Mem (Base (None, Rbp))
+  let mrsp = Mem (Base (None, Rsp))
+  let mr8  = Mem (Base (None, R8 ))
+  let mr9  = Mem (Base (None, R9 ))
+  let mr10 = Mem (Base (None, R10))
+  let mr11 = Mem (Base (None, R11))
+  let mr12 = Mem (Base (None, R12))
+  let mr13 = Mem (Base (None, R13))
+  let mr14 = Mem (Base (None, R14))
+  let mr15 = Mem (Base (None, R15))
+
+  let ($) n mem =
+    match mem with
+    | Mem (Base (None, b)) -> Mem (Base (Some n, b))
+    | Mem (Off (None, o, s)) -> Mem (Off (Some n, o, s))
+    | Mem (BaseOff (None, b, o, s)) -> Mem (BaseOff (Some n, b, o, s))
+    | _ -> failwith "invalid $ application"
+
+  let ( * ) reg scale =
+    match scale with
+    | 1 -> Mem (Off (None, reg, One))
+    | 2 -> Mem (Off (None, reg, Two))
+    | 4 -> Mem (Off (None, reg, Four))
+    | 8 -> Mem (Off (None, reg, Eight))
+    | _ -> failwith "invalid scale"
+
+  let (+) base off =
+    match base, off with
+    | Mem (Base (Some n, r)), Mem (Off (None, b, o))
+    | Mem (Base (None, r)), Mem (Off (Some n, b, o)) -> Mem (BaseOff (Some n, r, b, o))
+    | Mem (Base (None, r)), Mem (Off (None, b, o)) -> Mem (BaseOff (None, r, b, o))
+    | _ -> failwith "invalid + application"
+end
+
+
 (******************************************************************************)
 (* functions                                                                  *)
 (******************************************************************************)
@@ -231,7 +316,7 @@ let incq dest = unop_arith_generic "incq" dest
 let decq dest = unop_arith_generic "decq" dest
 let imulq src = unop_arith_generic "imulq" src
 let idivq src = unop_arith_generic "idivq" src
-let negq src = unop_arith_generic "negq" src 
+let negq src = unop_arith_generic "negq" src
 
 (* logical/bitwise operations *)
 let logic_generic logic_name src dest =

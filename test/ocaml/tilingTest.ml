@@ -14,6 +14,9 @@ module Dummy = struct
   let dummy_fcontexts = String.Map.empty
 end
 
+let test_munch_expr () =
+  ()
+
 (*
  * there isn't a separate chomp_expr test
  * because the cases other than binop are identical to munch
@@ -141,6 +144,7 @@ let test_register_allocation () =
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
+      "test_munch_expr"          >:: test_munch_expr;
       "test_chomp"               >:: test_chomp_binop;
       "test_register_allocation" >:: test_register_allocation;
     ] |> run_test_tt_main

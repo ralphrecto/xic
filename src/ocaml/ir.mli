@@ -66,7 +66,7 @@ module Abbreviations: sig
   val call  : expr -> expr list -> expr
   val const : Int64.t -> expr
   val eseq  : stmt -> expr -> expr
-  val mem   : expr -> expr
+  val mem   : ?typ:mem_type -> expr -> expr
   val name  : string -> expr
   val temp  : string -> expr
 

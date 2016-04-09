@@ -146,16 +146,16 @@ let rec munch_expr
       | Ir.MUL | Ir.HMUL ->
         let r = if opcode = Ir.MUL then Rax else Rdx in
         let mul_asm = [
-          movq (Reg (Fake reg2)) (Reg (Real Rax));
-          imulq (Reg (Fake reg1));
+          movq (Reg (Fake reg1)) (Reg (Real Rax));
+          imulq (Reg (Fake reg2));
           movq (Reg (Real r)) (Reg (Fake reg2));
         ] in
         (reg2, asm1 @ asm2 @ mul_asm)
       | Ir.DIV | Ir.MOD ->
         let r = if opcode = Ir.DIV then Rax else Rdx in
         let div_asm = [
-          movq (Reg (Fake reg1)) (Reg (Real Rax));
           xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+          movq (Reg (Fake reg1)) (Reg (Real Rax));
           idivq (Reg (Fake reg2));
           movq (Reg (Real r)) (Reg (Fake reg2))
         ] in
@@ -175,7 +175,9 @@ let rec munch_expr
           let retmov =
             match ret_reg i with
             | Some r -> movq (Reg (Real r)) (Reg (Fake new_tmp))
-            | None   -> movq (Mem ((i-2+curr_ctx.max_args)$(Real Rsp))) (Reg (Fake new_tmp))
+            | None   ->
+                let offset = (i-2+curr_ctx.max_args) * 8 in
+                movq (Mem (offset$(Real Rsp))) (Reg (Fake new_tmp))
           in
           (new_tmp, [retmov])
       end
@@ -188,8 +190,21 @@ let rec munch_expr
                 match arg_reg i' with
                 | Some r -> movq (Reg (Real r)) (Reg (Fake new_tmp))
                 | None ->
-                    (* +1 to skip rip *)
-                    movq (Mem ((i'-6+1)$(Real Rbp))) (Reg (Fake new_tmp))
+                    (*
+                     * | ...          |
+                     * +--------------+
+                     * | ARG7         |
+                     * +--------------+
+                     * | ARG6         |
+                     * +--------------+
+                     * | ret pointer  |
+                     * +--------------+
+                     * | saved rbp    | <--- rbp
+                     * +--------------+
+                     * | ...          |
+                     *)
+                    let offset = (i'-6+2) * 8 in
+                    movq (Mem (offset$(Real Rbp))) (Reg (Fake new_tmp))
               in
               (new_tmp, [argmov])
           end

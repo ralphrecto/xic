@@ -37,36 +37,20 @@ let test_munch_expr _ =
   let open Tiling in
   let open Dummy in
 
-  let munch_expr = munch_expr dummy_ctx dummy_fcontexts in
+  (* helpers *)
   let gen i = FreshReg.gen i in
+  let fakereg i = Fake (gen i) in
   let fakeop i = fake (gen i) in
+  let mem_rsp = Asm.Mem (Base (None, Real Rsp)) in
+  let mem_rbp = Asm.Mem (Base (None, Real Rbp)) in
 
-  let test expected input =
+  let test ?(ctx=dummy_ctx) ?(ctxs=dummy_fcontexts) expected input =
     FreshReg.reset ();
-    expected === munch_expr input;
+    expected === munch_expr ctx ctxs input;
   in
 
-  (* basic temps *)
-  let input = temp "foo" in
-  let expected = ((gen 0), [
-    movq (fake "foo") (fakeop 0)
-  ]) in
-  test expected input;
-
-  let input = temp "bar" in
-  let expected = ((gen 0), [
-    movq (fake "bar") (fakeop 0)
-  ]) in
-  test expected input;
-
-  (* consts *)
-  let input = three in
-  let expected = ((gen 0), [
-    movq (const 3) (fakeop 0)
-  ]) in
-  test expected input;
-
   (* binops *)
+  (* simple math *)
   let simple_binop_test irop asmop =
     let input = irop one two in
     let expected = ((gen 0), [
@@ -82,6 +66,7 @@ let test_munch_expr _ =
   simple_binop_test (||) orq;
   simple_binop_test (^)  xorq;
 
+  (* shifts *)
   let shift_binop_test irop asmop =
     let input = irop one two in
     let expected = ((gen 0), [
@@ -96,6 +81,164 @@ let test_munch_expr _ =
   shift_binop_test (>>)  shrq;
   shift_binop_test (>>>) sarq;
 
+  (* mul/highmul *)
+  let mul_binop_test irop asmreg =
+    let input = irop one two in
+    let expected = ((gen 1), [
+      movq (const 1) (fakeop 0);
+      movq (const 2) (fakeop 1);
+      movq (fakeop 0) arax;
+      imulq (fakeop 1);
+      movq asmreg (fakeop 1);
+    ]) in
+    test expected input
+  in
+  mul_binop_test ( *   ) arax;
+  mul_binop_test ( *>> ) ardx;
+
+  (* div/rem *)
+  let divrem_binop_test irop asmreg =
+    let input = irop one two in
+    let expected = ((gen 1), [
+      movq (const 1) (fakeop 0);
+      movq (const 2) (fakeop 1);
+      xorq ardx ardx;
+      movq (fakeop 0) arax;
+      idivq (fakeop 1);
+      movq asmreg (fakeop 1);
+    ]) in
+    test expected input
+  in
+  divrem_binop_test (/) arax;
+  divrem_binop_test (%) ardx;
+
+  (* consts *)
+  let input = three in
+  let expected = ((gen 0), [
+    movq (const 3) (fakeop 0)
+  ]) in
+  test expected input;
+
+  let input = zero in
+  let expected = ((gen 0), [
+    movq (const 0) (fakeop 0)
+  ]) in
+  test expected input;
+
+  (* mem *)
+  let input = mem ~typ:NORMAL one in
+  let expected = ((gen 0), [
+    movq (const 1) (fakeop 0);
+    movq (Asm.Mem (Base (None, fakereg 0))) (fakeop 0);
+  ]) in
+  test expected input;
+
+  let input = mem ~typ:IMMUTABLE one in
+  let expected = ((gen 0), [
+    movq (const 1) (fakeop 0);
+    movq (Asm.Mem (Base (None, fakereg 0))) (fakeop 0);
+  ]) in
+  test expected input;
+
+  (* temps *)
+  (* basic temps *)
+  let input = temp "foo" in
+  let expected = ((gen 0), [
+    movq (fake "foo") (fakeop 0)
+  ]) in
+  test expected input;
+
+  let input = temp "bar" in
+  let expected = ((gen 0), [
+    movq (fake "bar") (fakeop 0)
+  ]) in
+  test expected input;
+
+  (* return temps *)
+  let ret_temp_test max_args i asmoperand =
+    let fc = Func_context.({dummy_ctx with max_args}) in
+    let input = temp (Ir_generation.FreshRetReg.gen i) in
+    let expected = ((gen 0), [
+      movq asmoperand (fakeop 0)
+    ]) in
+    test ~ctx:fc expected input;
+  in
+
+  ret_temp_test 0 0 arax;
+  ret_temp_test 0 1 ardx;
+  ret_temp_test 0 2 (0L $ mem_rsp);
+  ret_temp_test 0 3 (8L $ mem_rsp);
+  ret_temp_test 0 4 (16L $ mem_rsp);
+
+  ret_temp_test 1 0 arax;
+  ret_temp_test 1 1 ardx;
+  ret_temp_test 1 2 (8L $ mem_rsp);
+  ret_temp_test 1 3 (16L $ mem_rsp);
+  ret_temp_test 1 4 (24L $ mem_rsp);
+
+  ret_temp_test 2 0 arax;
+  ret_temp_test 2 1 ardx;
+  ret_temp_test 2 2 (16L $ mem_rsp);
+  ret_temp_test 2 3 (24L $ mem_rsp);
+  ret_temp_test 2 4 (32L $ mem_rsp);
+
+  ret_temp_test 3 0 arax;
+  ret_temp_test 3 1 ardx;
+  ret_temp_test 3 2 (24L $ mem_rsp);
+  ret_temp_test 3 3 (32L $ mem_rsp);
+  ret_temp_test 3 4 (40L $ mem_rsp);
+
+  (* arg temps *)
+  let arg_temp_test num_rets i asmoperand =
+    let fc = Func_context.({dummy_ctx with num_rets}) in
+    let input = temp (Ir_generation.FreshArgReg.gen i) in
+    let expected = ((gen 0), [
+      movq asmoperand (fakeop 0)
+    ]) in
+    test ~ctx:fc expected input;
+  in
+
+  arg_temp_test 0 0 ardi;
+  arg_temp_test 0 1 arsi;
+  arg_temp_test 0 2 ardx;
+  arg_temp_test 0 3 arcx;
+  arg_temp_test 0 4 ar8;
+  arg_temp_test 0 5 ar9;
+  arg_temp_test 0 6 (16L $ mem_rbp);
+  arg_temp_test 0 7 (24L $ mem_rbp);
+  arg_temp_test 0 8 (32L $ mem_rbp);
+
+  arg_temp_test 1 0 ardi;
+  arg_temp_test 1 1 arsi;
+  arg_temp_test 1 2 ardx;
+  arg_temp_test 1 3 arcx;
+  arg_temp_test 1 4 ar8;
+  arg_temp_test 1 5 ar9;
+  arg_temp_test 1 6 (16L $ mem_rbp);
+  arg_temp_test 1 7 (24L $ mem_rbp);
+  arg_temp_test 1 8 (32L $ mem_rbp);
+
+  arg_temp_test 2 0 ardi;
+  arg_temp_test 2 1 arsi;
+  arg_temp_test 2 2 ardx;
+  arg_temp_test 2 3 arcx;
+  arg_temp_test 2 4 ar8;
+  arg_temp_test 2 5 ar9;
+  arg_temp_test 2 6 (16L $ mem_rbp);
+  arg_temp_test 2 7 (24L $ mem_rbp);
+  arg_temp_test 2 8 (32L $ mem_rbp);
+
+  arg_temp_test 3 0 arsi;
+  arg_temp_test 3 1 ardx;
+  arg_temp_test 3 2 arcx;
+  arg_temp_test 3 3 ar8;
+  arg_temp_test 3 4 ar9;
+  arg_temp_test 3 5 (16L $ mem_rbp);
+  arg_temp_test 3 6 (24L $ mem_rbp);
+  arg_temp_test 3 7 (32L $ mem_rbp);
+  arg_temp_test 3 8 (40L $ mem_rbp);
+
+  (* call *)
   ()
 
 let test_chomp _ =

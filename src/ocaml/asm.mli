@@ -142,11 +142,11 @@ module Abbreviations: sig
   val mr15 : reg operand
 
   (* Memory operand constructors.
-   *     mrax                 = (%rax),
+   *     mrax                  = (%rax),
    *     8L $ mrax             = $8(%rax)
-   *     rax * 4              = (,%rax,4)
+   *     rax * 4               = (,%rax,4)
    *     8L $ (rax * 4)        = $8(,%rax,4)
-   *     mrax + rbx * 4       = (%rax,%rbx,4)
+   *     mrax + rbx * 4        = (%rax,%rbx,4)
    *     8L $ (mrax + rbx * 4) = $8(%rax,%rbx,4) *)
   val ( $ ) : int64 -> 'reg operand -> 'reg operand
   val ( * ) : 'reg -> int -> 'reg operand

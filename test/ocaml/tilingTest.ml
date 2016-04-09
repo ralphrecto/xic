@@ -81,6 +81,25 @@ let test_munch_expr _ =
   shift_binop_test (>>)  shrq;
   shift_binop_test (>>>) sarq;
 
+  (* cmps *)
+  let cmp_binop_test irop asmop =
+    let input = irop one two in
+    let expected = ((gen 1), [
+      movq (const 1) (fakeop 0);
+      movq (const 2) (fakeop 1);
+      cmpq (fakeop 1) (fakeop 0);
+      asmop (Reg (Real Cl));
+      movq (Reg (Real Rcx)) (fakeop 1);
+    ]) in
+    test expected input
+  in
+  cmp_binop_test (==) asete;
+  cmp_binop_test (!=) asetne;
+  cmp_binop_test (< ) asetl;
+  cmp_binop_test (> ) asetg;
+  cmp_binop_test (<=) asetle;
+  cmp_binop_test (>=) asetge;
+
   (* mul/highmul *)
   let mul_binop_test irop asmreg =
     let input = irop one two in
@@ -239,6 +258,70 @@ let test_munch_expr _ =
   arg_temp_test 3 8 (40L $ mem_rbp);
 
   (* call *)
+  (* TODO: *)
+  ()
+
+let test_munch_stmt _ =
+  let open Ir in
+  let open Ir.Abbreviations in
+  let module IRA = Ir.Abbreviations in
+  let open Asm in
+  let open Asm.Abbreviations in
+  let open Ir.Infix in
+  let open AbstrAsmsEq in
+  let open Tiling in
+  let open Dummy in
+
+  (* helpers *)
+  let gen i = FreshReg.gen i in
+  (* let fakereg i = Fake (gen i) in *)
+  let fakeop i = fake (gen i) in
+  (* let mem_rsp = Asm.Mem (Base (None, Real Rsp)) in *)
+  (* let mem_rbp = Asm.Mem (Base (None, Real Rbp)) in *)
+
+  let test ?(ctx=dummy_ctx) ?(ctxs=dummy_fcontexts) expected input =
+    FreshReg.reset ();
+    expected === munch_stmt ctx ctxs input;
+  in
+
+  (* cjumpone *)
+  let input = cjumpone one "tru" in
+  let expected = [
+    movq (const 1) (fakeop 0);
+    cmpq (const 0) (fakeop 0);
+    jnz (Asm.Label "tru");
+  ] in
+  test expected input;
+
+  let input = cjumpone zero "tru" in
+  let expected = [
+    movq (const 0) (fakeop 0);
+    cmpq (const 0) (fakeop 0);
+    jnz (Asm.Label "tru");
+  ] in
+  test expected input;
+
+  let input = cjumpone (one == two) "tru" in
+  let expected = [
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+    cmpq (fakeop 1) (fakeop 0);
+    asete acl;
+    movq arcx (fakeop 1);
+    cmpq (const 0) (fakeop 1);
+    jnz (Asm.Label "tru");
+  ] in
+  test expected input;
+
+  (* jump *)
+  let input = jump (name "foo") in
+  let expected = [jmp (Asm.Label "foo")] in
+  test expected input;
+
+  (* exp *)
+
+  (* label *)
+
   ()
 
 let test_chomp _ =
@@ -271,7 +354,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setnc fresh_reg
+    asetnc fresh_reg
   ]
   in
   let result = snd (chomp_expr dummy_ctx dummy_fcontexts expr1) in
@@ -284,7 +367,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setnc (Reg (Fake "y"))
+    asetnc (Reg (Fake "y"))
   ]
   in
   let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in
@@ -297,7 +380,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setc fresh_reg
+    asetc fresh_reg
   ]
   in
   let result = snd (chomp_expr dummy_ctx dummy_fcontexts expr1) in
@@ -310,7 +393,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
-    setc (Reg (Fake "y"))
+    asetc (Reg (Fake "y"))
   ]
   in
   let result = chomp_stmt dummy_ctx dummy_fcontexts stmt1 in
@@ -426,7 +509,8 @@ let test_register_allocation _ =
 let main () =
     "suite" >::: [
       "test_munch_expr"          >:: test_munch_expr;
-      "test_chomp"               >:: test_chomp;
+      "test_munch_stmt"          >:: test_munch_stmt;
+      (* "test_chomp"               >:: test_chomp; *)
       "test_register_allocation" >:: test_register_allocation;
     ] |> run_test_tt_main
 

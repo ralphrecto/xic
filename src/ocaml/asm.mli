@@ -223,18 +223,32 @@ val sarq : 'reg operand -> 'reg operand -> 'reg asm_template
 (* move/setting operations *)
 (* val mov : 'reg operand -> 'reg operand -> 'reg asm_template *)
 val movq : 'reg operand -> 'reg operand -> 'reg asm_template
-val sete : 'reg operand -> 'reg asm_template
-val setne : 'reg operand -> 'reg asm_template
-val setl : 'reg operand -> 'reg asm_template
-val setg : 'reg operand -> 'reg asm_template
-val setle : 'reg operand -> 'reg asm_template
-val setge : 'reg operand -> 'reg asm_template
-val setz : 'reg operand -> 'reg asm_template
-val setnz : 'reg operand -> 'reg asm_template
-val sets : 'reg operand -> 'reg asm_template
-val setns : 'reg operand -> 'reg asm_template
-val setc : 'reg operand -> 'reg asm_template
-val setnc : 'reg operand -> 'reg asm_template
+
+val asete  : abstract_reg operand -> abstract_asm
+val asetne : abstract_reg operand -> abstract_asm
+val asetl  : abstract_reg operand -> abstract_asm
+val asetg  : abstract_reg operand -> abstract_asm
+val asetle : abstract_reg operand -> abstract_asm
+val asetge : abstract_reg operand -> abstract_asm
+val asetz  : abstract_reg operand -> abstract_asm
+val asetnz : abstract_reg operand -> abstract_asm
+val asets  : abstract_reg operand -> abstract_asm
+val asetns : abstract_reg operand -> abstract_asm
+val asetc  : abstract_reg operand -> abstract_asm
+val asetnc : abstract_reg operand -> abstract_asm
+
+val sete  : reg operand -> asm
+val setne : reg operand -> asm
+val setl  : reg operand -> asm
+val setg  : reg operand -> asm
+val setle : reg operand -> asm
+val setge : reg operand -> asm
+val setz  : reg operand -> asm
+val setnz : reg operand -> asm
+val sets  : reg operand -> asm
+val setns : reg operand -> asm
+val setc  : reg operand -> asm
+val setnc : reg operand -> asm
 
 (* load effective address *)
 val leaq : 'reg operand -> 'reg operand -> 'reg asm_template

@@ -31,23 +31,23 @@ let binop_commutative (op: Ir.binop_code) =
 
 let cmp_to_instr (op: Ir.binop_code) =
   match op with
-  | Ir.EQ -> sete
-  | Ir.NEQ -> setne
-  | Ir.LT -> setl
-  | Ir.GT -> setg
-  | Ir.LEQ -> setle
-  | Ir.GEQ -> setge
+  | Ir.EQ  -> asete
+  | Ir.NEQ -> asetne
+  | Ir.LT  -> asetl
+  | Ir.GT  -> asetg
+  | Ir.LEQ -> asetle
+  | Ir.GEQ -> asetge
   | _ -> failwith "shouldn't happen -- cmp_to_instr"
 
 let cmp_zero_to_instr (op: Ir.binop_code) =
   let open Ir in
   match op with
-  | EQ -> setz
-  | NEQ -> setnz
-  | LT -> sets
-  | GT -> setg
-  | LEQ -> setle
-  | GEQ -> setns
+  | EQ  -> asetz
+  | NEQ -> asetnz
+  | LT  -> asets
+  | GT  -> asetg
+  | LEQ -> asetle
+  | GEQ -> asetns
   | _ -> failwith "shouldn't happen -- cmp_zero_to_instr"
 
 let shift_to_instr (op: Ir.binop_code) =
@@ -90,7 +90,9 @@ let imm_cmp_jump op reg const label =
   [cmpq (Asm.Const const) (Reg reg); (cmp_to_jump_instr op label)]
 
 let non_imm_cmp op reg1 reg2 dest =
-  [cmpq (Reg reg1) (Reg reg2); (cmp_to_instr op) (Reg dest)]
+  [cmpq (Reg reg2) (Reg reg1);
+   (cmp_to_instr op) (Reg (Real Cl));
+   movq (Reg (Real Rcx)) (Reg dest)]
 
 let cmp_zero op reg1 dest =
   [test (Reg reg1) (Reg reg1); (cmp_zero_to_instr op) (Reg dest)]
@@ -257,28 +259,14 @@ and munch_stmt
     (fcontexts: func_contexts)
     (s: Ir.stmt) =
   match s with
-  | Ir.CJumpOne (e1, tru) ->
-    begin
-      match e1 with
-      | Ir.BinOp (e1, ((Ir.EQ|Ir.NEQ|Ir.LT|Ir.GT|Ir.LEQ|Ir.GEQ) as op), e2) ->
-        let tru_label = Asm.Label tru in
-        let cond_jump = cmp_to_jump_instr op tru_label in
-        let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-        let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-        let jump_lst = [
-          cmpq (Reg (Fake e2_reg)) (Reg (Fake e1_reg));
-          cond_jump;
-        ] in
-        e1_lst @ e2_lst @ jump_lst
-      | _ ->
-        let (binop_reg, binop_lst) = munch_expr curr_ctx fcontexts e1 in
-        let tru_label = Asm.Label tru in
-        let jump_lst = [
-          cmpq (Const 0L) (Reg (Fake binop_reg));
-          jnz tru_label;
-        ] in
-        binop_lst @ jump_lst
-    end
+  | Ir.CJumpOne (e, tru) -> begin
+      let (r, asms) = munch_expr curr_ctx fcontexts e in
+      let jump_lst = [
+        cmpq (Const 0L) (Reg (Fake r));
+        jnz (Asm.Label tru);
+      ] in
+      asms @ jump_lst
+  end
   | Ir.Jump (Ir.Name s) -> [jmp (Asm.Label s)]
   | Ir.Exp e -> snd (munch_expr curr_ctx fcontexts e)
   | Ir.Label l -> [label_op l]
@@ -406,16 +394,16 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg dest_reg)])
-      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
+      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg dest_reg)])
+      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg reg1)])
     end
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
   | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg dest_reg)])
-      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
+      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg dest_reg)])
+      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg reg1)])
     end
   (* neg case *)
   | BinOp (Const 0L, SUB, e1) ->

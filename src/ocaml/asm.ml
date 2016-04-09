@@ -356,23 +356,41 @@ let mov_generic mov_name src dest =
 (* let mov src dest = mov_generic "mov" src dest *)
 let movq src dest = mov_generic "movq" src dest
 
-let set_generic setname dest =
+let set_abstract setname dest =
   match dest with
-  | Mem _ | Reg _ -> Op (setname, [dest])
+  | Reg (Real Cl) -> Op (setname, [dest])
   | _ -> die ()
 
-let sete dest = set_generic "sete" dest
-let setne dest = set_generic "setne" dest
-let setl dest = set_generic "setl" dest
-let setg dest = set_generic "setg" dest
-let setle dest = set_generic "setle" dest
-let setge dest = set_generic "setge" dest
-let setz dest = set_generic "setz" dest
-let setnz dest = set_generic "setnz" dest
-let sets dest = set_generic "sets" dest
-let setns dest = set_generic "setns" dest
-let setc dest = set_generic "setc" dest
-let setnc dest = set_generic "setnc" dest
+let set_real setname dest =
+  match dest with
+  | Reg Cl -> Op (setname, [dest])
+  | _ -> die ()
+
+let asete  dest = set_abstract "sete"  dest
+let asetne dest = set_abstract "setne" dest
+let asetl  dest = set_abstract "setl"  dest
+let asetg  dest = set_abstract "setg"  dest
+let asetle dest = set_abstract "setle" dest
+let asetge dest = set_abstract "setge" dest
+let asetz  dest = set_abstract "setz"  dest
+let asetnz dest = set_abstract "setnz" dest
+let asets  dest = set_abstract "sets"  dest
+let asetns dest = set_abstract "setns" dest
+let asetc  dest = set_abstract "setc"  dest
+let asetnc dest = set_abstract "setnc" dest
+
+let sete  dest = set_real "sete"  dest
+let setne dest = set_real "setne" dest
+let setl  dest = set_real "setl"  dest
+let setg  dest = set_real "setg"  dest
+let setle dest = set_real "setle" dest
+let setge dest = set_real "setge" dest
+let setz  dest = set_real "setz"  dest
+let setnz dest = set_real "setnz" dest
+let sets  dest = set_real "sets"  dest
+let setns dest = set_real "setns" dest
+let setc  dest = set_real "setc"  dest
+let setnc dest = set_real "setnc" dest
 
 (* laod effective address *)
 let leaq src dest =

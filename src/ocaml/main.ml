@@ -7,6 +7,8 @@ open Ir
 open Ir_util
 open Ir_generation
 open Ir_printer
+open Asm
+open Tiling
 open Printf
 open Xi_interpreter
 
@@ -67,6 +69,24 @@ let ir_gen_no_opt (ast: string) : Ir.comp_unit Error.result =
   let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
   Result.map (typecheck ast) ~f
 
+let asm_gen_opt (ast: string) : Asm.asm_prog Error.result =
+  let f = 
+    let g1 = gen_comp_unit $ ast_constant_folding in
+    let g2 = ir_constant_folding $ g1 in
+    let g3 = lower_comp_unit $ g2 in
+    block_reorder_comp_unit $ g3 in
+  Result.bind (typecheck ast) begin fun fullprog -> 
+    let comp_unit = f fullprog in  
+    Ok (asm_gen fullprog comp_unit)
+  end
+
+let asm_gen_no_opt (ast: string) : Asm.asm_prog Error.result =
+  let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
+  Result.bind (typecheck ast) begin fun fullprog -> 
+    let comp_unit = f fullprog in  
+    Ok (asm_gen fullprog comp_unit)
+  end
+
 (* debugging paths *)
 let debug_ast_cfold (ast: string) : Typecheck.full_prog Error.result =
   Result.map (typecheck ast) ~f:ast_constant_folding
@@ -124,7 +144,9 @@ let main flags asts () : unit Deferred.t =
   else if flags.blkreorder then
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
     writes flags.outputs contents
-  else return ()
+  else
+    let contents = asts_to_strs asm_gen_opt string_of_asms asts in
+    writes flags.outputs contents
 
 let () =
   Command.async

@@ -884,5 +884,13 @@ let register_allocate asms =
     | Lab l -> [Lab l]
     | Directive (d, args) -> [Directive (d, args)]
   in
-
   List.concat_map ~f:(allocate spill_env) asms
+
+let asm_gen
+  (FullProg (_, interfaces): Typecheck.full_prog)
+  (comp_unit : Ir.comp_unit) : Asm.asm list = 
+  let callable_decls = 
+    let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
+    List.fold_left ~f ~init:[] interfaces in
+  let func_contexts = get_context_map callable_decls comp_unit in
+  munch_comp_unit func_contexts comp_unit |> register_allocate

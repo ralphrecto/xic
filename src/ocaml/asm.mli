@@ -57,6 +57,8 @@ type abstract_asm = abstract_reg asm_template
 
 type asm = reg asm_template
 
+type asm_prog = asm list
+
 (******************************************************************************)
 (* asm helpers                                                                *)
 (******************************************************************************)

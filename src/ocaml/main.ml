@@ -15,15 +15,16 @@ module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
 module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
 
 type flags = {
-  typecheck:  bool;
-  tcdebug:    bool;
-  irgen:      bool;
-  ast_cfold:  bool;
-  nothing:    bool;
-  lower:      bool;
-  ir_cfold:   bool;
-  blkreorder: bool;
-  outputs:    string list;
+  typecheck:      bool;
+  tcdebug:        bool;
+  irgen:          bool;
+  irgen_no_opt:   bool;
+  ast_cfold:      bool;
+  nothing:        bool;
+  lower:          bool;
+  ir_cfold:       bool;
+  blkreorder:     bool;
+  outputs:        string list;
 } [@@deriving sexp]
 
 let resmap ~f =
@@ -39,14 +40,7 @@ let format_err_msg ((row, col), msg) =
   let col_s = string_of_int col in
   "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
-let write (f: 'a -> string) (out: string) (tc: 'a Error.result) =
-  let contents =
-    match tc with
-    | Ok el -> f el 
-    | Error e -> format_error_msg e in
-  Writer.save out ~contents
-
-let get_callable_decls (FullProg (_, (_, interfaces))) = 
+let get_callable_decls ((FullProg (_, interfaces)): Pos.full_prog) = 
  List.fold_left
    ~f:(fun acc (_, Interface clist) -> clist @ acc)
    ~init:[] interfaces
@@ -58,12 +52,12 @@ let typecheck (ast: string) : Typecheck.full_prog Error.result =
   ast
     |> StdString.trim
     |> Sexp.of_string
-    |> Pos.full_prof_of_sexp
+    |> Pos.full_prog_of_sexp
     |> prog_typecheck
 
 let ir_gen (ast: string) : Ir.comp_unit Error.result = 
   let f = 
-    let g1 = ir_gen $ ast_constant_folding in
+    let g1 = gen_comp_unit $ ast_constant_folding in
     let g2 = ir_constant_folding $ g1 in
     let g3 = lower_comp_unit $ g2 in
     block_reorder_comp_unit $ g3 in
@@ -78,40 +72,58 @@ let debug_ast_cfold (ast: string) : Typecheck.full_prog Error.result =
   Result.map (typecheck ast) ~f:ast_constant_folding
 
 let debug_ir_gen (ast: string) : Ir.comp_unit Error.result =
-  Result.map (ast_cfold ast) ~f:gen_comp_unit
+  Result.map (debug_ast_cfold ast) ~f:gen_comp_unit
 
 let debug_ir_cfold (ast: string): Ir.comp_unit Error.result =
-  Result.map (ir_gen ast) ~f:ir_constant_folding
+  Result.map (debug_ir_gen ast) ~f:ir_constant_folding
 
 let debug_ir_lower (ast: string): Ir.comp_unit Error.result =
-  Result.map (ir_cfold ast) ~f:lower_comp_unit
+  Result.map (debug_ir_cfold ast) ~f:lower_comp_unit
 
 let debug_ir_blkreorder (ast: string): Ir.comp_unit Error.result =
-  Result.map (ir_lower ast) ~f:block_reorder_comp_unit
+  Result.map (debug_ir_lower ast) ~f:block_reorder_comp_unit
+
+let asts_to_strs (tcf: string -> 'a Error.result) (strf: 'a -> string) (asts: string list) =
+  let f ast =
+    match tcf ast with
+    | Ok el -> strf el 
+    | Error e -> format_err_msg e in
+  List.map ~f asts
+
+let writes (outs: string list) (content_list: string list) = 
+  let zipped = List.zip_exn outs content_list in
+  Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
 
 let main flags asts () : unit Deferred.t =
-  let help (to_str: 'a -> string) (astf: string -> 'a Error.result) = 
-    List.zip_exn outs (List.map ~f:astf asts) |>
-    Deferred.List.iter ~f:(fun (out, elt) -> write to_str out elt) in
+  let typed_strf (FullProg (prog, _): Typecheck.full_prog) : string = 
+    prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
+  let ir_strf = sexp_of_comp_unit in
 
   if flags.typecheck then
-    help (fun _ -> "Valid Xi Program") typecheck
+    let strf = fun _ -> "Valid Xi Program" in
+    let contents = asts_to_strs typecheck strf asts in
+    writes flags.outputs contents
   else if flags.tcdebug then
-    let to_str (FullProg (prog, _): Typecheck.full_prog) : string = 
-      prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
-    help to_str typecheck
-  else if flags.ir_gen && flags.no_opt then
-    help sexp_of_comp_unit ir_gen_no_opt
-  else if flags.ir_gen then
-    help sexp_of_comp_unit ir_gen
-  else if flags.debug-ast-cfold then
-    help sexp_of_comp_unit debug_ast_cfold
-  else if flags.debug-ir-gen then
-    help sexp_of_comp_unit debug_ast_cfold
-  else if flags.debug-ir-lower then
-    help sexp_of_comp_unit debug_ir_lower
-  else if flags.debug-ir-blkreorder then
-    help sexp_of_comp_unit debug_ir_blkreorder
+    let contents = asts_to_strs typecheck typed_strf asts in
+    writes flags.outputs contents
+  else if flags.irgen_no_opt then
+    let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
+    writes flags.outputs contents
+  else if flags.irgen then
+    let contents = asts_to_strs ir_gen ir_strf asts in
+    writes flags.outputs contents
+  else if flags.ast_cfold then
+    let contents = asts_to_strs debug_ast_cfold typed_strf asts in
+    writes flags.outputs contents
+  else if flags.irgen then
+    let contents = asts_to_strs debug_ir_gen ir_strf asts in
+    writes flags.outputs contents
+  else if flags.lower then
+    let contents = asts_to_strs debug_ir_lower ir_strf asts in
+    writes flags.outputs contents
+  else if flags.blkreorder then
+    let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
+    writes flags.outputs contents
   else return ()
 
 let () =
@@ -119,28 +131,30 @@ let () =
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
-      +> flag "--typecheck"  no_arg ~doc:""
-      +> flag "--tcdebug"    no_arg ~doc:""
-      +> flag "--irgen"      no_arg ~doc:""
-      +> flag "--ast-cfold"  no_arg ~doc:""
-      +> flag "--nothing"    no_arg ~doc:""
-      +> flag "--lower"      no_arg ~doc:""
-      +> flag "--ir-cfold"   no_arg ~doc:""
-      +> flag "--blkreorder" no_arg ~doc:""
+      +> flag "--typecheck"      no_arg ~doc:""
+      +> flag "--tcdebug"        no_arg ~doc:""
+      +> flag "--irgen"          no_arg ~doc:""
+      +> flag "--irgen_no_opt"   no_arg ~doc:""
+      +> flag "--ast-cfold"      no_arg ~doc:""
+      +> flag "--nothing"        no_arg ~doc:""
+      +> flag "--lower"          no_arg ~doc:""
+      +> flag "--ir-cfold"       no_arg ~doc:""
+      +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun tc tcd irg afold nothing ifold l b os asts ->
+    (fun tc tcd irg irg_no afold nothing ifold l b os asts ->
        let flags = {
-         typecheck  = tc;
-         tcdebug    = tcd;
-         irgen      = irg;
-         ast_cfold  = afold;
-         nothing    = nothing;
-         lower      = l;
-         ir_cfold   = ifold;
-         blkreorder = b;
-         outputs    = os;
+         typecheck      =  tc;
+         tcdebug        =  tcd;
+         irgen          =  irg;
+         irgen_no_opt   =  irg_no;
+         ast_cfold      =  afold;
+         nothing        =  nothing;
+         lower          =  l;
+         ir_cfold       =  ifold;
+         blkreorder     =  b;
+         outputs        =  os;
        } in
        main flags asts)
   |> Command.run

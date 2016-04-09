@@ -468,21 +468,6 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AId (_, typ) -> Expr.of_typ typ
   | AUnderscore typ -> Expr.of_typ typ
 
-let func_decl_types ((_, c): Pos.callable_decl) : Expr.t * Expr.t =
-  let tuple_or_nah (l: Expr.t list) : Expr.t =
-    match l with
-    | [hd] -> hd
-    | _::_ -> TupleT l
-    | [] -> UnitT in
-  match c with
-  | FuncDecl (_, args, rets) ->
-    let args_t = List.map ~f:avar_to_expr_t args in
-    let rets_t = List.map ~f:Expr.of_typ rets in
-    (tuple_or_nah args_t, tuple_or_nah rets_t)
-  | ProcDecl (_, args) -> 
-    let args_t = List.map ~f:avar_to_expr_t args in
-    (tuple_or_nah args_t, UnitT)
-
 let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
   match call with | FuncDecl ((_, id), args, rets) ->
     begin
@@ -676,6 +661,30 @@ let snd_func_pass c (p, call) =
         Ok (call_type, Proc(((), id), avs, stmt))
     end
 
+let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.result =
+  let tuple_or_nah (l: Expr.t list) : Expr.t =
+    match l with
+    | [hd] -> hd
+    | _::_ -> TupleT l
+    | [] -> UnitT in
+  match c with
+  | FuncDecl ((_, id), args, rets) ->
+    Result.all (List.map ~f:(avar_typecheck Context.empty) args) >>= fun args' ->
+    Result.all (List.map ~f:(typ_typecheck Context.empty) rets) >>= fun rets' ->
+    let args_t = List.map ~f:avar_to_expr_t args in
+    let rets_t = List.map ~f:Expr.of_typ rets in
+    let typ = tuple_or_nah args_t, tuple_or_nah rets_t in
+    Ok (typ, FuncDecl (((), id), args', rets'))
+  | ProcDecl ((_, id), args) -> 
+    Result.all (List.map ~f:(avar_typecheck Context.empty) args) >>= fun args' ->
+    let args_t = List.map ~f:avar_to_expr_t args in
+    Ok ((tuple_or_nah args_t, UnitT), ProcDecl (((), id), args'))
+
+let interface_typecheck
+  ((_, Interface callable_decls): Pos.interface) : interface Error.result =
+  Result.all (List.map ~f:callable_decl_typecheck callable_decls) >>= fun decls' ->
+  Ok ((), Interface decls')
+
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
@@ -684,10 +693,8 @@ let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =
     match snd use with
-    |Use (_, id) -> ((), Use ((), id))
+    | Use (_, id) -> ((), Use ((), id))
   in
   let use_list = List.map ~f: use_typecheck uses in
-  let interfaces' =
-    let f (_, interface) = ((), interface) in
-    List.map ~f interfaces in
+  Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
   Ok (FullProg (((), Prog (use_list, func_list)), interfaces'))

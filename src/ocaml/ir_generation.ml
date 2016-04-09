@@ -414,11 +414,11 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
   let (typ, _) = c in
   (abi_callable_name c, Seq(moves @ [gen_stmt callnames body]), typ)
 
-and gen_comp_unit (FullProg((_, program), (_, interfaces)): Typecheck.full_prog) =
+and gen_comp_unit (FullProg((_, program), interfaces): Typecheck.full_prog) =
   let Ast.S.Prog (_, callables) = program in
   let int_callables =
    List.fold_left
-     ~f:(fun acc (_, Interface clist) -> clist @ acc)
+     ~f:(fun acc ((_, Interface clist): Typecheck.interface) -> clist @ acc)
      ~init:[] interfaces in
   let int_callnames = abi_callable_decl_names int_callables in
   let prog_callnames = abi_callable_names callables in

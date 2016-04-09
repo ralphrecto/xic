@@ -94,14 +94,11 @@ doc:
 	@echo
 
 .PHONY: test
-test: src
+test: ocaml_test src
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
 	java -cp $(BIN):$(CP) org.junit.runner.JUnitCore $(TESTS)
-	for t in $(OCAML_TESTS_EXE); do \
-         ./$(BIN)/$$t; \
-    done
 	@echo
 
 .PHONY: ocaml_test
@@ -109,10 +106,11 @@ ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	for t in $(OCAML_TESTS_EXE); do \
-         ./$(BIN)/$$t; \
+	@for t in $(OCAML_TESTS_EXE); do \
+		echo $$t; \
+		./$(BIN)/$$t || exit 1; \
+		echo ""; \
     done
-	@echo
 
 .PHONY: publish
 publish: doc

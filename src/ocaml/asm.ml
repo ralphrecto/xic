@@ -26,8 +26,9 @@ type reg =
   | R14
   | R15
 
+type fake = string
 type abstract_reg =
-  | Fake of string
+  | Fake of fake
   | Real of reg
 
 type scale =
@@ -60,18 +61,18 @@ type asm = reg asm_template
 (* important register helpers                                                 *)
 (******************************************************************************)
 let arg_reg = function
-  | 0 -> Rdi
-  | 1 -> Rsi
-  | 2 -> Rdx
-  | 3 -> Rcx
-  | 4 -> R8
-  | 5 -> R9
-  | _ -> failwith "nth_arg_reg: bad arg num"
+  | 0 -> Some Rdi
+  | 1 -> Some Rsi
+  | 2 -> Some Rdx
+  | 3 -> Some Rcx
+  | 4 -> Some R8
+  | 5 -> Some R9
+  | _ -> None
 
 let ret_reg = function
-  | 0 -> Rdi
-  | 1 -> Rsi
-  | _ -> failwith "nth_ret_reg: bad arg num"
+  | 0 -> Some Rax
+  | 1 -> Some Rdx
+  | _ -> None
 
 let ( $ ) n reg =
   Base (Some (Int64.of_int n), reg)
@@ -80,6 +81,94 @@ let const n =
   Const (Int64.of_int n)
 
 let num_caller_save = 9
+
+module Abbreviations = struct
+  let arax = Reg (Real Rax)
+  let arbx = Reg (Real Rbx)
+  let arcx = Reg (Real Rcx)
+  let acl  = Reg (Real Cl)
+  let ardx = Reg (Real Rdx)
+  let arsi = Reg (Real Rsi)
+  let ardi = Reg (Real Rdi)
+  let arbp = Reg (Real Rbp)
+  let arsp = Reg (Real Rsp)
+  let ar8  = Reg (Real R8)
+  let ar9  = Reg (Real R9)
+  let ar10 = Reg (Real R10)
+  let ar11 = Reg (Real R11)
+  let ar12 = Reg (Real R12)
+  let ar13 = Reg (Real R13)
+  let ar14 = Reg (Real R14)
+  let ar15 = Reg (Real R15)
+
+  let fake s = Reg (Fake s)
+  let a = fake "a"
+  let b = fake "b"
+  let c = fake "c"
+  let w = fake "w"
+  let x = fake "x"
+  let y = fake "y"
+  let z = fake "z"
+
+  let rax = Reg Rax
+  let rbx = Reg Rbx
+  let rcx = Reg Rcx
+  let cl  = Reg Cl
+  let rdx = Reg Rdx
+  let rsi = Reg Rsi
+  let rdi = Reg Rdi
+  let rbp = Reg Rbp
+  let rsp = Reg Rsp
+  let r8  = Reg R8
+  let r9  = Reg R9
+  let r10 = Reg R10
+  let r11 = Reg R11
+  let r12 = Reg R12
+  let r13 = Reg R13
+  let r14 = Reg R14
+  let r15 = Reg R15
+
+  let mrax = Mem (Base (None, Rax))
+  let mrbx = Mem (Base (None, Rbx))
+  let mrcx = Mem (Base (None, Rcx))
+  let mcl  = Mem (Base (None, Cl))
+  let mrdx = Mem (Base (None, Rdx))
+  let mrsi = Mem (Base (None, Rsi))
+  let mrdi = Mem (Base (None, Rdi))
+  let mrbp = Mem (Base (None, Rbp))
+  let mrsp = Mem (Base (None, Rsp))
+  let mr8  = Mem (Base (None, R8 ))
+  let mr9  = Mem (Base (None, R9 ))
+  let mr10 = Mem (Base (None, R10))
+  let mr11 = Mem (Base (None, R11))
+  let mr12 = Mem (Base (None, R12))
+  let mr13 = Mem (Base (None, R13))
+  let mr14 = Mem (Base (None, R14))
+  let mr15 = Mem (Base (None, R15))
+
+  let ($) n mem =
+    match mem with
+    | Mem (Base (None, b)) -> Mem (Base (Some n, b))
+    | Mem (Off (None, o, s)) -> Mem (Off (Some n, o, s))
+    | Mem (BaseOff (None, b, o, s)) -> Mem (BaseOff (Some n, b, o, s))
+    | _ -> failwith "invalid $ application"
+
+  let ( * ) reg scale =
+    match scale with
+    | 1 -> Mem (Off (None, reg, One))
+    | 2 -> Mem (Off (None, reg, Two))
+    | 4 -> Mem (Off (None, reg, Four))
+    | 8 -> Mem (Off (None, reg, Eight))
+    | _ -> failwith "invalid scale"
+
+  let (+) base off =
+    match base, off with
+    | Mem (Base (Some n, r)), Mem (Off (None, b, o))
+    | Mem (Base (None, r)), Mem (Off (Some n, b, o)) -> Mem (BaseOff (Some n, r, b, o))
+    | Mem (Base (None, r)), Mem (Off (None, b, o)) -> Mem (BaseOff (None, r, b, o))
+    | _ -> failwith "invalid + application"
+end
+
 
 (******************************************************************************)
 (* functions                                                                  *)
@@ -151,6 +240,9 @@ let string_of_asm_template f asm =
 
 let string_of_abstract_asm asm =
   string_of_asm_template string_of_abstract_reg asm
+
+let string_of_abstract_asms asms =
+  Util.join (List.map ~f:string_of_abstract_asm asms)
 
 let string_of_asm asm =
   string_of_asm_template string_of_reg asm
@@ -228,7 +320,7 @@ let incq dest = unop_arith_generic "incq" dest
 let decq dest = unop_arith_generic "decq" dest
 let imulq src = unop_arith_generic "imulq" src
 let idivq src = unop_arith_generic "idivq" src
-let negq src = unop_arith_generic "negq" src 
+let negq src = unop_arith_generic "negq" src
 
 (* logical/bitwise operations *)
 let logic_generic logic_name src dest =
@@ -261,26 +353,44 @@ let mov_generic mov_name src dest =
   | _, (Mem _ | Reg _ ) -> Op (mov_name, [src; dest])
   | _ -> die ()
 
-let mov src dest = mov_generic "mov" src dest
+(* let mov src dest = mov_generic "mov" src dest *)
 let movq src dest = mov_generic "movq" src dest
 
-let set_generic setname dest =
+let set_abstract setname dest =
   match dest with
-  | Mem _ | Reg _ -> Op (setname, [dest])
+  | Reg (Real Cl) -> Op (setname, [dest])
   | _ -> die ()
 
-let sete dest = set_generic "sete" dest
-let setne dest = set_generic "setne" dest
-let setl dest = set_generic "setl" dest
-let setg dest = set_generic "setg" dest
-let setle dest = set_generic "setle" dest
-let setge dest = set_generic "setge" dest
-let setz dest = set_generic "setz" dest
-let setnz dest = set_generic "setnz" dest
-let sets dest = set_generic "sets" dest
-let setns dest = set_generic "setns" dest
-let setc dest = set_generic "setc" dest
-let setnc dest = set_generic "setnc" dest
+let set_real setname dest =
+  match dest with
+  | Reg Cl -> Op (setname, [dest])
+  | _ -> die ()
+
+let asete  dest = set_abstract "sete"  dest
+let asetne dest = set_abstract "setne" dest
+let asetl  dest = set_abstract "setl"  dest
+let asetg  dest = set_abstract "setg"  dest
+let asetle dest = set_abstract "setle" dest
+let asetge dest = set_abstract "setge" dest
+let asetz  dest = set_abstract "setz"  dest
+let asetnz dest = set_abstract "setnz" dest
+let asets  dest = set_abstract "sets"  dest
+let asetns dest = set_abstract "setns" dest
+let asetc  dest = set_abstract "setc"  dest
+let asetnc dest = set_abstract "setnc" dest
+
+let sete  dest = set_real "sete"  dest
+let setne dest = set_real "setne" dest
+let setl  dest = set_real "setl"  dest
+let setg  dest = set_real "setg"  dest
+let setle dest = set_real "setle" dest
+let setge dest = set_real "setge" dest
+let setz  dest = set_real "setz"  dest
+let setnz dest = set_real "setnz" dest
+let sets  dest = set_real "sets"  dest
+let setns dest = set_real "setns" dest
+let setc  dest = set_real "setc"  dest
+let setnc dest = set_real "setnc" dest
 
 (* laod effective address *)
 let leaq src dest =

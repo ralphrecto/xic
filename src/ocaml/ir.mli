@@ -66,7 +66,7 @@ module Abbreviations: sig
   val call  : expr -> expr list -> expr
   val const : Int64.t -> expr
   val eseq  : stmt -> expr -> expr
-  val mem   : expr -> expr
+  val mem   : ?typ:mem_type -> expr -> expr
   val name  : string -> expr
   val temp  : string -> expr
 
@@ -78,6 +78,37 @@ module Abbreviations: sig
   val move     : expr -> expr -> stmt
   val seq      : stmt list -> stmt
   val return   : stmt
+
+  val add_     : expr -> expr -> expr
+  val sub_     : expr -> expr -> expr
+  val mul_     : expr -> expr -> expr
+  val hmul_    : expr -> expr -> expr
+  val div_     : expr -> expr -> expr
+  val mod_     : expr -> expr -> expr
+  val and_     : expr -> expr -> expr
+  val or_      : expr -> expr -> expr
+  val xor_     : expr -> expr -> expr
+  val lshift_  : expr -> expr -> expr
+  val rshift_  : expr -> expr -> expr
+  val arshift_ : expr -> expr -> expr
+  val eq_      : expr -> expr -> expr
+  val neq_     : expr -> expr -> expr
+  val lt_      : expr -> expr -> expr
+  val gt_      : expr -> expr -> expr
+  val leq_     : expr -> expr -> expr
+  val geq_     : expr -> expr -> expr
+
+  val zero  : expr
+  val one   : expr
+  val two   : expr
+  val three : expr
+  val four  : expr
+  val five  : expr
+  val six   : expr
+  val seven : expr
+  val eight : expr
+  val nine  : expr
+  val ten   : expr
 end
 
 module Infix: sig

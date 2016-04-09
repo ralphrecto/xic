@@ -54,7 +54,7 @@ module Abbreviations = struct
   let call f args = Call (f, args)
   let const n = Const n
   let eseq s e = ESeq (s, e)
-  let mem e = Mem (e, NORMAL)
+  let mem ?(typ=NORMAL) e = Mem (e, typ)
   let name s = Name s
   let temp s = Temp s
 
@@ -66,27 +66,58 @@ module Abbreviations = struct
   let move x e = Move (x, e)
   let seq ss = Seq ss
   let return = Return
+
+  let add_     lhs rhs = BinOp (lhs, ADD,     rhs)
+  let sub_     lhs rhs = BinOp (lhs, SUB,     rhs)
+  let mul_     lhs rhs = BinOp (lhs, MUL,     rhs)
+  let hmul_    lhs rhs = BinOp (lhs, HMUL,    rhs)
+  let div_     lhs rhs = BinOp (lhs, DIV,     rhs)
+  let mod_     lhs rhs = BinOp (lhs, MOD,     rhs)
+  let and_     lhs rhs = BinOp (lhs, AND,     rhs)
+  let or_      lhs rhs = BinOp (lhs, OR,      rhs)
+  let xor_     lhs rhs = BinOp (lhs, XOR,     rhs)
+  let lshift_  lhs rhs = BinOp (lhs, LSHIFT,  rhs)
+  let rshift_  lhs rhs = BinOp (lhs, RSHIFT,  rhs)
+  let arshift_ lhs rhs = BinOp (lhs, ARSHIFT, rhs)
+  let eq_      lhs rhs = BinOp (lhs, EQ,      rhs)
+  let neq_     lhs rhs = BinOp (lhs, NEQ,     rhs)
+  let lt_      lhs rhs = BinOp (lhs, LT,      rhs)
+  let gt_      lhs rhs = BinOp (lhs, GT,      rhs)
+  let leq_     lhs rhs = BinOp (lhs, LEQ,     rhs)
+  let geq_     lhs rhs = BinOp (lhs, GEQ,     rhs)
+
+  let zero  = const 0L
+  let one   = const 1L
+  let two   = const 2L
+  let three = const 3L
+  let four  = const 4L
+  let five  = const 5L
+  let six   = const 6L
+  let seven = const 7L
+  let eight = const 8L
+  let nine  = const 9L
+  let ten   = const 10L
 end
 
 module Infix = struct
-  let ( +   ) lhs rhs = BinOp (lhs, ADD,     rhs)
-  let ( -   ) lhs rhs = BinOp (lhs, SUB,     rhs)
-  let ( *   ) lhs rhs = BinOp (lhs, MUL,     rhs)
-  let ( *>> ) lhs rhs = BinOp (lhs, HMUL,    rhs)
-  let ( /   ) lhs rhs = BinOp (lhs, DIV,     rhs)
-  let ( %   ) lhs rhs = BinOp (lhs, MOD,     rhs)
-  let ( &   ) lhs rhs = BinOp (lhs, AND,     rhs)
-  let ( ||  ) lhs rhs = BinOp (lhs, OR,      rhs)
-  let ( ^   ) lhs rhs = BinOp (lhs, XOR,     rhs)
-  let ( <<  ) lhs rhs = BinOp (lhs, LSHIFT,  rhs)
-  let ( >>  ) lhs rhs = BinOp (lhs, RSHIFT,  rhs)
-  let ( >>> ) lhs rhs = BinOp (lhs, ARSHIFT, rhs)
-  let ( ==  ) lhs rhs = BinOp (lhs, EQ,      rhs)
-  let ( !=  ) lhs rhs = BinOp (lhs, NEQ,     rhs)
-  let ( <   ) lhs rhs = BinOp (lhs, LT,      rhs)
-  let ( >   ) lhs rhs = BinOp (lhs, GT,      rhs)
-  let ( <=  ) lhs rhs = BinOp (lhs, LEQ,     rhs)
-  let ( >=  ) lhs rhs = BinOp (lhs, GEQ,     rhs)
+  let ( +   ) = Abbreviations.add_
+  let ( -   ) = Abbreviations.sub_
+  let ( *   ) = Abbreviations.mul_
+  let ( *>> ) = Abbreviations.hmul_
+  let ( /   ) = Abbreviations.div_
+  let ( %   ) = Abbreviations.mod_
+  let ( &   ) = Abbreviations.and_
+  let ( ||  ) = Abbreviations.or_
+  let ( ^   ) = Abbreviations.xor_
+  let ( <<  ) = Abbreviations.lshift_
+  let ( >>  ) = Abbreviations.rshift_
+  let ( >>> ) = Abbreviations.arshift_
+  let ( ==  ) = Abbreviations.eq_
+  let ( !=  ) = Abbreviations.neq_
+  let ( <   ) = Abbreviations.lt_
+  let ( >   ) = Abbreviations.gt_
+  let ( <=  ) = Abbreviations.leq_
+  let ( >=  ) = Abbreviations.geq_
 end
 
 (* pretty printing *)

@@ -38,39 +38,8 @@ let string_of_values (vs: value list) : string =
     )
   |> String.of_char_list
 
-let id_of_avar ((_, av): avar) =
-  match av with
-  | AId ((_,id), _) -> Some id
-  | _ -> None
-
-let id_of_var ((_, v): var) =
-  match v with
-  | AVar av -> id_of_avar av
-  | Underscore -> None
-
-let bind_ids store ids =
-  let helper s i =
-    match i with
-    | Some i' -> String.Map.add s ~key:i' ~data: None
-    | None -> s
-  in
-  List.fold_left ~f:helper ~init:store ids
-
-let bind_ids_vals store ids_vals =
-  let helper s (i,v) =
-    match i with
-    | Some i' -> String.Map.add s ~key:i' ~data: (Some (Value v))
-    | None -> s
-  in
-  List.fold_left ~f:helper ~init:store ids_vals
-
-let ids_of_vars vlist = List.map ~f: id_of_var vlist
-
-let ids_of_avars avlist = List.map ~f: id_of_avar avlist
-
 (* conv, io interface file functions *)
-(* NOTE: eof() function in io not included idk how to do it *)
-
+(* NOTE: eof() function in io not included -- idk how to do it *)
 let unparseInt (n: int64) : string =
   let open Long in
   to_string n
@@ -92,27 +61,69 @@ let getchar () : char =
   let i = read_int () in
   char_of_int i
 
+(* helpful decl helper functions *)
+let id_of_avar ((_, av): avar) =
+  match av with
+  | AId ((_,id), (_, t)) -> (Some id, Some t)
+  | AUnderscore (_, t)-> (None, Some t)
+
+let id_of_var ((_, v): var) =
+  match v with
+  | AVar av -> id_of_avar av
+  | Underscore -> (None, None)
+
+let ids_of_vars vlist = List.map ~f: id_of_var vlist
+
+let ids_of_avars avlist = List.map ~f: id_of_avar avlist
+
+let bind_ids_vals store ids_vals =
+  let helper s (i, v) =
+    match i with
+    | Some i' -> String.Map.add s ~key:i' ~data: (Some (Value v))
+    | None -> s
+  in
+  List.fold_left ~f:helper ~init:store ids_vals
+
+let rec bind_ids store ids =
+  let rec populate_list store t size =
+    let filler = 
+      match t with
+      | TInt | TBool -> Int 0L
+      | TArray (_, None) -> Array (ref [])
+      | TArray ((_, t'), Some e) -> 
+          let size =
+            match eval_expr store e with
+            | Int i -> i
+            | _ -> failwith "bind_ids array size is not an int!!!"
+          in
+          Array (ref (populate_list store t' size))
+    in
+    let rec populate_list' t count acc =
+      if count > 0L then 
+        populate_list' t (Long.pred count) (filler::acc)
+      else
+        acc
+    in
+    populate_list' t size []
+  in
+  let bind_ids' s (i, t) =
+    match i, t with
+    | Some i', Some (TArray (_, None)) -> 
+        String.Map.add s ~key:i' ~data: (Some (Value (Array (ref []))))
+    | Some i', Some (TArray ((_, t), Some e)) -> 
+        let size =
+          match eval_expr store e with
+          | Int i -> i
+          | _ -> failwith "bind_ids array size is not an int!!!"
+        in
+        let dummy_list = populate_list store t size in 
+        String.Map.add s ~key:i' ~data: (Some (Value (Array (ref dummy_list))))
+    | Some i', _-> String.Map.add s ~key:i' ~data: None
+    | None, _ -> s
+  in
+  List.fold_left ~f:bind_ids' ~init:store ids
+
 (* interpreter *)
-
-let rec eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog) : value option =
-  let updated_store = eval_prog store prog in
-  get_main_val updated_store
-
-and eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context =
-  List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
-
-and get_main_val context : value option =
-  match String.Map.find context "main" with
-  | Some (Some (Function (_, stmt))) -> snd (eval_stmt context stmt)
-  | Some _ -> failwith "main is a variable? lol"
-  | None -> failwith "no main function lol"
-
-and eval_callable (store: context) ((_, c): Typecheck.callable) : context =
-  match c with
-  | Func ((_, id), avars, _, stmt)
-  | Proc ((_, id), avars, stmt) ->
-    let args = ids_of_avars avars in
-    String.Map.add store ~key: id ~data: (Some (Function (args, stmt)))
 
 and eval_stmts store ss =
   List.fold_left ~f:(fun (store', res) s ->
@@ -132,7 +143,7 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
     begin
       match vlist, (eval_expr store e) with
       | _::_, Tuple elist ->
-        let ids = ids_of_vars vlist in
+        let ids = List.map ~f:fst (ids_of_vars vlist) in
         begin
           match List.zip ids elist with
           | Some l ->
@@ -141,7 +152,7 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
           | None -> failwith "shouldn't happen -- declasgn var list and e list do not match"
         end
       | [v], e' ->
-        let id = id_of_var v in
+        let id = fst (id_of_var v) in
         let store' = bind_ids_vals store [(id, e')] in
         (store', None)
       | _ -> failwith "shouldn't happen -- declasgn no var declared"
@@ -156,10 +167,14 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
         begin
           match (eval_expr store e1), (eval_expr store e2) with
           | Array l, Int i ->
-            let i' = Long.to_int i in
-            let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
-            l := new_l;
-            (store, None)
+            let arr_length = Long.of_int (List.length (!l)) in
+            if 0L <= i && i < arr_length then 
+              let i' = Long.to_int i in
+              let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
+              l := new_l;
+              (store, None)
+            else 
+              failwith "assigning to index out of bounds!"
           | _ -> failwith "shouldn't happen in asgn"
         end
       | _ -> failwith "shouldn't happen - asgn left is not a var or array indexing"
@@ -331,5 +346,25 @@ and eval_unop op e1 =
   | BANG, Int i -> Int (Int64.(1L - i))
   | _ -> failwith "shouldn't happen -- unop"
 
+let eval_callable (store: context) ((_, c): Typecheck.callable) : context =
+  match c with
+  | Func ((_, id), avars, _, stmt)
+  | Proc ((_, id), avars, stmt) ->
+    let args = List.map ~f:fst (ids_of_avars avars) in
+    String.Map.add store ~key: id ~data: (Some (Function (args, stmt)))
+
+let eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context =
+  List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
+
+let get_main_val context : value option =
+  match String.Map.find context "main" with
+  | Some (Some (Function (_, stmt))) -> snd (eval_stmt context stmt)
+  | Some _ -> failwith "main is a variable? lol"
+  | None -> failwith "no main function? lol"
+
+let eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog) : value option =
+  let updated_store = eval_prog store prog in
+  get_main_val updated_store
+  
 let eval (p: Typecheck.prog) : unit =
   ignore (get_main_val (eval_prog String.Map.empty p))

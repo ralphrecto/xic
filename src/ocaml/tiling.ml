@@ -27,7 +27,7 @@ let binop_commutative (op: Ir.binop_code) =
   | Ir.AND
   | Ir.OR
   | Ir.XOR -> true
-  | _ -> failwith "shouldn't happen -- binop_commutative"
+  | _ -> failwith "shouldn't happen -- binop_commutative" 
 
 let cmp_to_instr (op: Ir.binop_code) =
   match op with
@@ -167,7 +167,8 @@ let rec munch_expr
       let (e_reg, e_asm) = munch_expr curr_ctx fcontexts e in
       let new_tmp = FreshReg.fresh () in
       (Fake new_tmp, e_asm @ [movq (Mem (Base (None, e_reg))) (Reg (Fake new_tmp))])
-  | Ir.Temp str -> begin
+  | Ir.Temp str -> 
+    begin
       let new_tmp = Fake (FreshReg.fresh ()) in
       match FreshRetReg.get str with
       (* moving rets from callee return *)
@@ -178,7 +179,8 @@ let rec munch_expr
             else
                movq (Mem ((i-2+curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
           (new_tmp, [retmov])
-      | None -> begin
+      | None -> 
+        begin
           (* moving passed arguments as callee into vars *)
           match FreshArgReg.get str with
           | Some i ->
@@ -191,8 +193,8 @@ let rec munch_expr
                   movq (Mem ((i'-6+1)$(Real Rbp))) (Reg new_tmp) in
               (new_tmp, [argmov])
           | None -> (new_tmp, [movq (Reg (Fake str)) (Reg new_tmp)])
-      end
-  end
+        end
+    end
   | Ir.Call (Ir.Name (fname), arglist) ->
       let callee_ctx = String.Map.find_exn fcontexts fname in
       let (arg_regs, arg_asms) =
@@ -321,7 +323,7 @@ let get_displ (op: Ir.binop_code) x =
     | SUB -> Some (Int64.neg x)
     | _ -> failwith "shouldn't happen -- get_displ"
   else
-    None
+    None 
 
 (* mem operation of the binop: reg1 * {1,2,4,8} + reg2 +/- constant *)
 let binop_mem_mult_add (m: Ir.expr) reg1 reg2 displ =
@@ -358,48 +360,6 @@ let rec chomp_binop
   (e: Ir.expr)
   (dest: abstract_reg option) =
   match e with
-  (* mod 2 case *)
-  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
-  | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg dest_reg)])
-      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
-    end
-  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
-  | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg dest_reg)])
-      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
-    end
-  (* neg case *)
-  | BinOp (Const 0L, SUB, e1) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
-        | _ -> (reg1, asm1 @ [negq (Reg reg1)])
-    end
-  (* incr cases *)
-  | BinOp (e1, ADD, Const 1L)
-  | BinOp (Const 1L, ADD, e1) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
-        | _ -> (reg1, asm1 @ [incq (Reg reg1)])
-    end
-  (* decr case *)
-  | BinOp (e1, SUB, Const 1L) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
-        | _ -> (reg1, asm1 @ [decq (Reg reg1)])
-    end
   (* lea cases with constants *)
   (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const
     * multiply constant (1,2,4,8) is denoted as m
@@ -508,6 +468,40 @@ let rec chomp_binop
         (reg3,
           asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg2)] @ asm3 @ (non_imm_binop op reg2 reg3 reg3))
     end
+  (* decr case *)
+  | BinOp ((Temp reg as e1), SUB, Const 1L) ->
+    begin
+      match dest with
+        | Some dest_reg when dest_reg <> (Fake reg) -> 
+          let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+          (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
+        | _ -> ((Fake reg), [decq (Reg (Fake reg))])
+    end
+  | BinOp (e1, SUB, Const 1L) ->
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+        | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
+        | _ -> (reg1, asm1 @ [decq (Reg reg1)])
+    end
+  (* incr cases *)
+  | BinOp ((Temp reg as e1), ADD, Const 1L)
+  | BinOp (Const 1L, ADD, (Temp reg as e1)) ->
+    begin
+      match dest with
+        | Some dest_reg when dest_reg <> (Fake reg) -> 
+          let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+          (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
+        | _ -> ((Fake reg), [incq (Reg (Fake reg))])
+    end
+  | BinOp (e1, ADD, Const 1L)
+  | BinOp (Const 1L, ADD, e1) ->
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+        | Some dest_reg -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
+        | _ -> (reg1, asm1 @ [incq (Reg reg1)])
+    end
   (* lea-case4: reg = reg +/- const
     * operation of constant is denoted as op
     * subtraction is only allowed when constant is on right hand side
@@ -575,6 +569,39 @@ let rec chomp_binop
       match dest with
         | Some dest_reg -> (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg dest_reg)])
         | None -> (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
+    end
+  (* mod 2 case *)
+  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
+  | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg dest_reg)])
+      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setnc (Reg reg1)])
+    end
+  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
+  | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg dest_reg)])
+      | None -> (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); setc (Reg reg1)])
+    end
+  (* neg case *)
+  | BinOp (Const 0L, SUB, (Temp reg as e1)) ->
+    begin
+      match dest with
+        | Some dest_reg when dest_reg <> (Fake reg) -> 
+          let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+          (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
+        | _ -> ((Fake reg), [negq (Reg (Fake reg))])
+    end
+  | BinOp (Const 0L, SUB, e1) ->
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+        | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
+        | _ -> (reg1, asm1 @ [negq (Reg reg1)])
     end
   (* comparisons with zeros *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)

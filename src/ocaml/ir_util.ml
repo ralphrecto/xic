@@ -18,11 +18,11 @@ let abi_function_name =
   String.concat_map ~f
 
 (* Format callable names according to Xi ABI *)
-let abi_callable_decl_name (c: Pos.callable_decl) : string =
-  let (args_t, ret_t) = func_decl_types c in
+let abi_callable_decl_name ((typ, c): Typecheck.callable_decl) : string =
+  let ret_t, args_t = typ in
   let func_name = match c with
-    | (_, FuncDecl ((_, idstr), _, _))
-    | (_, ProcDecl ((_, idstr), _)) -> idstr in
+    | FuncDecl ((_, idstr), _, _)
+    | ProcDecl ((_, idstr), _) -> idstr in
   Printf.sprintf "_I%s_%s%s"
     (abi_function_name func_name)
     (abi_type_name false ret_t)
@@ -39,8 +39,8 @@ let abi_callable_name (c: Typecheck.callable) : string =
     (abi_type_name true args_t)
 
 (* id name -> ABI compliant name *)
-let abi_callable_decl_names (callables: Pos.callable_decl list) =
-  let f map (callable: Pos.callable_decl) = 
+let abi_callable_decl_names (callables: Typecheck.callable_decl list) =
+  let f map (callable: Typecheck.callable_decl) = 
     let name = match callable with
       | (_, FuncDecl ((_, idstr), _, _))
       | (_, ProcDecl ((_, idstr), _)) -> idstr in

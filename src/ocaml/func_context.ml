@@ -20,7 +20,7 @@ let type_size (e: Expr.t) : int =
 let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
-    (int_call_decls: Pos.callable_decl list)
+    (int_call_decls: Typecheck.callable_decl list)
     ((_, func_decl_map): Ir.comp_unit) =
 
   let ir_func_decls = String.Map.data func_decl_map in
@@ -35,8 +35,8 @@ let get_context_map
       String.Map.add ctxmap ~key:name ~data:newctx in
     let ir_proj (name, _, (arg_t, ret_t)) =
       (name, (arg_t, ret_t)) in
-    let int_decl_proj (c: Pos.callable_decl) =
-      (abi_callable_decl_name c, func_decl_types c) in
+    let int_decl_proj ((typ, c): Typecheck.callable_decl) =
+      (abi_callable_decl_name (typ, c), typ) in
     let projected =
       (List.map ~f:ir_proj ir_func_decls) @
       (List.map ~f:int_decl_proj int_call_decls) in

@@ -106,7 +106,9 @@ let cmp_zero op reg1 dest =
   movq (Reg (Real Rcx)) (Reg dest)]
 
 let imm_cmp op const reg dest =
-  [cmpq (Asm.Const const) (Reg reg); (cmp_to_instr op) (Reg dest)]
+  [cmpq (Asm.Const const) (Reg reg); 
+  (cmp_to_instr op) (Reg (Real Cl)); 
+  movq (Reg (Real Rcx)) (Reg dest)]
 
 (* Java style shifting: mod RHS operand by word size *)
 let non_imm_shift op reg1 reg2 dest =
@@ -580,7 +582,7 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-        | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
+        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [decq (Reg reg1)])
     end
   (* incr cases *)
@@ -598,7 +600,7 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-        | Some dest_reg -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
+        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [incq (Reg reg1)])
     end
   (* lea-case4: reg = reg +/- const
@@ -712,12 +714,29 @@ let rec chomp_binop
     end
   (* comparisons with zero *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
-  | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+  (* commutative operations *)
+  | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
         | Some dest_reg -> (dest_reg, asm1 @ (cmp_zero op reg1 dest_reg))
         | None -> (reg1, asm1 @ (cmp_zero op reg1 reg1))
+    end
+  (* non-commutative operations *)
+  | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), e1) ->
+    let flipped_op = 
+      match op with
+      | LT -> Ir.GT
+      | GT -> Ir.LT
+      | LEQ -> Ir.GEQ
+      | GEQ -> Ir.LEQ
+      | _ -> failwith "cannot happen"
+    in
+    begin
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+        | Some dest_reg -> (dest_reg, asm1 @ (cmp_zero flipped_op reg1 dest_reg))
+        | None -> (reg1, asm1 @ (cmp_zero flipped_op reg1 reg1))
     end
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)
@@ -787,6 +806,47 @@ let rec chomp_binop
         (dest_reg, asm1 @ (non_imm_shift op reg1 reg2 dest_reg))
       | false, None ->
         (reg1, asm1 @ asm2 @ (non_imm_shift op reg1 reg2 reg1))
+    end
+  | BinOp (Temp reg, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
+  (* commutative operations *)
+  | BinOp ((Const x as e2), ((EQ|NEQ) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_cmp op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_cmp op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm2 @ (non_imm_cmp op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_cmp op reg1 reg2 reg2))
+    end
+  (* not commutative operations *)
+  | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), Temp reg) ->
+    begin
+      let flipped_op = 
+        match op with
+        | LT -> Ir.GT
+        | GT -> Ir.LT
+        | LEQ -> Ir.GEQ 
+        | GEQ -> Ir.LEQ
+        | _ -> failwith "shouldn't happen"
+      in
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_cmp flipped_op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_cmp flipped_op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm2 @ (non_imm_cmp flipped_op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
   | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->

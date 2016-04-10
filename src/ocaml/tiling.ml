@@ -101,7 +101,9 @@ let non_imm_cmp op reg1 reg2 dest =
    movq (Reg (Real Rcx)) (Reg dest)]
 
 let cmp_zero op reg1 dest =
-  [test (Reg reg1) (Reg reg1); (cmp_zero_to_instr op) (Reg dest)]
+  [test (Reg reg1) (Reg reg1); 
+  (cmp_zero_to_instr op) (Reg (Real Cl));
+  movq (Reg (Real Rcx)) (Reg dest)]
 
 let imm_cmp op const reg dest =
   [cmpq (Asm.Const const) (Reg reg); (cmp_to_instr op) (Reg dest)]
@@ -708,7 +710,7 @@ let rec chomp_binop
         | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [negq (Reg reg1)])
     end
-  (* comparisons with zeros *)
+  (* comparisons with zero *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
   | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
     begin

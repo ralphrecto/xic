@@ -2654,6 +2654,74 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
+  (* comparisons with zero *)
+  (* without destination *) 
+  FreshReg.reset ();
+  let expr1 = ((temp "z") == IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asetz (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((temp "z") != IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asetnz (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((temp "z") < IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asets (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((temp "z") > IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asetg (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((temp "z") <= IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asetle (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((temp "z") >= IA.const 0L) in
+  let expected = [
+    movq (Reg (Fake "z")) reg0;
+    test reg0 reg0;
+    asetns (Reg (Real Cl)); 
+    movq (Reg (Real Rcx)) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
   ()
 
 let test_register_allocation _ =

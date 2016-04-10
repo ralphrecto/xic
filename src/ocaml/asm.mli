@@ -50,8 +50,9 @@ type 'reg operand =
 
 type 'reg asm_template =
   | Op of string * 'reg operand list  (* size <= 3 *)
-  | Lab of label
+  | Lab of label                      (* e.g. foo:, bar: *)
   | Directive of string * string list (* e.g. .align 4, .globl foo *)
+  | Comment of string                 (* e.g. # yolo # zardoz *)
 
 type abstract_asm = abstract_reg asm_template
 

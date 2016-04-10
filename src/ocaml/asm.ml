@@ -52,6 +52,7 @@ type 'reg asm_template =
   | Op of string * 'reg operand list
   | Lab of label
   | Directive of string * string list
+  | Comment of string
 
 type abstract_asm = abstract_reg asm_template
 
@@ -284,6 +285,7 @@ let string_of_asm_template f asm =
   | Op (s, operands) -> sprintf "    %s %s" s (comma_spaces (List.map ~f:soo operands))
   | Lab s -> s ^ ":"
   | Directive (d, args) -> sprintf "    .%s %s" d (comma_spaces args)
+  | Comment s -> sprintf "    # %s" s
 
 let string_of_abstract_asm asm =
   string_of_asm_template string_of_abstract_reg asm
@@ -321,7 +323,8 @@ let fakes_of_asm asm =
   match asm with
   | Op (_, ops) -> Util.ordered_dedup (List.concat_map ~f:fakes_of_operand ops)
   | Lab _
-  | Directive _ -> []
+  | Directive _
+  | Comment _ -> []
 
 let fakes_of_asms asms =
   Util.ordered_dedup (List.concat_map ~f:fakes_of_asm asms)

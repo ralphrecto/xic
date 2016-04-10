@@ -2722,6 +2722,60 @@ let test_chomp _ =
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
+  (* chomp_stmt tests, excluding move w/ binop on rhs *)
+  (* cjump *)
+  (* mod2 *)
+  FreshReg.reset ();
+  let e1 = (temp "x") % (IA.const 2L) == (IA.const 0L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    bt (Asm.Const 0L) reg0;
+    jnc (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 0L) == (temp "x") % (IA.const 2L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    bt (Asm.Const 0L) reg0;
+    jnc (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) == (temp "x") % (IA.const 2L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    bt (Asm.Const 0L) reg0;
+    jc (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") % (IA.const 2L) == (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    bt (Asm.Const 0L) reg0;
+    jc (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  (* jump *)
+  (* exp *)
+  (* label *)
+  (* move temp e, where e is not binop *)
+  (* move mem e *)
+  (* seq *)
+  (* return *)
   ()
 
 let test_register_allocation _ =

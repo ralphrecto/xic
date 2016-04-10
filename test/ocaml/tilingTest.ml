@@ -1781,6 +1781,236 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
+  (* lea case 2 *)
+  (* without a destination *)
+  FreshReg.reset ();
+  let expr1 = (temp "x" * (IA.const 1L)) + IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = (temp "x" * (IA.const 5L)) + IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = (temp "x" * (IA.const 1L)) - IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some (-1L), Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = (temp "x" * (IA.const 5L)) - IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some (-1L), Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((IA.const 1L) * temp "x") + IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((IA.const 5L) * temp "x") + IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((IA.const 1L) * temp "x") - IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some (-1L), Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = ((IA.const 5L) * temp "x") - IA.const 1L in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some (-1L), Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = IA.const 1L + ((IA.const 1L) * temp "x") in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = IA.const 1L + ((IA.const 5L) * temp "x") in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = IA.const 1L + (temp "x" * (IA.const 1L)) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = IA.const 1L + (temp "x" * (IA.const 5L)) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  (* with destination *)
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") ((temp "x" * (IA.const 1L)) + IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") ((temp "x" * (IA.const 5L)) + IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") ((temp "x" * (IA.const 1L)) - IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some (-1L), Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") ((temp "x" * (IA.const 5L)) - IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some (-1L), Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((IA.const 1L) * temp "x") + IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((IA.const 5L) * temp "x") + IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((IA.const 1L) * temp "x") - IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some (-1L), Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (((IA.const 5L) * temp "x") - IA.const 1L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some (-1L), Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (IA.const 1L + ((IA.const 1L) * temp "x")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (IA.const 1L + ((IA.const 5L) * temp "x")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (IA.const 1L + (temp "x" * (IA.const 1L))) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (Some 1L, Fake fresh0, One))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "y") (IA.const 1L + (temp "x" * (IA.const 5L))) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh0, Four))) (Reg (Fake "y"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  (* lea case 3 *)
+  FreshReg.reset ();
+  let expr1 = IA.const 1L + (temp "x" + temp "y") in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    movq (Reg (Fake "y")) reg1;
+    leaq (Asm.Mem (BaseOff (Some 1L, Fake fresh0, Fake fresh1, One))) reg1;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
   ()
 
 let test_register_allocation _ =

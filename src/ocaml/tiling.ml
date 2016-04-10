@@ -314,10 +314,6 @@ and munch_stmt
     let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
     e_lst @ [movq (Reg (Fake e_reg)) dest]
   end
-  | Ir.Move (Ir.Mem (e1, _), e2) ->
-    let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-    let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-    e1_lst @ e2_lst @ [movq (Reg (Fake e2_reg)) (Mem (Base (None, (Fake e1_reg))))]
   | Ir.Seq s_list -> List.concat_map ~f:(munch_stmt curr_ctx fcontexts) s_list
   | Ir.Return ->
       (* restore callee-saved registers *)
@@ -325,7 +321,7 @@ and munch_stmt
         movq (Mem (mem_of_saved_reg r)) (Reg (Real r))
       ) in
       restore_callee_asm @ [leave; ret]
-  | Ir.Move _ -> failwith "Move has a non TEMP/MEM lhs"
+  | Ir.Move _ -> failwith "Move has a non TEMP lhs"
   | Ir.Jump _ -> failwith "jump to a non label shouldn't exist"
   | Ir.CJump _ -> failwith "cjump shouldn't exist"
 

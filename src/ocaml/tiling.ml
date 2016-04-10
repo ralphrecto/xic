@@ -920,7 +920,7 @@ let register_allocate asms =
   List.concat_map ~f:(allocate spill_env) asms
 
 let asm_gen
-  (FullProg (_, interfaces): Typecheck.full_prog)
+  (FullProg (_, _, interfaces): Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list = 
   let callable_decls = 
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in

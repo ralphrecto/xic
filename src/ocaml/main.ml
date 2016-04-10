@@ -42,7 +42,7 @@ let format_err_msg ((row, col), msg) =
   let col_s = string_of_int col in
   "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
 
-let get_callable_decls ((FullProg (_, interfaces)): Pos.full_prog) = 
+let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) = 
  List.fold_left
    ~f:(fun acc (_, Interface clist) -> clist @ acc)
    ~init:[] interfaces
@@ -115,7 +115,7 @@ let writes (outs: string list) (content_list: string list) =
   Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
 
 let main flags asts () : unit Deferred.t =
-  let typed_strf (FullProg (prog, _): Typecheck.full_prog) : string = 
+  let typed_strf (FullProg (_, prog, _): Typecheck.full_prog) : string = 
     prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
   let ir_strf = sexp_of_comp_unit in
 

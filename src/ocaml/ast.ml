@@ -48,7 +48,8 @@ module S = struct
 
   (* top level terms *)
   type ('p,'u,'c,'i,'a,'v,'s,'e,'t) full_prog =
-      FullProg of ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
+      (* program name, prog, interfaces*)
+      FullProg of string * ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
 
   and ('p,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('c,'i,'a,'v,'s,'e,'t) raw_interface
   and ('c,'i,'a,'v,'s,'e,'t) raw_interface =
@@ -306,7 +307,7 @@ module Abbreviate(D: DUMMIES) = struct
   open D
   let raw_id i = (dummy_i, i)
 
-  let fullprog prog ilist = FullProg (prog, ilist)
+  let fullprog name prog ilist = FullProg (name, prog, ilist)
 
   let prog uses calls = (dummy_p, Prog (uses, calls))
   let interface dlist = (dummy_p, Interface dlist)

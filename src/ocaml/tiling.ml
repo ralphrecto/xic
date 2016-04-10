@@ -333,35 +333,41 @@ and munch_func_decl
   let body_asm = munch_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
-  let label = [Lab fname] in
   let directives = [globl fname; align 4] in
+  let label = [Lab fname] in
 
   (* Building function prologue
    *  - use enter to save rbp, update rbp/rsp,
-   *      allocate num_temps + num_caller_save words on stack
+   *      allocate num_temps + num_caller_save + num_callee_save + num tuple
+   *      returns + num stack arguments
    *  - Align stack if not aligned to 16 bytes. To maintain this,
    *      we maintain the invariant that all stackframes have
    *      16k bytes for some k\in N. This should work if the
    *      bottom of the stack is a multiple of 16.
-   *  - allocate space for tuple returns + argument passing
    *  - move passed mult. ret pointers into fresh temps
-  *)
-  let tot_temps = num_temps + num_caller_save in
+   *  - save callee saved registers
+   *)
+  let num_callee = List.length callee_saved_no_bp in
+  let num_caller = List.length caller_saved_no_sp in
+  let tot_temps = num_temps + num_callee + num_caller in
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
   (* saved rip + saved rbp + temps + rets n args  *)
   let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
   let prologue =
-    let init = [enter (const tot_temps) (const 0)] in
+    let init = [enter (const ((tot_temps + tot_rets_n_args) * 8)) (const 0)] in
     let padding =
-      if tot_stack_size mod 2 = 0 then []
-      else [pushq (const 0)] in
-    let rets_n_args =
-      [subq (const (tot_rets_n_args * 8)) (Reg (Real Rsp))] in
+      if tot_stack_size mod 2 = 0
+        then []
+        else [pushq (const 0)] in
     let ret_ptr_mov =
-      if curr_ctx.num_rets - 2 < 1 then []
-      (* TODO: fix *)
-      else [movq (Reg (Real (Option.value_exn (arg_reg 0)))) (Reg ret_ptr_reg)] in
-    init @ padding @ rets_n_args @ ret_ptr_mov in
+      if curr_ctx.num_rets < 2
+        then []
+        else [movq (Asm.callee_arg_op 0) (Reg ret_ptr_reg)] in
+    let save_callee = List.map callee_saved_no_bp ~f:(fun r ->
+      movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
+    ) in
+    init @ padding @ ret_ptr_mov @ save_callee
+  in
 
   directives @ label @ prologue @ body_asm
 

@@ -129,8 +129,6 @@ let caller_ret_op ~max_args ~i =
       let offset = (i - 2 + max_args - 6) * 8 in
       Mem (offset $ (Real Rsp))
 
-let num_caller_save = 9
-
 module Abbreviations = struct
   let arax = Reg (Real Rax)
   let arbx = Reg (Real Rbx)

@@ -356,9 +356,7 @@ let test_munch_stmt _ =
 
   (* helpers *)
   let gen i = FreshReg.gen i in
-  (* let fakereg i = Fake (gen i) in *)
   let fakeop i = fake (gen i) in
-  (* let mem_rsp = Asm.Mem (Base (None, Real Rsp)) in *)
   let mem_rbp = Asm.Mem (Base (None, Real Rbp)) in
 
   let test ?(ctx=dummy_ctx) ?(ctxs=dummy_fcontexts) expected input =
@@ -459,6 +457,141 @@ let test_munch_stmt _ =
   ] in
   test expected input;
 
+  ()
+
+let test_munch_func_decl _ =
+  let open Ir in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+  let module IRA = Ir.Abbreviations in
+  let open Asm in
+  let open Asm.Abbreviations in
+  let open AbstrAsmsEq in
+  let open Tiling in
+  let open Dummy in
+
+  (* helpers *)
+  let gen i = FreshReg.gen i in
+  let fakeop i = fake (gen i) in
+  let mem_rbp = Asm.Mem (Base (None, Real Rbp)) in
+
+  let body_1 = seq [exp one] in
+  let body_2 = seq [exp one; exp two] in
+  let body_3 = seq [exp one; exp two; exp three] in
+
+  let ctxs = String.Map.of_alist_exn Func_context.([
+    "f0000", {num_args=0; num_rets=0; max_args=0; max_rets=0};
+    "f6789", {num_args=6; num_rets=7; max_args=8; max_rets=9};
+  ]) in
+
+  let test ?(ctxs=ctxs) expected input =
+    FreshReg.reset ();
+    expected === munch_func_decl ctxs input;
+  in
+
+  (* f0000 *)
+  let input = ("f0000", body_1, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f0000";
+    align 4;
+    Lab "f0000";
+    enter (const 120) (const 0);
+    pushq (const 0);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+  ] in
+  test expected input;
+
+  let input = ("f0000", body_2, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f0000";
+    align 4;
+    Lab "f0000";
+    enter (const 128) (const 0);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+  ] in
+  test expected input;
+
+  let input = ("f0000", body_3, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f0000";
+    align 4;
+    Lab "f0000";
+    enter (const 136) (const 0);
+    pushq (const 0);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+    movq (const 3) (fakeop 2);
+  ] in
+  test expected input;
+
+  (* f6789 *)
+  let input = ("f6789", body_1, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f6789";
+    align 4;
+    Lab "f6789";
+    enter (const 256) (const 0);
+    movq ardi (Reg ret_ptr_reg);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+  ] in
+  test expected input;
+
+  let input = ("f6789", body_2, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f6789";
+    align 4;
+    Lab "f6789";
+    enter (const 264) (const 0);
+    pushq (const 0);
+    movq ardi (Reg ret_ptr_reg);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+  ] in
+  test expected input;
+
+  let input = ("f6789", body_3, Typecheck.Expr.(UnitT, UnitT)) in
+  let expected = [
+    globl "f6789";
+    align 4;
+    Lab "f6789";
+    enter (const 272) (const 0);
+    movq ardi (Reg ret_ptr_reg);
+    movq arbx ( -16L $ mem_rbp);
+    movq ar12 ( -88L $ mem_rbp);
+    movq ar13 ( -96L $ mem_rbp);
+    movq ar14 (-104L $ mem_rbp);
+    movq ar15 (-112L $ mem_rbp);
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+    movq (const 3) (fakeop 2);
+  ] in
+  test expected input;
   ()
 
 let test_chomp _ =
@@ -2626,6 +2759,7 @@ let main () =
     "suite" >::: [
       "test_munch_expr"          >:: test_munch_expr;
       "test_munch_stmt"          >:: test_munch_stmt;
+      "test_munch_func_decl"     >:: test_munch_func_decl;
       "test_chomp"               >:: test_chomp;
       "test_register_allocation" >:: test_register_allocation;
     ] |> run_test_tt_main

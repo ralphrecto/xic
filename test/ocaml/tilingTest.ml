@@ -2323,6 +2323,45 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
+  (* lea case 6 *)
+  (* without destination *)
+  FreshReg.reset ();
+  let expr1 = ((temp "x") * IA.const 2L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (None, Fake fresh0, Two))) reg0
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let expr1 = (IA.const 2L * (temp "x")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (None, Fake fresh0, Two))) reg0
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  (* with destination *)
+  FreshReg.reset ();
+  let stmt1 = move (temp "z") ((temp "x") * IA.const 2L) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (None, Fake fresh0, Two))) (Reg (Fake "z"))
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "z") (IA.const 2L * (temp "x")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    leaq (Asm.Mem (Off (None, Fake fresh0, Two))) (Reg (Fake "z"))
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
   ()
 
 let test_register_allocation _ =

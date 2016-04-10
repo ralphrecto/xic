@@ -755,6 +755,22 @@ let rec chomp_binop
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_binop op reg1 reg2 reg2))
     end
+  | BinOp (Temp reg, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2)) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      (* checking if shift is within 8 bits *)
+      let is_8 = Int64.neg(128L) <= x && x <= 128L in
+      match is_8, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_shift op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_shift op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, (non_imm_shift op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg1, asm2 @ (non_imm_shift op reg1 reg2 reg1))
+    end
   | BinOp (e1, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2))
   | BinOp ((Const x as e2), ((LSHIFT|RSHIFT|ARSHIFT) as op), e1) ->
     begin

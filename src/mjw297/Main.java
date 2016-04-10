@@ -421,7 +421,6 @@ public class Main {
         );
         List<String> stdErrors = stdErr.lines().collect(Collectors.toList());
         stdErrors.forEach(System.out::println);
-        if (stdErrors.size() > 0) System.exit(1);
 
         BufferedReader stdOut = new BufferedReader(
             new InputStreamReader(proc.getInputStream())

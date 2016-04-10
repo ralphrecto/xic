@@ -171,25 +171,25 @@ let () =
       +> flag "--no-opt"         no_arg ~doc:""
       +> flag "--typecheck"      no_arg ~doc:""
       +> flag "--tcdebug"        no_arg ~doc:""
-      +> flag "--irgen"          no_arg ~doc:""
       +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--lower"          no_arg ~doc:""
+      +> flag "--irgen"          no_arg ~doc:""
       +> flag "--ir-cfold"       no_arg ~doc:""
+      +> flag "--lower"          no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun no_opt' tc tcd irg afold ifold l b os asts ->
+    (fun no_opt' tc tcd afold irg ifold lower' blk outs asts ->
        let flags = {
          no_opt         =  no_opt';
          typecheck      =  tc;
          tcdebug        =  tcd;
-         irgen          =  irg;
          ast_cfold      =  afold;
-         lower          =  l;
+         irgen          =  irg;
          ir_cfold       =  ifold;
-         blkreorder     =  b;
-         outputs        =  os;
+         lower          =  lower';
+         blkreorder     =  blk;
+         outputs        =  outs;
        } in
        main flags asts)
   |> Command.run

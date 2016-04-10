@@ -1,4 +1,4 @@
 1. x:int[2] = {2,3} should not be a valid DeclAsgn but we are currently allowing this.
 2. fix escapes in pretty printing
-3. pass just 1 pointer for multiple return
-4. expose modules for func_context
+3. save callee save register in prologue 
+4. add comments in between asm lines 

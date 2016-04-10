@@ -1,3 +1,4 @@
+open Async.Std
 open Core.Std
 open Typecheck
 open Ir
@@ -25,6 +26,13 @@ let get_context_map
 
   let ir_func_decls = String.Map.data func_decl_map in
   let init_context_map =
+    let ir_proj (name, _, (arg_t, ret_t)) =
+      (name, (arg_t, ret_t)) in
+    let int_decl_proj ((typ, c): Typecheck.callable_decl) =
+      (abi_callable_decl_name (typ, c), typ) in
+    let projected =
+      (List.map ~f:ir_proj ir_func_decls) @
+      (List.map ~f:int_decl_proj int_call_decls) in
     let f ctxmap (name, (arg_t, ret_t)) =
       let newctx = {
         num_args = type_size arg_t;
@@ -33,13 +41,6 @@ let get_context_map
         max_rets = 0;
       } in
       String.Map.add ctxmap ~key:name ~data:newctx in
-    let ir_proj (name, _, (arg_t, ret_t)) =
-      (name, (arg_t, ret_t)) in
-    let int_decl_proj ((typ, c): Typecheck.callable_decl) =
-      (abi_callable_decl_name (typ, c), typ) in
-    let projected =
-      (List.map ~f:ir_proj ir_func_decls) @
-      (List.map ~f:int_decl_proj int_call_decls) in
     List.fold_left ~f ~init:String.Map.empty projected in
 
     let rec ctx_max_expr (e: Ir.expr) : (int * int) =
@@ -48,6 +49,11 @@ let get_context_map
           cmp_max (ctx_max_expr e1) (ctx_max_expr e2)
       | Call (Name fname, _) ->
           let {num_args; num_rets; _} =
+            let f ~key ~data =
+              let _ = data in
+              Print.print_endline key in
+            String.Map.iteri ~f init_context_map;
+            Print.print_endline fname;
             String.Map.find_exn init_context_map fname in
           (num_args, num_rets)
       | ESeq (stmt, e) ->

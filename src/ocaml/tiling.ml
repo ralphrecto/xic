@@ -721,6 +721,23 @@ let rec chomp_binop
     end
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)
+  | BinOp (Temp reg, ((AND|OR|XOR) as op), (Const x as e2))
+  | BinOp ((Const x as e2), ((AND|OR|XOR) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      (* checking if immidiate is within 32 bits *)
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_binop op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_binop op x reg1 reg1)) 
+      | false, Some dest_reg ->
+        (dest_reg, (non_imm_binop op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_binop op reg1 reg2 reg2))
+    end
   | BinOp (e1, ((AND|OR|XOR) as op), (Const x as e2))
   | BinOp ((Const x as e2), ((AND|OR|XOR) as op), e1) ->
     begin

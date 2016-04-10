@@ -353,7 +353,7 @@ public class Main {
                 } else {
                     return Tuple.of(
                         source,
-                        Either.left(FullProgram.of(prog.a, prog, interfaces))
+                        Either.left(FullProgram.of(prog.a, source.filename, prog, interfaces))
                     );
                 }
             }

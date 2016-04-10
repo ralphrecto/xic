@@ -688,7 +688,7 @@ let interface_typecheck
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
+let prog_typecheck (FullProg (name, (_, Prog(uses, funcs)), interfaces)) =
   fst_func_pass funcs interfaces >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =
@@ -697,4 +697,4 @@ let prog_typecheck (FullProg ((_, Prog(uses, funcs)), interfaces)) =
   in
   let use_list = List.map ~f: use_typecheck uses in
   Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
-  Ok (FullProg (((), Prog (use_list, func_list)), interfaces'))
+  Ok (FullProg (name, ((), Prog (use_list, func_list)), interfaces'))

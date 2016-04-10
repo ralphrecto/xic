@@ -589,6 +589,8 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         printer.startList();
         printer.printAtom("FullProg");
 
+        printer.printAtom(p.progname);
+
         p.prog.accept(this);
 
         printer.startList();

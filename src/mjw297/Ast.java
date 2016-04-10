@@ -581,6 +581,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class FullProgram<A> implements Node<A> {
         public final A a;
+        public final String progname;
         public final Program<A> prog;
         public final List<Interface<A>> inters;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }

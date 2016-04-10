@@ -362,7 +362,7 @@ let get_main_val context : value option =
   | Some _ -> failwith "main is a variable? lol"
   | None -> failwith "no main function? lol"
 
-let eval_full_prog (store: context) (FullProg (prog, _): Typecheck.full_prog) : value option =
+let eval_full_prog (store: context) (FullProg (_, prog, _): Typecheck.full_prog) : value option =
   let updated_store = eval_prog store prog in
   get_main_val updated_store
   

@@ -22,7 +22,6 @@ type flags = {
   tcdebug:        bool;
   irgen:          bool;
   ast_cfold:      bool;
-  nothing:        bool;
   lower:          bool;
   ir_cfold:       bool;
   blkreorder:     bool;
@@ -174,21 +173,19 @@ let () =
       +> flag "--tcdebug"        no_arg ~doc:""
       +> flag "--irgen"          no_arg ~doc:""
       +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--nothing"        no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
       +> flag "--ir-cfold"       no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun no_opt' tc tcd irg afold nothing ifold l b os asts ->
+    (fun no_opt' tc tcd irg afold ifold l b os asts ->
        let flags = {
          no_opt         =  no_opt';
          typecheck      =  tc;
          tcdebug        =  tcd;
          irgen          =  irg;
          ast_cfold      =  afold;
-         nothing        =  nothing;
          lower          =  l;
          ir_cfold       =  ifold;
          blkreorder     =  b;

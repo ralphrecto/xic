@@ -442,7 +442,14 @@ public class Main {
         binArgs.add("--typecheck");
         binArgs.add("--tcdebug");
 
-        callOCaml(filenames, binArgs, "typed");
+        callOCaml(filenames, binArgs, "typeddebug");
+    }
+
+    void doAstCfold(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--ast-cfold");
+
+        callOCaml(filenames, binArgs, "astcfold");
     }
 
     void doIRGen(List<String> filenames) {
@@ -465,36 +472,33 @@ public class Main {
         binArgs.add("--irgen");
         binArgs.add("--no-opt");
 
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "ircfold");
     }
 
     void doIRLower(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-        binArgs.add("--no-opt");
+        binArgs.add("--lower");
 
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "lower");
     }
     void doIRBlkReorder(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-        binArgs.add("--no-opt");
+        binArgs.add("--blkreorder");
 
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "blkreorder");
     }
+
     void doAsmGenNoOpt(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
         binArgs.add("--no-opt");
 
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "s");
     }
+
     void doAsmGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-        binArgs.add("--no-opt");
 
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "s");
     }
 
     /**
@@ -528,17 +532,17 @@ public class Main {
             } else if (typecheckDebugMode) {
                 doTypecheckDebug(arguments);
             } else if (astCfoldMode) {
-                doIRGenNoOpt(arguments);
+                doAstCfold(arguments);
             } else if (irGenMode && noOptimize) {
                 doIRGenNoOpt(arguments);
             } else if (irGenMode) {
-                doIRGenNoOpt(arguments);
+                doIRGen(arguments);
             } else if (irCfoldMode) {
-                doIRGenNoOpt(arguments);
+                doIRCfold(arguments);
             } else if (lowerMode) {
-                doIRGenNoOpt(arguments);
+                doIRLower(arguments);
             } else if (blkReorderMode) {
-                doIRGenNoOpt(arguments);
+                doIRBlkReorder(arguments);
             } else if (noOptimize){
                 doAsmGenNoOpt(arguments);
             } else {

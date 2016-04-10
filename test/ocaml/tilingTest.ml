@@ -2362,6 +2362,28 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
+  (* lea case 7 *)
+  (* without destination *)
+  FreshReg.reset ();
+  let expr1 = ((temp "x") + (temp "y")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    movq (Reg (Fake "y")) reg1;
+    leaq (Asm.Mem (BaseOff (None, Fake fresh0, Fake fresh1, One))) reg0;
+  ]
+  in
+  expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
+
+  FreshReg.reset ();
+  let stmt1 = move (temp "z") ((temp "x") + (temp "y")) in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    movq (Reg (Fake "y")) reg1;
+    leaq (Asm.Mem (BaseOff (None, Fake fresh0, Fake fresh1, One))) (Reg (Fake "z"));
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
   ()
 
 let test_register_allocation _ =

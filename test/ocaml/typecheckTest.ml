@@ -1746,23 +1746,23 @@ let test_prog _ =
 																				 wrong_fd_ii2iii; wrong_fd_iii2i; wrong_fd_iii2ii; wrong_fd_iii2iii;
 													 							 wrong_pd_u2u; wrong_pd_i2u; wrong_pd_ii2u; wrong_pd_iii2u] in
 
-	let only_prog = fullprog everything_prog [] in
+	let only_prog = fullprog "fakeprogname" everything_prog [] in
 	() =: only_prog;
 
-	let alldiff_fullprog = fullprog everything_prog [diff_everything_inter] in
+	let alldiff_fullprog = fullprog "fakeprogname" everything_prog [diff_everything_inter] in
 	() =: alldiff_fullprog;
 
-	let allsame_fullprog = fullprog everything_prog [everything_inter] in
+	let allsame_fullprog = fullprog "fakeprogname" everything_prog [everything_inter] in
 	() =: allsame_fullprog;
 
-	let mult_fullprog = fullprog everything_prog [everything_inter; everything_inter; diff_everything_inter] in
+	let mult_fullprog = fullprog "fakeprogname" everything_prog [everything_inter; everything_inter; diff_everything_inter] in
 	() =: mult_fullprog;
 
-	let wrong_fullprog = fullprog everything_prog [everything_inter; diff_everything_inter; wrong_everything_inter]
+	let wrong_fullprog = fullprog "fakeprogname" everything_prog [everything_inter; diff_everything_inter; wrong_everything_inter]
 	in
 	() =/= wrong_fullprog;
 
-	let call_inter_fullprog = fullprog call_inter_prog [everything_inter] in
+	let call_inter_fullprog = fullprog "fakeprogname" call_inter_prog [everything_inter] in
 	() =: call_inter_fullprog;
 
 	()

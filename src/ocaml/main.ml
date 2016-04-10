@@ -17,12 +17,11 @@ module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
 module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
 
 type flags = {
+  no_opt:         bool;
   typecheck:      bool;
   tcdebug:        bool;
   irgen:          bool;
-  irgen_no_opt:   bool;
   ast_cfold:      bool;
-  nothing:        bool;
   lower:          bool;
   ir_cfold:       bool;
   blkreorder:     bool;
@@ -127,19 +126,19 @@ let main flags ast_strs () : unit Deferred.t =
   let asts = get_asts ast_strs in 
 
   (* functions to turn representations into strings *)
-  let typed_strf (FullProg (_, prog, _): Typecheck.full_prog) : string = 
+  let typed_strf = fun _ -> "Valid Xi Program" in
+  let typed_debug_strf (FullProg (_, prog, _): Typecheck.full_prog) : string = 
     prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
   let ir_strf = sexp_of_comp_unit in
 
   (* dispatch logic *)
   if flags.typecheck then
-    let strf = fun _ -> "Valid Xi Program" in
-    let contents = asts_to_strs typecheck strf asts in
-    writes flags.outputs contents
-  else if flags.tcdebug then
     let contents = asts_to_strs typecheck typed_strf asts in
     writes flags.outputs contents
-  else if flags.irgen_no_opt then
+  else if flags.tcdebug then
+    let contents = asts_to_strs typecheck typed_debug_strf asts in
+    writes flags.outputs contents
+  else if flags.irgen && flags.no_opt then
     let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
     writes flags.outputs contents
   else if flags.irgen then
@@ -157,6 +156,9 @@ let main flags ast_strs () : unit Deferred.t =
   else if flags.blkreorder then
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
     writes flags.outputs contents
+  else if flags.no_opt then
+    let contents = asts_to_strs asm_gen_no_opt string_of_asms asts in
+    writes flags.outputs contents
   else
     let contents = asts_to_strs asm_gen_opt string_of_asms asts in
     writes flags.outputs contents
@@ -166,26 +168,24 @@ let () =
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
+      +> flag "--no-opt"         no_arg ~doc:""
       +> flag "--typecheck"      no_arg ~doc:""
       +> flag "--tcdebug"        no_arg ~doc:""
       +> flag "--irgen"          no_arg ~doc:""
-      +> flag "--irgen_no_opt"   no_arg ~doc:""
       +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--nothing"        no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
       +> flag "--ir-cfold"       no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun tc tcd irg irg_no afold nothing ifold l b os asts ->
+    (fun no_opt' tc tcd irg afold ifold l b os asts ->
        let flags = {
+         no_opt         =  no_opt';
          typecheck      =  tc;
          tcdebug        =  tcd;
          irgen          =  irg;
-         irgen_no_opt   =  irg_no;
          ast_cfold      =  afold;
-         nothing        =  nothing;
          lower          =  l;
          ir_cfold       =  ifold;
          blkreorder     =  b;

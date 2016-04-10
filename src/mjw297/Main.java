@@ -375,9 +375,7 @@ public class Main {
 
     /* binArgs are additional options to pass to the OCaml binary
      *  returns List<Tuple<source, stdout>> */
-    public List<Tuple<XiSource, String>> callOCaml(List<String> filenames,
-                                                   List<String> binArgs,
-                                                   String extension) {
+    public void callOCaml(List<String> filenames, List<String> binArgs, String extension) {
         Tuple<
             List<Tuple<XiSource, XicException>>,
             List<Tuple<XiSource, FullProgram<Position>>>
@@ -429,80 +427,78 @@ public class Main {
             new InputStreamReader(proc.getInputStream())
         );
         List<String> stdOuts = stdOut.lines().collect(Collectors.toList());
-
-        return Util.zip(
-            Lists.transform(programs, t -> t.fst),
-            stdOuts
-        );
-    }
-
-    private String doError(String stdOut, String filename) {
-        // [1] == row, [2] == col, [3] == msg
-        String[] errOut = stdOut.split(":::");
-        printError("Semantic",
-            filename, errOut[1], errOut[2], errOut[3]
-        );
-        return String.format(
-            "%s:%s error:%s", errOut[1], errOut[2], errOut[3]
-        );
+        stdOuts.forEach(System.out::println);
     }
 
     void doTypecheck(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--typecheck");
-        if (typecheckDebugMode) {
-            binArgs.add("--tcdebug");
-        }
 
-        List<Tuple<XiSource, String>> stdOuts =
-            callOCaml(filenames, binArgs, "typed");
-
-        stdOuts.forEach(t -> {
-            if (t.snd.startsWith("ERROR")) {
-                writeToFile(diagPathOut(t.fst, "typed"), doError(t.snd, t.fst.filename));
-            }
-        });
-
-        System.exit(0);
+        callOCaml(filenames, binArgs, "typed");
     }
 
-    // generation
-    // --typecheck
-    // --ir-gen --ast-cfold ?
-    // --ir-gen --ir-cfold ?
-    // --ir-gen --lower
-    // --ir-gen --blkreorder
+    void doTypecheckDebug(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--typecheck");
+        binArgs.add("--tcdebug");
+
+        callOCaml(filenames, binArgs, "typeddebug");
+    }
+
+    void doAstCfold(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--ast-cfold");
+
+        callOCaml(filenames, binArgs, "astcfold");
+    }
+
     void doIRGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--irgen");
 
-        List<String> astcfold   = noOptimize ? new ArrayList<>() : Util.singleton("--ast-cfold");
-        List<String> nothing    =                                  Util.concat(astcfold, Util.singleton("--nothing"));
-        List<String> ircfold    = noOptimize ? nothing :           Util.concat(nothing, Util.singleton("--ir-cfold"));
-        List<String> lower      =                                  Util.concat(ircfold, Util.singleton("--lower"));
-        List<String> blkreorder =                                  Util.concat(lower, Util.singleton("--blkreorder"));
+        callOCaml(filenames, binArgs, "ir");
+    }
 
-        if (astCfoldMode) {
-            binArgs.addAll(astcfold);
-        } else if (nothingMode) {
-            binArgs.addAll(nothing);
-        } else if (irCfoldMode) {
-            binArgs.addAll(ircfold);
-        } else if (lowerMode) {
-            binArgs.addAll(lower);
-        } else {
-            binArgs.addAll(blkreorder);
-        }
+    void doIRGenNoOpt(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+        binArgs.add("--no-opt");
 
-        List<Tuple<XiSource, String>> stdOuts = callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "ir");
+    }
 
-        stdOuts.forEach(t -> {
-            if (t.snd.startsWith("ERROR")) {
-                doError(t.snd, t.fst.filename);
-            }
-        });
+    void doIRCfold(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+        binArgs.add("--no-opt");
 
-        System.exit(0);
+        callOCaml(filenames, binArgs, "ircfold");
+    }
+
+    void doIRLower(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--lower");
+
+        callOCaml(filenames, binArgs, "lower");
+    }
+    void doIRBlkReorder(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--blkreorder");
+
+        callOCaml(filenames, binArgs, "blkreorder");
+    }
+
+    void doAsmGenNoOpt(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--no-opt");
+
+        callOCaml(filenames, binArgs, "s");
+    }
+
+    void doAsmGen(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+
+        callOCaml(filenames, binArgs, "s");
     }
 
     /**
@@ -531,13 +527,26 @@ public class Main {
                 doLex(arguments);
             } else if (parseMode) {
                 doParse(arguments);
-            } else if (typecheckMode || typecheckDebugMode) {
+            } else if (typecheckMode) {
                 doTypecheck(arguments);
+            } else if (typecheckDebugMode) {
+                doTypecheckDebug(arguments);
+            } else if (astCfoldMode) {
+                doAstCfold(arguments);
+            } else if (irGenMode && noOptimize) {
+                doIRGenNoOpt(arguments);
             } else if (irGenMode) {
                 doIRGen(arguments);
+            } else if (irCfoldMode) {
+                doIRCfold(arguments);
+            } else if (lowerMode) {
+                doIRLower(arguments);
+            } else if (blkReorderMode) {
+                doIRBlkReorder(arguments);
+            } else if (noOptimize){
+                doAsmGenNoOpt(arguments);
             } else {
-                System.out.println("No options passed.");
-                printUsage();
+                doAsmGen(arguments);
             }
 
         } catch(CmdLineException e) {

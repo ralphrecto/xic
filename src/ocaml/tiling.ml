@@ -455,6 +455,14 @@ let binop_mem_add reg1 reg2 displ =
 let binop_mem_const_add reg1 displ =
   Base (displ, reg1)
 
+let flip_op (op: Ir.binop_code) =
+  match op with
+  | LT -> Ir.GT
+  | GT -> Ir.LT
+  | LEQ -> Ir.GEQ
+  | GEQ -> Ir.LEQ
+  | _ -> failwith "shouldn't happen -- flip_op"
+
 let rec chomp_binop
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
@@ -713,6 +721,25 @@ let rec chomp_binop
         | _ -> (reg1, asm1 @ [negq (Reg reg1)])
     end
   (* comparisons with zero *)
+  | BinOp (Temp reg, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
+  (* commutative operations *)
+  | BinOp (Const 0L, ((EQ|NEQ) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      match dest with
+        | Some dest_reg -> (dest_reg, (cmp_zero op reg1 dest_reg))
+        | None -> (reg1, (cmp_zero op reg1 reg1))
+    end
+  (* non-commutative operations *)
+  | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), Temp reg) ->
+    begin
+      let flipped_op = flip_op op in
+      let reg1 = Fake reg in
+      match dest with
+        | Some dest_reg -> (dest_reg, (cmp_zero flipped_op reg1 dest_reg))
+        | None -> (reg1, (cmp_zero flipped_op reg1 reg1))
+    end
+  (* comparisons with zero *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
   (* commutative operations *)
   | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->
@@ -724,15 +751,8 @@ let rec chomp_binop
     end
   (* non-commutative operations *)
   | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), e1) ->
-    let flipped_op = 
-      match op with
-      | LT -> Ir.GT
-      | GT -> Ir.LT
-      | LEQ -> Ir.GEQ
-      | GEQ -> Ir.LEQ
-      | _ -> failwith "cannot happen"
-    in
     begin
+      let flipped_op = flip_op op in
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
         | Some dest_reg -> (dest_reg, asm1 @ (cmp_zero flipped_op reg1 dest_reg))
@@ -824,17 +844,10 @@ let rec chomp_binop
       | false, None ->
         (reg2, asm2 @ (non_imm_cmp op reg1 reg2 reg2))
     end
-  (* not commutative operations *)
+  (* non-commutative operations *)
   | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), Temp reg) ->
     begin
-      let flipped_op = 
-        match op with
-        | LT -> Ir.GT
-        | GT -> Ir.LT
-        | LEQ -> Ir.GEQ 
-        | GEQ -> Ir.LEQ
-        | _ -> failwith "shouldn't happen"
-      in
+      let flipped_op = flip_op op in
       let reg1 = Fake reg in
       let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
       let is_32 = min_int32 <= x && x <= max_int32 in
@@ -849,7 +862,8 @@ let rec chomp_binop
         (reg2, asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
-  | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+  (* commutative operations *)
+  | BinOp ((Const x as e2), ((EQ|NEQ) as op), e1) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
@@ -863,6 +877,23 @@ let rec chomp_binop
         (dest_reg, asm1 @ asm2 @ (non_imm_cmp op reg1 reg2 dest_reg))
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_cmp op reg1 reg2 reg2))
+    end
+  (* non-commutative operations *)
+  | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), e1) ->
+    begin
+      let flipped_op = flip_op op in
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, asm1 @ (imm_cmp flipped_op x reg1 dest_reg))
+      | true, None ->
+        (reg1, asm1 @ (imm_cmp flipped_op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
   (* binop with non-immediate cases *)
   | BinOp (e1, opcode, e2) ->

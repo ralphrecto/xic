@@ -62,6 +62,12 @@ type asm_prog = asm list
 (******************************************************************************)
 (* important register helpers                                                 *)
 (******************************************************************************)
+let ( $ ) n reg =
+  Base (Some (Int64.of_int n), reg)
+
+let const n =
+  Const (Int64.of_int n)
+
 let arg_reg = function
   | 0 -> Some Rdi
   | 1 -> Some Rsi
@@ -76,11 +82,52 @@ let ret_reg = function
   | 1 -> Some Rdx
   | _ -> None
 
-let ( $ ) n reg =
-  Base (Some (Int64.of_int n), reg)
+let callee_arg_op i =
+  match arg_reg i with
+  | Some r -> Reg (Real r)
+  | None ->
+      (*
+       * | ...          |
+       * +--------------+
+       * | ARG7         |
+       * +--------------+
+       * | ARG6         |
+       * +--------------+
+       * | ret pointer  |
+       * +--------------+
+       * | saved rbp    | <--- rbp
+       * +--------------+
+       * | ...          |
+       *)
+      let offset = (i - 6 + 2) * 8 in
+      Mem (offset$(Real Rbp))
 
-let const n =
-  Const (Int64.of_int n)
+let callee_ret_op ret_ptr i =
+  match ret_reg i with
+  | Some r -> Reg (Real r)
+  | None -> Mem ((8 * (i - 2)) $ ret_ptr)
+
+let caller_ret_op ~max_args ~i =
+  match ret_reg i with
+  | Some r -> Reg (Real r)
+  | None ->
+      (*
+       * | ret_3          |
+       * +----------------+
+       * | ret_2          |
+       * +----------------+
+       * | arg_{max_args} |
+       * +----------------+
+       * | ...            |
+       * +----------------+
+       * | arg_1          |
+       * +----------------+
+       * | arg_0          | <--- rsp
+       * +----------------+
+       * | garbage        |
+       *)
+      let offset = (i - 2 + max_args - 6) * 8 in
+      Mem (offset $ (Real Rsp))
 
 let num_caller_save = 9
 

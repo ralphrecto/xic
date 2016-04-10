@@ -62,15 +62,55 @@ type asm_prog = asm list
 (******************************************************************************)
 (* asm helpers                                                                *)
 (******************************************************************************)
+(* offsets n words from reg contents *)
+val ( $ ) : int -> abstract_reg -> abstract_reg mem
+
+val const : int -> abstract_reg operand
+
 (* `arg_reg i` returns the ith function argument register if 0 <= i <= 5. *)
 val arg_reg : int -> reg option
 (* `ret_reg i` returns the ith return value register if 0 <= i <= 1. *)
 val ret_reg : int -> reg option
 
-(* offsets n words from reg contents *)
-val ( $ ) : int -> abstract_reg -> abstract_reg mem
+(* `callee_arg_op i` returns the ith function argument passed to this function.
+ * We are accessing these arguments as a callee.
+ *
+ *      callee_arg_op 0 = %rdi
+ *      callee_arg_op 1 = %rsi
+ *      callee_arg_op 2 = %rdx
+ *      callee_arg_op 3 = %rcx
+ *      callee_arg_op 4 = %r8
+ *      callee_arg_op 5 = %r9
+ *      callee_arg_op 6 = $16(%rbp)
+ *      callee_arg_op 7 = $24(%rbp)
+ *)
+val callee_arg_op : int -> abstract_reg operand
 
-val const : int -> abstract_reg operand
+(* `callee_ret_op ret_ptr i` returns the ith return value of our function with
+ * implicit 0th argument ret_ptr.  We are accessing these return values as a
+ * callee.
+ *
+ *     callee_ret_op p 0 = %rax
+ *     callee_ret_op p 1 = %rdx
+ *     callee_ret_op p 2 = (%p)
+ *     callee_ret_op p 3 = 8(%p)
+ *     callee_ret_op p 4 = 16(%p)
+ *
+ * function context has max_args.. *)
+val callee_ret_op : abstract_reg -> int -> abstract_reg operand
+
+(* `caller_ret_op max_args i` returns the ith return value of the function we
+ * just called assuming the max_args of our current function context is
+ * max_args. We are accessing these return values as a caller.
+ *
+ *     caller_ret_op 0 = %rax
+ *     caller_ret_op 1 = %rdx
+ *     caller_ret_op 2 = $(8 * (max_args + 0))(%rsp)
+ *     caller_ret_op 3 = $(8 * (max_args + 1))(%rsp)
+ *     caller_ret_op 4 = $(8 * (max_args + 2))(%rsp)
+ *
+ * function context has max_args.. *)
+val caller_ret_op : max_args:int -> i:int -> abstract_reg operand
 
 (* helpful constants *)
 val num_caller_save : int

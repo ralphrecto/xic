@@ -1,8 +1,12 @@
 open Core.Std
 open Func_context
 
-module FreshReg   : Fresh.S
-module FreshLabel : Fresh.S
+module FreshReg    : Fresh.S
+module FreshAsmRet : Fresh.S
+module FreshLabel  : Fresh.S
+
+(* variable used for implicit 0th argument *)
+val ret_ptr_reg : Asm.abstract_reg
 
 (* Maximal munch tiling algorithm with baby tiles.
  *
@@ -22,22 +26,20 @@ module FreshLabel : Fresh.S
  *                 | ARG6      |/
  *                 | saved rip |
  *         rbp --> | saved rbp |
- *                 | rax       |\
- *                 | rbx       | | callee-saved
- *                 | rcx       | |
- *                 | rdx       | |
- *                 | rsi       | |
- *                 | rdi       | |
- *                 | rbp       | | callee-saved
- *                 | rsp       | |
- *                 | r8        | |
- *                 | r9        | |
- *                 | r10       | |
- *                 | r11       | |
- *                 | r12       | | callee-saved
- *                 | r13       | | callee-saved
- *                 | r14       | | callee-saved
- *                 | r15       |/  callee-saved
+ *               1 | rax       |\
+ *               2 | rbx       | | callee-saved
+ *               3 | rcx       | |
+ *               4 | rdx       | |
+ *               5 | rsi       | |
+ *               6 | rdi       | |
+ *               7 | r8        | |
+ *               8 | r9        | |
+ *               9 | r10       | |
+ *              10 | r11       | |
+ *              11 | r12       | | callee-saved
+ *              12 | r13       | | callee-saved
+ *              13 | r14       | | callee-saved
+ *              14 | r15       |/  callee-saved
  *                 | temp_0    |\
  *                 | temp_1    | | stack space for fake registers
  *                 | ...       | |

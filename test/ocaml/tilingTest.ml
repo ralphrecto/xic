@@ -174,38 +174,17 @@ let test_munch_expr _ =
   test expected input;
 
   (* return temps *)
-  let ret_temp_test max_args i asmoperand =
-    let fc = Func_context.({dummy_ctx with max_args}) in
+  let ret_temp_test i =
     let input = temp (Ir_generation.FreshRetReg.gen i) in
-    let expected = ((gen 0), [
-      movq asmoperand (fakeop 0)
-    ]) in
-    test ~ctx:fc expected input;
+    let expected = ((FreshAsmRet.gen i), []) in
+    test expected input;
   in
 
-  ret_temp_test 0 0 arax;
-  ret_temp_test 0 1 ardx;
-  ret_temp_test 0 2 (0L $ mem_rsp);
-  ret_temp_test 0 3 (8L $ mem_rsp);
-  ret_temp_test 0 4 (16L $ mem_rsp);
-
-  ret_temp_test 1 0 arax;
-  ret_temp_test 1 1 ardx;
-  ret_temp_test 1 2 (8L $ mem_rsp);
-  ret_temp_test 1 3 (16L $ mem_rsp);
-  ret_temp_test 1 4 (24L $ mem_rsp);
-
-  ret_temp_test 2 0 arax;
-  ret_temp_test 2 1 ardx;
-  ret_temp_test 2 2 (16L $ mem_rsp);
-  ret_temp_test 2 3 (24L $ mem_rsp);
-  ret_temp_test 2 4 (32L $ mem_rsp);
-
-  ret_temp_test 3 0 arax;
-  ret_temp_test 3 1 ardx;
-  ret_temp_test 3 2 (24L $ mem_rsp);
-  ret_temp_test 3 3 (32L $ mem_rsp);
-  ret_temp_test 3 4 (40L $ mem_rsp);
+  ret_temp_test 0;
+  ret_temp_test 1;
+  ret_temp_test 2;
+  ret_temp_test 3;
+  ret_temp_test 4;
 
   (* arg temps *)
   let arg_temp_test num_rets i asmoperand =
@@ -258,7 +237,110 @@ let test_munch_expr _ =
   arg_temp_test 3 8 (40L $ mem_rbp);
 
   (* call *)
-  (* TODO: *)
+  let ctx = Func_context.({dummy_ctx with max_args = 8}) in
+  let call_ctx = Func_context.({dummy_ctx with num_args = 8; num_rets = 2}) in
+  let ctxs = String.Map.singleton "foo" call_ctx in
+  let input = IRA.call (name "foo") [one; two; three; four; five; six; seven; eight] in
+  let expected = (FreshAsmRet.gen 0, [
+    movq (Reg (Real Rax)) ( -8L $ mem_rbp);
+    movq (Reg (Real Rcx)) (-24L $ mem_rbp);
+    movq (Reg (Real Rdx)) (-32L $ mem_rbp);
+    movq (Reg (Real Rsi)) (-40L $ mem_rbp);
+    movq (Reg (Real Rdi)) (-48L $ mem_rbp);
+    movq (Reg (Real R8))  (-56L $ mem_rbp);
+    movq (Reg (Real R9))  (-64L $ mem_rbp);
+    movq (Reg (Real R10)) (-72L $ mem_rbp);
+    movq (Reg (Real R11)) (-80L $ mem_rbp);
+
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+    movq (const 3) (fakeop 2);
+    movq (const 4) (fakeop 3);
+    movq (const 5) (fakeop 4);
+    movq (const 6) (fakeop 5);
+    movq (const 7) (fakeop 6);
+    movq (const 8) (fakeop 7);
+
+    movq (fakeop 0) ardi;
+    movq (fakeop 1) arsi;
+    movq (fakeop 2) ardx;
+    movq (fakeop 3) arcx;
+    movq (fakeop 4) ar8;
+    movq (fakeop 5) ar9;
+    movq (fakeop 6) (0L  $ mem_rsp);
+    movq (fakeop 7) (8L  $ mem_rsp);
+
+    call (Asm.Label "foo");
+
+    movq arax (Reg (Fake (FreshAsmRet.gen 0)));
+    movq ardx (Reg (Fake (FreshAsmRet.gen 1)));
+
+    movq ( -8L $ mem_rbp) (Reg (Real Rax));
+    movq (-24L $ mem_rbp) (Reg (Real Rcx));
+    movq (-32L $ mem_rbp) (Reg (Real Rdx));
+    movq (-40L $ mem_rbp) (Reg (Real Rsi));
+    movq (-48L $ mem_rbp) (Reg (Real Rdi));
+    movq (-56L $ mem_rbp) (Reg (Real R8));
+    movq (-64L $ mem_rbp) (Reg (Real R9));
+    movq (-72L $ mem_rbp) (Reg (Real R10));
+    movq (-80L $ mem_rbp) (Reg (Real R11));
+  ]) in
+  test ~ctx ~ctxs expected input;
+
+  let ctx = Func_context.({dummy_ctx with max_args = 9}) in
+  let call_ctx = Func_context.({dummy_ctx with num_args = 9; num_rets = 4}) in
+  let ctxs = String.Map.singleton "foo" call_ctx in
+  let input = IRA.call (name "foo") [one; two; three; four; five; six; seven; eight] in
+  let expected = (FreshAsmRet.gen 0, [
+    movq (Reg (Real Rax)) ( -8L $ mem_rbp);
+    movq (Reg (Real Rcx)) (-24L $ mem_rbp);
+    movq (Reg (Real Rdx)) (-32L $ mem_rbp);
+    movq (Reg (Real Rsi)) (-40L $ mem_rbp);
+    movq (Reg (Real Rdi)) (-48L $ mem_rbp);
+    movq (Reg (Real R8))  (-56L $ mem_rbp);
+    movq (Reg (Real R9))  (-64L $ mem_rbp);
+    movq (Reg (Real R10)) (-72L $ mem_rbp);
+    movq (Reg (Real R11)) (-80L $ mem_rbp);
+
+    movq (const 1) (fakeop 0);
+    movq (const 2) (fakeop 1);
+    movq (const 3) (fakeop 2);
+    movq (const 4) (fakeop 3);
+    movq (const 5) (fakeop 4);
+    movq (const 6) (fakeop 5);
+    movq (const 7) (fakeop 6);
+    movq (const 8) (fakeop 7);
+
+    leaq (24L $ mem_rsp) (fakeop 8);
+
+    movq (fakeop 8) ardi;
+    movq (fakeop 0) arsi;
+    movq (fakeop 1) ardx;
+    movq (fakeop 2) arcx;
+    movq (fakeop 3) ar8;
+    movq (fakeop 4) ar9;
+    movq (fakeop 5) (0L  $ mem_rsp);
+    movq (fakeop 6) (8L  $ mem_rsp);
+    movq (fakeop 7) (16L $ mem_rsp);
+
+    call (Asm.Label "foo");
+
+    movq arax (Reg (Fake (FreshAsmRet.gen 0)));
+    movq ardx (Reg (Fake (FreshAsmRet.gen 1)));
+    movq (24L $ mem_rsp) (Reg (Fake (FreshAsmRet.gen 2)));
+    movq (32L $ mem_rsp) (Reg (Fake (FreshAsmRet.gen 3)));
+
+    movq ( -8L $ mem_rbp) (Reg (Real Rax));
+    movq (-24L $ mem_rbp) (Reg (Real Rcx));
+    movq (-32L $ mem_rbp) (Reg (Real Rdx));
+    movq (-40L $ mem_rbp) (Reg (Real Rsi));
+    movq (-48L $ mem_rbp) (Reg (Real Rdi));
+    movq (-56L $ mem_rbp) (Reg (Real R8));
+    movq (-64L $ mem_rbp) (Reg (Real R9));
+    movq (-72L $ mem_rbp) (Reg (Real R10));
+    movq (-80L $ mem_rbp) (Reg (Real R11));
+  ]) in
+  test ~ctx ~ctxs expected input;
   ()
 
 let test_munch_stmt _ =
@@ -319,8 +401,36 @@ let test_munch_stmt _ =
   test expected input;
 
   (* exp *)
+  let input = exp one in
+  let expected = [movq (const 1) (fakeop 0)] in
+  test expected input;
 
   (* label *)
+  let input = label "foo" in
+  let expected = [Lab "foo"] in
+  test expected input;
+
+  (* move *)
+  let input = move (temp "foo") one in
+  let expected = [
+    movq (const 1) (fakeop 0);
+    movq (fakeop 0) (Reg (Fake "foo"));
+  ] in
+  test expected input;
+
+  let ret_mov_test i asmreg =
+    let input = move (temp (Ir_generation.FreshRetReg.gen i)) one in
+    let expected = [
+      movq (const 1) (fakeop 0);
+      movq (fakeop 0) asmreg;
+    ] in
+    test expected input
+  in
+  ret_mov_test 0 arax;
+  ret_mov_test 1 ardx;
+  ret_mov_test 2 ( 0L $ (Asm.Mem (Base (None, ret_ptr_reg))));
+  ret_mov_test 3 ( 8L $ (Asm.Mem (Base (None, ret_ptr_reg))));
+  ret_mov_test 4 (16L $ (Asm.Mem (Base (None, ret_ptr_reg))));
 
   ()
 
@@ -357,7 +467,7 @@ let test_chomp _ =
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     asetnc (Reg (Real Cl));
-    movq (Reg (Real Rcx)) fresh_reg; 
+    movq (Reg (Real Rcx)) fresh_reg;
   ]
   in
   expected === (snd (chomp_expr dummy_ctx dummy_fcontexts expr1));
@@ -370,7 +480,7 @@ let test_chomp _ =
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     asetnc (Reg (Real Cl));
-    movq (Reg (Real Rcx)) (Reg (Fake "y")) 
+    movq (Reg (Real Rcx)) (Reg (Fake "y"))
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -382,7 +492,7 @@ let test_chomp _ =
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     asetc (Reg (Real Cl));
-    movq (Reg (Real Rcx)) fresh_reg; 
+    movq (Reg (Real Rcx)) fresh_reg;
   ]
   in
   expected === (snd (chomp_expr dummy_ctx dummy_fcontexts expr1));
@@ -394,7 +504,7 @@ let test_chomp _ =
     movq (Reg (Fake "x")) fresh_reg;
     bt (Asm.Const 0L) fresh_reg;
     asetc (Reg (Real Cl));
-    movq (Reg (Real Rcx)) (Reg (Fake "y")) 
+    movq (Reg (Real Rcx)) (Reg (Fake "y"))
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -403,7 +513,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = (IA.const 0L) - (temp "x") in
   let expected = [
-    negq (Reg (Fake "x")) 
+    negq (Reg (Fake "x"))
   ]
   in
   expected === (snd (chomp_expr dummy_ctx dummy_fcontexts expr1));
@@ -427,12 +537,12 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   (* incr case with no set destination *)
   FreshReg.reset ();
   let expr1 = (IA.const 1L) + (temp "x") in
   let expected = [
-    incq (Reg (Fake "x")) 
+    incq (Reg (Fake "x"))
   ]
   in
   expected === (snd (chomp_expr dummy_ctx dummy_fcontexts expr1));
@@ -451,7 +561,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") ((IA.const 1L) + (temp "x")) in
   let expected = [
     movq (Reg (Fake "x")) reg0;
-    addq (Asm.Const 1L) reg0; 
+    addq (Asm.Const 1L) reg0;
     movq reg0 (Reg (Fake "y"))
   ]
   in
@@ -461,7 +571,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = (temp "x") - (IA.const 1L) in
   let expected = [
-    decq (Reg (Fake "x")) 
+    decq (Reg (Fake "x"))
   ]
   in
   expected === (snd (chomp_expr dummy_ctx dummy_fcontexts expr1));
@@ -498,7 +608,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "x" * (IA.const 2L)) + (temp "y")) in
   let expected = [
@@ -508,7 +618,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "x" * (IA.const 4L)) + (temp "y")) in
   let expected = [
@@ -518,7 +628,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "x" * (IA.const 8L)) + (temp "y")) in
   let expected = [
@@ -538,7 +648,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "x" * (IA.const 2L)) + (temp "y")) in
   let expected = [
@@ -548,7 +658,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "x" * (IA.const 4L)) + (temp "y")) in
   let expected = [
@@ -558,7 +668,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "x" * (IA.const 8L)) + (temp "y")) in
   let expected = [
@@ -579,7 +689,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "y") + (temp "x" * (IA.const 2L))) in
   let expected = [
@@ -589,7 +699,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "y") + (temp "x" * (IA.const 4L))) in
   let expected = [
@@ -599,7 +709,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 1L + ((temp "y") + (temp "x" * (IA.const 8L))) in
   let expected = [
@@ -619,7 +729,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "y") + (temp "x" * (IA.const 2L))) in
   let expected = [
@@ -629,7 +739,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "y") + (temp "x" * (IA.const 4L))) in
   let expected = [
@@ -639,7 +749,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = IA.const 5L + ((temp "y") + (temp "x" * (IA.const 8L))) in
   let expected = [
@@ -660,7 +770,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 2L))) + IA.const 1L in
   let expected = [
@@ -670,7 +780,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 4L))) + IA.const 1L in
   let expected = [
@@ -680,7 +790,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 8L))) + IA.const 1L in
   let expected = [
@@ -700,7 +810,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 2L))) + IA.const 5L in
   let expected = [
@@ -710,7 +820,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 4L))) + IA.const 5L in
   let expected = [
@@ -720,7 +830,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 8L))) + IA.const 5L in
   let expected = [
@@ -740,7 +850,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 2L))) - IA.const 1L in
   let expected = [
@@ -750,7 +860,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 4L))) - IA.const 1L in
   let expected = [
@@ -760,7 +870,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 8L))) - IA.const 1L in
   let expected = [
@@ -780,7 +890,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 2L))) - IA.const 5L in
   let expected = [
@@ -790,7 +900,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 4L))) - IA.const 5L in
   let expected = [
@@ -800,7 +910,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "y") + (temp "x" * (IA.const 8L))) - IA.const 5L in
   let expected = [
@@ -821,7 +931,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 2L))) in
   let expected = [
@@ -831,7 +941,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 4L))) in
   let expected = [
@@ -841,7 +951,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 8L))) in
   let expected = [
@@ -861,7 +971,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 2L))) in
   let expected = [
@@ -871,7 +981,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 4L))) in
   let expected = [
@@ -881,7 +991,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 8L))) in
   let expected = [
@@ -902,7 +1012,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 2L)) + IA.const 1L) + (temp "y")  in
   let expected = [
@@ -912,7 +1022,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 4L)) + IA.const 1L) + (temp "y")  in
   let expected = [
@@ -922,7 +1032,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 8L)) + IA.const 1L) + (temp "y")  in
   let expected = [
@@ -942,7 +1052,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 2L)) + IA.const 5L) + (temp "y")  in
   let expected = [
@@ -952,7 +1062,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 4L)) + IA.const 5L) + (temp "y")  in
   let expected = [
@@ -962,7 +1072,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 8L)) + IA.const 5L) + (temp "y")  in
   let expected = [
@@ -982,7 +1092,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 2L)) - IA.const 1L) + (temp "y")  in
   let expected = [
@@ -992,7 +1102,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 4L)) - IA.const 1L) + (temp "y")  in
   let expected = [
@@ -1002,7 +1112,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 8L)) - IA.const 1L) + (temp "y")  in
   let expected = [
@@ -1022,7 +1132,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 2L)) - IA.const 5L) + (temp "y")  in
   let expected = [
@@ -1032,7 +1142,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 4L)) - IA.const 5L) + (temp "y")  in
   let expected = [
@@ -1042,7 +1152,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((temp "x" * (IA.const 8L)) - IA.const 5L) + (temp "y")  in
   let expected = [
@@ -1052,7 +1162,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   (* (c + r1 * {1,2,4,8}) + r2 *)
   FreshReg.reset ();
   let expr1 = ((IA.const 1L) + (temp "x" * (IA.const 1L))) + temp "y" in
@@ -1063,7 +1173,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 1L) + (temp "x" * (IA.const 2L))) + temp "y" in
   let expected = [
@@ -1073,7 +1183,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 1L) + (temp "x" * (IA.const 4L))) + temp "y" in
   let expected = [
@@ -1083,7 +1193,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 1L) + (temp "x" * (IA.const 8L))) + temp "y" in
   let expected = [
@@ -1103,7 +1213,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 5L) + (temp "x" * (IA.const 2L))) + temp "y" in
   let expected = [
@@ -1113,7 +1223,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 5L) + (temp "x" * (IA.const 4L))) + temp "y" in
   let expected = [
@@ -1123,7 +1233,7 @@ let test_chomp _ =
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   FreshReg.reset ();
   let expr1 = ((IA.const 5L) + (temp "x" * (IA.const 8L))) + temp "y" in
   let expected = [
@@ -1145,7 +1255,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "x" * (IA.const 2L)) + (temp "y"))) in
   let expected = [
@@ -1155,7 +1265,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "x" * (IA.const 4L)) + (temp "y"))) in
   let expected = [
@@ -1165,7 +1275,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "x" * (IA.const 8L)) + (temp "y"))) in
   let expected = [
@@ -1185,7 +1295,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "x" * (IA.const 2L)) + (temp "y"))) in
   let expected = [
@@ -1195,7 +1305,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "x" * (IA.const 4L)) + (temp "y"))) in
   let expected = [
@@ -1205,7 +1315,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "x" * (IA.const 8L)) + (temp "y"))) in
   let expected = [
@@ -1226,7 +1336,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "y") + (temp "x" * (IA.const 2L)))) in
   let expected = [
@@ -1236,7 +1346,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "y") + (temp "x" * (IA.const 4L)))) in
   let expected = [
@@ -1246,7 +1356,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 1L + ((temp "y") + (temp "x" * (IA.const 8L)))) in
   let expected = [
@@ -1266,7 +1376,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "y") + (temp "x" * (IA.const 2L)))) in
   let expected = [
@@ -1276,7 +1386,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "y") + (temp "x" * (IA.const 4L)))) in
   let expected = [
@@ -1286,7 +1396,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (IA.const 5L + ((temp "y") + (temp "x" * (IA.const 8L)))) in
   let expected = [
@@ -1307,7 +1417,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 2L))) + IA.const 1L) in
   let expected = [
@@ -1317,7 +1427,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 4L))) + IA.const 1L) in
   let expected = [
@@ -1327,7 +1437,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 8L))) + IA.const 1L) in
   let expected = [
@@ -1347,7 +1457,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 2L))) + IA.const 5L) in
   let expected = [
@@ -1357,7 +1467,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 4L))) + IA.const 5L) in
   let expected = [
@@ -1367,7 +1477,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 8L))) + IA.const 5L) in
   let expected = [
@@ -1387,7 +1497,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 2L))) - IA.const 1L) in
   let expected = [
@@ -1397,7 +1507,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 4L))) - IA.const 1L) in
   let expected = [
@@ -1407,7 +1517,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 8L))) - IA.const 1L) in
   let expected = [
@@ -1427,7 +1537,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 2L))) - IA.const 5L) in
   let expected = [
@@ -1437,7 +1547,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 4L))) - IA.const 5L) in
   let expected = [
@@ -1447,7 +1557,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "y") + (temp "x" * (IA.const 8L))) - IA.const 5L) in
   let expected = [
@@ -1468,7 +1578,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 2L)))) in
   let expected = [
@@ -1478,7 +1588,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 4L)))) in
   let expected = [
@@ -1488,7 +1598,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 1L) + (temp "x" * (IA.const 8L)))) in
   let expected = [
@@ -1508,7 +1618,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 2L)))) in
   let expected = [
@@ -1518,7 +1628,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 4L)))) in
   let expected = [
@@ -1528,7 +1638,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "y" + ((IA.const 5L) + (temp "x" * (IA.const 8L)))) in
   let expected = [
@@ -1549,7 +1659,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 2L)) + IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1559,7 +1669,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 4L)) + IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1569,7 +1679,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 8L)) + IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1589,7 +1699,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 2L)) + IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1599,7 +1709,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 4L)) + IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1609,7 +1719,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 8L)) + IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1629,7 +1739,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 2L)) - IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1639,7 +1749,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 4L)) - IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1649,7 +1759,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 8L)) - IA.const 1L) + (temp "y")) in
   let expected = [
@@ -1669,7 +1779,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 2L)) - IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1679,7 +1789,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 4L)) - IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1689,7 +1799,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((temp "x" * (IA.const 8L)) - IA.const 5L) + (temp "y")) in
   let expected = [
@@ -1699,7 +1809,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   (* (c + r1 * {1,2,4,8}) + r2 *)
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 1L) + (temp "x" * (IA.const 1L))) + temp "y") in
@@ -1710,7 +1820,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 1L) + (temp "x" * (IA.const 2L))) + temp "y") in
   let expected = [
@@ -1720,7 +1830,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 1L) + (temp "x" * (IA.const 4L))) + temp "y") in
   let expected = [
@@ -1730,7 +1840,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 1L) + (temp "x" * (IA.const 8L))) + temp "y") in
   let expected = [
@@ -1750,7 +1860,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 5L) + (temp "x" * (IA.const 2L))) + temp "y") in
   let expected = [
@@ -1760,7 +1870,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 5L) + (temp "x" * (IA.const 4L))) + temp "y") in
   let expected = [
@@ -1770,7 +1880,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   FreshReg.reset ();
   let stmt1 = move (temp "z") (((IA.const 5L) + (temp "x" * (IA.const 8L))) + temp "y") in
   let expected = [

@@ -4,8 +4,9 @@ open Func_context
 open Ir_generation
 open Typecheck
 
-module FreshReg   = Fresh.Make(struct let name = "_asmreg" end)
-module FreshLabel = Fresh.Make(struct let name = "_asmlabel" end)
+module FreshReg    = Fresh.Make(struct let name = "_asmreg" end)
+module FreshAsmRet = Fresh.Make(struct let name = "_asmret" end)
+module FreshLabel  = Fresh.Make(struct let name = "_asmlabel" end)
 let ret_ptr_reg   = Fake "_asmretptr"
 
 let max_int32 = Int64.of_int32_exn (Int32.max_value)
@@ -27,7 +28,7 @@ let binop_commutative (op: Ir.binop_code) =
   | Ir.AND
   | Ir.OR
   | Ir.XOR -> true
-  | _ -> failwith "shouldn't happen -- binop_commutative" 
+  | _ -> failwith "shouldn't happen -- binop_commutative"
 
 let cmp_to_instr (op: Ir.binop_code) =
   match op with
@@ -129,6 +130,49 @@ let non_imm_binop op reg1 reg2 dest =
   else
     [(binop_to_instr op) (Reg reg2) (Reg reg1); movq (Reg reg1) (Reg dest)]
 
+(* register saving *)
+let caller_saved_no_sp = [
+  Rax;
+  Rcx;
+  Rdx;
+  Rsi;
+  Rdi;
+  R8;
+  R9;
+  R10;
+  R11;
+]
+
+let callee_saved_no_bp = [
+  Rbx;
+  R12;
+  R13;
+  R14;
+  R15;
+]
+
+(* Returns the memory location in the stack of a callee/caller saved registers.
+ * See the diagram in tiling.mli. *)
+let mem_of_saved_reg r =
+  match r with
+  | Rax -> -( 1 * 8) $ (Real Rbp)
+  | Rbx -> -( 2 * 8) $ (Real Rbp)
+  | Rcx -> -( 3 * 8) $ (Real Rbp)
+  | Rdx -> -( 4 * 8) $ (Real Rbp)
+  | Rsi -> -( 5 * 8) $ (Real Rbp)
+  | Rdi -> -( 6 * 8) $ (Real Rbp)
+  | R8  -> -( 7 * 8) $ (Real Rbp)
+  | R9  -> -( 8 * 8) $ (Real Rbp)
+  | R10 -> -( 9 * 8) $ (Real Rbp)
+  | R11 -> -(10 * 8) $ (Real Rbp)
+  | R12 -> -(11 * 8) $ (Real Rbp)
+  | R13 -> -(12 * 8) $ (Real Rbp)
+  | R14 -> -(13 * 8) $ (Real Rbp)
+  | R15 -> -(14 * 8) $ (Real Rbp)
+  | Rbp -> failwith "we shouldn't be saving the base pointer"
+  | Rsp -> failwith "we shouldn't be saving the stack pointer"
+  | Cl  -> failwith "we shouldn't be saving %cl"
+
 let rec munch_expr
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
@@ -171,50 +215,22 @@ let rec munch_expr
       (e_reg, e_asm @ [movq (Mem (Base (None, (Fake e_reg)))) (Reg (Fake e_reg))])
   | Ir.Temp str -> begin
       let new_tmp = FreshReg.fresh () in
-      match FreshRetReg.get str with
-      (* moving rets from callee return *)
-      | Some i -> begin
-          let retmov =
-            match ret_reg i with
-            | Some r -> movq (Reg (Real r)) (Reg (Fake new_tmp))
-            | None   ->
-                let offset = (i-2+curr_ctx.max_args) * 8 in
-                movq (Mem (offset$(Real Rsp))) (Reg (Fake new_tmp))
-          in
-          (new_tmp, [retmov])
-      end
-      | None -> begin
+      match FreshRetReg.get str, FreshArgReg.get str with
+      | Some i, None ->
+          (* moving rets from callee return *)
+          (FreshAsmRet.gen i, [])
+      | None, Some i ->
           (* moving passed arguments as callee into vars *)
-          match FreshArgReg.get str with
-          | Some i -> begin
-              let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
-              let argmov =
-                match arg_reg i' with
-                | Some r -> movq (Reg (Real r)) (Reg (Fake new_tmp))
-                | None ->
-                    (*
-                     * | ...          |
-                     * +--------------+
-                     * | ARG7         |
-                     * +--------------+
-                     * | ARG6         |
-                     * +--------------+
-                     * | ret pointer  |
-                     * +--------------+
-                     * | saved rbp    | <--- rbp
-                     * +--------------+
-                     * | ...          |
-                     *)
-                    let offset = (i'-6+2) * 8 in
-                    movq (Mem (offset$(Real Rbp))) (Reg (Fake new_tmp))
-              in
-              (new_tmp, [argmov])
-          end
-          | None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
-      end
+          let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
+          (new_tmp, [movq (Asm.callee_arg_op i') (Reg (Fake new_tmp))])
+      | None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
+      | Some _, Some _ -> failwith "impossible: reg can't be ret and arg"
   end
   | Ir.Call (Ir.Name (fname), arglist) -> begin
-      (* TODO: save caller-saved registers!!! *)
+      (* save caller-saved registers *)
+      let saving_caller_asm = List.map caller_saved_no_sp ~f:(fun r ->
+        movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
+      ) in
 
       (* evaluate arguments *)
       let f = munch_expr curr_ctx fcontexts in
@@ -226,7 +242,7 @@ let rec munch_expr
         let callee_ctx = String.Map.find_exn fcontexts fname in
         if callee_ctx.num_rets > 2 then
           let new_tmp = Fake (FreshReg.fresh ()) in
-          let asm = leaq (Mem ((curr_ctx.max_args)$(Real Rsp))) (Reg new_tmp) in
+          let asm = leaq (Mem ((8*(curr_ctx.max_args-6))$(Real Rsp))) (Reg new_tmp) in
           ([new_tmp], [asm])
         else ([], []) in
 
@@ -235,20 +251,38 @@ let rec munch_expr
         let dest =
           match arg_reg i with
           | Some r -> Reg (Real r)
-          | None -> Mem ((i-6)$(Real Rsp))
+          | None -> Mem ((8 * (i-6))$(Real Rsp))
         in
         movq (Reg argsrc) dest
       in
       let mov_asms = List.mapi ~f (ret_ptr @ arg_regs) in
 
-      (* call function and move return into fresh reg *)
-      let new_tmp = FreshReg.fresh () in
-      let asms = (List.concat arg_asms) @ ret_asm @ mov_asms in
-      let asms = asms @ [
-        call (Label fname);
-        movq (Reg (Real (Option.value_exn (ret_reg 0)))) (Reg (Fake new_tmp))
-      ] in
-      (new_tmp, asms)
+      (* call function *)
+      let call_asm = [call (Label fname)] in
+
+      (* shuttle returns into fake registers *)
+      let num_rets = (String.Map.find_exn fcontexts fname).num_rets in
+      let save_rets_asms =
+        List.map (List.range ~start:`inclusive ~stop:`exclusive  0 num_rets) ~f:(fun i ->
+          let src = Asm.caller_ret_op ~max_args:curr_ctx.max_args ~i in
+          movq src (Reg (Fake (FreshAsmRet.gen i)))
+        )
+      in
+
+      (* restore caller-saved registers *)
+      let restore_caller_asm = List.map caller_saved_no_sp ~f:(fun r ->
+        movq (Mem (mem_of_saved_reg r)) (Reg (Real r))
+      ) in
+
+      (* sew it all together *)
+      let asms = saving_caller_asm @
+                 (List.concat arg_asms) @
+                 ret_asm @
+                 mov_asms @
+                 call_asm @
+                 save_rets_asms @
+                 restore_caller_asm in
+      (FreshAsmRet.gen 0, asms)
   end
   | Ir.Name _ -> failwith "Name should never be munched by itself"
   | Ir.Call _ -> failwith "Call should always have a Name first"
@@ -274,11 +308,7 @@ and munch_stmt
     let dest =
       (* moving return values to _RETi before returning *)
       match FreshRetReg.get n with
-      | Some i -> begin
-        match ret_reg i with
-        | Some r -> Reg (Real r)
-        | None -> Mem ((i-2)$(ret_ptr_reg))
-      end
+      | Some i -> Asm.callee_ret_op ret_ptr_reg i
       | None -> Reg (Fake n)
     in
     let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
@@ -288,8 +318,13 @@ and munch_stmt
     let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
     let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
     e1_lst @ e2_lst @ [movq (Reg (Fake e2_reg)) (Mem (Base (None, (Fake e1_reg))))]
-  | Ir.Seq s_list -> List.map ~f:(munch_stmt curr_ctx fcontexts) s_list |> List.concat
-  | Ir.Return -> [leave; ret]
+  | Ir.Seq s_list -> List.concat_map ~f:(munch_stmt curr_ctx fcontexts) s_list
+  | Ir.Return ->
+      (* restore callee-saved registers *)
+      let restore_callee_asm = List.map callee_saved_no_bp ~f:(fun r ->
+        movq (Mem (mem_of_saved_reg r)) (Reg (Real r))
+      ) in
+      restore_callee_asm @ [leave; ret]
   | Ir.Move _ -> failwith "Move has a non TEMP/MEM lhs"
   | Ir.Jump _ -> failwith "jump to a non label shouldn't exist"
   | Ir.CJump _ -> failwith "cjump shouldn't exist"
@@ -351,7 +386,7 @@ let get_displ (op: Ir.binop_code) x =
     | SUB -> Some (Int64.neg x)
     | _ -> failwith "shouldn't happen -- get_displ"
   else
-    None 
+    None
 
 (* mem operation of the binop: reg1 * {1,2,4,8} + reg2 +/- constant *)
 let binop_mem_mult_add (m: Ir.expr) reg1 reg2 displ =
@@ -500,7 +535,7 @@ let rec chomp_binop
   | BinOp ((Temp reg as e1), SUB, Const 1L) ->
     begin
       match dest with
-        | Some dest_reg when dest_reg <> (Fake reg) -> 
+        | Some dest_reg when dest_reg <> (Fake reg) ->
           let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
           (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
         | _ -> ((Fake reg), [decq (Reg (Fake reg))])
@@ -517,7 +552,7 @@ let rec chomp_binop
   | BinOp (Const 1L, ADD, (Temp reg as e1)) ->
     begin
       match dest with
-        | Some dest_reg when dest_reg <> (Fake reg) -> 
+        | Some dest_reg when dest_reg <> (Fake reg) ->
           let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
           (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
         | _ -> ((Fake reg), [incq (Reg (Fake reg))])
@@ -604,11 +639,11 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-      | Some dest_reg -> 
-          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl)); 
+      | Some dest_reg ->
+          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl));
             movq (Reg (Real Rcx)) (Reg dest_reg)])
-      | None -> 
-          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl)); 
+      | None ->
+          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl));
             movq (Reg (Real Rcx)) (Reg reg1)])
     end
   | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
@@ -616,18 +651,18 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-      | Some dest_reg -> 
-          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl)); 
+      | Some dest_reg ->
+          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl));
             movq (Reg (Real Rcx)) (Reg dest_reg)])
-      | None -> 
-          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl)); 
+      | None ->
+          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl));
             movq (Reg (Real Rcx)) (Reg reg1)])
     end
   (* neg case *)
   | BinOp (Const 0L, SUB, (Temp reg as e1)) ->
     begin
       match dest with
-        | Some dest_reg when dest_reg <> (Fake reg) -> 
+        | Some dest_reg when dest_reg <> (Fake reg) ->
           let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
           (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
         | _ -> ((Fake reg), [negq (Reg (Fake reg))])
@@ -921,8 +956,8 @@ let register_allocate asms =
 
 let asm_gen
   (FullProg (_, _, interfaces): Typecheck.full_prog)
-  (comp_unit : Ir.comp_unit) : Asm.asm list = 
-  let callable_decls = 
+  (comp_unit : Ir.comp_unit) : Asm.asm list =
+  let callable_decls =
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in

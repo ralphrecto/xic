@@ -37,10 +37,11 @@ let resmap ~f =
 let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
   if b then f x else x
 
-let format_err_msg ((row, col), msg) =
-  let row_s = string_of_int row in
-  let col_s = string_of_int col in
-  "ERROR:::" ^ row_s ^ ":::" ^ col_s ^ ":::" ^ msg
+let format_err_output row col msg =
+  row ^ ":" ^ col ^ " error: " ^ msg
+
+let format_err_print filename line col msg = 
+  "Semantic error at " ^ filename ^ ":" ^ line ^ ":" ^ col ^ ": " ^ msg
 
 let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) = 
  List.fold_left
@@ -50,14 +51,10 @@ let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) =
 let ( $ ) = Fn.compose
 
 (* actual compiler options *)
-let typecheck (ast: string) : Typecheck.full_prog Error.result = 
-  ast
-    |> StdString.trim
-    |> Sexp.of_string
-    |> Pos.full_prog_of_sexp
-    |> prog_typecheck
+let typecheck (ast: Pos.full_prog) : Typecheck.full_prog Error.result = 
+    prog_typecheck ast
 
-let ir_gen (ast: string) : Ir.comp_unit Error.result = 
+let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
   let f = 
     let g1 = gen_comp_unit $ ast_constant_folding in
     let g2 = ir_constant_folding $ g1 in
@@ -65,11 +62,11 @@ let ir_gen (ast: string) : Ir.comp_unit Error.result =
     block_reorder_comp_unit $ g3 in
   Result.map (typecheck ast) ~f
 
-let ir_gen_no_opt (ast: string) : Ir.comp_unit Error.result = 
+let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
   let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
   Result.map (typecheck ast) ~f
 
-let asm_gen_opt (ast: string) : Asm.asm_prog Error.result =
+let asm_gen_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = 
     let g1 = gen_comp_unit $ ast_constant_folding in
     let g2 = ir_constant_folding $ g1 in
@@ -80,7 +77,7 @@ let asm_gen_opt (ast: string) : Asm.asm_prog Error.result =
     Ok (asm_gen fullprog comp_unit)
   end
 
-let asm_gen_no_opt (ast: string) : Asm.asm_prog Error.result =
+let asm_gen_no_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
@@ -88,37 +85,53 @@ let asm_gen_no_opt (ast: string) : Asm.asm_prog Error.result =
   end
 
 (* debugging paths *)
-let debug_ast_cfold (ast: string) : Typecheck.full_prog Error.result =
+let debug_ast_cfold (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
   Result.map (typecheck ast) ~f:ast_constant_folding
 
-let debug_ir_gen (ast: string) : Ir.comp_unit Error.result =
+let debug_ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result =
   Result.map (debug_ast_cfold ast) ~f:gen_comp_unit
 
-let debug_ir_cfold (ast: string): Ir.comp_unit Error.result =
+let debug_ir_cfold (ast: Pos.full_prog): Ir.comp_unit Error.result =
   Result.map (debug_ir_gen ast) ~f:ir_constant_folding
 
-let debug_ir_lower (ast: string): Ir.comp_unit Error.result =
+let debug_ir_lower (ast: Pos.full_prog): Ir.comp_unit Error.result =
   Result.map (debug_ir_cfold ast) ~f:lower_comp_unit
 
-let debug_ir_blkreorder (ast: string): Ir.comp_unit Error.result =
+let debug_ir_blkreorder (ast: Pos.full_prog): Ir.comp_unit Error.result =
   Result.map (debug_ir_lower ast) ~f:block_reorder_comp_unit
 
-let asts_to_strs (tcf: string -> 'a Error.result) (strf: 'a -> string) (asts: string list) =
-  let f ast =
-    match tcf ast with
+let asts_to_strs
+  (tcf: Pos.full_prog -> 'a Error.result)
+  (strf: 'a -> string)
+  (asts: Pos.full_prog list) =
+  let f (Ast.S.FullProg (name, prog, interfaces)) =
+    match tcf (Ast.S.FullProg (name, prog, interfaces)) with
     | Ok el -> strf el 
-    | Error e -> format_err_msg e in
+    | Error ((row, col), msg) ->
+        let row_s = string_of_int row in
+        let col_s = string_of_int col in
+        Print.print_endline (format_err_print name row_s col_s msg);
+        format_err_output row_s col_s msg in
   List.map ~f asts
 
 let writes (outs: string list) (content_list: string list) = 
   let zipped = List.zip_exn outs content_list in
   Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
 
-let main flags asts () : unit Deferred.t =
+let get_asts (asts: string list) : Pos.full_prog list = 
+  let f = Pos.full_prog_of_sexp $ Sexp.of_string $ StdString.trim in
+  List.map ~f asts
+
+let main flags ast_strs () : unit Deferred.t =
+  (* parse the asts *)
+  let asts = get_asts ast_strs in 
+
+  (* functions to turn representations into strings *)
   let typed_strf (FullProg (_, prog, _): Typecheck.full_prog) : string = 
     prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
   let ir_strf = sexp_of_comp_unit in
 
+  (* dispatch logic *)
   if flags.typecheck then
     let strf = fun _ -> "Valid Xi Program" in
     let contents = asts_to_strs typecheck strf asts in

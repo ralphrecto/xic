@@ -188,6 +188,51 @@ let debug_wrap (debug: bool) (pre: string) (post: string) asms =
     then [Comment pre] @ asms @ [Comment post]
     else asms
 
+let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
+  match opcode with
+  | ADD | SUB | AND | OR | XOR ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 dest_reg))
+      | None -> (reg1, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg1))
+    end
+  | LSHIFT | RSHIFT | ARSHIFT ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 dest_reg))
+      | None -> (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 reg1))
+    end
+  | EQ | NEQ | LT | GT | LEQ | GEQ ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 dest_reg))
+      | None -> (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 reg2))
+    end
+  | MUL | HMUL ->
+    begin
+      match dest with
+      | Some dest_reg ->
+        let r = if opcode = MUL then Real Rax else Real Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
+        (dest_reg, asm1 @ asm2 @ mul_asm)
+      | None ->
+        let r = if opcode = MUL then Rax else Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
+        (Real r, asm1 @ asm2 @ mul_asm)
+    end
+  | DIV | MOD ->
+    begin
+      match dest with
+      | Some dest_reg ->
+        let r = if opcode = DIV then Real Rax else Real Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
+        (dest_reg, asm1 @ asm2 @ div_asm)
+      | None ->
+        let r = if opcode = DIV then Rax else Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
+        (Real r, asm1 @ asm2 @ div_asm)
+    end
+
 let rec munch_expr
   ?(debug=false)
   (curr_ctx: func_context)
@@ -895,55 +940,19 @@ let rec chomp_binop
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
+  | BinOp (Temp reg1, opcode, Temp reg2) -> 
+    create_binop_instr opcode (Fake reg1) [] (Fake reg2) [] dest
+  | BinOp (Temp reg1, opcode, e2) -> 
+    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode (Fake reg1) [] reg2 asm2 dest
+  | BinOp (e1, opcode, Temp reg2) ->
+    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+    create_binop_instr opcode reg1 asm1 (Fake reg2) [] dest
   (* binop with non-immediate cases *)
   | BinOp (e1, opcode, e2) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
-      match opcode with
-      | ADD | SUB | AND | OR | XOR ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 dest_reg))
-          | None -> (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg2))
-        end
-      | LSHIFT | RSHIFT | ARSHIFT ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 dest_reg))
-          | None -> (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 reg1))
-        end
-      | EQ | NEQ | LT | GT | LEQ | GEQ ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 dest_reg))
-          | None -> (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 reg2))
-        end
-      | MUL | HMUL ->
-        begin
-          match dest with
-          | Some dest_reg ->
-            let r = if opcode = MUL then Real Rax else Real Rdx in
-            let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
-            (dest_reg, asm1 @ asm2 @ mul_asm)
-          | None ->
-            let r = if opcode = MUL then Rax else Rdx in
-            let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
-            (Real r, asm1 @ asm2 @ mul_asm)
-        end
-      | DIV | MOD ->
-        begin
-          match dest with
-          | Some dest_reg ->
-            let r = if opcode = DIV then Real Rax else Real Rdx in
-            let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
-            (dest_reg, asm1 @ asm2 @ div_asm)
-          | None ->
-            let r = if opcode = DIV then Rax else Rdx in
-            let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
-            (Real r, asm1 @ asm2 @ div_asm)
-        end
-    end
+    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode reg1 asm1 reg2 asm2 dest
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
 
 and chomp_expr

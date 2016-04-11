@@ -4301,7 +4301,138 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
-  (* comparing with constant *)
+  (* comparing with nonzero constant *)
+  FreshReg.reset ();
+  let e1 = (temp "x") == (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    je (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) == (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    je (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") != (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jne (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) != (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jne (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") < (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jl (Asm.Label "tru"); (* TODO: why jl? *)
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) > (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jl (Asm.Label "tru"); (* TODO *)
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") > (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jg (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) < (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) reg0;
+    jg (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") <= (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) (reg0);
+    jle (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) >= (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) (reg0);
+    jle (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (temp "x") >= (IA.const 1L) in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) (reg0);
+    jge (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = (IA.const 1L) <= (temp "x") in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Reg (Fake "x")) reg0;
+    cmpq (Asm.Const 1L) (reg0);
+    jge (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   (* jump *)
   (* exp *)

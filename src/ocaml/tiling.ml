@@ -509,10 +509,14 @@ let flip_op (op: Ir.binop_code) =
   | _ -> failwith "shouldn't happen -- flip_op"
 
 let rec chomp_binop
+  ?(debug=false)
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
   (e: Ir.expr)
   (dest: abstract_reg option) =
+
+  let chomp_expr = chomp_expr ~debug in
+
   match e with
   (* lea cases with constants *)
   (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const
@@ -956,20 +960,29 @@ let rec chomp_binop
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
 
 and chomp_expr
+  ?(debug=false)
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
   (e: Ir.expr) =
+
+  let chomp_binop = chomp_binop ~debug in
+  let munch_expr = munch_expr ~debug in
+
   match e with
   | BinOp _ -> chomp_binop curr_ctx fcontexts e None
   | (Const _ | Mem _ | Temp _| Call _| Name _| ESeq _) ->
-      (* TODO: fix *)
-      let (r, asms) = munch_expr curr_ctx fcontexts e in
-      (Fake r, asms)
+    let (r, asm) = munch_expr curr_ctx fcontexts e in
+    (Fake r, asm)
 
 and chomp_stmt
+    ?(debug=false)
     (curr_ctx: func_context)
     (fcontexts: func_contexts)
     (s: Ir.stmt) =
+
+  let chomp_expr = chomp_expr ~debug in
+  let chomp_stmt = chomp_stmt ~debug in
+
   match s with
   | CJumpOne (e1, tru) ->
     begin

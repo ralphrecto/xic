@@ -77,10 +77,8 @@ val munch_func_decl : Ir.func_decl without_fcontext
 val munch_comp_unit : Ir.comp_unit without_fcontext
 
 (* Maximal munch tiling algorithm with good tiles. *)
-val chomp_expr      : func_context ->
-                       func_contexts ->
-                       Ir.expr -> Asm.abstract_reg * Asm.abstract_asm list
-val chomp_stmt      : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_asm list
+val chomp_expr      : (Ir.expr, Asm.abstract_reg * Asm.abstract_asm list) with_fcontext
+val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
 
 (* Naive register allocation.
  *

@@ -14,4 +14,6 @@ type func_context = {
 (* abi compliant names -> func_context *)
 type func_contexts = func_context String.Map.t
 
+val get_context : func_contexts -> string -> func_context
+
 val get_context_map : Typecheck.callable_decl list -> Ir.comp_unit -> func_contexts

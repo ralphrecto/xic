@@ -73,7 +73,7 @@ let asm_gen_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
     block_reorder_comp_unit $ g3 in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
-    Ok (asm_gen fullprog comp_unit)
+    Ok (asm_gen ~debug:true fullprog comp_unit)
   end
 
 let asm_gen_no_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =

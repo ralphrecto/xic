@@ -302,7 +302,7 @@ let rec munch_expr
 
         (* prepare implicit 0th argument *)
         let (ret_ptr, ret_asm) =
-          let callee_ctx = String.Map.find_exn fcontexts fname in
+          let callee_ctx = get_context fcontexts fname in
           if callee_ctx.num_rets > 2 then
             let new_tmp = Fake (FreshReg.fresh ()) in
             let asm = leaq (Mem ((8*(curr_ctx.max_args-6))$(Real Rsp))) (Reg new_tmp) in
@@ -324,7 +324,7 @@ let rec munch_expr
         let call_asm = [call (Label fname)] in
 
         (* shuttle returns into fake registers *)
-        let num_rets = (String.Map.find_exn fcontexts fname).num_rets in
+        let num_rets = (get_context fcontexts fname).num_rets in
         let save_rets_asms =
           List.map (List.range ~start:`inclusive ~stop:`exclusive  0 num_rets) ~f:(fun i ->
             let src = Asm.caller_ret_op ~max_args:curr_ctx.max_args ~i in
@@ -409,7 +409,7 @@ and munch_func_decl
 
   let munch_stmt = munch_stmt ~debug in
 
-  let curr_ctx = String.Map.find_exn fcontexts fname in
+  let curr_ctx = get_context fcontexts fname in
   let body_asm = munch_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
@@ -1126,10 +1126,11 @@ let register_allocate asms =
   List.concat_map ~f:(allocate spill_env) asms
 
 let asm_gen
+  ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list =
   let callable_decls =
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
-  munch_comp_unit func_contexts comp_unit |> register_allocate
+  munch_comp_unit ~debug func_contexts comp_unit |> register_allocate

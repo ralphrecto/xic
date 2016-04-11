@@ -121,4 +121,4 @@ val chomp_stmt      : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_a
  *)
 val register_allocate : Asm.abstract_asm list -> Asm.asm list
 
-val asm_gen : Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
+val asm_gen : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog

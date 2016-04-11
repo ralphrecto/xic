@@ -131,7 +131,7 @@
 - jl arg1 
   * if sf != of then jump to address arg1
 - jle arg1 
-  * if zf = 1 and sf != of then jump to address arg1
+  * if zf = 1 or sf != of then jump to address arg1
 - js arg1 
   * if sf = 1 then jump to address arg1
 - jns arg1 

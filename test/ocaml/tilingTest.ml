@@ -4367,7 +4367,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) reg0;
     cmpq (Asm.Const 1L) reg0;
-    jl (Asm.Label "tru"); (* TODO *)
+    jl (Asm.Label "tru"); (* TODO non imm *)
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -4437,6 +4437,7 @@ let test_chomp _ =
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+  (* TODO: min int max int cases *)
 
   (* jump *)
   (* exp *)

@@ -101,10 +101,14 @@ let non_imm_cmp op reg1 reg2 dest =
    movq (Reg (Real Rcx)) (Reg dest)]
 
 let cmp_zero op reg1 dest =
-  [test (Reg reg1) (Reg reg1); (cmp_zero_to_instr op) (Reg dest)]
+  [test (Reg reg1) (Reg reg1); 
+  (cmp_zero_to_instr op) (Reg (Real Cl));
+  movq (Reg (Real Rcx)) (Reg dest)]
 
 let imm_cmp op const reg dest =
-  [cmpq (Asm.Const const) (Reg reg); (cmp_to_instr op) (Reg dest)]
+  [cmpq (Asm.Const const) (Reg reg); 
+  (cmp_to_instr op) (Reg (Real Cl)); 
+  movq (Reg (Real Rcx)) (Reg dest)]
 
 (* Java style shifting: mod RHS operand by word size *)
 let non_imm_shift op reg1 reg2 dest =
@@ -184,6 +188,51 @@ let debug_wrap (debug: bool) (pre: string) (post: string) asms =
     then [Comment pre] @ asms @ [Comment post]
     else asms
 
+let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
+  match opcode with
+  | ADD | SUB | AND | OR | XOR ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 dest_reg))
+      | None -> (reg1, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg1))
+    end
+  | LSHIFT | RSHIFT | ARSHIFT ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 dest_reg))
+      | None -> (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 reg1))
+    end
+  | EQ | NEQ | LT | GT | LEQ | GEQ ->
+    begin
+      match dest with
+      | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 dest_reg))
+      | None -> (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 reg2))
+    end
+  | MUL | HMUL ->
+    begin
+      match dest with
+      | Some dest_reg ->
+        let r = if opcode = MUL then Real Rax else Real Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
+        (dest_reg, asm1 @ asm2 @ mul_asm)
+      | None ->
+        let r = if opcode = MUL then Rax else Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
+        (Real r, asm1 @ asm2 @ mul_asm)
+    end
+  | DIV | MOD ->
+    begin
+      match dest with
+      | Some dest_reg ->
+        let r = if opcode = DIV then Real Rax else Real Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
+        (dest_reg, asm1 @ asm2 @ div_asm)
+      | None ->
+        let r = if opcode = DIV then Rax else Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
+        (Real r, asm1 @ asm2 @ div_asm)
+    end
+
 let rec munch_expr
   ?(debug=false)
   (curr_ctx: func_context)
@@ -253,7 +302,7 @@ let rec munch_expr
 
         (* prepare implicit 0th argument *)
         let (ret_ptr, ret_asm) =
-          let callee_ctx = String.Map.find_exn fcontexts fname in
+          let callee_ctx = get_context fcontexts fname in
           if callee_ctx.num_rets > 2 then
             let new_tmp = Fake (FreshReg.fresh ()) in
             let asm = leaq (Mem ((8*(curr_ctx.max_args-6))$(Real Rsp))) (Reg new_tmp) in
@@ -275,7 +324,7 @@ let rec munch_expr
         let call_asm = [call (Label fname)] in
 
         (* shuttle returns into fake registers *)
-        let num_rets = (String.Map.find_exn fcontexts fname).num_rets in
+        let num_rets = (get_context fcontexts fname).num_rets in
         let save_rets_asms =
           List.map (List.range ~start:`inclusive ~stop:`exclusive  0 num_rets) ~f:(fun i ->
             let src = Asm.caller_ret_op ~max_args:curr_ctx.max_args ~i in
@@ -360,7 +409,7 @@ and munch_func_decl
 
   let munch_stmt = munch_stmt ~debug in
 
-  let curr_ctx = String.Map.find_exn fcontexts fname in
+  let curr_ctx = get_context fcontexts fname in
   let body_asm = munch_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
@@ -450,6 +499,14 @@ let binop_mem_add reg1 reg2 displ =
 (* mem operation of the binop reg +/- const *)
 let binop_mem_const_add reg1 displ =
   Base (displ, reg1)
+
+let flip_op (op: Ir.binop_code) =
+  match op with
+  | LT -> Ir.GT
+  | GT -> Ir.LT
+  | LEQ -> Ir.GEQ
+  | GEQ -> Ir.LEQ
+  | _ -> failwith "shouldn't happen -- flip_op"
 
 let rec chomp_binop
   (curr_ctx: func_context)
@@ -578,7 +635,7 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-        | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
+        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop SUB 1L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [decq (Reg reg1)])
     end
   (* incr cases *)
@@ -596,7 +653,7 @@ let rec chomp_binop
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
-        | Some dest_reg -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
+        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop ADD 1L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [incq (Reg reg1)])
     end
   (* lea-case4: reg = reg +/- const
@@ -708,17 +765,63 @@ let rec chomp_binop
         | Some dest_reg -> (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
         | _ -> (reg1, asm1 @ [negq (Reg reg1)])
     end
-  (* comparisons with zeros *)
+  (* comparisons with zero *)
+  | BinOp (Temp reg, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
+  (* commutative operations *)
+  | BinOp (Const 0L, ((EQ|NEQ) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      match dest with
+        | Some dest_reg -> (dest_reg, (cmp_zero op reg1 dest_reg))
+        | None -> (reg1, (cmp_zero op reg1 reg1))
+    end
+  (* non-commutative operations *)
+  | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), Temp reg) ->
+    begin
+      let flipped_op = flip_op op in
+      let reg1 = Fake reg in
+      match dest with
+        | Some dest_reg -> (dest_reg, (cmp_zero flipped_op reg1 dest_reg))
+        | None -> (reg1, (cmp_zero flipped_op reg1 reg1))
+    end
+  (* comparisons with zero *)
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
-  | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+  (* commutative operations *)
+  | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       match dest with
         | Some dest_reg -> (dest_reg, asm1 @ (cmp_zero op reg1 dest_reg))
         | None -> (reg1, asm1 @ (cmp_zero op reg1 reg1))
     end
+  (* non-commutative operations *)
+  | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), e1) ->
+    begin
+      let flipped_op = flip_op op in
+      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      match dest with
+        | Some dest_reg -> (dest_reg, asm1 @ (cmp_zero flipped_op reg1 dest_reg))
+        | None -> (reg1, asm1 @ (cmp_zero flipped_op reg1 reg1))
+    end
   (* binop with immediate cases *)
   (* add and sub are not included b/c it is taken care of in lea cases *)
+  | BinOp (Temp reg, ((AND|OR|XOR) as op), (Const x as e2))
+  | BinOp ((Const x as e2), ((AND|OR|XOR) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      (* checking if immidiate is within 32 bits *)
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_binop op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_binop op x reg1 reg1)) 
+      | false, Some dest_reg ->
+        (dest_reg, (non_imm_binop op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_binop op reg1 reg2 reg2))
+    end
   | BinOp (e1, ((AND|OR|XOR) as op), (Const x as e2))
   | BinOp ((Const x as e2), ((AND|OR|XOR) as op), e1) ->
     begin
@@ -735,6 +838,22 @@ let rec chomp_binop
         (dest_reg, asm1 @ (non_imm_binop op reg1 reg2 dest_reg))
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_binop op reg1 reg2 reg2))
+    end
+  | BinOp (Temp reg, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2)) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      (* checking if shift is within 8 bits *)
+      let is_8 = Int64.neg(128L) <= x && x <= 128L in
+      match is_8, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_shift op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_shift op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, (non_imm_shift op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg1, asm2 @ (non_imm_shift op reg1 reg2 reg1))
     end
   | BinOp (e1, ((LSHIFT|RSHIFT|ARSHIFT) as op), (Const x as e2))
   | BinOp ((Const x as e2), ((LSHIFT|RSHIFT|ARSHIFT) as op), e1) ->
@@ -753,8 +872,43 @@ let rec chomp_binop
       | false, None ->
         (reg1, asm1 @ asm2 @ (non_imm_shift op reg1 reg2 reg1))
     end
+  | BinOp (Temp reg, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
+  (* commutative operations *)
+  | BinOp ((Const x as e2), ((EQ|NEQ) as op), Temp reg) ->
+    begin
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_cmp op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_cmp op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm2 @ (non_imm_cmp op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_cmp op reg1 reg2 reg2))
+    end
+  (* non-commutative operations *)
+  | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), Temp reg) ->
+    begin
+      let flipped_op = flip_op op in
+      let reg1 = Fake reg in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, (imm_cmp flipped_op x reg1 dest_reg))
+      | true, None ->
+        (reg1, (imm_cmp flipped_op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm2 @ (non_imm_cmp flipped_op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
+    end
   | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
-  | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+  (* commutative operations *)
+  | BinOp ((Const x as e2), ((EQ|NEQ) as op), e1) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
@@ -769,55 +923,36 @@ let rec chomp_binop
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_cmp op reg1 reg2 reg2))
     end
-  (* binop with non-immediate cases *)
-  | BinOp (e1, opcode, e2) ->
+  (* non-commutative operations *)
+  | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), e1) ->
     begin
+      let flipped_op = flip_op op in
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
       let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
-      match opcode with
-      | ADD | SUB | AND | OR | XOR ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 dest_reg))
-          | None -> (reg2, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg2))
-        end
-      | LSHIFT | RSHIFT | ARSHIFT ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 dest_reg))
-          | None -> (reg1, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 reg1))
-        end
-      | EQ | NEQ | LT | GT | LEQ | GEQ ->
-        begin
-          match dest with
-          | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 dest_reg))
-          | None -> (reg2, asm1 @ asm2 @ (non_imm_cmp opcode reg1 reg2 reg2))
-        end
-      | MUL | HMUL ->
-        begin
-          match dest with
-          | Some dest_reg ->
-            let r = if opcode = MUL then Real Rax else Real Rdx in
-            let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
-            (dest_reg, asm1 @ asm2 @ mul_asm)
-          | None ->
-            let r = if opcode = MUL then Rax else Rdx in
-            let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
-            (Real r, asm1 @ asm2 @ mul_asm)
-        end
-      | DIV | MOD ->
-        begin
-          match dest with
-          | Some dest_reg ->
-            let r = if opcode = DIV then Real Rax else Real Rdx in
-            let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
-            (dest_reg, asm1 @ asm2 @ div_asm)
-          | None ->
-            let r = if opcode = DIV then Rax else Rdx in
-            let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
-            (Real r, asm1 @ asm2 @ div_asm)
-        end
+      let is_32 = min_int32 <= x && x <= max_int32 in
+      match is_32, dest with
+      | true, Some dest_reg ->
+        (dest_reg, asm1 @ (imm_cmp flipped_op x reg1 dest_reg))
+      | true, None ->
+        (reg1, asm1 @ (imm_cmp flipped_op x reg1 reg1))
+      | false, Some dest_reg ->
+        (dest_reg, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 dest_reg))
+      | false, None ->
+        (reg2, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
+  | BinOp (Temp reg1, opcode, Temp reg2) -> 
+    create_binop_instr opcode (Fake reg1) [] (Fake reg2) [] dest
+  | BinOp (Temp reg1, opcode, e2) -> 
+    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode (Fake reg1) [] reg2 asm2 dest
+  | BinOp (e1, opcode, Temp reg2) ->
+    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+    create_binop_instr opcode reg1 asm1 (Fake reg2) [] dest
+  (* binop with non-immediate cases *)
+  | BinOp (e1, opcode, e2) ->
+    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode reg1 asm1 reg2 asm2 dest
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
 
 and chomp_expr
@@ -851,18 +986,30 @@ and chomp_stmt
         asm1 @ [bt (Asm.Const 0L) (Reg reg1); jc tru_label]
       (* comparing with 0 *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
-      | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+      | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         asm1 @ (cmp_zero_jump op reg1 tru_label)
+      | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), e1) ->
+        let flipped_op = flip_op op in
+        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+        asm1 @ (cmp_zero_jump flipped_op reg1 tru_label)
       (* comparing with constant *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
-      | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+      | BinOp ((Const x as e2), ((EQ|NEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
         if min_int32 <= x && x <= max_int32 then
           asm1 @ (imm_cmp_jump op reg1 x tru_label)
         else
           asm1 @ asm2 @ (non_imm_cmp_jump op reg1 reg2 tru_label)
+      | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), e1) ->
+        let flipped_op = flip_op op in
+        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+        let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+        if min_int32 <= x && x <= max_int32 then
+          asm1 @ (imm_cmp_jump flipped_op reg1 x tru_label)
+        else
+          asm1 @ asm2 @ (non_imm_cmp_jump flipped_op reg1 reg2 tru_label)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
@@ -991,10 +1138,11 @@ let register_allocate asms =
   List.concat_map ~f:(allocate spill_env) asms
 
 let asm_gen
+  ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list =
   let callable_decls =
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
-  munch_comp_unit func_contexts comp_unit |> register_allocate
+  munch_comp_unit ~debug func_contexts comp_unit |> register_allocate

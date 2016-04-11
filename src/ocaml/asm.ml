@@ -259,17 +259,19 @@ let string_of_scale scale =
   | Four  -> "4"
   | Eight -> "8"
 
+let string_of_mem_const n = Int64.to_string n
+
 let string_of_mem f mem =
-  let soc = string_of_const in
   let sos = string_of_scale in
+  let somc = string_of_mem_const in
 
   match mem with
   | Base (None, b) -> sprintf "(%s)" (f b)
-  | Base (Some n, b) -> sprintf "%s(%s)" (soc n) (f b)
+  | Base (Some n, b) -> sprintf "%s(%s)" (somc n) (f b)
   | Off (None, o, s) -> sprintf "(,%s,%s)" (f o) (sos s)
-  | Off (Some n, o, s) -> sprintf "%s(,%s,%s)" (soc n) (f o) (sos s)
+  | Off (Some n, o, s) -> sprintf "%s(,%s,%s)" (somc n) (f o) (sos s)
   | BaseOff (None, b, o, s) -> sprintf "(%s,%s,%s)" (f b) (f o) (sos s)
-  | BaseOff (Some n, b, o, s) -> sprintf "%s(%s,%s,%s)" (soc n) (f b) (f o) (sos s)
+  | BaseOff (Some n, b, o, s) -> sprintf "%s(%s,%s,%s)" (somc n) (f b) (f o) (sos s)
 
 let string_of_operand f o =
   match o with

@@ -38,7 +38,7 @@
 (* bit test operation *)
 - bt arg1 arg2
   * cf (carry flag) = bit(arg1 - bit base, arg2 - bit offset) 
-  * essentially gets the bit of arg1 at position arg2
+  * essentially gets the bit of arg2 at position arg1
   
 (* shift operations *)
 - shlq cl arg1

@@ -19,7 +19,7 @@ let abi_function_name =
 
 (* Format callable names according to Xi ABI *)
 let abi_callable_decl_name ((typ, c): Typecheck.callable_decl) : string =
-  let ret_t, args_t = typ in
+  let args_t, ret_t = typ in
   let func_name = match c with
     | FuncDecl ((_, idstr), _, _)
     | ProcDecl ((_, idstr), _) -> idstr in

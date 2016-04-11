@@ -216,9 +216,9 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
         let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ mul_asm)
       | None ->
-        let r = if opcode = MUL then Rax else Rdx in
-        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
-        (Real r, asm1 @ asm2 @ mul_asm)
+        let r = if opcode = MUL then Real Rax else Real Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg reg2)] in
+        (reg2, asm1 @ asm2 @ mul_asm)
     end
   | DIV | MOD ->
     begin
@@ -228,9 +228,9 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
         let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ div_asm)
       | None ->
-        let r = if opcode = DIV then Rax else Rdx in
-        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
-        (Real r, asm1 @ asm2 @ div_asm)
+        let r = if opcode = DIV then Real Rax else Real Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg reg2)] in
+        (reg2, asm1 @ asm2 @ div_asm)
     end
 
 let rec munch_expr
@@ -509,10 +509,14 @@ let flip_op (op: Ir.binop_code) =
   | _ -> failwith "shouldn't happen -- flip_op"
 
 let rec chomp_binop
+  ?(debug=false)
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
   (e: Ir.expr)
   (dest: abstract_reg option) =
+
+  let chomp_expr = chomp_expr ~debug in
+
   match e with
   (* lea cases with constants *)
   (* lea-case1: reg1 = reg1 * {1,2,4,8} + reg2 +/- const
@@ -956,20 +960,29 @@ let rec chomp_binop
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
 
 and chomp_expr
+  ?(debug=false)
   (curr_ctx: func_context)
   (fcontexts: func_contexts)
   (e: Ir.expr) =
+
+  let chomp_binop = chomp_binop ~debug in
+  let munch_expr = munch_expr ~debug in
+
   match e with
   | BinOp _ -> chomp_binop curr_ctx fcontexts e None
   | (Const _ | Mem _ | Temp _| Call _| Name _| ESeq _) ->
-      (* TODO: fix *)
-      let (r, asms) = munch_expr curr_ctx fcontexts e in
-      (Fake r, asms)
+    let (r, asm) = munch_expr curr_ctx fcontexts e in
+    (Fake r, asm)
 
 and chomp_stmt
+    ?(debug=false)
     (curr_ctx: func_context)
     (fcontexts: func_contexts)
     (s: Ir.stmt) =
+
+  let chomp_expr = chomp_expr ~debug in
+  let chomp_stmt = chomp_stmt ~debug in
+
   match s with
   | CJumpOne (e1, tru) ->
     begin

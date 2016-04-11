@@ -239,7 +239,7 @@ let rec munch_expr
 
       (* prepare implicit 0th argument *)
       let (ret_ptr, ret_asm) =
-        let callee_ctx = String.Map.find_exn fcontexts fname in
+        let callee_ctx = get_context fcontexts fname in
         if callee_ctx.num_rets > 2 then
           let new_tmp = Fake (FreshReg.fresh ()) in
           let asm = leaq (Mem ((8*(curr_ctx.max_args-6))$(Real Rsp))) (Reg new_tmp) in
@@ -261,7 +261,7 @@ let rec munch_expr
       let call_asm = [call (Label fname)] in
 
       (* shuttle returns into fake registers *)
-      let num_rets = (String.Map.find_exn fcontexts fname).num_rets in
+      let num_rets = (get_context fcontexts fname).num_rets in
       let save_rets_asms =
         List.map (List.range ~start:`inclusive ~stop:`exclusive  0 num_rets) ~f:(fun i ->
           let src = Asm.caller_ret_op ~max_args:curr_ctx.max_args ~i in
@@ -333,7 +333,7 @@ and munch_func_decl
     (fcontexts: func_contexts)
     ((fname, stmt, _): Ir.func_decl) =
 
-  let curr_ctx = String.Map.find_exn fcontexts fname in
+  let curr_ctx = get_context fcontexts fname in
   let body_asm = munch_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 

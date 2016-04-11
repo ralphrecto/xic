@@ -3617,6 +3617,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rax));
     imulq (Reg (Fake "x"));
+    movq (Reg (Real Rax)) (Reg (Fake "y"))
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3626,6 +3627,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rax));
     imulq (Reg (Fake "x"));
+    movq (Reg (Real Rdx)) (Reg (Fake "y"))
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3635,6 +3637,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     idivq (Reg (Fake "y"));
+    movq (Reg (Real Rax)) (Reg (Fake "y"))
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3644,6 +3647,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     idivq (Reg (Fake "y"));
+    movq (Reg (Real Rdx)) (Reg (Fake "y"))
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);

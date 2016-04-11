@@ -216,9 +216,9 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
         let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ mul_asm)
       | None ->
-        let r = if opcode = MUL then Rax else Rdx in
-        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1)] in
-        (Real r, asm1 @ asm2 @ mul_asm)
+        let r = if opcode = MUL then Real Rax else Real Rdx in
+        let mul_asm = [movq (Reg reg2) (Reg (Real Rax)); imulq (Reg reg1); movq (Reg r) (Reg reg2)] in
+        (reg2, asm1 @ asm2 @ mul_asm)
     end
   | DIV | MOD ->
     begin
@@ -228,9 +228,9 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
         let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ div_asm)
       | None ->
-        let r = if opcode = DIV then Rax else Rdx in
-        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2)] in
-        (Real r, asm1 @ asm2 @ div_asm)
+        let r = if opcode = DIV then Real Rax else Real Rdx in
+        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg reg2)] in
+        (reg2, asm1 @ asm2 @ div_asm)
     end
 
 let rec munch_expr

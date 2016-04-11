@@ -50,8 +50,9 @@ type 'reg operand =
 
 type 'reg asm_template =
   | Op of string * 'reg operand list  (* size <= 3 *)
-  | Lab of label
+  | Lab of label                      (* e.g. foo:, bar: *)
   | Directive of string * string list (* e.g. .align 4, .globl foo *)
+  | Comment of string                 (* e.g. # yolo # zardoz *)
 
 type abstract_asm = abstract_reg asm_template
 
@@ -111,9 +112,6 @@ val callee_ret_op : abstract_reg -> int -> abstract_reg operand
  *
  * function context has max_args.. *)
 val caller_ret_op : max_args:int -> i:int -> abstract_reg operand
-
-(* helpful constants *)
-val num_caller_save : int
 
 module Abbreviations: sig
   (* abstract real registers *)

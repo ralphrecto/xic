@@ -11,6 +11,7 @@ val ret_ptr_reg : Asm.abstract_reg
 (* Maximal munch tiling algorithm with baby tiles.
  *
  * For example, munch_expr takes in
+ *     - a debug flag to pretty print comments in asm
  *     - the function context of the current function being munched,
  *     - a map of all function contexts, and
  *     - an IR expression; it returns
@@ -65,13 +66,20 @@ val ret_ptr_reg : Asm.abstract_reg
  *     - we stack allocate space for the function we're calling to return stuff
  *     - we then push ARG6, ARG7, ...
  *)
-val munch_expr      : func_context -> func_contexts -> Ir.expr      -> Asm.fake * Asm.abstract_asm list
-val munch_stmt      : func_context -> func_contexts -> Ir.stmt      -> Asm.abstract_asm list
-val munch_func_decl :                 func_contexts -> Ir.func_decl -> Asm.abstract_asm list
-val munch_comp_unit :                 func_contexts -> Ir.comp_unit -> Asm.abstract_asm list
+type ('input, 'output) with_fcontext =
+  ?debug:bool -> func_context -> func_contexts -> 'input -> 'output
+type ('input) without_fcontext =
+  ?debug:bool -> func_contexts -> 'input -> Asm.abstract_asm list
+
+val munch_expr      : (Ir.expr, Asm.fake * Asm.abstract_asm list) with_fcontext
+val munch_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
+val munch_func_decl : Ir.func_decl without_fcontext
+val munch_comp_unit : Ir.comp_unit without_fcontext
 
 (* Maximal munch tiling algorithm with good tiles. *)
-val chomp_expr      : func_context -> func_contexts -> Ir.expr -> Asm.abstract_reg * Asm.abstract_asm list
+val chomp_expr      : func_context ->
+                       func_contexts ->
+                       Ir.expr -> Asm.abstract_reg * Asm.abstract_asm list
 val chomp_stmt      : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_asm list
 
 (* Naive register allocation.
@@ -113,4 +121,4 @@ val chomp_stmt      : func_context -> func_contexts -> Ir.stmt -> Asm.abstract_a
  *)
 val register_allocate : Asm.abstract_asm list -> Asm.asm list
 
-val asm_gen : Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
+val asm_gen : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog

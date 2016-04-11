@@ -986,18 +986,30 @@ and chomp_stmt
         asm1 @ [bt (Asm.Const 0L) (Reg reg1); jc tru_label]
       (* comparing with 0 *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
-      | BinOp (Const 0L, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+      | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         asm1 @ (cmp_zero_jump op reg1 tru_label)
+      | BinOp (Const 0L, ((LT|GT|LEQ|GEQ) as op), e1) ->
+        let flipped_op = flip_op op in
+        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+        asm1 @ (cmp_zero_jump flipped_op reg1 tru_label)
       (* comparing with constant *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), (Const x as e2))
-      | BinOp ((Const x as e2), ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e1) ->
+      | BinOp ((Const x as e2), ((EQ|NEQ) as op), e1) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
         if min_int32 <= x && x <= max_int32 then
           asm1 @ (imm_cmp_jump op reg1 x tru_label)
         else
           asm1 @ asm2 @ (non_imm_cmp_jump op reg1 reg2 tru_label)
+      | BinOp ((Const x as e2), ((LT|GT|LEQ|GEQ) as op), e1) ->
+        let flipped_op = flip_op op in
+        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+        let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+        if min_int32 <= x && x <= max_int32 then
+          asm1 @ (imm_cmp_jump flipped_op reg1 x tru_label)
+        else
+          asm1 @ asm2 @ (non_imm_cmp_jump flipped_op reg1 reg2 tru_label)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), e2) ->
         let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
         let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in

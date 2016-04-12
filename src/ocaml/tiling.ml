@@ -1051,9 +1051,7 @@ and chomp_stmt
         ] in
         binop_lst @ jump_lst
     end
-  | Jump (Name s) -> [jmp (Asm.Label s)]
   | Exp e -> snd (chomp_expr curr_ctx fcontexts e)
-  | Label l -> [label_op l]
   | Move (Temp n, (BinOp _ as e)) ->
     begin
       let dest =
@@ -1091,10 +1089,7 @@ and chomp_stmt
     let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
     asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
-  | Return -> [leave; ret]
-  | Move _ -> failwith "Move has a non TEMP/MEM lhs"
-  | Jump _ -> failwith "jump to a non label shouldn't exist"
-  | CJump _ -> failwith "cjump shouldn't exist"
+  | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s 
 
 let register_allocate asms =
   (* spill_env maps each fake name to an index, starting at 15, into the stack.

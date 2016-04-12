@@ -4584,7 +4584,38 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
+  (* cjumpone other cases *)
+  FreshReg.reset ();
+  let e1 = IA.const 1L in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Asm.Const 1L) reg0;
+    cmpq (Asm.Const 0L) reg0;
+    jnz (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
+  FreshReg.reset ();
+  let e1 = IA.const 0L in
+  let stmt1 = cjumpone e1 "tru" in
+  let expected = [
+    movq (Asm.Const 0L) reg0;
+    cmpq (Asm.Const 0L) reg0;
+    jnz (Asm.Label "tru");
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
   (* jump *)
+  FreshReg.reset ();
+  let stmt1 = jump (name "tru") in
+  let expected = [
+    jmp (Asm.Label "tru")
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
   (* exp *)
   (* label *)
   (* move temp e, where e is not binop *)

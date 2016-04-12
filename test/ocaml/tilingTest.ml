@@ -4616,12 +4616,15 @@ let test_chomp _ =
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
-  (* exp *)
   (* label *)
-  (* move temp e, where e is not binop *)
-  (* move mem e *)
-  (* seq *)
-  (* return *)
+  FreshReg.reset ();
+  let stmt1 = label "tru" in
+  let expected = [
+    Lab "tru"
+  ]
+  in
+  expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
+
   ()
 
 let test_register_allocation _ =

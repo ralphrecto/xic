@@ -75,11 +75,9 @@ test_sourcepath_cwd() {
 
     # simple sourcepath is not cwd, relative filename
     mkdir -p "theirs"
-    # rm -f "theirs/test1.lexed" ???
-    # rm -f "xisrc/theirs/test1.lexed" ???
+    rm -f "theirs/test1.lexed"
     ./xic --lex -sourcepath xisrc theirs/test1.xi
-    # assert_exists "theirs/test1.lexed" ???
-    # assert_exists "xisrc/theirs/test1.lexed" ???
+    assert_exists "theirs/test1.lexed"
 
     # trivial sourcepath is cwd, absolute filename
     rm -f "xisrc/theirs/test1.lexed"
@@ -129,30 +127,28 @@ test_sourcepath_otherdir() {
 
     # simple sourcepath is not cwd, relative filename
     mkdir -p "theirs"
-    # rm -f "theirs/test1.lexed" ???
-    # rm -f "../xisrc/theirs/test1.lexed" ???
+     rm -f "theirs/test1.lexed"
     ../xic --lex -sourcepath ../xisrc theirs/test1.xi
-    # assert_exists "theirs/test1.lexed" ???
-    # assert_exists "../xisrc/theirs/test1.lexed" ???
+     assert_exists "theirs/test1.lexed"
 
     # trivial sourcepath is cwd, absolute filename
     rm -f "../xisrc/theirs/test1.lexed"
-    ./xic --lex -sourcepath . "$PWD/../xisrc/theirs/test1.xi"
+    ../xic --lex -sourcepath . "$PWD/../xisrc/theirs/test1.xi"
     assert_exists "../xisrc/theirs/test1.lexed"
 
     # simple sourcepath is cwd, absolute filename
     rm -f "../xisrc/theirs/test1.lexed"
-    ./xic --lex -sourcepath src/.. "$PWD/../xisrc/theirs/test1.xi"
+    ../xic --lex -sourcepath src/.. "$PWD/../xisrc/theirs/test1.xi"
     assert_exists "../xisrc/theirs/test1.lexed"
 
     # complex sourcepath is not cwd, absolute filename
     rm -f "../xisrc/theirs/test1.lexed"
-    ./xic --lex -sourcepath xisrc/theirs/../ "$PWD/../xisrc/theirs/test1.xi"
+    ../xic --lex -sourcepath xisrc/theirs/../ "$PWD/../xisrc/theirs/test1.xi"
     assert_exists "../xisrc/theirs/test1.lexed"
 
     # complex sourcepath is not cwd, absolute filename
     rm -f "../xisrc/theirs/test1.lexed"
-    ./xic --lex -sourcepath "$PWD/xisrc/theirs/../" "$PWD/../xisrc/theirs/test1.xi"
+    ../xic --lex -sourcepath "$PWD/xisrc/theirs/../" "$PWD/../xisrc/theirs/test1.xi"
     assert_exists "../xisrc/theirs/test1.lexed"
 
     cd ..

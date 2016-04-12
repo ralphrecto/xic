@@ -1,5 +1,6 @@
 package mjw297;
 import com.google.common.collect.Lists;
+
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
@@ -130,7 +131,9 @@ public class Main {
                 System.exit(1);
             }
             try {
-                File f = Paths.get(baseDir, filename).toFile();
+                File f = Paths.get(filename).isAbsolute() ?
+                    Paths.get(filename).toFile() :
+                    Paths.get(baseDir, filename).toFile();
                 return new XiSource(filename, f, new FileReader(f));
             } catch (FileNotFoundException e) {
                 System.out.println(e.getMessage());
@@ -180,12 +183,15 @@ public class Main {
                 );
             }
         } else {
-            return String.format(
-                "%s/%s.%s",
-                Files.simplifyPath(diagnosticPath),
-                nameNoExt,
-                ext
-            );
+            if (Paths.get(xs.filename).isAbsolute()) {
+                return xs.filename;
+            } else {
+                return String.format(
+                    "%s/%s",
+                    Files.simplifyPath(parentDir),
+                    xs.changeExtension(ext)
+                );
+            }
         }
     }
 

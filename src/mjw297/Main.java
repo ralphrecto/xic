@@ -77,6 +77,9 @@ public class Main {
     @Option(name = "--blkreorder", usage = "Reorder blocks", hidden = true)
     private static boolean blkReorderMode = false;
 
+    @Option(name = "--asmchomp", usage = "Use chomp instead of munch", hidden = true)
+    private static boolean asmChompMode = false;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 
@@ -490,12 +493,18 @@ public class Main {
     void doAsmGenNoOpt(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--no-opt");
+        if (asmChompMode) {
+          binArgs.add("--asmchomp");
+        }
 
         callOCaml(filenames, binArgs, "s");
     }
 
     void doAsmGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
+        if (asmChompMode) {
+          binArgs.add("--asmchomp");
+        }
 
         callOCaml(filenames, binArgs, "s");
     }

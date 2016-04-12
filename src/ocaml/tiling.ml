@@ -1086,7 +1086,8 @@ and chomp_stmt
   | CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
-  (* spill_env maps each fake name to an index, starting at 1, into the stack.
+  (* spill_env maps each fake name to an index, starting at 15, into the stack.
+   * We start at 15 since the first 14 is reserved for callee save registers.
    * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
    * (Fake "foo") will be spilled to -8n(%rbp). *)
   let spill_env =

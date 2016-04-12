@@ -30,8 +30,8 @@ the Java runtime on our compiler's compiled `.class` files.
 - `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
 - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
 - `-sourcepath <path> [default: dir where xic run]`
-    - `-sourcepath a/b  c/d/foo.xi: a/b/c/d -->  c/d/foo._`
-    - `-sourcepath a/b /c/d/foo.xi: a/b/c/d --> /c/d/foo._`
+    - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
+    - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
 - `-libpath <path> [default: dir where xic run]`
 - `-D <path> [default: dir where xic run]`
     - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`

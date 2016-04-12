@@ -437,6 +437,12 @@ and munch_func_decl
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
   (* saved rip + saved rbp + temps + rets n args  *)
   let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
+
+  let wrapper asms name =
+    let pre = "----- start " ^ name ^ " -----" in
+    let post = "----- end " ^ name ^ " -----" in
+    debug_wrap debug pre post asms in
+
   let prologue =
     let init = [enter (const ((tot_temps + tot_rets_n_args) * 8)) (const 0)] in
     let padding =
@@ -450,10 +456,15 @@ and munch_func_decl
     let save_callee = List.map callee_saved_no_bp ~f:(fun r ->
       movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
     ) in
-    init @ padding @ ret_ptr_mov @ save_callee
+    wrapper init "init" @
+    wrapper padding "padding" @
+    wrapper ret_ptr_mov "ret_ptr_mov" @
+    wrapper save_callee "save_callee"
   in
-
-  directives @ label @ prologue @ body_asm
+  wrapper directives "directives" @
+  wrapper label "label" @
+  wrapper prologue "prologue" @
+  wrapper body_asm "body_asm"
 
 and munch_comp_unit
     ?(debug=false)

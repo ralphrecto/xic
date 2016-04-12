@@ -51,8 +51,8 @@ test_file_extensions() {
     assert_exists "$test1.s"
 }
 
-# test -sourcepath option
-test_sourcepath() {
+# test -sourcepath option from same directory as compiler
+test_sourcepath_cwd() {
     # trivial sourcepath is cwd, relative filename
     rm -f "xisrc/theirs/test1.lexed"
     ./xic --lex -sourcepath . xisrc/theirs/test1.xi
@@ -102,10 +102,67 @@ test_sourcepath() {
     assert_exists "xisrc/theirs/test1.lexed"
 }
 
+# test -sourcepath option from directory other than compiler
+test_sourcepath_otherdir() {
+    mkdir -p tempdir
+    cd tempdir
+
+    # trivial sourcepath is cwd, relative filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ../xic --lex -sourcepath . ../xisrc/theirs/test1.xi
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # simple sourcepath is cwd, relative filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ../xic --lex -sourcepath ../tempdir/ ../xisrc/theirs/test1.xi
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # complex sourcepath is cwd, relative filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ../xic --lex -sourcepath ../src/../././tempdir ../xisrc/theirs/test1.xi
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # complex sourcepath is cwd, relative filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ../xic --lex -sourcepath "$PWD" ../xisrc/theirs/test1.xi
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # simple sourcepath is not cwd, relative filename
+    mkdir -p "theirs"
+    # rm -f "theirs/test1.lexed" ???
+    # rm -f "../xisrc/theirs/test1.lexed" ???
+    ../xic --lex -sourcepath ../xisrc theirs/test1.xi
+    # assert_exists "theirs/test1.lexed" ???
+    # assert_exists "../xisrc/theirs/test1.lexed" ???
+
+    # trivial sourcepath is cwd, absolute filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ./xic --lex -sourcepath . "$PWD/../xisrc/theirs/test1.xi"
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # simple sourcepath is cwd, absolute filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ./xic --lex -sourcepath src/.. "$PWD/../xisrc/theirs/test1.xi"
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # complex sourcepath is not cwd, absolute filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ./xic --lex -sourcepath xisrc/theirs/../ "$PWD/../xisrc/theirs/test1.xi"
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    # complex sourcepath is not cwd, absolute filename
+    rm -f "../xisrc/theirs/test1.lexed"
+    ./xic --lex -sourcepath "$PWD/xisrc/theirs/../" "$PWD/../xisrc/theirs/test1.xi"
+    assert_exists "../xisrc/theirs/test1.lexed"
+
+    cd ..
+}
+
 main() {
     test_help
     test_file_extensions
-    test_sourcepath
+    test_sourcepath_cwd
+    test_sourcepath_otherdir
     exit $STATUS
 }
 

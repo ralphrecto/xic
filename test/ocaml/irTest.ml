@@ -500,8 +500,6 @@ let test_lower_stmt _ =
   let eseq e = Ir.ESeq (seq, e) in
 	let eseq2 e = Ir.ESeq (seq2, e) in
 
-  Ir_gen.reset_fresh_temp ();
-
   (* Ir.Label *)
   [Ir.Label "l"] === lower_stmt (Ir.Label "l");
 
@@ -518,7 +516,7 @@ let test_lower_stmt _ =
   stmts === lower_stmt (Exp (eseq one));
 
   (* Ir.Move *)
-  stmts@[Ir.Move (t 0, one)]@stmts2@[Ir.Move (t 0, two)]
+  stmts@stmts2@[Ir.Move (one, two)]
   ===
   lower_stmt (Ir.Move (eseq one, eseq2 two));
 

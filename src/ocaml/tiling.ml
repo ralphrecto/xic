@@ -386,6 +386,10 @@ and munch_stmt
       let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
       e_lst @ [movq (Reg (Fake e_reg)) dest]
     end
+    | Ir.Move (Ir.Mem (e1, _), e2) ->
+      let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
+      let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+      e1_lst @ e2_lst @ [movq (Reg (Fake e2_reg)) (Mem (Base (None, (Fake e1_reg))))]
     | Ir.Seq s_list -> List.concat_map ~f:(munch_stmt curr_ctx fcontexts) s_list
     | Ir.Return ->
         (* restore callee-saved registers *)
@@ -1082,12 +1086,13 @@ and chomp_stmt
   | CJump _ -> failwith "cjump shouldn't exist"
 
 let register_allocate asms =
-  (* spill_env maps each fake name to an index, starting at 1, into the stack.
+  (* spill_env maps each fake name to an index, starting at 15, into the stack.
+   * We start at 15 since the first 14 is reserved for callee save registers.
    * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
    * (Fake "foo") will be spilled to -8n(%rbp). *)
   let spill_env =
     fakes_of_asms asms
-    |> List.mapi ~f:(fun i asm -> (asm, i + 1))
+    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
     |> String.Map.of_alist_exn
   in
 

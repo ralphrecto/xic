@@ -498,8 +498,7 @@ and lower_stmt s =
   | Move (dest, e') ->
     let (dest_s, dest') = lower_expr dest in
     let (e_s, e'') = lower_expr e' in
-    let t = Temp (fresh_temp ()) in
-    dest_s @ [Move (t, dest')] @ e_s @ [Move(t, e'')]
+    dest_s @ e_s @ [Move(dest', e'')]
   | Seq ss -> List.concat_map ~f:lower_stmt ss
   | Label _
   | Return -> [s]

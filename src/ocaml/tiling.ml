@@ -314,7 +314,7 @@ let rec munch_expr
           let dest =
             match arg_reg i with
             | Some r -> Reg (Real r)
-            | None -> Mem ((8 * (i-6))$(Real Rsp))
+            | None -> Mem ((8 * (max (i-6) 0))$(Real Rsp))
           in
           movq (Reg argsrc) dest
         in
@@ -1057,11 +1057,7 @@ and chomp_stmt
       let dest =
         (* moving return values to _RETi before returning *)
         match FreshRetReg.get n with
-        | Some i -> begin
-          match ret_reg i with
-          | Some r -> Reg (Real r)
-          | None -> Mem ((i-2)$(ret_ptr_reg))
-        end
+        | Some i -> Asm.callee_ret_op ret_ptr_reg i
         | None -> Reg (Fake n)
       in
       match dest with
@@ -1072,18 +1068,16 @@ and chomp_stmt
       | _ -> failwith "cannot happen Move (Temp n, (BinOp _ as e))"
     end
    | Move (Temp n, e) ->
-    let dest =
-      (* moving return values to _RETi before returning *)
-      match FreshRetReg.get n with
-      | Some i -> begin
-          match ret_reg i with
-          | Some r -> Reg (Real r)
-          | None -> Mem ((i-2)$(ret_ptr_reg))
-      end
-      | None -> Reg (Fake n)
-    in
-    let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in
-    e_lst @ [movq (Reg e_reg) dest]
+    begin
+      let dest =
+        (* moving return values to _RETi before returning *)
+        match FreshRetReg.get n with
+        | Some i -> Asm.callee_ret_op ret_ptr_reg i
+        | None -> Reg (Fake n)
+      in
+      let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in
+      e_lst @ [movq (Reg e_reg) dest]
+    end
   | Move (Mem (e1, _), e2) ->
     let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
     let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in

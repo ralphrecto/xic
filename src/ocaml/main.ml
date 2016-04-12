@@ -25,6 +25,7 @@ type flags = {
   lower:          bool;
   ir_cfold:       bool;
   blkreorder:     bool;
+  asmchomp:       bool;
   outputs:        string list;
 } [@@deriving sexp]
 
@@ -65,7 +66,7 @@ let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result =
   let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
   Result.map (typecheck ast) ~f
 
-let asm_gen_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
+let asm_gen_opt (chomp: bool) (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = 
     let g1 = gen_comp_unit $ ast_constant_folding in
     let g2 = ir_constant_folding $ g1 in
@@ -73,14 +74,16 @@ let asm_gen_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
     block_reorder_comp_unit $ g3 in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
-    Ok (asm_gen ~debug:true fullprog comp_unit)
+    let asm_eat = if chomp then asm_chomp else asm_munch in
+    Ok (asm_eat ~debug:true fullprog comp_unit)
   end
 
-let asm_gen_no_opt (ast: Pos.full_prog) : Asm.asm_prog Error.result =
+let asm_gen_no_opt (chomp: bool) (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
-    Ok (asm_gen fullprog comp_unit)
+    let asm_eat = if chomp then asm_chomp else asm_munch in
+    Ok (asm_eat fullprog comp_unit)
   end
 
 (* debugging paths *)
@@ -157,10 +160,10 @@ let main flags ast_strs () : unit Deferred.t =
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
     writes flags.outputs contents
   else if flags.no_opt then
-    let contents = asts_to_strs asm_gen_no_opt string_of_asms asts in
+    let contents = asts_to_strs (asm_gen_no_opt flags.asmchomp) string_of_asms asts in
     writes flags.outputs contents
   else
-    let contents = asts_to_strs asm_gen_opt string_of_asms asts in
+    let contents = asts_to_strs (asm_gen_opt flags.asmchomp) string_of_asms asts in
     writes flags.outputs contents
 
 let () =
@@ -176,10 +179,11 @@ let () =
       +> flag "--ir-cfold"       no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
+      +> flag "--asmchomp"       no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun no_opt' tc tcd afold irg ifold lower' blk outs asts ->
+    (fun no_opt' tc tcd afold irg ifold lower' blk chomp outs asts ->
        let flags = {
          no_opt         =  no_opt';
          typecheck      =  tc;
@@ -189,6 +193,7 @@ let () =
          ir_cfold       =  ifold;
          lower          =  lower';
          blkreorder     =  blk;
+         asmchomp       =  chomp;
          outputs        =  outs;
        } in
        main flags asts)

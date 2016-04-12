@@ -188,6 +188,11 @@ let debug_wrap (debug: bool) (pre: string) (post: string) asms =
     then [Comment pre] @ asms @ [Comment post]
     else asms
 
+let section_wrap debug asms name =
+  let pre = "----- start " ^ name ^ " -----" in
+  let post = "----- end " ^ name ^ " -----" in
+  debug_wrap debug pre post asms
+
 let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
   match opcode with
   | ADD | SUB | AND | OR | XOR ->
@@ -345,7 +350,7 @@ let rec munch_expr
                    call_asm @
                    save_rets_asms @
                    restore_caller_asm in
-        (FreshAsmRet.gen 0, asms)
+        (FreshAsmRet.gen 0, section_wrap debug asms ("calling " ^ fname))
     end
     | Ir.Name _ -> failwith "Name should never be munched by itself"
     | Ir.Call _ -> failwith "Call should always have a Name first"
@@ -396,7 +401,8 @@ and munch_stmt
         let restore_callee_asm = List.map callee_saved_no_bp ~f:(fun r ->
           movq (Mem (mem_of_saved_reg r)) (Reg (Real r))
         ) in
-        restore_callee_asm @ [leave; ret]
+        let asms = restore_callee_asm @ [leave; ret] in
+        section_wrap debug asms "returning"
     | Ir.Move _ -> failwith "Move has a non TEMP lhs"
     | Ir.Jump _ -> failwith "jump to a non label shouldn't exist"
     | Ir.CJump _ -> failwith "cjump shouldn't exist"
@@ -406,15 +412,16 @@ and munch_stmt
     let post = "}" in
     debug_wrap debug pre post asms
 
-and munch_func_decl
+let eat_func_decl
+    (eat_stmt: (Ir.stmt, Asm.abstract_asm list) with_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
     ((fname, stmt, _): Ir.func_decl) =
 
-  let munch_stmt = munch_stmt ~debug in
+  let eat_stmt = eat_stmt ~debug in
 
   let curr_ctx = get_context fcontexts fname in
-  let body_asm = munch_stmt curr_ctx fcontexts stmt in
+  let body_asm = eat_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
   let directives = [globl fname; align 4] in
@@ -438,11 +445,6 @@ and munch_func_decl
   (* saved rip + saved rbp + temps + rets n args  *)
   let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
 
-  let wrapper asms name =
-    let pre = "----- start " ^ name ^ " -----" in
-    let post = "----- end " ^ name ^ " -----" in
-    debug_wrap debug pre post asms in
-
   let prologue =
     let init = [enter (const ((tot_temps + tot_rets_n_args) * 8)) (const 0)] in
     let padding =
@@ -456,24 +458,37 @@ and munch_func_decl
     let save_callee = List.map callee_saved_no_bp ~f:(fun r ->
       movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
     ) in
-    wrapper init "init" @
-    wrapper padding "padding" @
-    wrapper ret_ptr_mov "ret_ptr_mov" @
-    wrapper save_callee "save_callee"
+    section_wrap debug init "init" @
+    section_wrap debug padding "padding" @
+    section_wrap debug ret_ptr_mov "ret_ptr_mov" @
+    section_wrap debug save_callee "save_callee"
   in
-  wrapper directives "directives" @
-  wrapper label "label" @
-  wrapper prologue "prologue" @
-  wrapper body_asm "body_asm"
+  section_wrap debug directives "directives" @
+  section_wrap debug label "label" @
+  section_wrap debug prologue "prologue" @
+  section_wrap debug body_asm "body_asm"
 
-and munch_comp_unit
+let eat_comp_unit
+    (eat_func_decl: Ir.func_decl without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
     ((_, func_decls): Ir.comp_unit) =
   let decl_list = String.Map.data func_decls in
-  let fun_asm = List.concat_map ~f:(munch_func_decl ~debug fcontexts) decl_list in
+  let fun_asm = List.concat_map ~f:(eat_func_decl ~debug fcontexts) decl_list in
   let directives = [text] in
   directives @ fun_asm
+
+let munch_func_decl
+  ?(debug=false)
+  (fcontexts: func_contexts)
+  (func_decl: Ir.func_decl) =
+  eat_func_decl munch_stmt ~debug fcontexts func_decl
+
+let munch_comp_unit
+    ?(debug=false)
+    (fcontexts: func_contexts)
+    (comp_unit: Ir.comp_unit) =
+  eat_comp_unit munch_func_decl ~debug fcontexts comp_unit
 
 (* displacement is only allowed to be 32 bits *)
 let get_displ (op: Ir.binop_code) x =
@@ -1085,6 +1100,18 @@ and chomp_stmt
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
   | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s 
 
+let chomp_func_decl
+  ?(debug=false)
+  (fcontexts: func_contexts)
+  (func_decl: Ir.func_decl) =
+  eat_func_decl chomp_stmt ~debug fcontexts func_decl
+
+let chomp_comp_unit
+    ?(debug=false)
+    (fcontexts: func_contexts)
+    (comp_unit: Ir.comp_unit) =
+  eat_comp_unit chomp_func_decl ~debug fcontexts comp_unit
+
 let register_allocate asms =
   (* spill_env maps each fake name to an index, starting at 15, into the stack.
    * We start at 15 since the first 14 is reserved for callee save registers.
@@ -1155,7 +1182,8 @@ let register_allocate asms =
   in
   List.concat_map ~f:(allocate spill_env) asms
 
-let asm_gen
+let asm_eat
+  (eat_comp_unit: Ir.comp_unit without_fcontext)
   ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list =
@@ -1163,4 +1191,16 @@ let asm_gen
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
-  munch_comp_unit ~debug func_contexts comp_unit |> register_allocate
+  eat_comp_unit ~debug func_contexts comp_unit |> register_allocate
+
+let asm_munch
+  ?(debug=false)
+  (full_prog: Typecheck.full_prog)
+  (comp_unit : Ir.comp_unit) : Asm.asm list =
+  asm_eat munch_comp_unit ~debug full_prog comp_unit
+
+let asm_chomp
+  ?(debug=false)
+  (full_prog: Typecheck.full_prog)
+  (comp_unit : Ir.comp_unit) : Asm.asm list =
+  asm_eat chomp_comp_unit ~debug full_prog comp_unit

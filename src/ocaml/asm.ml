@@ -127,7 +127,7 @@ let caller_ret_op ~max_args ~i =
        * +----------------+
        * | garbage        |
        *)
-      let offset = (i - 2 + max_args - 6) * 8 in
+      let offset = ((i-2) + (max (max_args-6) 0)) * 8 in
       Mem (offset $ (Real Rsp))
 
 module Abbreviations = struct

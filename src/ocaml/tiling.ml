@@ -445,6 +445,8 @@ let eat_func_decl
   (* saved rip + saved rbp + temps + rets n args  *)
   let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
 
+  let section_wrap = section_wrap debug in
+
   let prologue =
     let init = [enter (const ((tot_temps + tot_rets_n_args) * 8)) (const 0)] in
     let padding =
@@ -458,15 +460,15 @@ let eat_func_decl
     let save_callee = List.map callee_saved_no_bp ~f:(fun r ->
       movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
     ) in
-    section_wrap debug init "init" @
-    section_wrap debug padding "padding" @
-    section_wrap debug ret_ptr_mov "ret_ptr_mov" @
-    section_wrap debug save_callee "save_callee"
+    section_wrap init "init" @
+    section_wrap padding "padding" @
+    section_wrap ret_ptr_mov "ret_ptr_mov" @
+    section_wrap save_callee "save_callee"
   in
-  section_wrap debug directives "directives" @
-  section_wrap debug label "label" @
-  section_wrap debug prologue "prologue" @
-  section_wrap debug body_asm "body_asm"
+  section_wrap directives "directives" @
+  section_wrap label "label" @
+  section_wrap prologue "prologue" @
+  section_wrap body_asm "body_asm"
 
 let eat_comp_unit
     (eat_func_decl: Ir.func_decl without_fcontext)

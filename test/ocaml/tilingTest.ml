@@ -4640,19 +4640,19 @@ let test_register_allocation _ =
 
   let input = [movq x arbx] in
   let expected = [
-    movq (-8L $ mrbp) r13;
+    movq (-120L $ mrbp) r13;
     movq r13 rbx;
-    movq r13 (-8L $ mrbp);
+    movq r13 (-120L $ mrbp);
   ] in
   expected === register_allocate input;
 
   let input = [movq x y] in
   let expected = [
-    movq (-8L $ mrbp) r13;
-    movq (-16L $ mrbp) r14;
+    movq (-120L $ mrbp) r13;
+    movq (-128L $ mrbp) r14;
     movq r13 r14;
-    movq r13 (-8L $ mrbp);
-    movq r14 (-16L $ mrbp);
+    movq r13 (-120L $ mrbp);
+    movq r14 (-128L $ mrbp);
   ] in
   expected === register_allocate input;
 
@@ -4661,16 +4661,16 @@ let test_register_allocation _ =
     movq z x;
   ] in
   let expected = [
-    movq (-8L $ mrbp) r13;
-    movq (-16L $ mrbp) r14;
+    movq (-120L $ mrbp) r13;
+    movq (-128L $ mrbp) r14;
     movq r13 r14;
-    movq r13 (-8L $ mrbp);
-    movq r14 (-16L $ mrbp);
-    movq (-24L $ mrbp) r13;
-    movq (-8L $ mrbp) r14;
+    movq r13 (-120L $ mrbp);
+    movq r14 (-128L $ mrbp);
+    movq (-136L $ mrbp) r13;
+    movq (-120L $ mrbp) r14;
     movq r13 r14;
-    movq r13 (-24L $ mrbp);
-    movq r14 (-8L $ mrbp);
+    movq r13 (-136L $ mrbp);
+    movq r14 (-120L $ mrbp);
   ] in
   expected === register_allocate input;
 
@@ -4686,19 +4686,19 @@ let test_register_allocation _ =
   let expected = [
     push rbp;
     movq rsp rbp;
-    movq (-8L $ mrbp) r13;
-    movq (-16L $ mrbp) r14;
+    movq (-120L $ mrbp) r13;
+    movq (-128L $ mrbp) r14;
     movq r13 r14;
-    movq r13 (-8L $ mrbp);
-    movq r14 (-16L $ mrbp);
-    movq (-24L $ mrbp) r13;
-    movq (-8L $ mrbp) r14;
+    movq r13 (-120L $ mrbp);
+    movq r14 (-128L $ mrbp);
+    movq (-136L $ mrbp) r13;
+    movq (-120L $ mrbp) r14;
     andq r13 r14;
-    movq r13 (-24L $ mrbp);
-    movq r14 (-8L $ mrbp);
-    movq (-32L $ mrbp) r13;
+    movq r13 (-136L $ mrbp);
+    movq r14 (-120L $ mrbp);
+    movq (-144L $ mrbp) r13;
     push r13;
-    movq r13 (-32L $ mrbp);
+    movq r13 (-144L $ mrbp);
     leave;
     ret;
   ] in

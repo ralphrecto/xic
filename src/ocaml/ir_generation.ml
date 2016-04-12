@@ -446,7 +446,9 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let f map (cname, block, typ) =
     String.Map.add map ~key:cname ~data:(cname, block, typ) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty gen_callables in
-  (name, callable_map)
+  let open Filename in
+  let program_name = name |> chop_extension |> basename in
+  (program_name, callable_map)
 
 
 (******************************************************************************)

@@ -23,6 +23,22 @@ After you run `make src`, you can execute our compiler's main executable:
 [`xic`](xic), which is actually just a dirt simple shell script that invokes
 the Java runtime on our compiler's compiled `.class` files.
 
+## Flags ##
+- `--help`
+- `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
+- `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
+- `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
+- `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
+- `-sourcepath <path> [default: dir where xic run]`
+    - `-sourcepath a/b  c/d/foo.xi: a/b/c/d -->  c/d/foo._`
+    - `-sourcepath a/b /c/d/foo.xi: a/b/c/d --> /c/d/foo._`
+- `-libpath <path> [default: dir where xic run]`
+- `-D <path> [default: dir where xic run]`
+    - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`
+    - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo.xi`
+    - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo.xi`
+- `-O`
+
 ## x86-64 ##
 |     |      |      |              |
 | --- | ---- | ---- | ------------ |

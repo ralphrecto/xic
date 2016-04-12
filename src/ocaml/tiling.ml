@@ -305,7 +305,7 @@ let rec munch_expr
           let callee_ctx = get_context fcontexts fname in
           if callee_ctx.num_rets > 2 then
             let new_tmp = Fake (FreshReg.fresh ()) in
-            let asm = leaq (Mem ((8*(curr_ctx.max_args-6))$(Real Rsp))) (Reg new_tmp) in
+            let asm = leaq (Mem ((8*(max (curr_ctx.max_args-6) 0))$(Real Rsp))) (Reg new_tmp) in
             ([new_tmp], [asm])
           else ([], []) in
 

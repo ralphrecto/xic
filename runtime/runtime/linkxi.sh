@@ -11,4 +11,4 @@ ABI_FLAG=$($DIR/platform-flags.sh)
 
 # echo "ABI_FLAG = $ABI_FLAG"
 
-gcc $ABI_FLAG $* -L$DIR -lxi -lpthread 2>&1 | $DIR/xifilt
+gcc -g $ABI_FLAG $* -L$DIR -lxi -lpthread 2>&1 | $DIR/xifilt

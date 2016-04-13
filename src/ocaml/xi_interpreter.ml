@@ -86,19 +86,19 @@ let bind_ids_vals store ids_vals =
 
 let rec bind_ids store ids =
   let rec populate_list store t size =
-    let filler = 
-      match t with
-      | TInt | TBool -> Int 0L
-      | TArray (_, None) -> Array (ref [])
-      | TArray ((_, t'), Some e) -> 
-          let size =
-            match eval_expr store e with
-            | Int i -> i
-            | _ -> failwith "bind_ids array size is not an int!!!"
-          in
-          Array (ref (populate_list store t' size))
-    in
     let rec populate_list' t count acc =
+      let filler = 
+        match t with
+        | TInt | TBool -> Int 0L
+        | TArray (_, None) -> Array (ref [])
+        | TArray ((_, t'), Some e) -> 
+            let size =
+              match eval_expr store e with
+              | Int i -> i
+              | _ -> failwith "bind_ids array size is not an int!!!"
+            in
+            Array (ref (populate_list store t' size))
+      in
       if count > 0L then 
         populate_list' t (Long.pred count) (filler::acc)
       else

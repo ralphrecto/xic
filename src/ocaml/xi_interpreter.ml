@@ -86,19 +86,19 @@ let bind_ids_vals store ids_vals =
 
 let rec bind_ids store ids =
   let rec populate_list store t size =
-    let filler = 
-      match t with
-      | TInt | TBool -> Int 0L
-      | TArray (_, None) -> Array (ref [])
-      | TArray ((_, t'), Some e) -> 
-          let size =
-            match eval_expr store e with
-            | Int i -> i
-            | _ -> failwith "bind_ids array size is not an int!!!"
-          in
-          Array (ref (populate_list store t' size))
-    in
     let rec populate_list' t count acc =
+      let filler = 
+        match t with
+        | TInt | TBool -> Int 0L
+        | TArray (_, None) -> Array (ref [])
+        | TArray ((_, t'), Some e) -> 
+            let size =
+              match eval_expr store e with
+              | Int i -> i
+              | _ -> failwith "bind_ids array size is not an int!!!"
+            in
+            Array (ref (populate_list store t' size))
+      in
       if count > 0L then 
         populate_list' t (Long.pred count) (filler::acc)
       else
@@ -159,15 +159,17 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
     end
   | Asgn (e1, e2) ->
     begin
-      match e1, (eval_expr store e2) with
-      | (_, Id (_,i)), e2' ->
+      match e1 with
+      | (_, Id (_,i)) ->
+        let e2' = eval_expr store e2 in
         let store' = bind_ids_vals store [(Some i, e2')] in
         (store', None)
-      | (_, Index(e1, e2)), e2' ->
+      | (_, Index(i_e1, i_e2)) ->
         begin
-          match (eval_expr store e1), (eval_expr store e2) with
+          match (eval_expr store i_e1), (eval_expr store i_e2) with
           | Array l, Int i ->
             let arr_length = Long.of_int (List.length (!l)) in
+            let e2' = eval_expr store e2 in
             if 0L <= i && i < arr_length then 
               let i' = Long.to_int i in
               let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in

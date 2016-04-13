@@ -63,8 +63,11 @@ public class Main {
     @Option(name = "-compilerpath", hidden = true, required = true)
     private static String compilerPath;
 
-    @Option(name = "--ast-cfold", usage = "Constant fold on AST", hidden = true)
+    @Option(name = "--ast-cfold", usage = "Constant fold on AST; .astcfold files", hidden = true)
     private static boolean astCfoldMode = false;
+
+    @Option(name = "--ir-acfold", usage = "Constant fold on AST, generate ir; .iracfold files", hidden = true)
+    private static boolean irAstCfoldMode = false;
 
     @Option(name = "--ir-cfold", usage = "Constant fold on IR; .ircfold files", hidden = true)
     private static boolean irCfoldMode = false;
@@ -462,25 +465,16 @@ public class Main {
         callOCaml(filenames, binArgs, "astcfold");
     }
 
-    void doIRGen(List<String> filenames) {
+    void doIRAstCfold(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
+        binArgs.add("--ir-acfold");
 
-        callOCaml(filenames, binArgs, "ir");
-    }
-
-    void doIRGenNoOpt(List<String> filenames) {
-        List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-        binArgs.add("--no-opt");
-
-        callOCaml(filenames, binArgs, "ir");
+        callOCaml(filenames, binArgs, "iracfold");
     }
 
     void doIRCfold(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--irgen");
-        binArgs.add("--no-opt");
+        binArgs.add("--ir-cfold");
 
         callOCaml(filenames, binArgs, "ircfold");
     }
@@ -497,6 +491,21 @@ public class Main {
         binArgs.add("--blkreorder");
 
         callOCaml(filenames, binArgs, "blkreorder");
+    }
+
+    void doIRGenNoOpt(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+        binArgs.add("--no-opt");
+
+        callOCaml(filenames, binArgs, "ir");
+    }
+
+    void doIRGen(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--irgen");
+
+        callOCaml(filenames, binArgs, "ir");
     }
 
     void doBasicIR(List<String> filenames) {
@@ -559,14 +568,16 @@ public class Main {
                 doAstCfold(arguments);
             } else if (irGenMode && noOptimize) {
                 doIRGenNoOpt(arguments);
-            } else if (irGenMode) {
-                doIRGen(arguments);
+            } else if (irAstCfoldMode) {
+                doIRAstCfold(arguments);
             } else if (irCfoldMode) {
                 doIRCfold(arguments);
             } else if (lowerMode) {
                 doIRLower(arguments);
             } else if (blkReorderMode) {
                 doIRBlkReorder(arguments);
+            } else if (irGenMode) {
+                doIRGen(arguments);
             } else if (basicIRMode) {
                 doBasicIR(arguments);
             } else if (noOptimize){

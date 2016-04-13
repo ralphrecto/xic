@@ -10,9 +10,40 @@ main(args : int[][]) {
   println( "Expected: 4. Actual: " + string_of_int (leaTest7()) );
   println( "Expected: 4. Actual: " + string_of_int (leaTest8()) );
   println( "Expected: 2. Actual: " + string_of_int (leaTest9()) );
+  println( "Expected: 4. Actual: " + string_of_int (leaTest10()) );
+  println( "Expected: 2. Actual: " + string_of_int (leaTest11()) );
+  println( "Expected: 4. Actual: " + string_of_int (leaTest12()) );
+  println( "Expected: 2. Actual: " + string_of_int (leaTest13()) );
+  println( "Expected: 4. Actual: " + string_of_int (leaTest14()) );
+  println( "Expected: 2. Actual: " + string_of_int (leaTest15()) );
+  println( string_of_int (leaTest16()) );
+  println( string_of_int (leaTest17()) );
+  println( string_of_int (leaTest18()) );
+  println( string_of_int (leaTest19()) );
+  println( string_of_int (leaTest20()) );
+  println( string_of_int (leaTest21()) );
+  println( string_of_int (leaTest22()) );
+  println( string_of_int (leaTest23()) );
+  println( string_of_int (leaTest24()) );
+  println( string_of_int (leaTest25()) );
+  println( string_of_int (leaTest26()) );
+  println( string_of_int (leaTest27()) );
 
   // lea-case2
+  println( string_of_int (leaTest28()) );
+  println( string_of_int (leaTest29()) );
+  println( string_of_int (leaTest30()) );
+  println( string_of_int (leaTest31()) );
+  println( string_of_int (leaTest32()) );
+  println( string_of_int (leaTest33()) );
+
   // lea-case3
+//  println( string_of_int (leaTest34()) );
+//  println( string_of_int (leaTest35()) );
+//  println( string_of_int (leaTest36()) );
+//  println( string_of_int (leaTest37()) );
+//  println( string_of_int (leaTest38()) );
+
   // lea-case4
   // lea-case5
   // lea-case6
@@ -117,22 +148,107 @@ leaTest15() : int {
 leaTest16() : int {
   x:int = 1;
   y:int = 1;
-  return y + (x * 1 + 1);
+  return y + (x * 2 + 1);
 }
 
 leaTest17() : int {
   x:int = 1;
   y:int = 1;
-  return y + (1 * x + 1);
+  return y + (2 * x + 1);
 }
 
-// lea-case1: r2 + (c + r1 * {1,2,4,8})
 leaTest18() : int {
   x:int = 1;
   y:int = 1;
-  return y + (1 + x * 1);
+  return y + (x * 2 - 1);
 }
+
+leaTest19() : int {
+  x:int = 1;
+  y:int = 1;
+  return y + (2 * x - 1);
+}
+
+// lea-case1: r2 + (c + r1 * {1,2,4,8})
+leaTest20() : int {
+  x:int = 1;
+  y:int = 1;
+  return y + (1 + x * 2);
+}
+
+leaTest21() : int {
+  x:int = 1;
+  y:int = 1;
+  return y + (1 + 2 * x);
+}
+
 // lea-case1: (r1 * {1,2,4,8} +/- c) + r2
+leaTest22() : int {
+  x:int = 1;
+  y:int = 1;
+  return (x * 2 + 1) + y;
+}
+
+leaTest23() : int {
+  x:int = 1;
+  y:int = 1;
+  return (2 * x + 1) + y;
+}
+
+leaTest24() : int {
+  x:int = 1;
+  y:int = 1;
+  return (x * 2 - 1) + y;
+}
+
+leaTest25() : int {
+  x:int = 1;
+  y:int = 1;
+  return (2 * x - 1) + y;
+}
+
 // lea-case1: (c + r1 * {1,2,4,8}) + r2
+leaTest26() : int {
+  x:int = 1;
+  y:int = 1;
+  return (1 + x * 2) + y;
+}
 
+leaTest27() : int {
+  x:int = 1;
+  y:int = 1;
+  return (1 + 2 * x) + y;
+}
 
+// lea-case2: reg * {1, 2, 3, 4, 5, 8, 9} +/- const
+leaTest28() : int {
+  x:int = 1;
+  return x * 3 + 1;
+}
+
+leaTest29() : int {
+  x:int = 1;
+  return 3 * x + 1;
+}
+
+leaTest30() : int {
+  x:int = 1;
+  return 1 + x * 5;
+}
+
+leaTest31() : int {
+  x:int = 1;
+  return 1 + 5 * x;
+}
+
+leaTest32() : int {
+  x:int = 1;
+  return x * 3 - 1;
+}
+
+leaTest33() : int {
+  x:int = 1;
+  return 3 * x - 1;
+}
+
+// lea-case3: reg1 + reg2 +/- const

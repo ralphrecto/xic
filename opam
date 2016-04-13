@@ -1,0 +1,17 @@
+opam-version: "1.2"
+name: "xii"
+version: "0.5"
+maintainer: "sh969@cornell.edu <sh969@cornell.edu>"
+authors: "sh969@cornell.edu <sh969@cornell.edu>"
+homepage: "http://github.com/ralphrecto/compilers"
+bug-reports: "http://github.com/ralphrecto/compilers"
+dev-repo: "http://github.com/ralphrecto/compilers"
+build: [
+  [make "src"]
+]
+depends: [
+  "ocamlfind" {build}
+  "core" {>= "113.24.01"}
+  "async" {>= "113.24.00"}
+  "ounit" {>= "2.0.0"}
+]

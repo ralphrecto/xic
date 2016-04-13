@@ -685,6 +685,7 @@ let rec chomp_binop
       | false, None ->
         (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1 reg1))
     end
+
   (* lea-case2: reg = reg * {1,2,3,4,5,8,9} +/ const
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * operation of constant is denoted as op

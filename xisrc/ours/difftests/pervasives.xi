@@ -129,6 +129,45 @@ string_of_5barray(x: bool[][][][][]) : int[] {
     return s;
 }
 
+print_1array(x: int[]) {
+    i: int = 0
+    while (i < length(x)) {
+        println(unparseInt(x[i]))
+        i = i + 1
+    }
+}
+
+print_2array(x: int[][]) {
+    i: int = 0
+    while (i < length(x)) {
+        print_1array(x[i])
+        i = i + 1
+    }
+}
+
+print_3array(x: int[][][]) {
+    i: int = 0
+    while (i < length(x)) {
+        print_2array(x[i])
+        i = i + 1
+    }
+}
+
+print_4array(x: int[][][][]) {
+    i: int = 0
+    while (i < length(x)) {
+        print_3array(x[i])
+        i = i + 1
+    }
+}
+
+print_5array(x: int[][][][][]) {
+    i: int = 0
+    while (i < length(x)) {
+        print_4array(x[i])
+        i = i + 1
+    }
+}
 
 // Misc
 range(low: int, high: int) : int[] {

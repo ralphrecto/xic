@@ -95,7 +95,6 @@ run_and_diff() {
             fileb="${outputfiles[$j]}"
             if ! diff "$filea" "$fileb" > /dev/null; then
                 red "$filea and $fileb" differ
-                exit 1
             fi
         done
     done

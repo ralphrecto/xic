@@ -1,6 +1,3 @@
-use conv
-use io
-
 wheel1(x1:int[], x2:bool) : int, int {
   if (x2) { return 1, 2; }
   y:int;

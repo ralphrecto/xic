@@ -410,8 +410,8 @@ public class Main {
             XiSource src = t.fst;
             binArgs.add("--outputs");
             binArgs.add(diagPathOut(t.fst, extension));
-            System.out.println(diagPathOut(t.fst, extension));
         }
+
         List<String> args = new ArrayList<>();
         args.add("./bin/main.byte");
         args.addAll(binArgs);

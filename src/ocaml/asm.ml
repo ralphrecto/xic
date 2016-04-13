@@ -299,7 +299,7 @@ let string_of_asm asm =
   string_of_asm_template string_of_reg asm
 
 let string_of_asms asms =
-  Util.join (List.map ~f:string_of_asm asms)
+  (Util.join (List.map ~f:string_of_asm asms)) ^ "\n"
 
 let fakes_of_reg r =
   match r with

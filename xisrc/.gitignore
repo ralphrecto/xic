@@ -3,3 +3,4 @@ TEMP*
 *.parsed
 *.typed
 *.ir
+*.s

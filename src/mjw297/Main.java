@@ -503,6 +503,9 @@ public class Main {
         if (asmChompMode) {
           binArgs.add("--asmchomp");
         }
+        if (asmDebugMode) {
+            binArgs.add("--asmdebug");
+        }
 
         callOCaml(filenames, binArgs, "s");
     }
@@ -511,6 +514,9 @@ public class Main {
         List<String> binArgs = new ArrayList<>();
         if (asmChompMode) {
           binArgs.add("--asmchomp");
+        }
+        if (asmDebugMode) {
+            binArgs.add("--asmdebug");
         }
 
         callOCaml(filenames, binArgs, "s");

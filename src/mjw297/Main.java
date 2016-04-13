@@ -188,7 +188,7 @@ public class Main {
             } else {
                 return String.format(
                     "%s/%s",
-                    Files.simplifyPath(parentDir),
+                    Files.simplifyPath(diagnosticPath),
                     xs.changeExtension(ext)
                 );
             }

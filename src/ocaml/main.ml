@@ -28,6 +28,7 @@ type flags = {
   blkreorder:     bool;
   irgen:          bool;
   asmchomp:       bool;
+  asmdebug:       bool;
   outputs:        string list;
 } [@@deriving sexp]
 
@@ -58,34 +59,42 @@ let typecheck (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
 
 let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
   let f = 
-    let g1 = gen_comp_unit $ ast_constant_folding in
-    let g2 = ir_constant_folding $ g1 in
-    let g3 = lower_comp_unit $ g2 in
-    block_reorder_comp_unit $ g3 in
+    block_reorder_comp_unit $
+    lower_comp_unit $
+    ir_constant_folding $
+    gen_comp_unit $
+    ast_constant_folding in
   Result.map (typecheck ast) ~f
 
 let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
-  let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
+  let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
   Result.map (typecheck ast) ~f
 
-let asm_gen_opt (chomp: bool) (ast: Pos.full_prog) : Asm.asm_prog Error.result =
+let asm_gen_opt
+  (debug: bool)
+  (chomp: bool)
+  (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = 
-    let g1 = gen_comp_unit $ ast_constant_folding in
-    let g2 = ir_constant_folding $ g1 in
-    let g3 = lower_comp_unit $ g2 in
-    block_reorder_comp_unit $ g3 in
+    block_reorder_comp_unit $
+    lower_comp_unit $
+    ir_constant_folding $
+    gen_comp_unit $
+    ast_constant_folding in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
     let asm_eat = if chomp then asm_chomp else asm_munch in
-    Ok (asm_eat ~debug:true fullprog comp_unit)
+    Ok (asm_eat ~debug:debug fullprog comp_unit)
   end
 
-let asm_gen_no_opt (chomp: bool) (ast: Pos.full_prog) : Asm.asm_prog Error.result =
-  let f = block_reorder_comp_unit $ (lower_comp_unit $ gen_comp_unit) in
+let asm_gen_no_opt
+  (debug: bool)
+  (chomp: bool)
+  (ast: Pos.full_prog) : Asm.asm_prog Error.result =
+  let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
   Result.bind (typecheck ast) begin fun fullprog -> 
     let comp_unit = f fullprog in  
     let asm_eat = if chomp then asm_chomp else asm_munch in
-    Ok (asm_eat fullprog comp_unit)
+    Ok (asm_eat ~debug:debug fullprog comp_unit)
   end
 
 (* debugging paths *)
@@ -171,10 +180,12 @@ let main flags ast_strs () : unit Deferred.t =
     let contents = asts_to_strs ir_gen ir_strf asts in
     writes flags.outputs contents
   else if flags.no_opt then
-    let contents = asts_to_strs (asm_gen_no_opt flags.asmchomp) string_of_asms asts in
+    let asm_gen = asm_gen_no_opt flags.asmdebug flags.asmchomp in
+    let contents = asts_to_strs asm_gen string_of_asms asts in
     writes flags.outputs contents
   else
-    let contents = asts_to_strs (asm_gen_opt flags.asmchomp) string_of_asms asts in
+    let asm_gen = asm_gen_opt flags.asmdebug flags.asmchomp in
+    let contents = asts_to_strs asm_gen string_of_asms asts in
     writes flags.outputs contents
 
 let () =
@@ -193,23 +204,25 @@ let () =
       +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--irgen"          no_arg ~doc:""
       +> flag "--asmchomp"       no_arg ~doc:""
+      +> flag "--asmdebug"       no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun a b c d e f g h i j k l asts ->
+    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 asts ->
        let flags = {
-          no_opt       = a;
-          typecheck    = b;
-          tcdebug      = c;
-          ast_cfold    = d;
-          basicir      = e;
-          ir_acfold    = f;
-          ir_cfold     = g;
-          lower        = h;
-          blkreorder   = i;
-          irgen        = j;
-          asmchomp     = k;
-          outputs      = l;
+          no_opt       = x00;
+          typecheck    = x01;
+          tcdebug      = x02;
+          ast_cfold    = x03;
+          basicir      = x04;
+          ir_acfold    = x05;
+          ir_cfold     = x06;
+          lower        = x07;
+          blkreorder   = x08;
+          irgen        = x09;
+          asmchomp     = x10;
+          asmdebug     = x11;
+          outputs      = x12;
        } in
        main flags asts)
   |> Command.run

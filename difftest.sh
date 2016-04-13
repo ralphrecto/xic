@@ -10,6 +10,13 @@ blue() {
     echo -e "\e[96m$1$NORMAL"
 }
 
+link_and_run() {
+    filename="$1"
+    binname="$(dirname $filename)/$(basename $filename .s)"
+    runtime/runtime/linkxi.sh "$filename" -o "$binname"
+    "$binname"
+}
+
 run_and_diff() {
     f="$1"
 
@@ -34,17 +41,21 @@ run_and_diff() {
         "--tcdebug"
         "--ast-cfold"
         "--basicir"
+        "--ir-acfold"
         "--ir-cfold"
         "--lower"
         "--irgen"
+        ""
     )
     extensions=(
         "typeddebug"
         "astcfold"
         "basicir"
+        "iracfold"
         "ircfold"
         "lower"
         "ir"
+        "s"
     )
     evaluators=(
         "./xi"
@@ -53,6 +64,8 @@ run_and_diff() {
         "./ir"
         "./ir"
         "./ir"
+        "./ir"
+        "link_and_run"
     )
 
     generated=()

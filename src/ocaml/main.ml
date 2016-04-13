@@ -20,12 +20,13 @@ type flags = {
   no_opt:         bool;
   typecheck:      bool;
   tcdebug:        bool;
-  irgen:          bool;
   ast_cfold:      bool;
-  lower:          bool;
-  ir_cfold:       bool;
-  blkreorder:     bool;
   basicir:        bool;
+  ir_acfold:      bool;
+  ir_cfold:       bool;
+  lower:          bool;
+  blkreorder:     bool;
+  irgen:          bool;
   asmchomp:       bool;
   outputs:        string list;
 } [@@deriving sexp]
@@ -91,11 +92,11 @@ let asm_gen_no_opt (chomp: bool) (ast: Pos.full_prog) : Asm.asm_prog Error.resul
 let debug_ast_cfold (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
   Result.map (typecheck ast) ~f:ast_constant_folding
 
-let debug_ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result =
+let debug_ir_astcfold (ast: Pos.full_prog) : Ir.comp_unit Error.result =
   Result.map (debug_ast_cfold ast) ~f:gen_comp_unit
 
 let debug_ir_cfold (ast: Pos.full_prog): Ir.comp_unit Error.result =
-  Result.map (debug_ir_gen ast) ~f:ir_constant_folding
+  Result.map (debug_ir_astcfold ast) ~f:ir_constant_folding
 
 let debug_ir_lower (ast: Pos.full_prog): Ir.comp_unit Error.result =
   Result.map (debug_ir_cfold ast) ~f:lower_comp_unit
@@ -145,17 +146,17 @@ let main flags ast_strs () : unit Deferred.t =
   else if flags.tcdebug then
     let contents = asts_to_strs typecheck typed_debug_strf asts in
     writes flags.outputs contents
-  else if flags.irgen && flags.no_opt then
-    let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
-    writes flags.outputs contents
-  else if flags.irgen then
-    let contents = asts_to_strs ir_gen ir_strf asts in
-    writes flags.outputs contents
   else if flags.ast_cfold then
-    let contents = asts_to_strs debug_ast_cfold typed_strf asts in
+    let contents = asts_to_strs debug_ast_cfold typed_debug_strf asts in
     writes flags.outputs contents
-  else if flags.irgen then
-    let contents = asts_to_strs debug_ir_gen ir_strf asts in
+  else if flags.basicir then
+    let contents = asts_to_strs debug_ir_basic ir_strf asts in
+    writes flags.outputs contents
+  else if flags.ir_acfold then
+    let contents = asts_to_strs debug_ir_astcfold ir_strf asts in
+    writes flags.outputs contents
+  else if flags.ir_cfold then
+    let contents = asts_to_strs debug_ir_cfold ir_strf asts in
     writes flags.outputs contents
   else if flags.lower then
     let contents = asts_to_strs debug_ir_lower ir_strf asts in
@@ -163,8 +164,11 @@ let main flags ast_strs () : unit Deferred.t =
   else if flags.blkreorder then
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
     writes flags.outputs contents
-  else if flags.basicir then
-    let contents = asts_to_strs debug_ir_basic ir_strf asts in
+  else if flags.irgen && flags.no_opt then
+    let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
+    writes flags.outputs contents
+  else if flags.irgen then
+    let contents = asts_to_strs ir_gen ir_strf asts in
     writes flags.outputs contents
   else if flags.no_opt then
     let contents = asts_to_strs (asm_gen_no_opt flags.asmchomp) string_of_asms asts in
@@ -182,28 +186,30 @@ let () =
       +> flag "--typecheck"      no_arg ~doc:""
       +> flag "--tcdebug"        no_arg ~doc:""
       +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--irgen"          no_arg ~doc:""
+      +> flag "--basicir"        no_arg ~doc:""
+      +> flag "--ir-acfold"       no_arg ~doc:""
       +> flag "--ir-cfold"       no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
-      +> flag "--basicir"        no_arg ~doc:""
+      +> flag "--irgen"          no_arg ~doc:""
       +> flag "--asmchomp"       no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun no_opt' tc tcd afold irg ifold lower' blk basic chomp outs asts ->
+    (fun a b c d e f g h i j k l asts ->
        let flags = {
-         no_opt         =  no_opt';
-         typecheck      =  tc;
-         tcdebug        =  tcd;
-         ast_cfold      =  afold;
-         irgen          =  irg;
-         ir_cfold       =  ifold;
-         lower          =  lower';
-         blkreorder     =  blk;
-         basicir        =  basic;
-         asmchomp       =  chomp;
-         outputs        =  outs;
+          no_opt       = a;
+          typecheck    = b;
+          tcdebug      = c;
+          ast_cfold    = d;
+          basicir      = e;
+          ir_acfold    = f;
+          ir_cfold     = g;
+          lower        = h;
+          blkreorder   = i;
+          irgen        = j;
+          asmchomp     = k;
+          outputs      = l;
        } in
        main flags asts)
   |> Command.run

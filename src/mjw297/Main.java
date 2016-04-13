@@ -42,7 +42,7 @@ public class Main {
     @Option(name = "--typecheck", usage = "Generate output from semantic analysis")
     private static boolean typecheckMode = false;
 
-    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking", hidden = true)
+    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking; .typeddebug files", hidden = true)
     private static boolean typecheckDebugMode = false;
 
     @Option(name = "--irgen", usage = "Generate intermediate code; .ir files")
@@ -450,7 +450,6 @@ public class Main {
 
     void doTypecheckDebug(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--typecheck");
         binArgs.add("--tcdebug");
 
         callOCaml(filenames, binArgs, "typeddebug");

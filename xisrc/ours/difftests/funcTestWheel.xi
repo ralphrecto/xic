@@ -1,12 +1,16 @@
+use conv
+use io
+
 wheel1(x1:int[], x2:bool) : int, int {
-  if (x2) return 1, 2;
+  if (x2) { return 1, 2; }
   y:int;
-  if (x2) then {
+  if (x2) {
     y = 0;
   } else {
     y = 1;
   }
-  return wheel2(x1, y);
+  z1:int, z2:int = wheel2(x1, y);
+  return z1, z2;
 }
 
 wheel2(x1:int[], x2:int) : int, int {
@@ -16,11 +20,13 @@ wheel2(x1:int[], x2:int) : int, int {
   } else {
     y = x2;
   }
-  return wheel3(y, y == x2);
+  z1:int, z2:int = wheel3(y, y == x2);
+  return z1, z2;
 }
 
 wheel3(x1:int, _:bool) : int, int {
-  return wheel1({x1, x1+1}, true);
+  z1:int, z2:int = wheel1({x1, x1+1}, true);
+  return z1, z2;
 }
 
 main(_:int[][]) {

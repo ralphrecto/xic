@@ -94,7 +94,7 @@ doc:
 	@echo
 
 .PHONY: test
-test: ocaml_test src
+test: difftest ocaml_test src
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
@@ -111,6 +111,13 @@ ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 		./$(BIN)/$$t || exit 1; \
 		echo ""; \
     done
+
+.PHONY: difftest
+difftest: difftest.sh
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
+	./difftest.sh xisrc/ours/difftests/*
 
 .PHONY: publish
 publish: doc

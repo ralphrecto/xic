@@ -79,6 +79,8 @@ val munch_comp_unit : Ir.comp_unit without_fcontext
 (* Maximal munch tiling algorithm with good tiles. *)
 val chomp_expr      : (Ir.expr, Asm.abstract_reg * Asm.abstract_asm list) with_fcontext
 val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
+val chomp_func_decl : Ir.func_decl without_fcontext
+val chomp_comp_unit : Ir.comp_unit without_fcontext
 
 (* Naive register allocation.
  *
@@ -119,4 +121,5 @@ val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
  *)
 val register_allocate : Asm.abstract_asm list -> Asm.asm list
 
-val asm_gen : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
+val asm_munch : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
+val asm_chomp : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog

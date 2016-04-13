@@ -1,5 +1,6 @@
 package mjw297;
 import com.google.common.collect.Lists;
+
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
@@ -32,19 +33,19 @@ public class Main {
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
 
-    @Option(name = "--lex", usage = "Generate output from lexical analysis")
+    @Option(name = "--lex", usage = "Generate output from lexical analysis; .lexed files")
     private static boolean lexMode = false;
 
-    @Option(name = "--parse", usage = "Generate output from syntactic analysis")
+    @Option(name = "--parse", usage = "Generate output from syntactic analysis; .parsed files")
     private static boolean parseMode = false;
 
     @Option(name = "--typecheck", usage = "Generate output from semantic analysis")
     private static boolean typecheckMode = false;
 
-    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking", hidden = true)
+    @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking; .typeddebug files", hidden = true)
     private static boolean typecheckDebugMode = false;
 
-    @Option(name = "--irgen", usage = "Generate intermediate code")
+    @Option(name = "--irgen", usage = "Generate intermediate code; .ir files")
     private static boolean irGenMode = false;
 
     @Option(name = "-O", usage = "Disable optimizations")
@@ -65,17 +66,22 @@ public class Main {
     @Option(name = "--ast-cfold", usage = "Constant fold on AST", hidden = true)
     private static boolean astCfoldMode = false;
 
-    @Option(name = "--nothing", usage = "No IR optimization", hidden = true)
-    private static boolean nothingMode = false;
-
-    @Option(name = "--ir-cfold", usage = "Constant fold on IR", hidden = true)
+    @Option(name = "--ir-cfold", usage = "Constant fold on IR; .ircfold files", hidden = true)
     private static boolean irCfoldMode = false;
 
-    @Option(name = "--lower", usage = "Lower IR", hidden = true)
+    @Option(name = "--lower", usage = "Lower IR; .lower files", hidden = true)
     private static boolean lowerMode = false;
 
-    @Option(name = "--blkreorder", usage = "Reorder blocks", hidden = true)
+    @Option(name = "--blkreorder", usage = "Reorder blocks; .blkreorder files", hidden = true)
     private static boolean blkReorderMode = false;
+
+    @Option(name = "--basicir",
+        usage = "IR generation with no opt, lowering or blk reorder; .basicir files",
+        hidden = true)
+    private static boolean basicIRMode = false;
+
+    @Option(name = "--asmchomp", usage = "Use chomp instead of munch; .s files", hidden = true)
+    private static boolean asmChompMode = false;
 
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
@@ -127,7 +133,9 @@ public class Main {
                 System.exit(1);
             }
             try {
-                File f = Paths.get(baseDir, filename).toFile();
+                File f = Paths.get(filename).isAbsolute() ?
+                    Paths.get(filename).toFile() :
+                    Paths.get(baseDir, filename).toFile();
                 return new XiSource(filename, f, new FileReader(f));
             } catch (FileNotFoundException e) {
                 System.out.println(e.getMessage());
@@ -177,12 +185,15 @@ public class Main {
                 );
             }
         } else {
-            return String.format(
-                "%s/%s.%s",
-                Files.simplifyPath(diagnosticPath),
-                nameNoExt,
-                ext
-            );
+            if (Paths.get(xs.filename).isAbsolute()) {
+                return xs.filename;
+            } else {
+                return String.format(
+                    "%s/%s",
+                    Files.simplifyPath(diagnosticPath),
+                    xs.changeExtension(ext)
+                );
+            }
         }
     }
 
@@ -400,6 +411,7 @@ public class Main {
             binArgs.add("--outputs");
             binArgs.add(diagPathOut(t.fst, extension));
         }
+
         List<String> args = new ArrayList<>();
         args.add("./bin/main.byte");
         args.addAll(binArgs);
@@ -438,7 +450,6 @@ public class Main {
 
     void doTypecheckDebug(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        binArgs.add("--typecheck");
         binArgs.add("--tcdebug");
 
         callOCaml(filenames, binArgs, "typeddebug");
@@ -480,6 +491,7 @@ public class Main {
 
         callOCaml(filenames, binArgs, "lower");
     }
+
     void doIRBlkReorder(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--blkreorder");
@@ -487,15 +499,28 @@ public class Main {
         callOCaml(filenames, binArgs, "blkreorder");
     }
 
+    void doBasicIR(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--basicir");
+
+        callOCaml(filenames, binArgs, "basicir");
+    }
+
     void doAsmGenNoOpt(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--no-opt");
+        if (asmChompMode) {
+          binArgs.add("--asmchomp");
+        }
 
         callOCaml(filenames, binArgs, "s");
     }
 
     void doAsmGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
+        if (asmChompMode) {
+          binArgs.add("--asmchomp");
+        }
 
         callOCaml(filenames, binArgs, "s");
     }
@@ -542,6 +567,8 @@ public class Main {
                 doIRLower(arguments);
             } else if (blkReorderMode) {
                 doIRBlkReorder(arguments);
+            } else if (basicIRMode) {
+                doBasicIR(arguments);
             } else if (noOptimize){
                 doAsmGenNoOpt(arguments);
             } else {

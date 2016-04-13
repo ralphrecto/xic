@@ -446,7 +446,9 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let f map (cname, block, typ) =
     String.Map.add map ~key:cname ~data:(cname, block, typ) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty gen_callables in
-  (name, callable_map)
+  let open Filename in
+  let program_name = name |> chop_extension |> basename in
+  (program_name, callable_map)
 
 
 (******************************************************************************)
@@ -495,6 +497,11 @@ and lower_stmt s =
     let (s', e') = lower_expr e in
     s' @ [Jump e']
   | Exp e -> fst (lower_expr e)
+  | Move (Mem (dest, t), e') ->
+    let (dest_s, dest') = lower_expr dest in
+    let (e_s, e'') = lower_expr e' in
+    let temp = Temp (fresh_temp ()) in
+    dest_s @ [Move (temp, dest')] @ e_s @ [Move (Mem (temp, t), e'')]
   | Move (dest, e') ->
     let (dest_s, dest') = lower_expr dest in
     let (e_s, e'') = lower_expr e' in

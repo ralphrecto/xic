@@ -85,7 +85,17 @@ let register_allocate asms =
     | Directive (d, args) -> [Directive (d, args)]
     | Comment s -> [Comment s]
   in
-  List.concat_map ~f:(allocate spill_env) asms
+
+  let mapping = [] in
+  let mapping = mapping @ [Comment "----- begin register mapping"] in
+  let mapping = mapping @ (
+    String.Map.to_alist spill_env
+    |> List.sort ~cmp:(fun (_, i1) (_, i2) -> compare i1 i2)
+    |> List.map ~f:(fun (s, i) -> Comment (sprintf "-%d(%%rbp): %s" (i * 8) s))
+  ) in
+  let mapping = mapping @ [Comment "----- end register mapping"] in
+  let allocated = List.concat_map ~f:(allocate spill_env) asms in
+  mapping @ allocated
 
 let binop_to_instr (op: Ir.binop_code) =
   match op with
@@ -1199,7 +1209,7 @@ let asm_eat
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
   let munched = eat_comp_unit ~debug func_contexts comp_unit in
-  List.concat_map ~f:register_allocate munched 
+  List.concat_map ~f:register_allocate munched
 
 let asm_munch
   ?(debug=false)

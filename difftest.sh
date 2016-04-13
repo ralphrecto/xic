@@ -10,8 +10,8 @@ run_and_diff() {
     fname=$(basename $f)
     noext=$(basename $f .xi)
     pervasive_file="$dname/pervasives.xi"
-    tempname="$dname/$nonce-$fname"
-    tempname_noext="$dname/$nonce-$noext"
+    tempname="$dname/${nonce}_$fname"
+    tempname_noext="$dname/${nonce}_$noext"
 
     # don't do anything for temp files or pervasives
     if [[ "$fname" == "$nonce"* || "$fname" == "pervasives.xi" ]] ; then
@@ -64,7 +64,7 @@ run_and_diff() {
     done
 
     for ((i = 0; i < "${#generated[@]}"; ++i)); do
-        echo "${evaluators[$i]} ${generated[$i]} &> ${outputfiles[$i]}"
+        echo "    ${evaluators[$i]} ${generated[$i]} &> ${outputfiles[$i]}"
         "${evaluators[$i]}" "${generated[$i]}" &> "${outputfiles[$i]}" || true
     done
 

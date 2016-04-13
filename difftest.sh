@@ -45,7 +45,7 @@ run_and_diff() {
         "--ir-cfold"
         "--lower"
         "--irgen"
-        ""
+        "--asmdebug"
     )
     extensions=(
         "typeddebug"

@@ -497,11 +497,6 @@ and lower_stmt s =
     let (s', e') = lower_expr e in
     s' @ [Jump e']
   | Exp e -> fst (lower_expr e)
-  | Move (Mem (dest, t), e') ->
-    let (dest_s, dest') = lower_expr dest in
-    let (e_s, e'') = lower_expr e' in
-    let temp = Temp (fresh_temp ()) in
-    dest_s @ [Move (temp, dest')] @ e_s @ [Move (Mem (temp, t), e'')]
   | Move (dest, e') ->
     let (dest_s, dest') = lower_expr dest in
     let (e_s, e'') = lower_expr e' in

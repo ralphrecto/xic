@@ -94,7 +94,13 @@ doc:
 	@echo
 
 .PHONY: test
-test: difftest ocaml_test src
+test: src java_test ocaml_test frontend_test difftest
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
+
+.PHONY: java_test
+java_test:
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
@@ -111,6 +117,15 @@ ocaml_test: $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 		./$(BIN)/$$t || exit 1; \
 		echo ""; \
     done
+	@echo
+
+.PHONY: frontend_test
+frontend_test: frontend_test.sh
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
+	./frontend_test.sh
+	@echo
 
 .PHONY: difftest
 difftest: difftest.sh
@@ -118,6 +133,7 @@ difftest: difftest.sh
 	@echo "* make $@"
 	@echo "********************************************************************"
 	./difftest.sh xisrc/ours/difftests/*
+	@echo
 
 .PHONY: publish
 publish: doc

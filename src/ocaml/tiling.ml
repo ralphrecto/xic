@@ -313,11 +313,19 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
       match dest with
       | Some dest_reg ->
         let r = if opcode = DIV then Real Rax else Real Rdx in
-        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg dest_reg)] in
+        let div_asm = 
+          [movq (Reg reg1) (Reg (Real Rax)); 
+           xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+           idivq (Reg reg2); 
+           movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ div_asm)
       | None ->
         let r = if opcode = DIV then Real Rax else Real Rdx in
-        let div_asm = [movq (Reg reg1) (Reg (Real Rax)); idivq (Reg reg2); movq (Reg r) (Reg reg2)] in
+        let div_asm = 
+          [movq (Reg reg1) (Reg (Real Rax)); 
+           xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+           idivq (Reg reg2); 
+           movq (Reg r) (Reg reg2)] in
         (reg2, asm1 @ asm2 @ div_asm)
     end
 

@@ -46,6 +46,7 @@ run_and_diff() {
         "--lower"
         "--irgen"
         "--asmdebug"
+        "--asmchomp"
     )
     extensions=(
         "typeddebug"

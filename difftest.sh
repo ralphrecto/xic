@@ -2,6 +2,14 @@
 
 set -euo pipefail
 
+NORMAL="\e[0m"
+red() {
+    echo -e "\e[91m$1$NORMAL"
+}
+blue() {
+    echo -e "\e[96m$1$NORMAL"
+}
+
 run_and_diff() {
     f="$1"
 
@@ -18,29 +26,29 @@ run_and_diff() {
         return
     fi
 
-    echo $fname
+    blue $fname
 
     cat "$pervasive_file" "$f" > "$tempname"
 
     flags=(
         "--tcdebug"
-        "--basicir"
         "--ast-cfold"
+        "--basicir"
         "--ir-cfold"
         "--lower"
         "--irgen"
     )
     extensions=(
         "typeddebug"
-        "basicir"
         "astcfold"
+        "basicir"
         "ircfold"
         "lower"
         "ir"
     )
     evaluators=(
         "./xi"
-        "./ir"
+        "./xi"
         "./ir"
         "./ir"
         "./ir"
@@ -73,7 +81,7 @@ run_and_diff() {
             filea="${outputfiles[$i]}"
             fileb="${outputfiles[$j]}"
             if ! diff "$filea" "$fileb" > /dev/null; then
-                echo "$filea and $fileb" differ
+                red "$filea and $fileb" differ
                 exit 1
             fi
         done

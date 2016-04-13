@@ -68,19 +68,19 @@ val ret_ptr_reg : Asm.abstract_reg
  *)
 type ('input, 'output) with_fcontext =
   ?debug:bool -> func_context -> func_contexts -> 'input -> 'output
-type ('input) without_fcontext =
-  ?debug:bool -> func_contexts -> 'input -> Asm.abstract_asm list
+type ('input, 'output) without_fcontext =
+  ?debug:bool -> func_contexts -> 'input -> 'output
 
 val munch_expr      : (Ir.expr, Asm.fake * Asm.abstract_asm list) with_fcontext
 val munch_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
-val munch_func_decl : Ir.func_decl without_fcontext
-val munch_comp_unit : Ir.comp_unit without_fcontext
+val munch_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
+val munch_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext
 
 (* Maximal munch tiling algorithm with good tiles. *)
 val chomp_expr      : (Ir.expr, Asm.abstract_reg * Asm.abstract_asm list) with_fcontext
 val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
-val chomp_func_decl : Ir.func_decl without_fcontext
-val chomp_comp_unit : Ir.comp_unit without_fcontext
+val chomp_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
+val chomp_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext
 
 (* Naive register allocation.
  *

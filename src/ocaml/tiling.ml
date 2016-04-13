@@ -11,11 +11,81 @@ let ret_ptr_reg   = Fake "_asmretptr"
 
 type ('input, 'output) with_fcontext =
   ?debug:bool -> func_context -> func_contexts -> 'input -> 'output
-type ('input) without_fcontext =
-  ?debug:bool -> func_contexts -> 'input -> Asm.abstract_asm list
+type ('input, 'output) without_fcontext =
+  ?debug:bool -> func_contexts -> 'input -> 'output
 
 let max_int32 = Int64.of_int32_exn (Int32.max_value)
 let min_int32 = Int64.of_int32_exn (Int32.min_value)
+
+let register_allocate asms =
+  (* spill_env maps each fake name to an index, starting at 15, into the stack.
+   * We start at 15 since the first 14 is reserved for callee save registers.
+   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
+   * (Fake "foo") will be spilled to -8n(%rbp). *)
+  let spill_env =
+    fakes_of_asms asms
+    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
+    |> String.Map.of_alist_exn
+  in
+
+  (* Given an environment and name, return the memory address that fake is
+   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
+  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
+    let i = String.Map.find_exn spill_env fake in
+    let offset = Int64.of_int (-8 * i) in
+    Mem (Base (Some offset, Rbp))
+  in
+
+  (* Recursively applies f to all the abstract_registers in asm. *)
+  let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
+    match asm with
+    | Op (s, operands) ->
+        Op (s, List.map operands ~f:(fun operand ->
+          match operand with
+          | Reg r -> Reg (f r)
+          | Mem (Base (n, base)) -> Mem (Base (n, f base))
+          | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
+          | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
+          | Label l -> Label l
+          | Const c -> Const c
+        ))
+    | Lab l -> Lab l
+    | Directive (d, args) -> Directive (d, args)
+    | Comment s -> Comment s
+  in
+
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
+
+  (* Translate fake registers using the register environment and leave real
+   * registers alone. *)
+  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
+    match r with
+    | Fake s -> String.Map.find_exn reg_env s
+    | Real r -> r
+  in
+
+  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
+    let spill = spill_address env in
+    match asm with
+    | Op (_, operands) ->
+      let fakes = fakes_of_operands operands in
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
+      let reg_env = String.Map.of_alist_exn fake_to_real in
+      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
+
+      let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
+      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
+      let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
+      pre @ translation @ post
+    | Lab l -> [Lab l]
+    | Directive (d, args) -> [Directive (d, args)]
+    | Comment s -> [Comment s]
+  in
+  List.concat_map ~f:(allocate spill_env) asms
 
 let binop_to_instr (op: Ir.binop_code) =
   match op with
@@ -416,7 +486,8 @@ let eat_func_decl
     (eat_stmt: (Ir.stmt, Asm.abstract_asm list) with_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ((fname, stmt, _): Ir.func_decl) =
+    ((fname, stmt, _): Ir.func_decl)
+    : Asm.abstract_asm list =
 
   let eat_stmt = eat_stmt ~debug in
 
@@ -471,25 +542,29 @@ let eat_func_decl
   section_wrap body_asm "body_asm"
 
 let eat_comp_unit
-    (eat_func_decl: Ir.func_decl without_fcontext)
+    (eat_func_decl: (Ir.func_decl, Asm.abstract_asm list) without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ((_, func_decls): Ir.comp_unit) =
+    ((_, func_decls): Ir.comp_unit)
+    : Asm.abstract_asm list list =
   let decl_list = String.Map.data func_decls in
-  let fun_asm = List.concat_map ~f:(eat_func_decl ~debug fcontexts) decl_list in
-  let directives = [text] in
-  directives @ fun_asm
+  let fun_asm : Asm.abstract_asm list list =
+    List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
+  let directives : Asm.abstract_asm list = [text] in
+  directives :: fun_asm
 
 let munch_func_decl
   ?(debug=false)
   (fcontexts: func_contexts)
-  (func_decl: Ir.func_decl) =
+  (func_decl: Ir.func_decl)
+  : Asm.abstract_asm list =
   eat_func_decl munch_stmt ~debug fcontexts func_decl
 
 let munch_comp_unit
     ?(debug=false)
     (fcontexts: func_contexts)
-    (comp_unit: Ir.comp_unit) =
+    (comp_unit: Ir.comp_unit)
+    : Asm.abstract_asm list list =
   eat_comp_unit munch_func_decl ~debug fcontexts comp_unit
 
 (* displacement is only allowed to be 32 bits *)
@@ -1114,78 +1189,8 @@ let chomp_comp_unit
     (comp_unit: Ir.comp_unit) =
   eat_comp_unit chomp_func_decl ~debug fcontexts comp_unit
 
-let register_allocate asms =
-  (* spill_env maps each fake name to an index, starting at 15, into the stack.
-   * We start at 15 since the first 14 is reserved for callee save registers.
-   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
-   * (Fake "foo") will be spilled to -8n(%rbp). *)
-  let spill_env =
-    fakes_of_asms asms
-    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
-    |> String.Map.of_alist_exn
-  in
-
-  (* Given an environment and name, return the memory address that fake is
-   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
-  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
-    let i = String.Map.find_exn spill_env fake in
-    let offset = Int64.of_int (-8 * i) in
-    Mem (Base (Some offset, Rbp))
-  in
-
-  (* Recursively applies f to all the abstract_registers in asm. *)
-  let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
-    match asm with
-    | Op (s, operands) ->
-        Op (s, List.map operands ~f:(fun operand ->
-          match operand with
-          | Reg r -> Reg (f r)
-          | Mem (Base (n, base)) -> Mem (Base (n, f base))
-          | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
-          | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
-          | Label l -> Label l
-          | Const c -> Const c
-        ))
-    | Lab l -> Lab l
-    | Directive (d, args) -> Directive (d, args)
-    | Comment s -> Comment s
-  in
-
-  (* Certain real registers are output into abstract assembly. For example,
-   * multiplication and division use rax and rdx. These registers shouldn't be
-   * present in abstract assembly. *)
-  let unused_regs = [R13; R14; R15] in
-
-  (* Translate fake registers using the register environment and leave real
-   * registers alone. *)
-  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
-    match r with
-    | Fake s -> String.Map.find_exn reg_env s
-    | Real r -> r
-  in
-
-  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
-    let spill = spill_address env in
-    match asm with
-    | Op (_, operands) ->
-      let fakes = fakes_of_operands operands in
-      let unused_regs = List.take unused_regs (List.length fakes) in
-      let fake_to_real = List.zip_exn fakes unused_regs in
-      let reg_env = String.Map.of_alist_exn fake_to_real in
-      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
-
-      let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
-      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
-      let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
-      pre @ translation @ post
-    | Lab l -> [Lab l]
-    | Directive (d, args) -> [Directive (d, args)]
-    | Comment s -> [Comment s]
-  in
-  List.concat_map ~f:(allocate spill_env) asms
-
 let asm_eat
-  (eat_comp_unit: Ir.comp_unit without_fcontext)
+  (eat_comp_unit: (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext)
   ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list =
@@ -1193,7 +1198,8 @@ let asm_eat
     let f acc (_, Ast.S.Interface cdlist) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
-  eat_comp_unit ~debug func_contexts comp_unit |> register_allocate
+  let munched = eat_comp_unit ~debug func_contexts comp_unit in
+  List.concat_map ~f:register_allocate munched 
 
 let asm_munch
   ?(debug=false)
@@ -1206,3 +1212,4 @@ let asm_chomp
   (full_prog: Typecheck.full_prog)
   (comp_unit : Ir.comp_unit) : Asm.asm list =
   asm_eat chomp_comp_unit ~debug full_prog comp_unit
+

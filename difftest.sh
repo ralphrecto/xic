@@ -49,12 +49,12 @@ run_and_diff() {
 
     generated=()
     for ((i = 0; i < ${#extensions[@]}; ++i)); do
-        generated[i] = "$tempname_noext.${extensions[$i]}"
+        generated[i]="$tempname_noext.${extensions[$i]}"
     done
 
     outputfiles=()
     for ((i = 0; i < ${#generated[@]}; ++i)); do
-        outputfiles[i] = "${generated[$i]}-out"
+        outputfiles[i]="${generated[$i]}-out"
     done
 
     for flag in "${flags[@]}"; do
@@ -63,12 +63,10 @@ run_and_diff() {
         $cmd
     done
 
-    for ((i = 0; i < "${generated[@]}"; ++i)); do
-        cmd="${evaluators[$i]} ${generated[$i]} &> ${outputfiles[$i]}"
-        echo "    $cmd"
-        $cmd || true
+    for ((i = 0; i < "${#generated[@]}"; ++i)); do
+        echo "${evaluators[$i]} ${generated[$i]} &> ${outputfiles[$i]}"
+        "${evaluators[$i]}" "${generated[$i]}" &> "${outputfiles[$i]}" || true
     done
-    return
 
     for ((i = 0; i < ${#outputfiles[@]}; ++i)); do
         for ((j = i + 1; j < ${#outputfiles[@]}; ++j)); do
@@ -76,6 +74,7 @@ run_and_diff() {
             fileb="${outputfiles[$j]}"
             if ! diff "$filea" "$fileb" > /dev/null; then
                 echo "$filea and $fileb" differ
+                exit 1
             fi
         done
     done

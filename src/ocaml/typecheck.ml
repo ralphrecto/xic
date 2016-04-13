@@ -267,16 +267,30 @@ and expr_typecheck c (p, expr) =
   | FuncCall ((_, f), args) -> begin
       Context.func p c f >>= fun (a, b) ->
       match (a, b), args with
+      (* proc *)
       | (_, UnitT), _ -> Error (p, "Using proc call as an expr")
+
+      (* impossible types *)
+      | (EmptyArray, _), _
+      | (_, EmptyArray), _ -> Error (p, "Using proc call as an expr")
+
+      (* no args *)
       | (UnitT, _), _::_ -> Error (p, "Giving args to a function with no params")
-      | (UnitT, t), [] when t <> UnitT -> Ok (t, FuncCall (((), f), []))
-      | (TupleT t1, t2), _::_::_ when t2 <> UnitT ->
-        exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
-        Ok (t2, FuncCall (((), f), args'))
-      | (t1, t2), [arg] when t2 <> UnitT ->
+      | (UnitT, t), [] -> Ok (t, FuncCall (((), f), []))
+
+      (* one arg *)
+      | ((IntT | BoolT | ArrayT _), _), []
+      | ((IntT | BoolT | ArrayT _), _), _::_::_ -> Error (p, num_f_args)
+      | ((IntT | BoolT | ArrayT _) as t1, t2), [arg] ->
         exprs_typecheck p c [t1] [arg] num_f_args typ_f_args >>= fun args' ->
         Ok (t2, FuncCall (((), f), args'))
-      | _ -> Error (p, "Function call type error")
+
+      (* multiple args *)
+      | (TupleT _, _), []
+      | (TupleT _, _), [_] -> Error (p, num_f_args)
+      | (TupleT t1, t2), args ->
+        exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
+        Ok (t2, FuncCall (((), f), args'))
     end
 
 (******************************************************************************)
@@ -675,7 +689,7 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     let rets_t = List.map ~f:Expr.of_typ rets in
     let typ = tuple_or_nah args_t, tuple_or_nah rets_t in
     Ok (typ, FuncDecl (((), id), args', rets'))
-  | ProcDecl ((_, id), args) -> 
+  | ProcDecl ((_, id), args) ->
     Result.all (List.map ~f:(avar_typecheck Context.empty) args) >>= fun args' ->
     let args_t = List.map ~f:avar_to_expr_t args in
     Ok ((tuple_or_nah args_t, UnitT), ProcDecl (((), id), args'))

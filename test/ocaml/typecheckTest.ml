@@ -815,6 +815,9 @@ let test_expr _ =
     fgam =/= (funccall "ib2i" [one; arr[arr[]]]);
     fgam =/= (funccall "ib2i" [arr[arr[]]; tru]);
 
+    (* multiple returns as argument *)
+    fgam =/= (funccall "ii2i" [funccall "ii2ii" [one; two]]);
+
     ()
 
 let test_stmt _ =

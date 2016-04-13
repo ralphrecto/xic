@@ -38,11 +38,21 @@ main(args : int[][]) {
   println( string_of_int (leaTest33()) );
 
   // lea-case3
-//  println( string_of_int (leaTest34()) );
-//  println( string_of_int (leaTest35()) );
-//  println( string_of_int (leaTest36()) );
-//  println( string_of_int (leaTest37()) );
-//  println( string_of_int (leaTest38()) );
+  println( string_of_int (leaTest34()) );
+  println( string_of_int (leaTest35()) );
+  println( string_of_int (leaTest36()) );
+  println( string_of_int (leaTest37()) );
+  println( string_of_int (leaTest38()) );
+  println( string_of_int (leaTest39()) );
+  println( string_of_int (leaTest40()) );
+  println( string_of_int (leaTest41()) );
+  println( string_of_int (leaTest42()) );
+  println( string_of_int (leaTest43()) );
+  println( string_of_int (leaTest44()) );
+  println( string_of_int (leaTest45()) );
+  println( string_of_int (leaTest46()) );
+  println( string_of_int (leaTest47()) );
+  println( string_of_int (leaTest48()) );
 
   // lea-case4
   // lea-case5
@@ -252,3 +262,87 @@ leaTest33() : int {
 }
 
 // lea-case3: reg1 + reg2 +/- const
+leaTest34() : int {
+  x:int = 1;
+  y:int = 1;
+  return 7 + x + y;
+}
+
+leaTest35() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + y + 7;
+}
+
+leaTest36() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + y - 7;
+}
+
+leaTest37() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + 7 + y;
+}
+
+leaTest38() : int {
+  x:int = 1;
+  y:int = 1;
+  return x - 7 + y;
+}
+
+leaTest39() : int {
+  x:int = 1;
+  y:int = 1;
+  return 7 + (x + y);
+}
+
+leaTest40() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + (y + 7);
+}
+
+leaTest41() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + (y - 7);
+}
+
+leaTest42() : int {
+  x:int = 1;
+  y:int = 1;
+  return x + (7 + y);
+}
+
+leaTest43() : int {
+  x:int = 1;
+  return x - 1;
+}
+
+helper1() : int {
+  return 5;
+}
+
+leaTest44() : int {
+  return helper1() - 1;
+}
+
+leaTest45() : int {
+  x:int = 1;
+  return x + 1;
+}
+
+leaTest46() : int {
+  x:int = 1;
+  return 1 + x;
+}
+
+leaTest47() : int {
+  return helper1() + 1;
+}
+
+leaTest48() : int {
+  return 1 + helper1();
+}

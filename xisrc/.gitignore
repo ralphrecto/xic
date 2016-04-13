@@ -4,3 +4,5 @@ TEMP*
 *.typed
 *.ir
 *.s
+TEMP_*.*
+zinger*.xi

@@ -857,31 +857,6 @@ let rec chomp_binop
         | Some dest_reg -> (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg dest_reg)])
         | None -> (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
     end
-  (* mod 2 case *)
-  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
-  | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-      | Some dest_reg ->
-          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl));
-            movq (Reg (Real Rcx)) (Reg dest_reg)])
-      | None ->
-          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetnc (Reg (Real Cl));
-            movq (Reg (Real Rcx)) (Reg reg1)])
-    end
-  | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
-  | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
-    begin
-      let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-      match dest with
-      | Some dest_reg ->
-          (dest_reg, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl));
-            movq (Reg (Real Rcx)) (Reg dest_reg)])
-      | None ->
-          (reg1, asm1 @ [bt (Asm.Const 0L) (Reg reg1); asetc (Reg (Real Cl));
-            movq (Reg (Real Rcx)) (Reg reg1)])
-    end
   (* neg case *)
   | BinOp (Const 0L, SUB, (Temp reg as e1)) ->
     begin
@@ -1117,15 +1092,6 @@ and chomp_stmt
     begin
       let tru_label = Asm.Label tru in
       match e1 with
-      (* mod 2 case *)
-      | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 0L)
-      | BinOp (Const 0L, EQ, BinOp (e1, MOD, Const 2L)) ->
-        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-        asm1 @ [bt (Asm.Const 0L) (Reg reg1); jnc tru_label]
-      | BinOp (BinOp (e1, MOD, Const 2L), EQ, Const 1L)
-      | BinOp (Const 1L, EQ, BinOp (e1, MOD, Const 2L)) ->
-        let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-        asm1 @ [bt (Asm.Const 0L) (Reg reg1); jc tru_label]
       (* comparing with 0 *)
       | BinOp (e1, ((EQ|NEQ|LT|GT|LEQ|GEQ) as op), Const 0L)
       | BinOp (Const 0L, ((EQ|NEQ) as op), e1) ->

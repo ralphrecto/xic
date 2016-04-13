@@ -33,10 +33,10 @@ public class Main {
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
 
-    @Option(name = "--lex", usage = "Generate output from lexical analysis")
+    @Option(name = "--lex", usage = "Generate output from lexical analysis; .lexed files")
     private static boolean lexMode = false;
 
-    @Option(name = "--parse", usage = "Generate output from syntactic analysis")
+    @Option(name = "--parse", usage = "Generate output from syntactic analysis; .parsed files")
     private static boolean parseMode = false;
 
     @Option(name = "--typecheck", usage = "Generate output from semantic analysis")
@@ -45,7 +45,7 @@ public class Main {
     @Option(name = "--tcdebug", usage = "Generate debugging output for typechecking", hidden = true)
     private static boolean typecheckDebugMode = false;
 
-    @Option(name = "--irgen", usage = "Generate intermediate code")
+    @Option(name = "--irgen", usage = "Generate intermediate code; .ir files")
     private static boolean irGenMode = false;
 
     @Option(name = "-O", usage = "Disable optimizations")
@@ -66,19 +66,21 @@ public class Main {
     @Option(name = "--ast-cfold", usage = "Constant fold on AST", hidden = true)
     private static boolean astCfoldMode = false;
 
-    @Option(name = "--nothing", usage = "No IR optimization", hidden = true)
-    private static boolean nothingMode = false;
-
-    @Option(name = "--ir-cfold", usage = "Constant fold on IR", hidden = true)
+    @Option(name = "--ir-cfold", usage = "Constant fold on IR; .ircfold files", hidden = true)
     private static boolean irCfoldMode = false;
 
-    @Option(name = "--lower", usage = "Lower IR", hidden = true)
+    @Option(name = "--lower", usage = "Lower IR; .lower files", hidden = true)
     private static boolean lowerMode = false;
 
-    @Option(name = "--blkreorder", usage = "Reorder blocks", hidden = true)
+    @Option(name = "--blkreorder", usage = "Reorder blocks; .blkreorder files", hidden = true)
     private static boolean blkReorderMode = false;
 
-    @Option(name = "--asmchomp", usage = "Use chomp instead of munch", hidden = true)
+    @Option(name = "--basicir",
+        usage = "IR generation with no opt, lowering or blk reorder; .basicir files",
+        hidden = true)
+    private static boolean basicIRMode = false;
+
+    @Option(name = "--asmchomp", usage = "Use chomp instead of munch; .s files", hidden = true)
     private static boolean asmChompMode = false;
 
     @Argument(usage = "Other non-optional arguments.", hidden = true)
@@ -408,6 +410,7 @@ public class Main {
             XiSource src = t.fst;
             binArgs.add("--outputs");
             binArgs.add(diagPathOut(t.fst, extension));
+            System.out.println(diagPathOut(t.fst, extension));
         }
         List<String> args = new ArrayList<>();
         args.add("./bin/main.byte");
@@ -489,11 +492,19 @@ public class Main {
 
         callOCaml(filenames, binArgs, "lower");
     }
+
     void doIRBlkReorder(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--blkreorder");
 
         callOCaml(filenames, binArgs, "blkreorder");
+    }
+
+    void doBasicIR(List<String> filenames) {
+        List<String> binArgs = new ArrayList<>();
+        binArgs.add("--basicir");
+
+        callOCaml(filenames, binArgs, "basicir");
     }
 
     void doAsmGenNoOpt(List<String> filenames) {
@@ -557,6 +568,8 @@ public class Main {
                 doIRLower(arguments);
             } else if (blkReorderMode) {
                 doIRBlkReorder(arguments);
+            } else if (basicIRMode) {
+                doBasicIR(arguments);
             } else if (noOptimize){
                 doAsmGenNoOpt(arguments);
             } else {

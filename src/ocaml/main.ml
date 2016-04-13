@@ -25,6 +25,7 @@ type flags = {
   lower:          bool;
   ir_cfold:       bool;
   blkreorder:     bool;
+  basicir:        bool;
   asmchomp:       bool;
   outputs:        string list;
 } [@@deriving sexp]
@@ -102,6 +103,9 @@ let debug_ir_lower (ast: Pos.full_prog): Ir.comp_unit Error.result =
 let debug_ir_blkreorder (ast: Pos.full_prog): Ir.comp_unit Error.result =
   Result.map (debug_ir_lower ast) ~f:block_reorder_comp_unit
 
+let debug_ir_basic (ast: Pos.full_prog): Ir.comp_unit Error.result =
+  Result.map (typecheck ast) ~f:gen_comp_unit
+
 let asts_to_strs
   (tcf: Pos.full_prog -> 'a Error.result)
   (strf: 'a -> string)
@@ -159,6 +163,9 @@ let main flags ast_strs () : unit Deferred.t =
   else if flags.blkreorder then
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
     writes flags.outputs contents
+  else if flags.basicir then
+    let contents = asts_to_strs debug_ir_basic ir_strf asts in
+    writes flags.outputs contents
   else if flags.no_opt then
     let contents = asts_to_strs (asm_gen_no_opt flags.asmchomp) string_of_asms asts in
     writes flags.outputs contents
@@ -179,11 +186,12 @@ let () =
       +> flag "--ir-cfold"       no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
       +> flag "--blkreorder"     no_arg ~doc:""
+      +> flag "--basicir"        no_arg ~doc:""
       +> flag "--asmchomp"       no_arg ~doc:""
       +> flag "--outputs"    (listed string) ~doc:""
       +> anon (sequence ("asts" %: string))
     )
-    (fun no_opt' tc tcd afold irg ifold lower' blk chomp outs asts ->
+    (fun no_opt' tc tcd afold irg ifold lower' blk basic chomp outs asts ->
        let flags = {
          no_opt         =  no_opt';
          typecheck      =  tc;
@@ -193,6 +201,7 @@ let () =
          ir_cfold       =  ifold;
          lower          =  lower';
          blkreorder     =  blk;
+         basicir        =  basic;
          asmchomp       =  chomp;
          outputs        =  outs;
        } in

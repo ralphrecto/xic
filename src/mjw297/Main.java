@@ -86,6 +86,9 @@ public class Main {
     @Option(name = "--asmchomp", usage = "Use chomp instead of munch; .s files", hidden = true)
     private static boolean asmChompMode = false;
 
+    @Option(name = "--asmdebug", usage = "Asm gen debug mode", hidden = true)
+    private static boolean asmDebugMode = false;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 
@@ -174,30 +177,9 @@ public class Main {
     }
 
     private String diagPathOut(XiSource xs, String ext) {
-        String nameNoExt = Files.getNameWithoutExtension(xs.filename);
-        String parentDir = xs.file.getParent();
-        if (diagnosticPath.equals("")) {
-            if (parentDir == null) {
-                return String.format(xs.changeExtension(ext));
-            } else {
-                return String.format(
-                    "%s/%s.%s",
-                    Files.simplifyPath(parentDir),
-                    nameNoExt,
-                    ext
-                );
-            }
-        } else {
-            if (Paths.get(xs.filename).isAbsolute()) {
-                return xs.filename;
-            } else {
-                return String.format(
-                    "%s/%s",
-                    Files.simplifyPath(diagnosticPath),
-                    xs.changeExtension(ext)
-                );
-            }
-        }
+        return Paths.get(diagnosticPath, xs.changeExtension(ext))
+            .toAbsolutePath()
+            .toString();
     }
 
     private void writeToFile(String filename, String contents) {

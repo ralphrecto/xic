@@ -171,13 +171,13 @@ let non_imm_cmp op reg1 reg2 dest =
    movq (Reg (Real Rcx)) (Reg dest)]
 
 let cmp_zero op reg1 dest =
-  [test (Reg reg1) (Reg reg1); 
+  [test (Reg reg1) (Reg reg1);
   (cmp_zero_to_instr op) (Reg (Real Cl));
   movq (Reg (Real Rcx)) (Reg dest)]
 
 let imm_cmp op const reg dest =
-  [cmpq (Asm.Const const) (Reg reg); 
-  (cmp_to_instr op) (Reg (Real Cl)); 
+  [cmpq (Asm.Const const) (Reg reg);
+  (cmp_to_instr op) (Reg (Real Cl));
   movq (Reg (Real Rcx)) (Reg dest)]
 
 (* Java style shifting: mod RHS operand by word size *)
@@ -927,7 +927,7 @@ let rec chomp_binop
       | true, Some dest_reg ->
         (dest_reg, (imm_binop op x reg1 dest_reg))
       | true, None ->
-        (reg1, (imm_binop op x reg1 reg1)) 
+        (reg1, (imm_binop op x reg1 reg1))
       | false, Some dest_reg ->
         (dest_reg, (non_imm_binop op reg1 reg2 dest_reg))
       | false, None ->
@@ -1051,9 +1051,9 @@ let rec chomp_binop
       | false, None ->
         (reg2, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
-  | BinOp (Temp reg1, opcode, Temp reg2) -> 
+  | BinOp (Temp reg1, opcode, Temp reg2) ->
     create_binop_instr opcode (Fake reg1) [] (Fake reg2) [] dest
-  | BinOp (Temp reg1, opcode, e2) -> 
+  | BinOp (Temp reg1, opcode, e2) ->
     let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
     create_binop_instr opcode (Fake reg1) [] reg2 asm2 dest
   | BinOp (e1, opcode, Temp reg2) ->
@@ -1175,7 +1175,7 @@ and chomp_stmt
     let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
     asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
-  | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s 
+  | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s
 
 let chomp_func_decl
   ?(debug=false)

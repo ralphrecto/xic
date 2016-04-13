@@ -119,7 +119,7 @@ val chomp_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontex
  * instructions or append leave instructions. All these operations should be
  * performed as the abstract assembly is being produced.
  *)
-val register_allocate : Asm.abstract_asm list -> Asm.asm list
+val register_allocate : ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
 
 val asm_munch : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
 val asm_chomp : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog

@@ -812,9 +812,9 @@ let rec chomp_binop
       | true, None ->
         (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
       | false, Some dest_reg ->
-        (dest_reg, asm1 @ asm2 @ (non_imm_binop op reg2 reg1 dest_reg))
+        (dest_reg, asm1 @ asm2 @ (non_imm_binop op reg1 reg2 dest_reg))
       | false, None ->
-        (reg1, asm1 @ asm2 @ (non_imm_binop op reg2 reg1 reg1))
+        (reg1, asm1 @ asm2 @ (non_imm_binop op reg1 reg2 reg1))
     end
   (* lea cases without constants *)
   (* lea-case5: reg1 = reg1 * {1,2,4,8} + reg2

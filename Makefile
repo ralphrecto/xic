@@ -181,5 +181,8 @@ p3.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).ja
 p4.zip: clean src ir irtest lib xic bin/edu bin/mjw297/ bin/polyglot/  test Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
+p5.zip: clean src ir xisrc/ xilib/ lib xi xic bin/edu bin/mjw297/ bin/polyglot/ opam Makefile README.md vagrant xic-build difftest.sh frontend_test.sh 
+	zip -r $@ $^
+
 print-%:
 	@echo $*=$($*)

@@ -512,30 +512,24 @@ public class Main {
     void doAsmGenNoOpt(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--no-opt");
-        String ext = asmChompMode ? "chomped" : "s";
+        binArgs.add("--asmchomp");
 
-        if (asmChompMode) {
-          binArgs.add("--asmchomp");
-        }
         if (asmDebugMode) {
             binArgs.add("--asmdebug");
         }
 
-        callOCaml(filenames, binArgs, ext);
+        callOCaml(filenames, binArgs, "s");
     }
 
     void doAsmGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
-        String ext = asmChompMode ? "chomped" : "s";
+        binArgs.add("--asmchomp");
 
-        if (asmChompMode) {
-          binArgs.add("--asmchomp");
-        }
         if (asmDebugMode) {
             binArgs.add("--asmdebug");
         }
 
-        callOCaml(filenames, binArgs, ext);
+        callOCaml(filenames, binArgs, "s");
     }
 
     /**

@@ -10,10 +10,27 @@ blue() {
     echo -e "\e[96m$1$NORMAL"
 }
 
-link_and_run() {
+link_and_run_s() {
     filename="$1"
-    binname="$(dirname $filename)/$(basename $filename .s)"
+    binname="$(dirname $filename)/$(basename $filename .s)-s"
     runtime/runtime/linkxi.sh "$filename" -o "$binname"
+    "$binname"
+}
+
+link_and_run_chomped() {
+    filename="$1"
+    asm="$(dirname $filename)/$(basename $filename .chomped).s"
+    if [[ -e "$asm" ]]; then
+        mv "$asm" yoloswagtmp
+    fi
+    cp "$filename" "$asm"
+    binname="$(dirname $filename)/$(basename $filename .chomped)-chomped"
+    runtime/runtime/linkxi.sh "$asm" -o "$binname"
+    if [[ -e yoloswagtmp ]]; then
+        mv yoloswagtmp "$asm"
+    else
+        rm "$asm"
+    fi
     "$binname"
 }
 
@@ -37,36 +54,38 @@ run_and_diff() {
 
     cat "$pervasive_file" "$f" > "$tempname"
 
+        # "--tcdebug"
+        # "--ast-cfold"
     flags=(
-        "--tcdebug"
-        "--ast-cfold"
         "--basicir"
         "--ir-acfold"
         "--ir-cfold"
         "--lower"
         "--irgen"
         "--asmdebug"
-        "--asmchomp"
+        "--asmchomp --asmdebug"
     )
+        # "typeddebug"
+        # "astcfold"
     extensions=(
-        "typeddebug"
-        "astcfold"
         "basicir"
         "iracfold"
         "ircfold"
         "lower"
         "ir"
         "s"
+        "chomped"
     )
+        # "./xi"
+        # "./xi"
     evaluators=(
-        "./xi"
-        "./xi"
         "./ir"
         "./ir"
         "./ir"
         "./ir"
         "./ir"
-        "link_and_run"
+        "link_and_run_s"
+        "link_and_run_chomped"
     )
 
     generated=()

@@ -30,8 +30,33 @@ import static mjw297.XicException.*;
  */
 public class Main {
 
+    /* Utility flags */
+
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
+
+    @Option(name = "-compilerpath", hidden = true, required = true)
+    private static String compilerPath;
+
+    @Option(name = "-O", usage = "Disable optimizations")
+    private static boolean noOptimize = false;
+
+    @Option(name = "-sourcepath", usage = "Specify where to find input source files")
+    private static String sourcePath = "";
+
+    @Option(name = "-libpath", usage = "Specify where to find input source files")
+    private static String libPath = "";
+
+    @Option(name = "-D", usage = "Specify where to place generated diagnostic files")
+    private static String diagnosticPath = "";
+
+    @Option(name = "-d", usage = "Specify where to place generated assembly files")
+    private static String assemblyPath = "";
+
+    @Option(name = "-target", usage = "Define target OS; only linux is a valid option. Defaults to linux")
+    private static String targetOS = "linux";
+
+    /* Compiler modes */
 
     @Option(name = "--lex", usage = "Generate output from lexical analysis; .lexed files")
     private static boolean lexMode = false;
@@ -47,21 +72,6 @@ public class Main {
 
     @Option(name = "--irgen", usage = "Generate intermediate code; .ir files")
     private static boolean irGenMode = false;
-
-    @Option(name = "-O", usage = "Disable optimizations")
-    private static boolean noOptimize = false;
-
-    @Option(name = "-sourcepath", usage = "Specify where to find input source files")
-    private static String sourcePath = "";
-
-    @Option(name = "-libpath", usage = "Specify where to find input source files")
-    private static String libPath = "";
-
-    @Option(name = "-D", usage = "Specify where to place generated diagnostic files")
-    private static String diagnosticPath = "";
-
-    @Option(name = "-compilerpath", hidden = true, required = true)
-    private static String compilerPath;
 
     @Option(name = "--ast-cfold", usage = "Constant fold on AST; .astcfold files", hidden = true)
     private static boolean astCfoldMode = false;
@@ -177,7 +187,9 @@ public class Main {
     }
 
     private String diagPathOut(XiSource xs, String ext) {
-        return Paths.get(diagnosticPath, xs.changeExtension(ext))
+        String outPath = assemblyPath.equals("") ?
+            diagnosticPath : assemblyPath;
+        return Paths.get(outPath, xs.changeExtension(ext))
             .toAbsolutePath()
             .toString();
     }
@@ -500,6 +512,8 @@ public class Main {
     void doAsmGenNoOpt(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
         binArgs.add("--no-opt");
+        String ext = asmChompMode ? "chomped" : "s";
+
         if (asmChompMode) {
           binArgs.add("--asmchomp");
         }
@@ -507,11 +521,13 @@ public class Main {
             binArgs.add("--asmdebug");
         }
 
-        callOCaml(filenames, binArgs, "s");
+        callOCaml(filenames, binArgs, ext);
     }
 
     void doAsmGen(List<String> filenames) {
         List<String> binArgs = new ArrayList<>();
+        String ext = asmChompMode ? "chomped" : "s";
+
         if (asmChompMode) {
           binArgs.add("--asmchomp");
         }
@@ -519,7 +535,7 @@ public class Main {
             binArgs.add("--asmdebug");
         }
 
-        callOCaml(filenames, binArgs, "s");
+        callOCaml(filenames, binArgs, ext);
     }
 
     /**
@@ -538,6 +554,11 @@ public class Main {
             if (arguments.isEmpty()) {
                 System.out.println("No filenames provided.");
                 printUsage();
+                System.exit(1);
+            }
+
+            if (!targetOS.equals("linux")) {
+                System.out.println("-target: linux is currently the only supported target");
                 System.exit(1);
             }
 

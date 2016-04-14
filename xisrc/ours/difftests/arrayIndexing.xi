@@ -1,3 +1,4 @@
+use io use conv
 abs(i:int) : int { if (i < 0) { return -i } else { return i } }
 g(a:int[][]) : int[] { return a[abs(42 *>> a[0][0]) % length(a)] }
 f(a:int[]) : int {

@@ -9,6 +9,7 @@ LOGICS = ["==","!=","&","|"]
 BOOLS = ["true", "false"]
 NUMS = [-9223372036854775808, 9223372036854775807]
 NUMS = NUMS + [-2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
+OFFS = [1,2,4,8]
 VARS = ["x", "y", "z"]
 
 ################################################################################
@@ -40,12 +41,22 @@ def mainify(ls):
             "\n}")
 
 def exprs():
+    # k op k
     for (x, o, y) in product(NUMS, ARITHMETICS, NUMS):
         if (o == "%" or o == "/") and y == 0:
             continue
         yield [println('"{} {} {}"'.format(x, o, y)),
                println(string_of_int("{} {} {}".format(x, o, y)))]
 
+    for (x, o, y) in product(NUMS, COMPARISONS, NUMS):
+        yield [println('"{} {} {}"'.format(x, o, y)),
+               println(string_of_bool("{} {} {}".format(x, o, y)))]
+
+    for (x, o, y) in product(BOOLS, LOGICS, BOOLS):
+        yield [println('"{} {} {}"'.format(x, o, y)),
+               println(string_of_bool("{} {} {}".format(x, o, y)))]
+
+    # x op k, k op x
     for (v, x, o, y) in product([VARS[0]], NUMS, ARITHMETICS, NUMS):
         asms = []
         asms.append(println('"{} = {}"'.format(v, x)))
@@ -56,6 +67,26 @@ def exprs():
         if not ((o == "%" or o == "/") and x == 0):
             asms.append(println('"{} {} {}"'.format(y, o, v)))
             asms.append(println(string_of_int("{} {} {}".format(y, o, v))))
+        yield asms
+
+    for (v, x, o, y) in product([VARS[0]], NUMS, COMPARISONS, NUMS):
+        asms = []
+        asms.append(println('"{} = {}"'.format(v, x)))
+        asms.append("{} = {}".format(v, x))
+        asms.append(println('"{} {} {}"'.format(v, o, y)))
+        asms.append(println(string_of_bool("{} {} {}".format(v, o, y))))
+        asms.append(println('"{} {} {}"'.format(y, o, v)))
+        asms.append(println(string_of_bool("{} {} {}".format(y, o, v))))
+        yield asms
+
+    for (v, x, o, y) in product([VARS[0]], BOOLS, LOGICS, BOOLS):
+        asms = []
+        asms.append(println('"{} = {}"'.format(v, x)))
+        asms.append("{} = {}".format(v, x))
+        asms.append(println('"{} {} {}"'.format(v, o, y)))
+        asms.append(println(string_of_bool("{} {} {}".format(v, o, y))))
+        asms.append(println('"{} {} {}"'.format(y, o, v)))
+        asms.append(println(string_of_bool("{} {} {}".format(y, o, v))))
         yield asms
 
 def main():

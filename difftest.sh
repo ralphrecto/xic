@@ -105,7 +105,7 @@ main() {
     if [[ $# == 0 ]]; then
         echo "usage: difftest test.xi..."
     fi
-    python exprgen.py
+
     for f in "$@"; do
         run_and_diff "$f"
     done

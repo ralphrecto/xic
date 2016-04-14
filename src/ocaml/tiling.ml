@@ -695,9 +695,9 @@ let rec chomp_binop
       | true, None ->
         (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
       | false, Some dest_reg ->
-        (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1 dest_reg))
+        (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg1 reg3 dest_reg))
       | false, None ->
-        (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg3 reg1 reg1))
+        (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm3 @ (non_imm_binop op reg1 reg3 reg1))
     end
 
   (* lea-case2: reg = reg * {1,2,3,4,5,8,9} +/ const
@@ -723,9 +723,9 @@ let rec chomp_binop
       | true, None ->
         (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
       | false, Some dest_reg ->
-        (dest_reg, asm1 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm2 @ (non_imm_binop op reg2 reg1 dest_reg))
+        (dest_reg, asm1 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm2 @ (non_imm_binop op reg1 reg2 dest_reg))
       | false, None ->
-        (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm2 @ (non_imm_binop op reg2 reg1 reg1))
+        (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)] @ asm2 @ (non_imm_binop op reg1 reg2 reg1))
     end
   (* lea-case3: reg2 = reg1 + reg2 +/- const
     * operation of constant is denoted as op

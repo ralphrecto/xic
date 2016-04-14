@@ -7,8 +7,8 @@ ARITHMETICS = ["-","*","*>>","/","%","+"]
 COMPARISONS = ["<","<=",">=",">","==","!="]
 LOGICS = ["==","!=","&","|"]
 BOOLS = ["true", "false"]
-# NUMS = [-9223372036854775808, 9223372036854775807] + range(-5, 5)
-NUMS = [-2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
+NUMS = [-9223372036854775808, 9223372036854775807]
+NUMS = NUMS + [-2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
 VARS = ["x", "y", "z"]
 
 ################################################################################
@@ -47,14 +47,16 @@ def exprs():
                println(string_of_int("{} {} {}".format(x, o, y)))]
 
     for (v, x, o, y) in product([VARS[0]], NUMS, ARITHMETICS, NUMS):
-        if (o == "%" or o == "/") and y == 0:
-            continue
-        yield [println('"{} = {}"'.format(v, x)),
-               "{} = {}".format(v, x),
-               println('"{} {} {}"'.format(v, o, y)),
-               println(string_of_int("{} {} {}".format(v, o, y))),
-               println('"{} {} {}"'.format(y, o, v)),
-               println(string_of_int("{} {} {}".format(y, o, v)))]
+        asms = []
+        asms.append(println('"{} = {}"'.format(v, x)))
+        asms.append("{} = {}".format(v, x))
+        if not ((o == "%" or o == "/") and y == 0):
+            asms.append(println('"{} {} {}"'.format(v, o, y)))
+            asms.append(println(string_of_int("{} {} {}".format(v, o, y))))
+        if not ((o == "%" or o == "/") and x == 0):
+            asms.append(println('"{} {} {}"'.format(y, o, v)))
+            asms.append(println(string_of_int("{} {} {}".format(y, o, v))))
+        yield asms
 
 def main():
     chunk_size = 50

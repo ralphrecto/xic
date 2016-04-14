@@ -325,3 +325,4 @@ val call : 'reg operand -> 'reg asm_template
 val label_op : string -> 'reg asm_template
 val leave : 'reg asm_template
 val ret : 'reg asm_template
+val cqto : 'reg asm_template

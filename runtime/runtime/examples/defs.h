@@ -5,6 +5,8 @@
 #define ARG2() %rsi
 #define ARG3() %rdx
 #define ARG4() %rcx
+#define ARG5() %r8
+#define ARG6() %r9
 #define INITFUNC() .mod_init_func
 #define GCFUNC(x) _##x
 #endif
@@ -15,6 +17,8 @@
 #define ARG2() %rsi
 #define ARG3() %rdx
 #define ARG4() %rcx
+#define ARG5() %r8
+#define ARG6() %r9
 #define INITFUNC() .section	.ctors
 #define GCFUNC(x) x
 #endif

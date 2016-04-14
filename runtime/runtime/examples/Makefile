@@ -1,7 +1,7 @@
 .DEFAULT_GOAL = default
 
-ASM = fact.s arr.s test4.s
-EXECS = fact arr test4
+ASM = fact.s arr.s
+EXECS = fact arr
 LIBXI = ../libxi/libxi.o
 GCLIBDIR = ../gc-7.2/.libs/
 

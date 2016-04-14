@@ -8,9 +8,9 @@ COMPARISONS = ["<","<=",">=",">","==","!="]
 LOGICS = ["==","!=","&","|"]
 BOOLS = ["true", "false"]
 NUMS = [-9223372036854775808, 9223372036854775807]
-NUMS = NUMS + [-2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
-OFFS = [1,2,4,8]
-VARS = ["x", "y", "z"]
+NUMS = NUMS + [-2, -1, 0, 1, 2, 3]
+OFFS = [1,4]
+VARS = ["x", "y"]
 
 ################################################################################
 # helpers
@@ -88,6 +88,21 @@ def exprs():
         asms.append(println('"{} {} {}"'.format(y, o, v)))
         asms.append(println(string_of_bool("{} {} {}".format(y, o, v))))
         yield asms
+
+    # leaq-case 1
+    for (reg1, x, reg2, y, off, k) in product(VARS, NUMS, VARS, NUMS, OFFS, NUMS):
+        asms = []
+        asms.append(println('"{} = {}"'.format(reg1, x)))
+        asms.append("{} = {}".format(reg1, x))
+        asms.append(println('"{} = {}"'.format(reg2, y)))
+        asms.append("{} = {}".format(reg2, y))
+
+        asms.append(println('"{} * {} + {} + {}"'.format(reg1, off, reg2, k)))
+        asms.append(println(string_of_int("{} * {} + {} + {}".format(reg1, off, reg2, k))))
+        asms.append(println('"{} * {} + {} - {}"'.format(reg1, off, reg2, k)))
+        asms.append(println(string_of_int("{} * {} + {} - {}".format(reg1, off, reg2, k))))
+        yield asms
+
 
 def main():
     chunk_size = 25

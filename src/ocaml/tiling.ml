@@ -831,6 +831,7 @@ let rec chomp_binop
         | Some dest_reg -> (dest_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg dest_reg)])
         | None -> (reg1, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg reg1)])
     end
+
   (* lea-case6: reg1 = reg1 * {1,2,3,4,5,8,9}
     * multiply constant (1,2,3,4,5,8,9) is denoted as m
     * e1 is expression that is being multiplied
@@ -844,6 +845,7 @@ let rec chomp_binop
         | Some dest_reg -> (dest_reg, asm1 @ [leaq (Mem binop_mem) (Reg dest_reg)])
         | None -> (reg1, asm1 @ [leaq (Mem binop_mem) (Reg reg1)])
     end
+
   (* lea-case7: reg1 = reg1 + reg2
     * e1 is expression that is being multiplied
     * e2 is expression that is being added

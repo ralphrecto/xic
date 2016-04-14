@@ -55,9 +55,35 @@ main(args : int[][]) {
   println( string_of_int (leaTest48()) );
 
   // lea-case4
+  println( string_of_int (leaTest49()) );
+  println( string_of_int (leaTest50()) );
+  println( string_of_int (leaTest51()) );
+
   // lea-case5
+  println( string_of_int (leaTest52()) );
+  println( string_of_int (leaTest53()) );
+  println( string_of_int (leaTest54()) );
+  println( string_of_int (leaTest55()) );
+
   // lea-case6
+  println( string_of_int (leaTest56()) );
+  println( string_of_int (leaTest57()) );
+
   // lea-case7
+  println( string_of_int (leaTest58()) );
+  println( string_of_bool (leaTest59()) );
+  println( string_of_bool (leaTest60()) );
+  println( string_of_bool (leaTest61()) );
+  println( string_of_bool (leaTest62()) );
+  println( string_of_int (leaTest63()) );
+  println( string_of_int (leaTest64()) );
+  println( string_of_bool (leaTest65()) );
+  println( string_of_bool (leaTest66()) );
+  println( string_of_bool (leaTest67()) );
+  println( string_of_bool (leaTest68()) );
+  println( string_of_bool (leaTest69()) );
+  println( string_of_bool (leaTest70()) );
+  println( string_of_bool (leaTest71()) );
 }
 
 // lea-case1: c + (r1 * {1,2,4,8} + r2)
@@ -345,4 +371,129 @@ leaTest47() : int {
 
 leaTest48() : int {
   return 1 + helper1();
+}
+
+// lea-case4: reg +/- const
+leaTest49() : int {
+  x:int = 1;
+  return x + 5;
+}
+
+leaTest50() : int {
+  x:int = 1;
+  return 5 + x;
+}
+
+leaTest51() : int {
+  x:int = 10;
+  return x - 5;
+}
+
+// lea-case5: reg1 * {1,2,4,8} + reg2
+leaTest52() : int {
+  x:int = 1;
+  y:int = 1;
+  return x * 2 + y;
+}
+
+leaTest53() : int {
+  x:int = 1;
+  y:int = 1;
+  return 2 * x + y;
+}
+
+leaTest54() : int {
+  x:int = 1;
+  y:int = 1;
+  return y + x * 2;
+}
+
+leaTest55() : int {
+  x:int = 1;
+  y:int = 1;
+  return y + 2 * x;
+}
+
+// lea-case6: reg1 * {1,2,3,4,5,8,9}
+leaTest56() : int {
+  x:int = 1;
+  y:int = x * 3;
+  return y * 5;
+}
+
+leaTest57() : int {
+  x:int = 1;
+  y:int = 9 * x;
+  return 8 * y;
+}
+
+// lea-case7: reg1 + reg2
+leaTest58() : int {
+  x:int = 1;
+  y:int = 9;
+  return x + y;
+}
+
+leaTest59() : bool {
+  x:int = 4;
+  return x % 2 == 0;
+}
+
+leaTest60() : bool {
+  x:int = 4;
+  return 0 == x % 2;
+}
+
+leaTest61() : bool {
+  x:int = 4;
+  return x % 2 == 1;
+}
+
+leaTest62() : bool {
+  x:int = 4;
+  return 1 == x % 2;
+}
+
+leaTest63() : int {
+  x:int = 1;
+  return 0 - x;
+}
+
+leaTest64() : int {
+  return 0 - helper1();
+}
+
+leaTest65() : bool {
+  x:int = 1;
+  return x == 0;
+}
+
+leaTest66() : bool {
+  x:int = 1;
+  return 0 == x;
+}
+
+leaTest67() : bool {
+  x:int = 1;
+  return 0 != x;
+}
+
+leaTest68() : bool {
+  x:int = 1;
+  return 0 < x;
+}
+
+leaTest69() : bool {
+  x:int = 1;
+  return 0 > x;
+}
+
+leaTest70() : bool {
+  x:int = 1;
+  return 0 <= x;
+}
+
+leaTest71() : bool {
+  x:int = 1;
+  return 0 >= x;
 }

@@ -510,3 +510,4 @@ let call l = unop_label "call" l
 let label_op l = Lab l
 let leave = Op ("leave", [])
 let ret = Op ("retq", [])
+let cqto = Op ("cqto", [])

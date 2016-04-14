@@ -284,7 +284,7 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
       | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 dest_reg))
       | None -> (reg1, asm1 @ asm2 @ (non_imm_binop opcode reg1 reg2 reg1))
     end
-  | LSHIFT | RSHIFT | ARSHIFT ->
+ | LSHIFT | RSHIFT | ARSHIFT ->
     begin
       match dest with
       | Some dest_reg -> (dest_reg, asm1 @ asm2 @ (non_imm_shift opcode reg1 reg2 dest_reg))
@@ -313,18 +313,20 @@ let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
       match dest with
       | Some dest_reg ->
         let r = if opcode = DIV then Real Rax else Real Rdx in
-        let div_asm = 
-          [movq (Reg reg1) (Reg (Real Rax)); 
+        let div_asm =
+          [movq (Reg reg1) (Reg (Real Rax));
            xorq (Reg (Real Rdx)) (Reg (Real Rdx));
-           idivq (Reg reg2); 
+           cqto;
+           idivq (Reg reg2);
            movq (Reg r) (Reg dest_reg)] in
         (dest_reg, asm1 @ asm2 @ div_asm)
       | None ->
         let r = if opcode = DIV then Real Rax else Real Rdx in
-        let div_asm = 
-          [movq (Reg reg1) (Reg (Real Rax)); 
+        let div_asm =
+          [movq (Reg reg1) (Reg (Real Rax));
            xorq (Reg (Real Rdx)) (Reg (Real Rdx));
-           idivq (Reg reg2); 
+           cqto;
+           idivq (Reg reg2);
            movq (Reg r) (Reg reg2)] in
         (reg2, asm1 @ asm2 @ div_asm)
     end
@@ -361,6 +363,7 @@ let rec munch_expr
           let div_asm = [
             xorq (Reg (Real Rdx)) (Reg (Real Rdx));
             movq (Reg (Fake reg1)) (Reg (Real Rax));
+            cqto;
             idivq (Reg (Fake reg2));
             movq (Reg (Real r)) (Reg (Fake reg2))
           ] in

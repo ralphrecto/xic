@@ -123,6 +123,7 @@ let test_munch_expr _ =
       movq (const 2) (fakeop 1);
       xorq ardx ardx;
       movq (fakeop 0) arax;
+      cqto;
       idivq (fakeop 1);
       movq asmreg (fakeop 1);
     ]) in
@@ -2605,12 +2606,12 @@ let test_chomp _ =
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   (* comparisons with zero *)
-  (* without destination *) 
+  (* without destination *)
   FreshReg.reset ();
   let expr1 = ((temp "z") == IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetz (Reg (Real Cl)); 
+    asetz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2620,7 +2621,7 @@ let test_chomp _ =
   let expr1 = ((temp "z") != IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetnz (Reg (Real Cl)); 
+    asetnz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2630,7 +2631,7 @@ let test_chomp _ =
   let expr1 = ((temp "z") < IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asets (Reg (Real Cl)); 
+    asets (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2640,7 +2641,7 @@ let test_chomp _ =
   let expr1 = ((temp "z") > IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2650,7 +2651,7 @@ let test_chomp _ =
   let expr1 = ((temp "z") <= IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2660,7 +2661,7 @@ let test_chomp _ =
   let expr1 = ((temp "z") >= IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetns (Reg (Real Cl)); 
+    asetns (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2670,7 +2671,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L == (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetz (Reg (Real Cl)); 
+    asetz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2680,7 +2681,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L != (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetnz (Reg (Real Cl)); 
+    asetnz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2690,7 +2691,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L < (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2700,7 +2701,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L > (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asets (Reg (Real Cl)); 
+    asets (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2710,7 +2711,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L <= (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetns (Reg (Real Cl)); 
+    asetns (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2720,7 +2721,7 @@ let test_chomp _ =
   let expr1 = (IA.const 0L >= (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "z"));
   ]
   in
@@ -2731,7 +2732,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") == IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetz (Reg (Real Cl)); 
+    asetz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2741,7 +2742,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") != IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetnz (Reg (Real Cl)); 
+    asetnz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2751,7 +2752,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") < IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asets (Reg (Real Cl)); 
+    asets (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2761,7 +2762,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") > IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2771,7 +2772,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") <= IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2781,7 +2782,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") ((temp "z") >= IA.const 0L) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetns (Reg (Real Cl)); 
+    asetns (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2791,7 +2792,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L == (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetz (Reg (Real Cl)); 
+    asetz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2801,7 +2802,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L != (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetnz (Reg (Real Cl)); 
+    asetnz (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2811,7 +2812,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L < (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2821,7 +2822,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L > (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asets (Reg (Real Cl)); 
+    asets (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2831,7 +2832,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L <= (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetns (Reg (Real Cl)); 
+    asetns (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2841,7 +2842,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 0L >= (temp "z")) in
   let expected = [
     test (Reg (Fake "z")) (Reg (Fake "z"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -2849,11 +2850,11 @@ let test_chomp _ =
 
   (* binop with immediate cases *)
   (* and, or, xor *)
-  (* without destination *) 
+  (* without destination *)
   FreshReg.reset ();
   let expr1 = ((temp "x") & IA.const 2L) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -2861,7 +2862,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = ((temp "x") || IA.const 2L) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -2869,7 +2870,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = ((temp "x") ^ IA.const 2L) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -2877,14 +2878,14 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = (IA.const 2L & (temp "x")) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   FreshReg.reset (); let expr1 = (IA.const 2L || (temp "x")) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -2892,16 +2893,16 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = (IA.const 2L ^ (temp "x")) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
-  (* with destination but does not match *) 
+  (* with destination but does not match *)
   FreshReg.reset ();
   let stmt1 = move (temp "y") ((temp "x") & IA.const 2L) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -2910,7 +2911,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") ((temp "x") || IA.const 2L) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -2919,7 +2920,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") ((temp "x") ^ IA.const 2L) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -2928,7 +2929,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") (IA.const 2L & (temp "x")) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -2937,7 +2938,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") (IA.const 2L || (temp "x")) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -2946,17 +2947,17 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") (IA.const 2L ^ (temp "x")) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
-  (* with destination and does match *) 
+  (* with destination and does match *)
   FreshReg.reset ();
   let stmt1 = move (temp "x") ((temp "x") & IA.const 2L) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -2964,7 +2965,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") ((temp "x") || IA.const 2L) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -2972,7 +2973,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") ((temp "x") ^ IA.const 2L) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -2980,7 +2981,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") (IA.const 2L & (temp "x")) in
   let expected = [
-    andq (Asm.Const 2L) (Reg (Fake "x"));    
+    andq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -2988,7 +2989,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") (IA.const 2L || (temp "x")) in
   let expected = [
-    orq (Asm.Const 2L) (Reg (Fake "x"));    
+    orq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -2996,7 +2997,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") (IA.const 2L ^ (temp "x")) in
   let expected = [
-    xorq (Asm.Const 2L) (Reg (Fake "x"));    
+    xorq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3004,52 +3005,52 @@ let test_chomp _ =
   (* shifts *)
   (* without destination *)
   FreshReg.reset ();
-  let expr1 = (temp "x" << IA.const 2L) in  
+  let expr1 = (temp "x" << IA.const 2L) in
   let expected = [
-    shlq (Asm.Const 2L) (Reg (Fake "x")); 
+    shlq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   FreshReg.reset ();
-  let expr1 = (temp "x" >> IA.const 2L) in  
+  let expr1 = (temp "x" >> IA.const 2L) in
   let expected = [
-    shrq (Asm.Const 2L) (Reg (Fake "x")); 
+    shrq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   FreshReg.reset ();
-  let expr1 = (temp "x" >>> IA.const 2L) in  
+  let expr1 = (temp "x" >>> IA.const 2L) in
   let expected = [
-    sarq (Asm.Const 2L) (Reg (Fake "x")); 
+    sarq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   (* with destination but does not match variable *)
   FreshReg.reset ();
-  let stmt1 = move (temp "y") (temp "x" << IA.const 2L) in  
+  let stmt1 = move (temp "y") (temp "x" << IA.const 2L) in
   let expected = [
-    shlq (Asm.Const 2L) (Reg (Fake "x")); 
+    shlq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   FreshReg.reset ();
-  let stmt1 = move (temp "y") (temp "x" >> IA.const 2L) in  
+  let stmt1 = move (temp "y") (temp "x" >> IA.const 2L) in
   let expected = [
-    shrq (Asm.Const 2L) (Reg (Fake "x")); 
+    shrq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   FreshReg.reset ();
-  let stmt1 = move (temp "y") (temp "x" >>> IA.const 2L) in  
+  let stmt1 = move (temp "y") (temp "x" >>> IA.const 2L) in
   let expected = [
-    sarq (Asm.Const 2L) (Reg (Fake "x")); 
+    sarq (Asm.Const 2L) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -3057,25 +3058,25 @@ let test_chomp _ =
 
   (* with destination and matches variable *)
   FreshReg.reset ();
-  let stmt1 = move (temp "x") (temp "x" << IA.const 2L) in  
+  let stmt1 = move (temp "x") (temp "x" << IA.const 2L) in
   let expected = [
-    shlq (Asm.Const 2L) (Reg (Fake "x")); 
+    shlq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   FreshReg.reset ();
-  let stmt1 = move (temp "x") (temp "x" >> IA.const 2L) in  
+  let stmt1 = move (temp "x") (temp "x" >> IA.const 2L) in
   let expected = [
-    shrq (Asm.Const 2L) (Reg (Fake "x")); 
+    shrq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   FreshReg.reset ();
-  let stmt1 = move (temp "x") (temp "x" >>> IA.const 2L) in  
+  let stmt1 = move (temp "x") (temp "x" >>> IA.const 2L) in
   let expected = [
-    sarq (Asm.Const 2L) (Reg (Fake "x")); 
+    sarq (Asm.Const 2L) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3086,7 +3087,7 @@ let test_chomp _ =
   let expr1 = (temp "x" == IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3096,7 +3097,7 @@ let test_chomp _ =
   let expr1 = (temp "x" != IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3106,7 +3107,7 @@ let test_chomp _ =
   let expr1 = (temp "x" < IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3116,7 +3117,7 @@ let test_chomp _ =
   let expr1 = (temp "x" > IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3126,7 +3127,7 @@ let test_chomp _ =
   let expr1 = (temp "x" <= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3136,18 +3137,18 @@ let test_chomp _ =
   let expr1 = (temp "x" >= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
-  
+
   (* order flipped *)
   FreshReg.reset ();
   let expr1 = (IA.const 2L == temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3157,7 +3158,7 @@ let test_chomp _ =
   let expr1 = (IA.const 2L != temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3167,7 +3168,7 @@ let test_chomp _ =
   let expr1 = (IA.const 2L < temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3177,7 +3178,7 @@ let test_chomp _ =
   let expr1 = (IA.const 2L > temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3187,7 +3188,7 @@ let test_chomp _ =
   let expr1 = (IA.const 2L <= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3197,7 +3198,7 @@ let test_chomp _ =
   let expr1 = (IA.const 2L >= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3208,7 +3209,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" == IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3218,7 +3219,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" != IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3228,7 +3229,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" < IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3238,7 +3239,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" > IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3248,7 +3249,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" <= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3258,18 +3259,18 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" >= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   (* order flipped *)
   FreshReg.reset ();
   let stmt1 = move (temp "y") (IA.const 2L == temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3279,7 +3280,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (IA.const 2L != temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3289,7 +3290,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (IA.const 2L < temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3299,7 +3300,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (IA.const 2L > temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3309,7 +3310,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (IA.const 2L <= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3319,7 +3320,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (IA.const 2L >= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "y"));
   ]
   in
@@ -3330,7 +3331,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" == IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3340,7 +3341,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" != IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3350,7 +3351,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" < IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3360,7 +3361,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" > IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3370,7 +3371,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" <= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3380,18 +3381,18 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" >= IA.const 2L) in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
-  
+
   (* order flipped *)
   FreshReg.reset ();
   let stmt1 = move (temp "x") (IA.const 2L == temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asete (Reg (Real Cl)); 
+    asete (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3401,7 +3402,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 2L != temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetne (Reg (Real Cl)); 
+    asetne (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3411,7 +3412,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 2L < temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetg (Reg (Real Cl)); 
+    asetg (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3421,7 +3422,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 2L > temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetl (Reg (Real Cl)); 
+    asetl (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3431,7 +3432,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 2L <= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetge (Reg (Real Cl)); 
+    asetge (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3441,7 +3442,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (IA.const 2L >= temp "x") in
   let expected = [
     cmpq (Asm.Const 2L) (Reg (Fake "x"));
-    asetle (Reg (Real Cl)); 
+    asetle (Reg (Real Cl));
     movq (Reg (Real Rcx)) (Reg (Fake "x"));
   ]
   in
@@ -3452,28 +3453,28 @@ let test_chomp _ =
   FreshReg.reset ();
   let expr1 = temp "x" - temp "y" in
   let expected = [
-    subq (Reg (Fake "y")) (Reg (Fake "x"));      
+    subq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   let expr1 = temp "x" & temp "y" in
   let expected = [
-    andq (Reg (Fake "y")) (Reg (Fake "x"));      
+    andq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   let expr1 = temp "x" || temp "y" in
   let expected = [
-    orq (Reg (Fake "y")) (Reg (Fake "x"));      
+    orq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
 
   let expr1 = temp "x" ^ temp "y" in
   let expected = [
-    xorq (Reg (Fake "y")) (Reg (Fake "x"));      
+    xorq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3481,7 +3482,7 @@ let test_chomp _ =
   let expr1 = temp "x" << temp "y" in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shlq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shlq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3489,7 +3490,7 @@ let test_chomp _ =
   let expr1 = temp "x" >> temp "y" in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shrq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shrq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3497,7 +3498,7 @@ let test_chomp _ =
   let expr1 = temp "x" >>> temp "y" in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    sarq (Reg (Real Cl)) (Reg (Fake "x"));      
+    sarq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === snd(chomp_expr dummy_ctx dummy_fcontexts expr1);
@@ -3587,6 +3588,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rax)) (Reg (Fake "y"))
   ]
@@ -3598,6 +3600,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rdx)) (Reg (Fake "y"))
   ]
@@ -3608,7 +3611,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "z") (temp "x" - temp "y") in
   let expected = [
-    subq (Reg (Fake "y")) (Reg (Fake "x"));      
+    subq (Reg (Fake "y")) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3616,7 +3619,7 @@ let test_chomp _ =
 
   let stmt1 = move (temp "z") (temp "x" & temp "y") in
   let expected = [
-    andq (Reg (Fake "y")) (Reg (Fake "x"));      
+    andq (Reg (Fake "y")) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3624,7 +3627,7 @@ let test_chomp _ =
 
   let stmt1 = move (temp "z") (temp "x" || temp "y") in
   let expected = [
-    orq (Reg (Fake "y")) (Reg (Fake "x"));      
+    orq (Reg (Fake "y")) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3632,7 +3635,7 @@ let test_chomp _ =
 
   let stmt1 = move (temp "z") (temp "x" ^ temp "y") in
   let expected = [
-    xorq (Reg (Fake "y")) (Reg (Fake "x"));      
+    xorq (Reg (Fake "y")) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3641,7 +3644,7 @@ let test_chomp _ =
   let stmt1 = move (temp "z") (temp "x" << temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shlq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shlq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3650,7 +3653,7 @@ let test_chomp _ =
   let stmt1 = move (temp "z") (temp "x" >> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shrq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shrq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3659,7 +3662,7 @@ let test_chomp _ =
   let stmt1 = move (temp "z") (temp "x" >>> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    sarq (Reg (Real Cl)) (Reg (Fake "x"));      
+    sarq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "z"));
   ]
   in
@@ -3750,6 +3753,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rax)) (Reg (Fake "z"));
   ]
@@ -3761,6 +3765,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rdx)) (Reg (Fake "z"));
   ]
@@ -3771,28 +3776,28 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "x") (temp "x" - temp "y") in
   let expected = [
-    subq (Reg (Fake "y")) (Reg (Fake "x"));      
+    subq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   let stmt1 = move (temp "x") (temp "x" & temp "y") in
   let expected = [
-    andq (Reg (Fake "y")) (Reg (Fake "x"));      
+    andq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   let stmt1 = move (temp "x") (temp "x" || temp "y") in
   let expected = [
-    orq (Reg (Fake "y")) (Reg (Fake "x"));      
+    orq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   let stmt1 = move (temp "x") (temp "x" ^ temp "y") in
   let expected = [
-    xorq (Reg (Fake "y")) (Reg (Fake "x"));      
+    xorq (Reg (Fake "y")) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3800,7 +3805,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" << temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shlq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shlq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3808,7 +3813,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" >> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shrq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shrq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3816,7 +3821,7 @@ let test_chomp _ =
   let stmt1 = move (temp "x") (temp "x" >>> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    sarq (Reg (Real Cl)) (Reg (Fake "x"));      
+    sarq (Reg (Real Cl)) (Reg (Fake "x"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3906,6 +3911,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rax)) (Reg (Fake "x"));
   ]
@@ -3917,6 +3923,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rdx)) (Reg (Fake "x"));
   ]
@@ -3928,7 +3935,7 @@ let test_chomp _ =
   FreshReg.reset ();
   let stmt1 = move (temp "y") (temp "x" - temp "y") in
   let expected = [
-    subq (Reg (Fake "y")) (Reg (Fake "x"));      
+    subq (Reg (Fake "y")) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -3936,21 +3943,21 @@ let test_chomp _ =
 
   let stmt1 = move (temp "y") (temp "x" & temp "y") in
   let expected = [
-    andq (Reg (Fake "x")) (Reg (Fake "y"));      
+    andq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   let stmt1 = move (temp "y") (temp "x" || temp "y") in
   let expected = [
-    orq (Reg (Fake "x")) (Reg (Fake "y"));      
+    orq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
 
   let stmt1 = move (temp "y") (temp "x" ^ temp "y") in
   let expected = [
-    xorq (Reg (Fake "x")) (Reg (Fake "y"));      
+    xorq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
   expected === (chomp_stmt dummy_ctx dummy_fcontexts stmt1);
@@ -3958,7 +3965,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" << temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shlq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shlq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -3967,7 +3974,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" >> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    shrq (Reg (Real Cl)) (Reg (Fake "x"));      
+    shrq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -3976,7 +3983,7 @@ let test_chomp _ =
   let stmt1 = move (temp "y") (temp "x" >>> temp "y") in
   let expected = [
     movq (Reg (Fake "y")) (Reg (Real Rcx));
-    sarq (Reg (Real Cl)) (Reg (Fake "x"));      
+    sarq (Reg (Real Cl)) (Reg (Fake "x"));
     movq (Reg (Fake "x")) (Reg (Fake "y"));
   ]
   in
@@ -4067,6 +4074,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rax)) (Reg (Fake "y"));
   ]
@@ -4078,6 +4086,7 @@ let test_chomp _ =
   let expected = [
     movq (Reg (Fake "x")) (Reg (Real Rax));
     xorq (Reg (Real Rdx)) (Reg (Real Rdx));
+    cqto;
     idivq (Reg (Fake "y"));
     movq (Reg (Real Rdx)) (Reg (Fake "y"));
   ]

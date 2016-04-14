@@ -59,7 +59,7 @@ def exprs():
         yield asms
 
 def main():
-    chunk_size = 50
+    chunk_size = 25
     filename = "xisrc/ours/difftests/zinger"
     for (i, chunk) in enumerate(chunks(list(exprs()), chunk_size)):
         with open("{}{}.xi".format(filename, i), "w") as f:

@@ -15,14 +15,6 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
 
     | BinOp ((_, Int i1), MINUS, (_, Int i2)) -> (t, Int (sub i1 i2))
     | BinOp ((_, Int i1), STAR, (_, Int i2)) -> (t, Int (mul i1 i2))
-    | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) ->
-      let i1' = big_int_of_int64 i1 in
-      let i2' = big_int_of_int64 i2 in
-      let mult = mult_big_int i1' i2' in
-      let max_long = big_int_of_int64 max_int in
-      let divided = div_big_int mult max_long in
-      let result = int64_of_big_int divided in
-      (t, Int result)
     | BinOp ((_, Int i1), DIV, (_, Int i2)) -> (t, Int (div i1 i2))
     | BinOp ((_, Int i1), MOD, (_, Int i2)) -> (t, Int (rem i1 i2))
     | BinOp ((_, Int i1), PLUS, (_, Int i2)) -> (t, Int (add i1 i2))
@@ -39,6 +31,7 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
     | BinOp ((_, Array l1), PLUS, (_, Array l2)) -> (t, Array (l1 @ l2))
     | UnOp (UMINUS, (_, Int i)) -> (t, Int (neg i))
     | UnOp (BANG, (_, Bool b))  -> (t, Bool (not b))
+    | BinOp (_, HIGHMULT, _) -> (t, e)
     | BinOp (e1, op, e2) ->
       begin
         match (fold_expr e1), (fold_expr e2) with

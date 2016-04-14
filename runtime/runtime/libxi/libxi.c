@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <inttypes.h>
 
 #include "../gc-7.2/include/gc.h"
 
@@ -100,7 +101,7 @@ xistring XI(readln_ai) (void) {
         if (len == max) {
             max *= 2;
             xistring nres = (xistring)malloc((max+1) * sizeof(xiint));
-            bcopy(&res[-1], nres, (len + 1) * sizeof(xiint));
+            memcpy(nres, &res[-1], (len + 1) * sizeof(xiint));
             free(res);
             res = nres;
         }
@@ -158,8 +159,13 @@ xiint XI(parseInt_t2ibai) (xistring str) {
 }
 
 xistring XI(unparseInt_aii) (xiint in) {
-    char buf[16]; // more than enough to represent numbers.
+    char buf[32]; // more than enough to represent 64-bit numbers
+
+#if defined(WINDOWS) || defined(WIN32)
+    sprintf(buf, "%I64d", in);
+#else
     sprintf(buf, "%lld", in);
+#endif
 
     return mkString(buf);
 }

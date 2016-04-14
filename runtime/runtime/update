@@ -1,0 +1,12 @@
+#!/bin/sh
+
+WEBSEMESTER=2016sp
+XIRT=pa5-release.zip
+
+cd $(dirname $0)/..
+wget -nv -N http://www.cs.cornell.edu/courses/cs4120/$WEBSEMESTER/pa/pa5/$XIRT
+unzip -q $XIRT "pa5_student/runtime/*" -d runtime
+cd runtime
+cp -frp pa5_student/runtime/* .
+rm -rf pa5_student
+make

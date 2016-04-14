@@ -359,8 +359,24 @@ char* tryDemangleSymbol(char** posPtr) {
     return decl;
 }
 
-
-#define MAXLEN 4096
+#if defined(WINDOWS) || defined(WIN32)
+ssize_t getline(char **linep, size_t *max, FILE *s) {
+    ssize_t len = 0;
+    if (*max == 0)
+        *linep = malloc(*max = 128);
+    for (;;) {
+        int c = getchar();
+        if (c == -1) break;
+        if (c == '\n') break;
+        if (len == *max) {
+            *max *= 2;
+            *linep = realloc(*linep, *max);
+        }
+        (*linep)[len++] = c;
+    }
+    return len;
+}
+#endif
 
 int main() {
     do {

@@ -1,0 +1,163 @@
+<html>
+  <head>
+    <title>Bisect report</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript">
+      <!--
+        function jump(id) {
+          document.body.scrollTop = document.getElementById(id).offsetTop;
+        }
+      -->
+    </script>
+    <script language="javascript" src="file0011.js"></script>
+  </head>
+  <body>
+    <div class="section">File: src/ocaml/util.ml (<a href="index.html">return to index</a>)</div>
+    <br/>
+    <hr class="codeSep"/>
+    <br/>
+    <table>
+      <tr>
+        <td valign="top" class="section">Statistics:&nbsp;&nbsp;</td>
+        <td valign="top">
+          <table class="simple">
+            <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
+            <tr><td>binding</td><td width="16px">&nbsp;</td><td>2 / 2 (100%)</td></tr>
+            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>0 / 4 (0%)</td></tr>
+            <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>0 / 2 (0%)</td></tr>
+            <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 1 (0%)</td></tr>
+            <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>0 / 13 (0%)</td></tr>
+          </table>
+        </td>
+        <td valign="top">
+          <table class="simple">
+            <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
+            <tr><td>class expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class initializer</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class method</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class value</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>toplevel expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>lazy operator</td><td width="16px">&nbsp;</td><td>0 / 2 (0%)</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <br/>
+    <hr class="codeSep"/>
+    <br/>
+    <div class="section">Source:</div>
+    <br/>
+<div style="font-size: smaller;"><a href="javascript:foldAll();">fold all</a> <a href="javascript:unfoldAll();">unfold all</a></div>
+    <code>
+      <div id="fold000001">
+      <div id="line000001" class="lineNone"><a href="javascript:fold('fold000001');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000001| open&nbsp;Core.Std</div>
+      <div id="line000002" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000002| &nbsp;</div>
+      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| let&nbsp;init&nbsp;xs&nbsp;=</div>
+      </div>
+      <div id="line000004" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000004| &nbsp;&nbsp;(*[0]*)match&nbsp;List.rev&nbsp;xs&nbsp;with</div>
+      <div id="line000005" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000005| &nbsp;&nbsp;|&nbsp;(*[0]*)[]&nbsp;-&gt;&nbsp;[]</div>
+      <div id="line000006" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000006| &nbsp;&nbsp;|&nbsp;(*[0]*)_::ys&nbsp;-&gt;&nbsp;List.rev&nbsp;ys</div>
+      <div id="fold000007">
+      <div id="line000007" class="lineNone"><a href="javascript:fold('fold000007');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000007| &nbsp;</div>
+      <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| let&nbsp;join&nbsp;=</div>
+      <div id="line000009" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000009| &nbsp;&nbsp;(*[1]*)String.concat&nbsp;~sep:&quot;\n&quot;</div>
+      <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;</div>
+      <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| let&nbsp;commas&nbsp;=</div>
+      <div id="line000012" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;(*[1]*)String.concat&nbsp;~sep:&quot;,&quot;</div>
+      <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;</div>
+      <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| let&nbsp;pairs&nbsp;xs&nbsp;=</div>
+      </div>
+      <div id="line000015" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000015| &nbsp;&nbsp;(*[0]*)match&nbsp;xs&nbsp;with</div>
+      <div id="line000016" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000016| &nbsp;&nbsp;|&nbsp;(*[0]*)[]&nbsp;-&gt;&nbsp;[]</div>
+      <div id="line000017" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000017| &nbsp;&nbsp;|&nbsp;(*[0]*)_::xs'&nbsp;-&gt;&nbsp;List.zip_exn&nbsp;(init&nbsp;xs)&nbsp;(xs')</div>
+      <div id="fold000018">
+      <div id="line000018" class="lineNone"><a href="javascript:fold('fold000018');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000018| &nbsp;</div>
+      <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| let&nbsp;all_eq&nbsp;xs&nbsp;ys&nbsp;=</div>
+      </div>
+      <div id="line000020" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000020| &nbsp;&nbsp;(*[0]*)let&nbsp;(&lt;=)&nbsp;xs&nbsp;ys&nbsp;=</div>
+      <div id="line000021" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000021| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)List.for_all&nbsp;xs&nbsp;~f:(List.mem&nbsp;ys)</div>
+      <div id="fold000022">
+      <div id="line000022" class="lineNone"><a href="javascript:fold('fold000022');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000022| &nbsp;&nbsp;in</div>
+      </div>
+      <div id="line000023" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000023| &nbsp;&nbsp;(*[0]*)xs&nbsp;&lt;=&nbsp;ys&nbsp;&amp;&amp;&nbsp;(*[0]*)ys&nbsp;&lt;=&nbsp;xs</div>
+      <div id="fold000024">
+      <div id="line000024" class="lineNone"><a href="javascript:fold('fold000024');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000024| &nbsp;</div>
+      <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| let&nbsp;get_and_incr&nbsp;(r:&nbsp;int&nbsp;ref)&nbsp;:&nbsp;int&nbsp;=</div>
+      </div>
+      <div id="line000026" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000026| &nbsp;&nbsp;let&nbsp;x&nbsp;=&nbsp;(*[0]*)!r&nbsp;in</div>
+      <div id="line000027" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000027| &nbsp;&nbsp;(*[0]*)incr&nbsp;r;</div>
+      <div id="line000028" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000028| &nbsp;&nbsp;(*[0]*)x</div>
+      <div id="fold000029">
+      <div id="line000029" class="lineNone"><a href="javascript:fold('fold000029');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000029| &nbsp;</div>
+      <div id="line000030" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000030| let&nbsp;int_of_string&nbsp;s&nbsp;=</div>
+      </div>
+      <div id="line000031" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000031| &nbsp;&nbsp;(*[0]*)try&nbsp;Some&nbsp;(Int.of_string&nbsp;s)&nbsp;with&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;None</div>
+      <div id="fold000032">
+      <div id="line000032" class="lineNone"><a href="javascript:fold('fold000032');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000032| &nbsp;</div>
+      <div id="line000033" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000033| let&nbsp;ordered_dedup&nbsp;xs&nbsp;=</div>
+      </div>
+      <div id="line000034" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000034| &nbsp;&nbsp;(*[0]*)let&nbsp;rec&nbsp;help&nbsp;xs&nbsp;acc&nbsp;=</div>
+      <div id="line000035" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000035| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)match&nbsp;xs&nbsp;with</div>
+      <div id="line000036" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000036| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)x::xs&nbsp;-&gt;&nbsp;if&nbsp;List.mem&nbsp;xs&nbsp;x&nbsp;then&nbsp;(*[0]*)help&nbsp;xs&nbsp;acc&nbsp;else&nbsp;(*[0]*)help&nbsp;xs&nbsp;(x::acc)</div>
+      <div id="line000037" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000037| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)[]&nbsp;-&gt;&nbsp;acc</div>
+      <div id="fold000038">
+      <div id="line000038" class="lineNone"><a href="javascript:fold('fold000038');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000038| &nbsp;&nbsp;in</div>
+      </div>
+      <div id="line000039" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000039| &nbsp;&nbsp;(*[0]*)help&nbsp;(List.rev&nbsp;xs)&nbsp;[]</div>
+    </code>
+    <br/>
+    <div id="navigator" style="border: solid black 1px; position: fixed; z-index:100; right: 10px; top: 10px; bottom: 10px; width: 16px;">
+      <table width="100%" height="100%" border="0" cellspacing="0">
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000004');" title="jump to line 4"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000005');" title="jump to line 5"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000006');" title="jump to line 6"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000015');" title="jump to line 15"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000016');" title="jump to line 16"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000017');" title="jump to line 17"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000020');" title="jump to line 20"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000021');" title="jump to line 21"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000023');" title="jump to line 23"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000026');" title="jump to line 26"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000027');" title="jump to line 27"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000028');" title="jump to line 28"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000031');" title="jump to line 31"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000034');" title="jump to line 34"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000035');" title="jump to line 35"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000036');" title="jump to line 36"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000037');" title="jump to line 37"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000039');" title="jump to line 39"></td></tr>
+      </table>
+    </div>
+    <div class="section">Legend:</div>
+    &nbsp;&nbsp;&nbsp;<span class="lineNone">some code</span>&nbsp;-&nbsp;line containing no point<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineAllVisited">some code</span>&nbsp;-&nbsp;line containing only visited points<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineAllUnvisited">some code</span>&nbsp;-&nbsp;line containing only unvisited points<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
+    <br/>
+    <hr class="codeSep"/>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:39:18</p>
+  </body>
+</html>

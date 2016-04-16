@@ -99,9 +99,11 @@ coverage:
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	mkdir -p $(COVERAGE) && bisect-ppx-report -I _build/ \
-											  -html $(COVERAGE) \
-											  bisect*.out
+	rm -rf $(COVERAGE) && mkdir -p $(COVERAGE) && bisect-report \
+		-I _build/ \
+		-verbose \
+		-html $(COVERAGE)/ \
+		bisect*.out
 	@echo
 
 .PHONY: test
@@ -173,6 +175,7 @@ clean:
 	rm -rf $(INTERFACE_PARSER).java
 	rm -rf $(SYMBOL).java
 	rm -rf $(LEXER).java
+	rm -f  bisect*.out
 	rm -f  p1.zip
 	rm -f  p2.zip
 	rm -f  p3.zip

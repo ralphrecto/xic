@@ -27,7 +27,7 @@ the Java runtime on our compiler's compiled `.class` files.
 If you don't want to use the VM, you can also download all the dependencies
 yourself.
 ```bash
-opam install core async ounit ocamlgraph bisect_ppx
+opam install core async ounit ocamlgraph bisect bisect_ppx
 ```
 
 ## Flags ##

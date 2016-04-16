@@ -126,12 +126,17 @@ let rec bind_ids store ids =
 (* interpreter *)
 
 and eval_stmts store ss =
-  List.fold_left ~f:(fun (store', res) s ->
-      match res, (eval_stmt store' s) with
-      | Some _, (s', _) -> (s', res)
-      | None, evaled -> evaled)
-    ~init:(store, None)
-    ss
+  let rec helper (store1, res) s =
+    match s with
+    | h::tl ->
+      begin
+        match eval_stmt store1 h with
+        | store2, Some res -> (store2, Some res)
+        | store2, None -> helper (store2, None) tl
+      end
+    | [] -> (store1, res)
+  in
+  helper (store, None) ss
 
 and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option =
   match s with

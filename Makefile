@@ -95,13 +95,13 @@ doc:
 	@echo
 
 .PHONY: coverage
-converage:
+coverage:
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	mkdir -p $(COVERAGE) && bisect-ppx-report -I _build/src/ocaml \
-		                                      -I _build/test/ocaml \
-											  -html $(COVERAGE)
+	mkdir -p $(COVERAGE) && bisect-ppx-report -I _build/ \
+											  -html $(COVERAGE) \
+											  bisect*.out
 	@echo
 
 .PHONY: test

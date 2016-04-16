@@ -12,7 +12,7 @@
     <script language="javascript" src="file0007.js"></script>
   </head>
   <body>
-    <div class="section">File: src/ocaml/cfg.ml (<a href="index.html">return to index</a>)</div>
+    <div class="section">File: test/ocaml/freshTest.ml (<a href="index.html">return to index</a>)</div>
     <br/>
     <hr class="codeSep"/>
     <br/>
@@ -22,13 +22,13 @@
         <td valign="top">
           <table class="simple">
             <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
-            <tr><td>binding</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>binding</td><td width="16px">&nbsp;</td><td>1 / 1 (100%)</td></tr>
+            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>27 / 27 (100%)</td></tr>
             <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>if/then</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>5 / 5 (100%)</td></tr>
           </table>
         </td>
         <td valign="top">
@@ -38,7 +38,7 @@
             <tr><td>class initializer</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>class method</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>class value</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>toplevel expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>toplevel expression</td><td width="16px">&nbsp;</td><td>1 / 1 (100%)</td></tr>
             <tr><td>lazy operator</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
           </table>
         </td>
@@ -52,14 +52,130 @@
 <div style="font-size: smaller;"><a href="javascript:foldAll();">fold all</a> <a href="javascript:unfoldAll();">unfold all</a></div>
     <code>
       <div id="fold000001">
-      <div id="line000001" class="lineNone"><a href="javascript:fold('fold000001');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000001| open&nbsp;Graph</div>
-      <div id="line000002" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000002| &nbsp;</div>
-      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| module&nbsp;type&nbsp;ControlFlowGraph&nbsp;=&nbsp;Graph.Sig_pack.S</div>
+      <div id="line000001" class="lineNone"><a href="javascript:fold('fold000001');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000001| open&nbsp;Core.Std</div>
+      <div id="line000002" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000002| open&nbsp;OUnit2</div>
+      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| open&nbsp;TestUtil</div>
+      <div id="line000004" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000004| &nbsp;</div>
+      <div id="line000005" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000005| module&nbsp;FooName&nbsp;=&nbsp;struct</div>
+      <div id="line000006" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000006| &nbsp;&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[2]*)&quot;foo&quot;</div>
+      <div id="line000007" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000007| end</div>
+      <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| &nbsp;</div>
+      <div id="line000009" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000009| module&nbsp;FreshFoo&nbsp;=&nbsp;Fresh.Make(FooName)</div>
+      <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;</div>
+      <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| let&nbsp;test_fresh&nbsp;_&nbsp;=</div>
+      <div id="line000012" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;(*[1]*)&quot;foo0&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000013" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;&nbsp;(*[1]*)&quot;foo1&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000014" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000014| &nbsp;&nbsp;(*[1]*)&quot;foo2&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000015" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;&nbsp;(*[1]*)&quot;foo3&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000016" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;(*[1]*)&quot;foo4&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;(*[1]*)&quot;foo5&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000018" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;&nbsp;(*[1]*)()</div>
+      <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| &nbsp;</div>
+      <div id="line000020" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000020| let&nbsp;test_gen&nbsp;_&nbsp;=</div>
+      <div id="line000021" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000021| &nbsp;&nbsp;(*[1]*)&quot;foo0&quot;&nbsp;===&nbsp;FreshFoo.gen&nbsp;0;</div>
+      <div id="line000022" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000022| &nbsp;&nbsp;(*[1]*)&quot;foo42&quot;&nbsp;===&nbsp;FreshFoo.gen&nbsp;42;</div>
+      <div id="line000023" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000023| &nbsp;&nbsp;(*[1]*)&quot;foo5430&quot;&nbsp;===&nbsp;FreshFoo.gen&nbsp;5430;</div>
+      <div id="line000024" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000024| &nbsp;&nbsp;(*[1]*)()</div>
+      <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| &nbsp;</div>
+      <div id="line000026" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000026| let&nbsp;test_reset&nbsp;_&nbsp;=</div>
+      <div id="line000027" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000027| &nbsp;&nbsp;(*[1]*)FreshFoo.reset&nbsp;();</div>
+      <div id="line000028" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000028| &nbsp;&nbsp;(*[1]*)&quot;foo0&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000029" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000029| &nbsp;&nbsp;(*[1]*)&quot;foo1&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000030" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000030| &nbsp;&nbsp;(*[1]*)&quot;foo2&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000031" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000031| &nbsp;&nbsp;(*[1]*)&quot;foo3&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000032" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000032| &nbsp;&nbsp;(*[1]*)&quot;foo4&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000033" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000033| &nbsp;&nbsp;(*[1]*)&quot;foo5&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000034" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000034| &nbsp;&nbsp;(*[1]*)FreshFoo.reset&nbsp;();</div>
+      <div id="line000035" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000035| &nbsp;&nbsp;(*[1]*)&quot;foo0&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000036" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000036| &nbsp;&nbsp;(*[1]*)&quot;foo1&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000037" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000037| &nbsp;&nbsp;(*[1]*)&quot;foo2&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000038" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000038| &nbsp;&nbsp;(*[1]*)&quot;foo3&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000039" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000039| &nbsp;&nbsp;(*[1]*)&quot;foo4&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000040" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000040| &nbsp;&nbsp;(*[1]*)&quot;foo5&quot;&nbsp;===&nbsp;FreshFoo.fresh&nbsp;();</div>
+      <div id="line000041" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000041| &nbsp;&nbsp;(*[1]*)()</div>
+      <div id="line000042" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000042| &nbsp;</div>
+      <div id="line000043" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000043| let&nbsp;test_get&nbsp;_&nbsp;=</div>
+      <div id="line000044" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000044| &nbsp;&nbsp;(*[1]*)Some&nbsp;1&nbsp;===&nbsp;FreshFoo.get&nbsp;&quot;foo1&quot;;</div>
+      <div id="line000045" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000045| &nbsp;&nbsp;(*[1]*)Some&nbsp;2&nbsp;===&nbsp;FreshFoo.get&nbsp;&quot;foo2&quot;;</div>
+      <div id="line000046" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000046| &nbsp;&nbsp;(*[1]*)None&nbsp;&nbsp;&nbsp;===&nbsp;FreshFoo.get&nbsp;&quot;foo&quot;;</div>
+      <div id="line000047" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000047| &nbsp;&nbsp;(*[1]*)None&nbsp;&nbsp;&nbsp;===&nbsp;FreshFoo.get&nbsp;&quot;bar1&quot;;</div>
+      <div id="line000048" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000048| &nbsp;&nbsp;(*[1]*)()</div>
+      <div id="line000049" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000049| &nbsp;</div>
+      <div id="line000050" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000050| (*&nbsp;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!&nbsp;*)</div>
+      <div id="line000051" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000051| (*&nbsp;!&nbsp;DON'T&nbsp;FORGET&nbsp;TO&nbsp;ADD&nbsp;YOUR&nbsp;TESTS&nbsp;HERE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!&nbsp;*)</div>
+      <div id="line000052" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000052| (*&nbsp;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!&nbsp;*)</div>
+      <div id="line000053" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000053| let&nbsp;main&nbsp;()&nbsp;=</div>
+      <div id="line000054" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000054| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)&quot;suite&quot;&nbsp;&gt;:::&nbsp;[</div>
+      <div id="line000055" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000055| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;test_fresh&quot;&nbsp;&gt;::&nbsp;test_fresh;</div>
+      <div id="line000056" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000056| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;test_gen&quot;&nbsp;&nbsp;&nbsp;&gt;::&nbsp;test_gen;</div>
+      <div id="line000057" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000057| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;test_reset&quot;&nbsp;&gt;::&nbsp;test_reset;</div>
+      <div id="line000058" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000058| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;test_get&quot;&nbsp;&nbsp;&nbsp;&gt;::&nbsp;test_get;</div>
+      <div id="line000059" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000059| &nbsp;&nbsp;&nbsp;&nbsp;]&nbsp;|&gt;&nbsp;run_test_tt_main</div>
+      <div id="line000060" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000060| &nbsp;</div>
+      <div id="line000061" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000061| let&nbsp;_&nbsp;=&nbsp;(*[2]*)main&nbsp;()</div>
       </div>
     </code>
     <br/>
     <div id="navigator" style="border: solid black 1px; position: fixed; z-index:100; right: 10px; top: 10px; bottom: 10px; width: 16px;">
       <table width="100%" height="100%" border="0" cellspacing="0">
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -72,6 +188,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:39:18</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:40:03</p>
   </body>
 </html>

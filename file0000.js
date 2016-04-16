@@ -1,12 +1,8 @@
 var texts = new Array();
 var states = new Array();
 
-texts['fold000001'] = '<a href="javascript:fold(\'fold000001\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 1 to line 15</i>';
+texts['fold000001'] = '<a href="javascript:fold(\'fold000001\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 1 to line 99</i>';
 states['fold000001'] = false;
-texts['fold000019'] = '<a href="javascript:fold(\'fold000019\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 19 to line 20</i>';
-states['fold000019'] = false;
-texts['fold000024'] = '<a href="javascript:fold(\'fold000024\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 24 to line 25</i>';
-states['fold000024'] = false;
 
 function fold(id) {
   tmp = document.getElementById(id).innerHTML;

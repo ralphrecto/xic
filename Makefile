@@ -24,6 +24,7 @@ LIBS  = $(shell ls lib/*.jar | tr '\n' ':' | sed 's/:$$//')
 CP    = $(LIBS):$$CLASSPATH
 BIN   = bin
 DOC   = doc
+COVERAGE = coverage
 JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
@@ -78,7 +79,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	corebuild -pkgs async,oUnit,ocamlgraph \
+	corebuild -pkgs async,oUnit,ocamlgraph,bisect_ppx \
 			  -Is   src/ocaml,test $@ \
 			  -cflags -warn-error,+a
 	mkdir -p $(BIN)
@@ -91,6 +92,16 @@ doc:
 	@echo "* make $@"
 	@echo "********************************************************************"
 	mkdir -p $(DOC) && javadoc $(JAVADOC_FLAGS) -d $(DOC) -cp $(CP) $(SRCS)
+	@echo
+
+.PHONY: coverage
+converage:
+	@echo "********************************************************************"
+	@echo "* make $@"
+	@echo "********************************************************************"
+	mkdir -p $(COVERAGE) && bisect-ppx-report -I _build/src/ocaml \
+		                                      -I _build/test/ocaml \
+											  -html $(COVERAGE)
 	@echo
 
 .PHONY: test
@@ -136,13 +147,13 @@ difftest: difftest.sh
 	@echo
 
 .PHONY: publish
-publish: doc
+publish: coverage
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
 	# http://stackoverflow.com/a/677212/3187068
 	if command -v ghp-import >/dev/null 2>&1; then \
-		ghp-import -n doc; \
+		ghp-import -n coverage; \
 		git push -f origin gh-pages; \
 	else \
 		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"; \
@@ -181,7 +192,7 @@ p3.zip: clean $(LEXER).java $(SYMBOL).java $(PARSER).java $(INTERFACE_PARSER).ja
 p4.zip: clean src ir irtest lib xic bin/edu bin/mjw297/ bin/polyglot/  test Makefile README.md vagrant xic-build
 	zip -r $@ $^
 
-p5.zip: clean src ir xisrc/ xilib/ lib xi xic bin/edu bin/mjw297/ bin/polyglot/ opam Makefile README.md vagrant xic-build difftest.sh frontend_test.sh 
+p5.zip: clean src ir xisrc/ xilib/ lib xi xic bin/edu bin/mjw297/ bin/polyglot/ opam Makefile README.md vagrant xic-build difftest.sh frontend_test.sh
 	zip -r $@ $^
 
 print-%:

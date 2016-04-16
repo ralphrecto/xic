@@ -16,7 +16,7 @@ work" right out of the box.
 | `make src`     | Compiles all [`src`](src/mjw297) and [`test`](test/mjw297) code. |
 | `make test`    | Executes all JUnit tests in [`test`](test/mjw297).               |
 | `make doc`     | Generates Javadoc documentation into `doc`.                      |
-| `make publish` | Publishes Javadoc documentation [online][github_javadoc].        |
+| `make publish` | Publishes OCaml code coverage [online][github_javadoc].          |
 | `make`         | Executes all of the above commands.                              |
 
 After you run `make src`, you can execute our compiler's main executable:
@@ -27,7 +27,7 @@ the Java runtime on our compiler's compiled `.class` files.
 If you don't want to use the VM, you can also download all the dependencies
 yourself.
 ```bash
-opam install core async ounit ocamlgraph
+opam install core async ounit ocamlgraph bisect_ppx
 ```
 
 ## Flags ##

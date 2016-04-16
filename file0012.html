@@ -12,7 +12,7 @@
     <script language="javascript" src="file0012.js"></script>
   </head>
   <body>
-    <div class="section">File: src/ocaml/xi.ml (<a href="index.html">return to index</a>)</div>
+    <div class="section">File: src/ocaml/ir.ml (<a href="index.html">return to index</a>)</div>
     <br/>
     <hr class="codeSep"/>
     <br/>
@@ -22,13 +22,13 @@
         <td valign="top">
           <table class="simple">
             <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
-            <tr><td>binding</td><td width="16px">&nbsp;</td><td>1 / 1 (100%)</td></tr>
-            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>binding</td><td width="16px">&nbsp;</td><td>31 / 31 (100%)</td></tr>
+            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>10 / 10 (100%)</td></tr>
             <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>if/then</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>1 / 1 (100%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>68 / 68 (100%)</td></tr>
           </table>
         </td>
         <td valign="top">
@@ -54,21 +54,339 @@
       <div id="fold000001">
       <div id="line000001" class="lineNone"><a href="javascript:fold('fold000001');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000001| open&nbsp;Core.Std</div>
       <div id="line000002" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000002| open&nbsp;Async.Std</div>
-      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| &nbsp;</div>
-      <div id="line000004" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000004| let&nbsp;main&nbsp;typed_ast_filename&nbsp;()&nbsp;=</div>
-      <div id="line000005" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000005| &nbsp;&nbsp;(*[10]*)Reader.load_sexp_exn&nbsp;typed_ast_filename&nbsp;Typecheck.prog_of_sexp&nbsp;&gt;&gt;|&nbsp;Xi_interpreter.eval</div>
-      <div id="line000006" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000006| &nbsp;</div>
-      <div id="line000007" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000007| let&nbsp;()&nbsp;=</div>
-      <div id="line000008" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000008| &nbsp;&nbsp;(*[10]*)Command.async</div>
-      <div id="line000009" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000009| &nbsp;&nbsp;&nbsp;&nbsp;~summary:&quot;Xi&nbsp;Interpreter&quot;</div>
-      <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;&nbsp;&nbsp;&nbsp;Command.Spec.(empty&nbsp;+&gt;&nbsp;anon&nbsp;(&quot;typed_ast&quot;&nbsp;%:&nbsp;file))</div>
-      <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| &nbsp;&nbsp;&nbsp;&nbsp;main</div>
-      <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;|&gt;&nbsp;Command.run</div>
+      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| open&nbsp;Typecheck</div>
+      <div id="line000004" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000004| &nbsp;</div>
+      <div id="line000005" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000005| type&nbsp;expr&nbsp;=</div>
+      <div id="line000006" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000006| &nbsp;&nbsp;|&nbsp;BinOp&nbsp;of&nbsp;expr&nbsp;*&nbsp;binop_code&nbsp;*&nbsp;expr</div>
+      <div id="line000007" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000007| &nbsp;&nbsp;|&nbsp;Call&nbsp;of&nbsp;expr&nbsp;*&nbsp;expr&nbsp;list</div>
+      <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| &nbsp;&nbsp;|&nbsp;Const&nbsp;of&nbsp;Int64.t</div>
+      <div id="line000009" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000009| &nbsp;&nbsp;|&nbsp;ESeq&nbsp;of&nbsp;stmt&nbsp;*&nbsp;expr</div>
+      <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;&nbsp;|&nbsp;Mem&nbsp;of&nbsp;expr&nbsp;*&nbsp;mem_type</div>
+      <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| &nbsp;&nbsp;|&nbsp;Name&nbsp;of&nbsp;string</div>
+      <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;|&nbsp;Temp&nbsp;of&nbsp;string</div>
+      <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;</div>
+      <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| and&nbsp;binop_code&nbsp;=</div>
+      <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;&nbsp;|&nbsp;ADD</div>
+      <div id="line000016" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;|&nbsp;SUB</div>
+      <div id="line000017" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;|&nbsp;MUL</div>
+      <div id="line000018" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;&nbsp;|&nbsp;HMUL</div>
+      <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| &nbsp;&nbsp;|&nbsp;DIV</div>
+      <div id="line000020" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000020| &nbsp;&nbsp;|&nbsp;MOD</div>
+      <div id="line000021" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000021| &nbsp;&nbsp;|&nbsp;AND</div>
+      <div id="line000022" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000022| &nbsp;&nbsp;|&nbsp;OR</div>
+      <div id="line000023" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000023| &nbsp;&nbsp;|&nbsp;XOR</div>
+      <div id="line000024" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000024| &nbsp;&nbsp;|&nbsp;LSHIFT</div>
+      <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| &nbsp;&nbsp;|&nbsp;RSHIFT</div>
+      <div id="line000026" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000026| &nbsp;&nbsp;|&nbsp;ARSHIFT</div>
+      <div id="line000027" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000027| &nbsp;&nbsp;|&nbsp;EQ</div>
+      <div id="line000028" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000028| &nbsp;&nbsp;|&nbsp;NEQ</div>
+      <div id="line000029" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000029| &nbsp;&nbsp;|&nbsp;LT</div>
+      <div id="line000030" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000030| &nbsp;&nbsp;|&nbsp;GT</div>
+      <div id="line000031" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000031| &nbsp;&nbsp;|&nbsp;LEQ</div>
+      <div id="line000032" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000032| &nbsp;&nbsp;|&nbsp;GEQ</div>
+      <div id="line000033" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000033| &nbsp;</div>
+      <div id="line000034" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000034| and&nbsp;mem_type&nbsp;=</div>
+      <div id="line000035" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000035| &nbsp;&nbsp;|&nbsp;NORMAL</div>
+      <div id="line000036" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000036| &nbsp;&nbsp;|&nbsp;IMMUTABLE</div>
+      <div id="line000037" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000037| &nbsp;</div>
+      <div id="line000038" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000038| and&nbsp;stmt&nbsp;=</div>
+      <div id="line000039" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000039| &nbsp;&nbsp;|&nbsp;CJump&nbsp;of&nbsp;expr&nbsp;*&nbsp;string&nbsp;*&nbsp;string</div>
+      <div id="line000040" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000040| &nbsp;&nbsp;|&nbsp;CJumpOne&nbsp;of&nbsp;expr&nbsp;*&nbsp;string</div>
+      <div id="line000041" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000041| &nbsp;&nbsp;|&nbsp;Jump&nbsp;of&nbsp;expr</div>
+      <div id="line000042" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000042| &nbsp;&nbsp;|&nbsp;Exp&nbsp;of&nbsp;expr</div>
+      <div id="line000043" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000043| &nbsp;&nbsp;|&nbsp;Label&nbsp;of&nbsp;string</div>
+      <div id="line000044" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000044| &nbsp;&nbsp;|&nbsp;Move&nbsp;of&nbsp;expr&nbsp;*&nbsp;expr</div>
+      <div id="line000045" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000045| &nbsp;&nbsp;|&nbsp;Seq&nbsp;of&nbsp;stmt&nbsp;list</div>
+      <div id="line000046" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000046| &nbsp;&nbsp;|&nbsp;Return</div>
+      <div id="line000047" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000047| &nbsp;</div>
+      <div id="line000048" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000048| and&nbsp;func_decl&nbsp;=&nbsp;string&nbsp;*&nbsp;stmt&nbsp;*&nbsp;(Expr.t&nbsp;*&nbsp;Expr.t)</div>
+      <div id="line000049" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000049| &nbsp;</div>
+      <div id="line000050" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000050| and&nbsp;comp_unit&nbsp;=&nbsp;string&nbsp;*&nbsp;func_decl&nbsp;String.Map.t</div>
+      <div id="line000051" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000051| &nbsp;</div>
+      <div id="line000052" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000052| (*&nbsp;abbreviations&nbsp;*)</div>
+      <div id="line000053" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000053| module&nbsp;Abbreviations&nbsp;=&nbsp;struct</div>
+      <div id="line000054" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000054| &nbsp;&nbsp;let&nbsp;call&nbsp;f&nbsp;args&nbsp;=&nbsp;(*[2]*)Call&nbsp;(f,&nbsp;args)</div>
+      <div id="line000055" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000055| &nbsp;&nbsp;let&nbsp;const&nbsp;n&nbsp;=&nbsp;(*[523]*)Const&nbsp;n</div>
+      <div id="line000056" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000056| &nbsp;&nbsp;let&nbsp;eseq&nbsp;s&nbsp;e&nbsp;=&nbsp;(*[14]*)ESeq&nbsp;(s,&nbsp;e)</div>
+      <div id="line000057" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000057| &nbsp;&nbsp;let&nbsp;mem&nbsp;?(typ=(*[39]*)NORMAL)&nbsp;e&nbsp;=&nbsp;(*[41]*)Mem&nbsp;(e,&nbsp;typ)</div>
+      <div id="line000058" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000058| &nbsp;&nbsp;let&nbsp;name&nbsp;s&nbsp;=&nbsp;(*[40]*)Name&nbsp;s</div>
+      <div id="line000059" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000059| &nbsp;&nbsp;let&nbsp;temp&nbsp;s&nbsp;=&nbsp;(*[885]*)Temp&nbsp;s</div>
+      <div id="line000060" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000060| &nbsp;</div>
+      <div id="line000061" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000061| &nbsp;&nbsp;let&nbsp;cjump&nbsp;b&nbsp;t&nbsp;f&nbsp;=&nbsp;(*[30]*)CJump&nbsp;(b,&nbsp;t,&nbsp;f)</div>
+      <div id="line000062" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000062| &nbsp;&nbsp;let&nbsp;cjumpone&nbsp;e&nbsp;l&nbsp;=&nbsp;(*[53]*)CJumpOne&nbsp;(e,&nbsp;l)</div>
+      <div id="line000063" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000063| &nbsp;&nbsp;let&nbsp;jump&nbsp;l&nbsp;=&nbsp;(*[58]*)Jump&nbsp;l</div>
+      <div id="line000064" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000064| &nbsp;&nbsp;let&nbsp;exp&nbsp;e&nbsp;=&nbsp;(*[145]*)Exp&nbsp;e</div>
+      <div id="line000065" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000065| &nbsp;&nbsp;let&nbsp;label&nbsp;s&nbsp;=&nbsp;(*[2]*)Label&nbsp;s</div>
+      <div id="line000066" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000066| &nbsp;&nbsp;let&nbsp;move&nbsp;x&nbsp;e&nbsp;=&nbsp;(*[280]*)Move&nbsp;(x,&nbsp;e)</div>
+      <div id="line000067" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;&nbsp;let&nbsp;seq&nbsp;ss&nbsp;=&nbsp;(*[18]*)Seq&nbsp;ss</div>
+      <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;let&nbsp;return&nbsp;=&nbsp;(*[3]*)Return</div>
+      <div id="line000069" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;</div>
+      <div id="line000070" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000070| &nbsp;&nbsp;let&nbsp;add_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[290]*)BinOp&nbsp;(lhs,&nbsp;ADD,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000071" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;let&nbsp;sub_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[59]*)BinOp&nbsp;(lhs,&nbsp;SUB,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000072" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000072| &nbsp;&nbsp;let&nbsp;mul_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[169]*)BinOp&nbsp;(lhs,&nbsp;MUL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000073" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000073| &nbsp;&nbsp;let&nbsp;hmul_&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[5]*)BinOp&nbsp;(lhs,&nbsp;HMUL,&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000074" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000074| &nbsp;&nbsp;let&nbsp;div_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[5]*)BinOp&nbsp;(lhs,&nbsp;DIV,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000075" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000075| &nbsp;&nbsp;let&nbsp;mod_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[7]*)BinOp&nbsp;(lhs,&nbsp;MOD,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000076" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000076| &nbsp;&nbsp;let&nbsp;and_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[11]*)BinOp&nbsp;(lhs,&nbsp;AND,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000077" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000077| &nbsp;&nbsp;let&nbsp;or_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[11]*)BinOp&nbsp;(lhs,&nbsp;OR,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000078" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000078| &nbsp;&nbsp;let&nbsp;xor_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[11]*)BinOp&nbsp;(lhs,&nbsp;XOR,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000079" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000079| &nbsp;&nbsp;let&nbsp;lshift_&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[8]*)BinOp&nbsp;(lhs,&nbsp;LSHIFT,&nbsp;&nbsp;rhs)</div>
+      <div id="line000080" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000080| &nbsp;&nbsp;let&nbsp;rshift_&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[8]*)BinOp&nbsp;(lhs,&nbsp;RSHIFT,&nbsp;&nbsp;rhs)</div>
+      <div id="line000081" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000081| &nbsp;&nbsp;let&nbsp;arshift_&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[8]*)BinOp&nbsp;(lhs,&nbsp;ARSHIFT,&nbsp;rhs)</div>
+      <div id="line000082" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000082| &nbsp;&nbsp;let&nbsp;eq_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[22]*)BinOp&nbsp;(lhs,&nbsp;EQ,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000083" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000083| &nbsp;&nbsp;let&nbsp;neq_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[21]*)BinOp&nbsp;(lhs,&nbsp;NEQ,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000084" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000084| &nbsp;&nbsp;let&nbsp;lt_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[21]*)BinOp&nbsp;(lhs,&nbsp;LT,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000085" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000085| &nbsp;&nbsp;let&nbsp;gt_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[21]*)BinOp&nbsp;(lhs,&nbsp;GT,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000086" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000086| &nbsp;&nbsp;let&nbsp;leq_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[21]*)BinOp&nbsp;(lhs,&nbsp;LEQ,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000087" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000087| &nbsp;&nbsp;let&nbsp;geq_&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lhs&nbsp;rhs&nbsp;=&nbsp;(*[21]*)BinOp&nbsp;(lhs,&nbsp;GEQ,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rhs)</div>
+      <div id="line000088" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;</div>
+      <div id="line000089" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000089| &nbsp;&nbsp;let&nbsp;zero&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;0L</div>
+      <div id="line000090" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000090| &nbsp;&nbsp;let&nbsp;one&nbsp;&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;1L</div>
+      <div id="line000091" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000091| &nbsp;&nbsp;let&nbsp;two&nbsp;&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;2L</div>
+      <div id="line000092" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000092| &nbsp;&nbsp;let&nbsp;three&nbsp;=&nbsp;(*[3]*)const&nbsp;3L</div>
+      <div id="line000093" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000093| &nbsp;&nbsp;let&nbsp;four&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;4L</div>
+      <div id="line000094" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000094| &nbsp;&nbsp;let&nbsp;five&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;5L</div>
+      <div id="line000095" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000095| &nbsp;&nbsp;let&nbsp;six&nbsp;&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;6L</div>
+      <div id="line000096" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000096| &nbsp;&nbsp;let&nbsp;seven&nbsp;=&nbsp;(*[3]*)const&nbsp;7L</div>
+      <div id="line000097" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000097| &nbsp;&nbsp;let&nbsp;eight&nbsp;=&nbsp;(*[3]*)const&nbsp;8L</div>
+      <div id="line000098" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000098| &nbsp;&nbsp;let&nbsp;nine&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;9L</div>
+      <div id="line000099" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000099| &nbsp;&nbsp;let&nbsp;ten&nbsp;&nbsp;&nbsp;=&nbsp;(*[3]*)const&nbsp;10L</div>
+      <div id="line000100" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000100| end</div>
+      <div id="line000101" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000101| &nbsp;</div>
+      <div id="line000102" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000102| module&nbsp;Infix&nbsp;=&nbsp;struct</div>
+      <div id="line000103" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000103| &nbsp;&nbsp;let&nbsp;(&nbsp;+&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.add_</div>
+      <div id="line000104" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000104| &nbsp;&nbsp;let&nbsp;(&nbsp;-&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.sub_</div>
+      <div id="line000105" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000105| &nbsp;&nbsp;let&nbsp;(&nbsp;*&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.mul_</div>
+      <div id="line000106" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000106| &nbsp;&nbsp;let&nbsp;(&nbsp;*&gt;&gt;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.hmul_</div>
+      <div id="line000107" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000107| &nbsp;&nbsp;let&nbsp;(&nbsp;/&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.div_</div>
+      <div id="line000108" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000108| &nbsp;&nbsp;let&nbsp;(&nbsp;%&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.mod_</div>
+      <div id="line000109" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000109| &nbsp;&nbsp;let&nbsp;(&nbsp;&amp;&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.and_</div>
+      <div id="line000110" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000110| &nbsp;&nbsp;let&nbsp;(&nbsp;||&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.or_</div>
+      <div id="line000111" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000111| &nbsp;&nbsp;let&nbsp;(&nbsp;^&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.xor_</div>
+      <div id="line000112" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000112| &nbsp;&nbsp;let&nbsp;(&nbsp;&lt;&lt;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.lshift_</div>
+      <div id="line000113" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000113| &nbsp;&nbsp;let&nbsp;(&nbsp;&gt;&gt;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.rshift_</div>
+      <div id="line000114" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000114| &nbsp;&nbsp;let&nbsp;(&nbsp;&gt;&gt;&gt;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.arshift_</div>
+      <div id="line000115" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000115| &nbsp;&nbsp;let&nbsp;(&nbsp;==&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.eq_</div>
+      <div id="line000116" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000116| &nbsp;&nbsp;let&nbsp;(&nbsp;!=&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.neq_</div>
+      <div id="line000117" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000117| &nbsp;&nbsp;let&nbsp;(&nbsp;&lt;&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.lt_</div>
+      <div id="line000118" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000118| &nbsp;&nbsp;let&nbsp;(&nbsp;&gt;&nbsp;&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.gt_</div>
+      <div id="line000119" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000119| &nbsp;&nbsp;let&nbsp;(&nbsp;&lt;=&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.leq_</div>
+      <div id="line000120" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000120| &nbsp;&nbsp;let&nbsp;(&nbsp;&gt;=&nbsp;&nbsp;)&nbsp;=&nbsp;(*[3]*)Abbreviations.geq_</div>
+      <div id="line000121" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000121| end</div>
+      <div id="line000122" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000122| &nbsp;</div>
+      <div id="line000123" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000123| (*&nbsp;pretty&nbsp;printing&nbsp;*)</div>
+      <div id="line000124" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000124| let&nbsp;string_of_binop_code&nbsp;=&nbsp;(*[3]*)function</div>
+      <div id="line000125" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000125| &nbsp;&nbsp;|&nbsp;(*[107]*)ADD&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;+&quot;</div>
+      <div id="line000126" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000126| &nbsp;&nbsp;|&nbsp;(*[11]*)SUB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;-&quot;</div>
+      <div id="line000127" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;&nbsp;|&nbsp;(*[1]*)MUL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;*&quot;</div>
+      <div id="line000128" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000128| &nbsp;&nbsp;|&nbsp;(*[1]*)HMUL&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;*&gt;&gt;&quot;</div>
+      <div id="line000129" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000129| &nbsp;&nbsp;|&nbsp;(*[1]*)DIV&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;/&quot;</div>
+      <div id="line000130" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000130| &nbsp;&nbsp;|&nbsp;(*[9]*)MOD&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;%&quot;</div>
+      <div id="line000131" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000131| &nbsp;&nbsp;|&nbsp;(*[3]*)AND&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;&amp;&quot;</div>
+      <div id="line000132" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000132| &nbsp;&nbsp;|&nbsp;(*[7]*)OR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;|&quot;</div>
+      <div id="line000133" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000133| &nbsp;&nbsp;|&nbsp;(*[1]*)XOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;^&quot;</div>
+      <div id="line000134" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000134| &nbsp;&nbsp;|&nbsp;(*[1]*)LSHIFT&nbsp;&nbsp;-&gt;&nbsp;&quot;&lt;&lt;&quot;</div>
+      <div id="line000135" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000135| &nbsp;&nbsp;|&nbsp;(*[1]*)RSHIFT&nbsp;&nbsp;-&gt;&nbsp;&quot;&gt;&gt;&quot;</div>
+      <div id="line000136" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;&nbsp;|&nbsp;(*[1]*)ARSHIFT&nbsp;-&gt;&nbsp;&quot;&gt;&gt;&gt;&quot;</div>
+      <div id="line000137" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;|&nbsp;(*[3]*)EQ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;==&quot;</div>
+      <div id="line000138" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;|&nbsp;(*[1]*)NEQ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;!=&quot;</div>
+      <div id="line000139" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000139| &nbsp;&nbsp;|&nbsp;(*[1]*)LT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;&lt;&quot;</div>
+      <div id="line000140" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000140| &nbsp;&nbsp;|&nbsp;(*[1]*)GT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;&gt;&quot;</div>
+      <div id="line000141" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000141| &nbsp;&nbsp;|&nbsp;(*[1]*)LEQ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;&lt;=&quot;</div>
+      <div id="line000142" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000142| &nbsp;&nbsp;|&nbsp;(*[1]*)GEQ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt;&nbsp;&quot;&gt;=&quot;</div>
+      <div id="line000143" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;</div>
+      <div id="line000144" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000144| let&nbsp;rec&nbsp;string_of_expr&nbsp;e&nbsp;=</div>
+      <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;(*[1944]*)let&nbsp;sob&nbsp;=&nbsp;(*[1944]*)string_of_binop_code&nbsp;in</div>
+      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;(*[1944]*)let&nbsp;soe&nbsp;=&nbsp;(*[1944]*)string_of_expr&nbsp;in</div>
+      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;(*[1944]*)let&nbsp;sos&nbsp;=&nbsp;(*[1944]*)string_of_stmt&nbsp;in</div>
+      <div id="line000148" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000148| &nbsp;&nbsp;(*[1944]*)match&nbsp;e&nbsp;with</div>
+      <div id="line000149" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000149| &nbsp;&nbsp;|&nbsp;(*[152]*)BinOp&nbsp;(lhs,&nbsp;o,&nbsp;rhs)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;%s%s%s&quot;&nbsp;(soe&nbsp;lhs)&nbsp;(sob&nbsp;o)&nbsp;(soe&nbsp;rhs)</div>
+      <div id="line000150" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000150| &nbsp;&nbsp;|&nbsp;(*[32]*)Call&nbsp;(f,&nbsp;args)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;%s(%s)&quot;&nbsp;(soe&nbsp;f)&nbsp;(Util.commas&nbsp;(List.map&nbsp;~f:soe&nbsp;args))</div>
+      <div id="line000151" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000151| &nbsp;&nbsp;|&nbsp;(*[964]*)Const&nbsp;i&nbsp;-&gt;&nbsp;Int64.to_string&nbsp;i</div>
+      <div id="line000152" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000152| &nbsp;&nbsp;|&nbsp;(*[28]*)ESeq&nbsp;(s,&nbsp;e)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;(%s;%s)&quot;&nbsp;(sos&nbsp;s)&nbsp;(soe&nbsp;e)</div>
+      <div id="line000153" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;&nbsp;|&nbsp;(*[82]*)Mem&nbsp;(e,&nbsp;_)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;mem&nbsp;%s&quot;&nbsp;(soe&nbsp;e)</div>
+      <div id="line000154" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000154| &nbsp;&nbsp;|&nbsp;(*[74]*)Name&nbsp;s&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;name&nbsp;%s&quot;&nbsp;s</div>
+      <div id="line000155" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;|&nbsp;(*[612]*)Temp&nbsp;t&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;temp&nbsp;%s&quot;&nbsp;t</div>
+      <div id="line000156" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000156| &nbsp;</div>
+      <div id="line000157" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000157| and&nbsp;string_of_stmt&nbsp;s&nbsp;=</div>
+      <div id="line000158" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000158| &nbsp;&nbsp;(*[596]*)let&nbsp;soe&nbsp;=&nbsp;(*[596]*)string_of_expr&nbsp;in</div>
+      <div id="line000159" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;(*[596]*)let&nbsp;sos&nbsp;=&nbsp;(*[596]*)string_of_stmt&nbsp;in</div>
+      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;(*[596]*)match&nbsp;s&nbsp;with</div>
+      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;|&nbsp;(*[50]*)CJump&nbsp;(e,&nbsp;t,&nbsp;f)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;cjump&nbsp;%s&nbsp;%s&nbsp;%s&quot;&nbsp;(soe&nbsp;e)&nbsp;t&nbsp;f</div>
+      <div id="line000162" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000162| &nbsp;&nbsp;|&nbsp;(*[27]*)CJumpOne&nbsp;(e,&nbsp;l)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;cjump&nbsp;%s&nbsp;%s&quot;&nbsp;(soe&nbsp;e)&nbsp;l</div>
+      <div id="line000163" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000163| &nbsp;&nbsp;|&nbsp;(*[62]*)Jump&nbsp;e&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;jump&nbsp;%s&quot;&nbsp;(soe&nbsp;e)</div>
+      <div id="line000164" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000164| &nbsp;&nbsp;|&nbsp;(*[153]*)Exp&nbsp;e&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;%s&quot;&nbsp;(soe&nbsp;e)</div>
+      <div id="line000165" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000165| &nbsp;&nbsp;|&nbsp;(*[4]*)Label&nbsp;l&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;%s:&quot;&nbsp;l</div>
+      <div id="line000166" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000166| &nbsp;&nbsp;|&nbsp;(*[140]*)Move&nbsp;(lhs,&nbsp;rhs)&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;%s:=%s&quot;&nbsp;(soe&nbsp;lhs)&nbsp;(soe&nbsp;rhs)</div>
+      <div id="line000167" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000167| &nbsp;&nbsp;|&nbsp;(*[43]*)Seq&nbsp;ss&nbsp;-&gt;&nbsp;sprintf&nbsp;&quot;(%s)&quot;&nbsp;(String.concat&nbsp;~sep:&quot;;&quot;&nbsp;(List.map&nbsp;~f:sos&nbsp;ss))</div>
+      <div id="line000168" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000168| &nbsp;&nbsp;|&nbsp;(*[117]*)Return&nbsp;-&gt;&nbsp;&quot;return&quot;</div>
+      <div id="line000169" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;</div>
+      <div id="line000170" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000170| let&nbsp;string_of_stmts&nbsp;ss&nbsp;=</div>
+      <div id="line000171" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000171| &nbsp;&nbsp;(*[28]*)String.concat&nbsp;~sep:&quot;;&quot;&nbsp;(List.map&nbsp;~f:string_of_stmt&nbsp;ss)</div>
       </div>
     </code>
     <br/>
     <div id="navigator" style="border: solid black 1px; position: fixed; z-index:100; right: 10px; top: 10px; bottom: 10px; width: 16px;">
       <table width="100%" height="100%" border="0" cellspacing="0">
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -90,6 +408,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:42:21</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:57:56</p>
   </body>
 </html>

@@ -1,3 +1,5 @@
+open Cfg
+
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
@@ -10,18 +12,18 @@ module type LowerSemilattice = sig
   val ( === ) : data -> data -> bool
 end
 
-module CFGWithLattice(CFG: ControlFlowGraph, Data: LowerSemilattice) = struct
-  include Data
-  include CFG
+module type CFGWithLatticeT = sig
+  include LowerSemilattice
+  include ControlFlowGraph
 
-  type graph = CFG.t
-  type node = CFG.V.t
+  type graph = t
+  type node = V.t
 
-  (* transfer function f_n for a given node n *)
-  val transfer : node -> Data.data -> Data.data
+  val transfer : node -> data -> data
 end
 
-module ForwardAnalysis(CFGL: CFGWithLattice) = struct
+module ForwardAnalysis
+  (CFGL: CFGWithLatticeT) = struct
   open CFGL
 
   let iterative (cfg: graph) : (node * data) list = 
@@ -44,8 +46,8 @@ module ForwardAnalysis(CFGL: CFGWithLattice) = struct
         | Some pred_meet -> transfer n pred_meet in
       let v_changed = datum === datum' in
       if v_changed then
-        Hashtbl.replace tbl n datum'; true
-      else changed
+        begin Hashtbl.replace table n datum'; true end
+      else changed in
 
     let rec iterate () : (node * data) list =
       (* has the data for the CFG nodes changed? *)
@@ -53,5 +55,7 @@ module ForwardAnalysis(CFGL: CFGWithLattice) = struct
         iterate ()
       else
         let f node data acclist = (node, data) :: acclist in
-        Hashtbl.fold f table []
+        Hashtbl.fold f table [] in
+
+    iterate ()
 end

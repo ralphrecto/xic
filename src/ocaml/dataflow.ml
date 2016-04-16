@@ -22,9 +22,15 @@ module type CFGWithLatticeT = sig
   val transfer : node -> data -> data
 end
 
-module ForwardAnalysis
+module GenericAnalysis
+  (Config: sig val direction : [`Forward | `Backward] end)
   (CFGL: CFGWithLatticeT) = struct
   open CFGL
+
+  let neighbor_fold =
+    match Config.direction with
+    | `Forward -> fold_pred
+    | `Backward -> fold_succ 
 
   let iterative (cfg: graph) : (node * data) list = 
     (* initializations *)
@@ -34,16 +40,16 @@ module ForwardAnalysis
     let vertex_foldf (n: node) (changed : bool) =  
       let datum = Hashtbl.find table n in
       let datum' = 
-        let pred_foldf (n_pred: node) (d: data option) =
+        let neighbor_foldf (n_neighbor: node) (d: data option) =
           (* return None if no predecessors, otherwise take meet *)
-          let pred_datum = Hashtbl.find table n_pred in
+          let neighbor_datum = Hashtbl.find table n_neighbor in
           match d with
-          | None -> Some pred_datum
-          | Some d' -> Some (pred_datum ** d') in
+          | None -> Some neighbor_datum
+          | Some d' -> Some (neighbor_datum ** d') in
         (* if None, there are no predecessors; keep datum same *)
-        match fold_pred pred_foldf cfg n None with
+        match neighbor_fold neighbor_foldf cfg n None with
         | None -> datum
-        | Some pred_meet -> transfer n pred_meet in
+        | Some neighbor_meet -> transfer n neighbor_meet in
       let v_changed = datum === datum' in
       if v_changed then
         begin Hashtbl.replace table n datum'; true end
@@ -59,3 +65,9 @@ module ForwardAnalysis
 
     iterate ()
 end
+
+module ForwardAnalysis (CFGL: CFGWithLatticeT) =
+  GenericAnalysis (struct let direction = `Forward end) (CFGL)
+
+module BackwardAnalysis (CFGL: CFGWithLatticeT) =
+  GenericAnalysis (struct let direction = `Backward end) (CFGL)

@@ -23,12 +23,12 @@
           <table class="simple">
             <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
             <tr><td>binding</td><td width="16px">&nbsp;</td><td>2 / 2 (100%)</td></tr>
-            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>15 / 74 (20%)</td></tr>
+            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>39 / 74 (52%)</td></tr>
             <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>11 / 28 (39%)</td></tr>
+            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>20 / 28 (71%)</td></tr>
             <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>4 / 20 (20%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>10 / 20 (50%)</td></tr>
           </table>
         </td>
         <td valign="top">
@@ -39,7 +39,7 @@
             <tr><td>class method</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>class value</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>toplevel expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>lazy operator</td><td width="16px">&nbsp;</td><td>1 / 2 (50%)</td></tr>
+            <tr><td>lazy operator</td><td width="16px">&nbsp;</td><td>2 / 2 (100%)</td></tr>
           </table>
         </td>
       </tr>
@@ -115,7 +115,7 @@
       <div id="fold000050">
       <div id="line000050" class="lineNone"><a href="javascript:fold('fold000050');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000050| &nbsp;&nbsp;&nbsp;~init:[]&nbsp;interfaces</div>
       <div id="line000051" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000051| &nbsp;</div>
-      <div id="line000052" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000052| let&nbsp;(&nbsp;$&nbsp;)&nbsp;=&nbsp;(*[1]*)Fn.compose</div>
+      <div id="line000052" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000052| let&nbsp;(&nbsp;$&nbsp;)&nbsp;=&nbsp;(*[36]*)Fn.compose</div>
       <div id="line000053" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000053| &nbsp;</div>
       <div id="line000054" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000054| (*&nbsp;actual&nbsp;compiler&nbsp;options&nbsp;*)</div>
       <div id="line000055" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000055| let&nbsp;typecheck&nbsp;(ast:&nbsp;Pos.full_prog)&nbsp;:&nbsp;Typecheck.full_prog&nbsp;Error.result&nbsp;=</div>
@@ -123,17 +123,13 @@
       <div id="line000057" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000057| &nbsp;</div>
       <div id="line000058" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000058| let&nbsp;ir_gen&nbsp;(ast:&nbsp;Pos.full_prog)&nbsp;:&nbsp;Ir.comp_unit&nbsp;Error.result&nbsp;=</div>
       <div id="line000059" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000059| &nbsp;&nbsp;let&nbsp;f&nbsp;=</div>
-      </div>
-      <div id="line000060" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000060| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)block_reorder_comp_unit&nbsp;$</div>
-      <div id="fold000061">
-      <div id="line000061" class="lineNone"><a href="javascript:fold('fold000061');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000061| &nbsp;&nbsp;&nbsp;&nbsp;lower_comp_unit&nbsp;$</div>
+      <div id="line000060" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000060| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)block_reorder_comp_unit&nbsp;$</div>
+      <div id="line000061" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000061| &nbsp;&nbsp;&nbsp;&nbsp;lower_comp_unit&nbsp;$</div>
       <div id="line000062" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000062| &nbsp;&nbsp;&nbsp;&nbsp;ir_constant_folding&nbsp;$</div>
       <div id="line000063" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000063| &nbsp;&nbsp;&nbsp;&nbsp;gen_comp_unit&nbsp;$</div>
       <div id="line000064" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000064| &nbsp;&nbsp;&nbsp;&nbsp;ast_constant_folding&nbsp;in</div>
-      </div>
-      <div id="line000065" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000065| &nbsp;&nbsp;(*[0]*)Result.map&nbsp;(typecheck&nbsp;ast)&nbsp;~f</div>
-      <div id="fold000066">
-      <div id="line000066" class="lineNone"><a href="javascript:fold('fold000066');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000066| &nbsp;</div>
+      <div id="line000065" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000065| &nbsp;&nbsp;(*[5]*)Result.map&nbsp;(typecheck&nbsp;ast)&nbsp;~f</div>
+      <div id="line000066" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000066| &nbsp;</div>
       <div id="line000067" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000067| let&nbsp;ir_gen_no_opt&nbsp;(ast:&nbsp;Pos.full_prog)&nbsp;:&nbsp;Ir.comp_unit&nbsp;Error.result&nbsp;=</div>
       </div>
       <div id="line000068" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000068| &nbsp;&nbsp;let&nbsp;f&nbsp;=&nbsp;(*[0]*)block_reorder_comp_unit&nbsp;$&nbsp;lower_comp_unit&nbsp;$&nbsp;gen_comp_unit&nbsp;in</div>
@@ -145,20 +141,18 @@
       <div id="line000073" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000073| &nbsp;&nbsp;(chomp:&nbsp;bool)</div>
       <div id="line000074" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000074| &nbsp;&nbsp;(ast:&nbsp;Pos.full_prog)&nbsp;:&nbsp;Asm.asm_prog&nbsp;Error.result&nbsp;=</div>
       <div id="line000075" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000075| &nbsp;&nbsp;let&nbsp;f&nbsp;=</div>
-      </div>
-      <div id="line000076" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000076| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)block_reorder_comp_unit&nbsp;$</div>
-      <div id="fold000077">
-      <div id="line000077" class="lineNone"><a href="javascript:fold('fold000077');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000077| &nbsp;&nbsp;&nbsp;&nbsp;lower_comp_unit&nbsp;$</div>
+      <div id="line000076" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000076| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)block_reorder_comp_unit&nbsp;$</div>
+      <div id="line000077" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000077| &nbsp;&nbsp;&nbsp;&nbsp;lower_comp_unit&nbsp;$</div>
       <div id="line000078" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000078| &nbsp;&nbsp;&nbsp;&nbsp;ir_constant_folding&nbsp;$</div>
       <div id="line000079" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000079| &nbsp;&nbsp;&nbsp;&nbsp;gen_comp_unit&nbsp;$</div>
       <div id="line000080" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000080| &nbsp;&nbsp;&nbsp;&nbsp;ast_constant_folding&nbsp;in</div>
+      <div id="line000081" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000081| &nbsp;&nbsp;(*[5]*)Result.bind&nbsp;(typecheck&nbsp;ast)&nbsp;begin&nbsp;fun&nbsp;fullprog&nbsp;-&gt;</div>
+      <div id="line000082" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000082| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)let&nbsp;comp_unit&nbsp;=&nbsp;(*[5]*)f&nbsp;fullprog&nbsp;in</div>
       </div>
-      <div id="line000081" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000081| &nbsp;&nbsp;(*[0]*)Result.bind&nbsp;(typecheck&nbsp;ast)&nbsp;begin&nbsp;fun&nbsp;fullprog&nbsp;-&gt;</div>
-      <div id="line000082" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000082| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;comp_unit&nbsp;=&nbsp;(*[0]*)f&nbsp;fullprog&nbsp;in</div>
-      <div id="line000083" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000083| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;asm_eat&nbsp;=&nbsp;(*[0]*)if&nbsp;chomp&nbsp;then&nbsp;(*[0]*)asm_chomp&nbsp;else&nbsp;(*[0]*)asm_munch&nbsp;in</div>
-      <div id="line000084" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000084| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)Ok&nbsp;(asm_eat&nbsp;~debug:debug&nbsp;fullprog&nbsp;comp_unit)</div>
-      <div id="fold000085">
-      <div id="line000085" class="lineNone"><a href="javascript:fold('fold000085');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000085| &nbsp;&nbsp;end</div>
+      <div id="line000083" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000083| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)let&nbsp;asm_eat&nbsp;=&nbsp;(*[5]*)if&nbsp;chomp&nbsp;then&nbsp;(*[5]*)asm_chomp&nbsp;else&nbsp;(*[0]*)asm_munch&nbsp;in</div>
+      <div id="fold000084">
+      <div id="line000084" class="lineAllVisited"><a href="javascript:fold('fold000084');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000084| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)Ok&nbsp;(asm_eat&nbsp;~debug:debug&nbsp;fullprog&nbsp;comp_unit)</div>
+      <div id="line000085" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000085| &nbsp;&nbsp;end</div>
       <div id="line000086" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000086| &nbsp;</div>
       <div id="line000087" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000087| let&nbsp;asm_gen_no_opt</div>
       <div id="line000088" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;&nbsp;(debug:&nbsp;bool)</div>
@@ -196,104 +190,84 @@
       <div id="line000118" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000118| &nbsp;&nbsp;(tcf:&nbsp;Pos.full_prog&nbsp;-&gt;&nbsp;'a&nbsp;Error.result)</div>
       <div id="line000119" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000119| &nbsp;&nbsp;(strf:&nbsp;'a&nbsp;-&gt;&nbsp;string)</div>
       <div id="line000120" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000120| &nbsp;&nbsp;(asts:&nbsp;Pos.full_prog&nbsp;list)&nbsp;=</div>
-      <div id="line000121" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000121| &nbsp;&nbsp;(*[1]*)let&nbsp;f&nbsp;(Ast.S.FullProg&nbsp;(name,&nbsp;prog,&nbsp;interfaces))&nbsp;=</div>
+      <div id="line000121" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000121| &nbsp;&nbsp;(*[36]*)let&nbsp;f&nbsp;(Ast.S.FullProg&nbsp;(name,&nbsp;prog,&nbsp;interfaces))&nbsp;=</div>
+      <div id="line000122" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000122| &nbsp;&nbsp;&nbsp;&nbsp;(*[35]*)match&nbsp;tcf&nbsp;(Ast.S.FullProg&nbsp;(name,&nbsp;prog,&nbsp;interfaces))&nbsp;with</div>
+      <div id="line000123" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000123| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[35]*)Ok&nbsp;el&nbsp;-&gt;&nbsp;strf&nbsp;el</div>
       </div>
-      <div id="line000122" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000122| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)match&nbsp;tcf&nbsp;(Ast.S.FullProg&nbsp;(name,&nbsp;prog,&nbsp;interfaces))&nbsp;with</div>
-      <div id="line000123" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000123| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Ok&nbsp;el&nbsp;-&gt;&nbsp;strf&nbsp;el</div>
       <div id="line000124" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000124| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Error&nbsp;((row,&nbsp;col),&nbsp;msg)&nbsp;-&gt;</div>
       <div id="line000125" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000125| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;row_s&nbsp;=&nbsp;(*[0]*)string_of_int&nbsp;row&nbsp;in</div>
       <div id="line000126" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000126| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;col_s&nbsp;=&nbsp;(*[0]*)string_of_int&nbsp;col&nbsp;in</div>
       <div id="line000127" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000127| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)Print.print_endline&nbsp;(format_err_print&nbsp;name&nbsp;row_s&nbsp;col_s&nbsp;msg);</div>
       <div id="line000128" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000128| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)format_err_output&nbsp;row_s&nbsp;col_s&nbsp;msg&nbsp;in</div>
       <div id="fold000129">
-      <div id="line000129" class="lineAllVisited"><a href="javascript:fold('fold000129');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000129| &nbsp;&nbsp;(*[1]*)List.map&nbsp;~f&nbsp;asts</div>
+      <div id="line000129" class="lineAllVisited"><a href="javascript:fold('fold000129');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000129| &nbsp;&nbsp;(*[36]*)List.map&nbsp;~f&nbsp;asts</div>
       <div id="line000130" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000130| &nbsp;</div>
       <div id="line000131" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000131| let&nbsp;writes&nbsp;(outs:&nbsp;string&nbsp;list)&nbsp;(content_list:&nbsp;string&nbsp;list)&nbsp;=</div>
-      <div id="line000132" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000132| &nbsp;&nbsp;(*[1]*)let&nbsp;zipped&nbsp;=&nbsp;(*[1]*)List.zip_exn&nbsp;outs&nbsp;content_list&nbsp;in</div>
-      </div>
-      <div id="line000133" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000133| &nbsp;&nbsp;(*[1]*)Deferred.List.iter&nbsp;~f:(fun&nbsp;(out,&nbsp;contents)&nbsp;-&gt;&nbsp;(*[0]*)Writer.save&nbsp;out&nbsp;~contents)&nbsp;zipped</div>
-      <div id="fold000134">
-      <div id="line000134" class="lineNone"><a href="javascript:fold('fold000134');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000134| &nbsp;</div>
+      <div id="line000132" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000132| &nbsp;&nbsp;(*[36]*)let&nbsp;zipped&nbsp;=&nbsp;(*[36]*)List.zip_exn&nbsp;outs&nbsp;content_list&nbsp;in</div>
+      <div id="line000133" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000133| &nbsp;&nbsp;(*[36]*)Deferred.List.iter&nbsp;~f:(fun&nbsp;(out,&nbsp;contents)&nbsp;-&gt;&nbsp;(*[35]*)Writer.save&nbsp;out&nbsp;~contents)&nbsp;zipped</div>
+      <div id="line000134" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000134| &nbsp;</div>
       <div id="line000135" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000135| let&nbsp;get_asts&nbsp;(astfiles:&nbsp;string&nbsp;list)&nbsp;:&nbsp;(Pos.full_prog&nbsp;list)&nbsp;Deferred.t&nbsp;=</div>
-      </div>
-      <div id="line000136" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000136| &nbsp;&nbsp;let&nbsp;f&nbsp;astfile&nbsp;=&nbsp;(*[0]*)Reader.load_sexp_exn&nbsp;astfile&nbsp;Pos.full_prog_of_sexp&nbsp;in</div>
-      <div id="fold000137">
-      <div id="line000137" class="lineAllVisited"><a href="javascript:fold('fold000137');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000137| &nbsp;&nbsp;(*[1]*)Deferred.List.map&nbsp;~f&nbsp;astfiles</div>
+      <div id="line000136" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;&nbsp;let&nbsp;f&nbsp;astfile&nbsp;=&nbsp;(*[35]*)Reader.load_sexp_exn&nbsp;astfile&nbsp;Pos.full_prog_of_sexp&nbsp;in</div>
+      <div id="line000137" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;(*[36]*)Deferred.List.map&nbsp;~f&nbsp;astfiles</div>
       <div id="line000138" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;</div>
       <div id="line000139" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000139| let&nbsp;main&nbsp;flags&nbsp;()&nbsp;:&nbsp;unit&nbsp;Deferred.t&nbsp;=</div>
       <div id="line000140" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000140| &nbsp;&nbsp;(*&nbsp;parse&nbsp;the&nbsp;asts&nbsp;*)</div>
       <div id="line000141" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000141| &nbsp;&nbsp;get_asts&nbsp;flags.astfiles&nbsp;&gt;&gt;=&nbsp;fun&nbsp;asts&nbsp;-&gt;</div>
       <div id="line000142" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000142| &nbsp;</div>
       <div id="line000143" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;&nbsp;(*&nbsp;functions&nbsp;to&nbsp;turn&nbsp;representations&nbsp;into&nbsp;strings&nbsp;*)</div>
-      </div>
-      <div id="line000144" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000144| &nbsp;&nbsp;(*[1]*)let&nbsp;typed_strf&nbsp;=&nbsp;(*[1]*)fun&nbsp;_&nbsp;-&gt;&nbsp;(*[0]*)&quot;Valid&nbsp;Xi&nbsp;Program&quot;&nbsp;in</div>
-      <div id="fold000145">
-      <div id="line000145" class="lineAllVisited"><a href="javascript:fold('fold000145');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000145| &nbsp;&nbsp;(*[1]*)let&nbsp;typed_debug_strf&nbsp;(FullProg&nbsp;(_,&nbsp;prog,&nbsp;_):&nbsp;Typecheck.full_prog)&nbsp;:&nbsp;string&nbsp;=</div>
+      <div id="line000144" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000144| &nbsp;&nbsp;(*[36]*)let&nbsp;typed_strf&nbsp;=&nbsp;(*[36]*)fun&nbsp;_&nbsp;-&gt;&nbsp;(*[1]*)&quot;Valid&nbsp;Xi&nbsp;Program&quot;&nbsp;in</div>
+      <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;(*[36]*)let&nbsp;typed_debug_strf&nbsp;(FullProg&nbsp;(_,&nbsp;prog,&nbsp;_):&nbsp;Typecheck.full_prog)&nbsp;:&nbsp;string&nbsp;=</div>
       <div id="line000146" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;&nbsp;&nbsp;prog&nbsp;|&gt;&nbsp;Typecheck.sexp_of_prog&nbsp;|&gt;&nbsp;Sexp.to_string&nbsp;in</div>
-      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;(*[1]*)let&nbsp;ir_strf&nbsp;=&nbsp;(*[1]*)sexp_of_comp_unit&nbsp;in</div>
+      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;(*[36]*)let&nbsp;ir_strf&nbsp;=&nbsp;(*[36]*)sexp_of_comp_unit&nbsp;in</div>
       <div id="line000148" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000148| &nbsp;</div>
       <div id="line000149" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000149| &nbsp;&nbsp;(*&nbsp;dispatch&nbsp;logic&nbsp;*)</div>
-      <div id="line000150" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000150| &nbsp;&nbsp;(*[1]*)if&nbsp;flags.typecheck&nbsp;then</div>
-      </div>
-      <div id="line000151" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000151| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;typecheck&nbsp;typed_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000152" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000152| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000153">
-      <div id="line000153" class="lineAllVisited"><a href="javascript:fold('fold000153');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000153| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.tcdebug&nbsp;then</div>
-      </div>
-      <div id="line000154" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000154| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;typecheck&nbsp;typed_debug_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000155" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000155| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000156">
-      <div id="line000156" class="lineAllVisited"><a href="javascript:fold('fold000156');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000156| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.ast_cfold&nbsp;then</div>
-      </div>
-      <div id="line000157" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000157| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ast_cfold&nbsp;typed_debug_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000158" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000158| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000159">
-      <div id="line000159" class="lineAllVisited"><a href="javascript:fold('fold000159');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000159| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.basicir&nbsp;then</div>
-      </div>
-      <div id="line000160" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ir_basic&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000161" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000162">
-      <div id="line000162" class="lineAllVisited"><a href="javascript:fold('fold000162');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000162| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.ir_acfold&nbsp;then</div>
-      </div>
-      <div id="line000163" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000163| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ir_astcfold&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000164" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000164| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000165">
-      <div id="line000165" class="lineAllVisited"><a href="javascript:fold('fold000165');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000165| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.ir_cfold&nbsp;then</div>
-      </div>
-      <div id="line000166" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000166| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ir_cfold&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000167" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000167| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000168">
-      <div id="line000168" class="lineAllVisited"><a href="javascript:fold('fold000168');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000168| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.lower&nbsp;then</div>
-      </div>
-      <div id="line000169" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000169| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ir_lower&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000170" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000170| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000171">
-      <div id="line000171" class="lineAllVisited"><a href="javascript:fold('fold000171');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000171| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.blkreorder&nbsp;then</div>
+      <div id="line000150" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000150| &nbsp;&nbsp;(*[36]*)if&nbsp;flags.typecheck&nbsp;then</div>
+      <div id="line000151" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000151| &nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)let&nbsp;contents&nbsp;=&nbsp;(*[1]*)asts_to_strs&nbsp;typecheck&nbsp;typed_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000152" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000152| &nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000153" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;&nbsp;else&nbsp;(*[35]*)if&nbsp;flags.tcdebug&nbsp;then</div>
+      <div id="line000154" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000154| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;typecheck&nbsp;typed_debug_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000155" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000156" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000156| &nbsp;&nbsp;else&nbsp;(*[31]*)if&nbsp;flags.ast_cfold&nbsp;then</div>
+      <div id="line000157" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000157| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;debug_ast_cfold&nbsp;typed_debug_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000158" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000158| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000159" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;else&nbsp;(*[27]*)if&nbsp;flags.basicir&nbsp;then</div>
+      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;debug_ir_basic&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000162" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000162| &nbsp;&nbsp;else&nbsp;(*[23]*)if&nbsp;flags.ir_acfold&nbsp;then</div>
+      <div id="line000163" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000163| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;debug_ir_astcfold&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000164" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000164| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000165" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000165| &nbsp;&nbsp;else&nbsp;(*[19]*)if&nbsp;flags.ir_cfold&nbsp;then</div>
+      <div id="line000166" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000166| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;debug_ir_cfold&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000167" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000167| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000168" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000168| &nbsp;&nbsp;else&nbsp;(*[15]*)if&nbsp;flags.lower&nbsp;then</div>
+      <div id="line000169" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;contents&nbsp;=&nbsp;(*[4]*)asts_to_strs&nbsp;debug_ir_lower&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000170" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000170| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000171" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000171| &nbsp;&nbsp;else&nbsp;(*[11]*)if&nbsp;flags.blkreorder&nbsp;then</div>
       </div>
       <div id="line000172" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000172| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;debug_ir_blkreorder&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
       <div id="line000173" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000173| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="line000174" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000174| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;(*[1]*)flags.irgen&nbsp;&amp;&amp;&nbsp;(*[0]*)flags.no_opt&nbsp;then</div>
+      <div id="fold000174">
+      <div id="line000174" class="lineAllVisited"><a href="javascript:fold('fold000174');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000174| &nbsp;&nbsp;else&nbsp;(*[11]*)if&nbsp;(*[11]*)flags.irgen&nbsp;&amp;&amp;&nbsp;(*[5]*)flags.no_opt&nbsp;then</div>
+      </div>
       <div id="line000175" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000175| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;ir_gen_no_opt&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
       <div id="line000176" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000176| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
       <div id="fold000177">
-      <div id="line000177" class="lineAllVisited"><a href="javascript:fold('fold000177');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000177| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.irgen&nbsp;then</div>
-      </div>
-      <div id="line000178" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000178| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;ir_gen&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
-      <div id="line000179" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000179| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
-      <div id="fold000180">
-      <div id="line000180" class="lineAllVisited"><a href="javascript:fold('fold000180');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000180| &nbsp;&nbsp;else&nbsp;(*[1]*)if&nbsp;flags.no_opt&nbsp;then</div>
+      <div id="line000177" class="lineAllVisited"><a href="javascript:fold('fold000177');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000177| &nbsp;&nbsp;else&nbsp;(*[11]*)if&nbsp;flags.irgen&nbsp;then</div>
+      <div id="line000178" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000178| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)let&nbsp;contents&nbsp;=&nbsp;(*[5]*)asts_to_strs&nbsp;ir_gen&nbsp;ir_strf&nbsp;asts&nbsp;in</div>
+      <div id="line000179" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000179| &nbsp;&nbsp;&nbsp;&nbsp;(*[5]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000180" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000180| &nbsp;&nbsp;else&nbsp;(*[6]*)if&nbsp;flags.no_opt&nbsp;then</div>
       </div>
       <div id="line000181" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000181| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;asm_gen&nbsp;=&nbsp;(*[0]*)asm_gen_no_opt&nbsp;flags.asmdebug&nbsp;flags.asmchomp&nbsp;in</div>
       <div id="line000182" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000182| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;contents&nbsp;=&nbsp;(*[0]*)asts_to_strs&nbsp;asm_gen&nbsp;string_of_asms&nbsp;asts&nbsp;in</div>
       <div id="line000183" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000183| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
       <div id="fold000184">
       <div id="line000184" class="lineNone"><a href="javascript:fold('fold000184');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000184| &nbsp;&nbsp;else</div>
-      <div id="line000185" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000185| &nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)let&nbsp;asm_gen&nbsp;=&nbsp;(*[1]*)asm_gen_opt&nbsp;flags.asmdebug&nbsp;flags.asmchomp&nbsp;in</div>
-      <div id="line000186" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000186| &nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)let&nbsp;contents&nbsp;=&nbsp;(*[1]*)asts_to_strs&nbsp;asm_gen&nbsp;string_of_asms&nbsp;asts&nbsp;in</div>
-      <div id="line000187" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000187| &nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
+      <div id="line000185" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000185| &nbsp;&nbsp;&nbsp;&nbsp;(*[6]*)let&nbsp;asm_gen&nbsp;=&nbsp;(*[6]*)asm_gen_opt&nbsp;flags.asmdebug&nbsp;flags.asmchomp&nbsp;in</div>
+      <div id="line000186" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000186| &nbsp;&nbsp;&nbsp;&nbsp;(*[6]*)let&nbsp;contents&nbsp;=&nbsp;(*[6]*)asts_to_strs&nbsp;asm_gen&nbsp;string_of_asms&nbsp;asts&nbsp;in</div>
+      <div id="line000187" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000187| &nbsp;&nbsp;&nbsp;&nbsp;(*[6]*)writes&nbsp;flags.astfiles&nbsp;contents</div>
       <div id="line000188" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000188| &nbsp;</div>
       <div id="line000189" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000189| let&nbsp;()&nbsp;=</div>
-      <div id="line000190" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000190| &nbsp;&nbsp;(*[1]*)Command.async</div>
+      <div id="line000190" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000190| &nbsp;&nbsp;(*[36]*)Command.async</div>
       <div id="line000191" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000191| &nbsp;&nbsp;&nbsp;&nbsp;~summary:&quot;Xi&nbsp;Compiler&quot;</div>
       <div id="line000192" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000192| &nbsp;&nbsp;&nbsp;&nbsp;Command.Spec.(</div>
       <div id="line000193" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000193| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;empty</div>
@@ -312,7 +286,7 @@
       <div id="line000206" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000206| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&gt;&nbsp;flag&nbsp;&quot;--astfiles&quot;&nbsp;&nbsp;&nbsp;&nbsp;(listed&nbsp;string)&nbsp;~doc:&quot;&quot;</div>
       <div id="line000207" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000207| &nbsp;&nbsp;&nbsp;&nbsp;)</div>
       <div id="line000208" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000208| &nbsp;&nbsp;&nbsp;&nbsp;(fun&nbsp;x00&nbsp;x01&nbsp;x02&nbsp;x03&nbsp;x04&nbsp;x05&nbsp;x06&nbsp;x07&nbsp;x08&nbsp;x09&nbsp;x10&nbsp;x11&nbsp;x12&nbsp;-&gt;</div>
-      <div id="line000209" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000209| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)let&nbsp;flags&nbsp;=&nbsp;(*[1]*){</div>
+      <div id="line000209" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000209| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[36]*)let&nbsp;flags&nbsp;=&nbsp;(*[36]*){</div>
       <div id="line000210" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000210| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no_opt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;x00;</div>
       <div id="line000211" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000211| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;typecheck&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;x01;</div>
       <div id="line000212" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000212| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tcdebug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;x02;</div>
@@ -327,7 +301,7 @@
       <div id="line000221" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000221| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;asmdebug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;x11;</div>
       <div id="line000222" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000222| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;astfiles&nbsp;=&nbsp;x12;</div>
       <div id="line000223" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000223| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;in</div>
-      <div id="line000224" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000224| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1]*)main&nbsp;flags)</div>
+      <div id="line000224" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000224| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[36]*)main&nbsp;flags)</div>
       <div id="line000225" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000225| &nbsp;&nbsp;|&gt;&nbsp;Command.run</div>
       </div>
     </code>
@@ -393,12 +367,12 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000060');" title="jump to line 60"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000065');" title="jump to line 65"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000068');" title="jump to line 68"></td></tr>
@@ -409,15 +383,15 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000076');" title="jump to line 76"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000081');" title="jump to line 81"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000082');" title="jump to line 82"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000083');" title="jump to line 83"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000084');" title="jump to line 84"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="yellow" style="cursor: pointer;" onclick="javascript:jump('line000083');" title="jump to line 83"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -455,8 +429,8 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000122');" title="jump to line 122"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000123');" title="jump to line 123"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000124');" title="jump to line 124"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000125');" title="jump to line 125"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000126');" title="jump to line 126"></td></tr>
@@ -466,10 +440,6 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="yellow" style="cursor: pointer;" onclick="javascript:jump('line000133');" title="jump to line 133"></td></tr>
-        <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000136');" title="jump to line 136"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -477,42 +447,46 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="yellow" style="cursor: pointer;" onclick="javascript:jump('line000144');" title="jump to line 144"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000151');" title="jump to line 151"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000152');" title="jump to line 152"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000154');" title="jump to line 154"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000155');" title="jump to line 155"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000157');" title="jump to line 157"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000158');" title="jump to line 158"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000160');" title="jump to line 160"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000161');" title="jump to line 161"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000163');" title="jump to line 163"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000164');" title="jump to line 164"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000166');" title="jump to line 166"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000167');" title="jump to line 167"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000169');" title="jump to line 169"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000170');" title="jump to line 170"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000172');" title="jump to line 172"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000173');" title="jump to line 173"></td></tr>
-        <tr><td bgcolor="yellow" style="cursor: pointer;" onclick="javascript:jump('line000174');" title="jump to line 174"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000175');" title="jump to line 175"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000176');" title="jump to line 176"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000178');" title="jump to line 178"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000179');" title="jump to line 179"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000181');" title="jump to line 181"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000182');" title="jump to line 182"></td></tr>
@@ -568,6 +542,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:40:03</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-16 20:42:21</p>
   </body>
 </html>

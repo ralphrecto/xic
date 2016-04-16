@@ -41,10 +41,10 @@ let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
 let format_err_output row col msg =
   row ^ ":" ^ col ^ " error: " ^ msg
 
-let format_err_print filename line col msg = 
+let format_err_print filename line col msg =
   "Semantic error at " ^ filename ^ ":" ^ line ^ ":" ^ col ^ ": " ^ msg
 
-let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) = 
+let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) =
  List.fold_left
    ~f:(fun acc (_, Interface clist) -> clist @ acc)
    ~init:[] interfaces
@@ -52,11 +52,11 @@ let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) =
 let ( $ ) = Fn.compose
 
 (* actual compiler options *)
-let typecheck (ast: Pos.full_prog) : Typecheck.full_prog Error.result = 
+let typecheck (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
     prog_typecheck ast
 
-let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
-  let f = 
+let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result =
+  let f =
     block_reorder_comp_unit $
     lower_comp_unit $
     ir_constant_folding $
@@ -64,7 +64,7 @@ let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result =
     ast_constant_folding in
   Result.map (typecheck ast) ~f
 
-let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result = 
+let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result =
   let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
   Result.map (typecheck ast) ~f
 
@@ -72,14 +72,14 @@ let asm_gen_opt
   (debug: bool)
   (chomp: bool)
   (ast: Pos.full_prog) : Asm.asm_prog Error.result =
-  let f = 
+  let f =
     block_reorder_comp_unit $
     lower_comp_unit $
     ir_constant_folding $
     gen_comp_unit $
     ast_constant_folding in
-  Result.bind (typecheck ast) begin fun fullprog -> 
-    let comp_unit = f fullprog in  
+  Result.bind (typecheck ast) begin fun fullprog ->
+    let comp_unit = f fullprog in
     let asm_eat = if chomp then asm_chomp else asm_munch in
     Ok (asm_eat ~debug:debug fullprog comp_unit)
   end
@@ -89,8 +89,8 @@ let asm_gen_no_opt
   (chomp: bool)
   (ast: Pos.full_prog) : Asm.asm_prog Error.result =
   let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
-  Result.bind (typecheck ast) begin fun fullprog -> 
-    let comp_unit = f fullprog in  
+  Result.bind (typecheck ast) begin fun fullprog ->
+    let comp_unit = f fullprog in
     let asm_eat = if chomp then asm_chomp else asm_munch in
     Ok (asm_eat ~debug:debug fullprog comp_unit)
   end
@@ -120,7 +120,7 @@ let asts_to_strs
   (asts: Pos.full_prog list) =
   let f (Ast.S.FullProg (name, prog, interfaces)) =
     match tcf (Ast.S.FullProg (name, prog, interfaces)) with
-    | Ok el -> strf el 
+    | Ok el -> strf el
     | Error ((row, col), msg) ->
         let row_s = string_of_int row in
         let col_s = string_of_int col in
@@ -128,11 +128,11 @@ let asts_to_strs
         format_err_output row_s col_s msg in
   List.map ~f asts
 
-let writes (outs: string list) (content_list: string list) = 
+let writes (outs: string list) (content_list: string list) =
   let zipped = List.zip_exn outs content_list in
   Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
 
-let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t = 
+let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t =
   let f astfile = Reader.load_sexp_exn astfile Pos.full_prog_of_sexp in
   Deferred.List.map ~f astfiles
 
@@ -142,7 +142,7 @@ let main flags () : unit Deferred.t =
 
   (* functions to turn representations into strings *)
   let typed_strf = fun _ -> "Valid Xi Program" in
-  let typed_debug_strf (FullProg (_, prog, _): Typecheck.full_prog) : string = 
+  let typed_debug_strf (FullProg (_, prog, _): Typecheck.full_prog) : string =
     prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
   let ir_strf = sexp_of_comp_unit in
 

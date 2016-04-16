@@ -12,9 +12,6 @@ open Tiling
 open Printf
 open Xi_interpreter
 
-module TodoRemoveThis_ItsOnlyUsedToBuildAsm = Asm
-module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
-module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
 module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
 
 type flags = {

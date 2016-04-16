@@ -24,8 +24,11 @@ After you run `make src`, you can execute our compiler's main executable:
 the Java runtime on our compiler's compiled `.class` files.
 
 ## OCaml dependencies ##
-- Jane Street libraries: core and async
-- ocamlgraph
+If you don't want to use the VM, you can also download all the dependencies
+yourself.
+```bash
+opam install core async ounit ocamlgraph
+```
 
 ## Flags ##
 - `--help`

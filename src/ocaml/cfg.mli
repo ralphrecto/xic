@@ -1,3 +1,3 @@
 open Graph
 
-module type ControlFlowGraph = Graph.Sig.G
+module type ControlFlowGraph = Graph.Sig_pack.S

@@ -78,7 +78,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"
-	corebuild -pkgs async,oUnit \
+	corebuild -pkgs async,oUnit,ocamlgraph \
 			  -Is   src/ocaml,test $@ \
 			  -cflags -warn-error,+a
 	mkdir -p $(BIN)

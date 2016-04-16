@@ -23,6 +23,10 @@ After you run `make src`, you can execute our compiler's main executable:
 [`xic`](xic), which is actually just a dirt simple shell script that invokes
 the Java runtime on our compiler's compiled `.class` files.
 
+## OCaml dependencies ##
+- Jane Street libraries: core and async
+- ocamlgraph
+
 ## Flags ##
 - `--help`
 - `--lex`: `a/b/foo.xi --> a/b/foo.lexed`

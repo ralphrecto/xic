@@ -15,6 +15,7 @@ open Xi_interpreter
 module TodoRemoveThis_ItsOnlyUsedToBuildAsm = Asm
 module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
 module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
+module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
 
 type flags = {
   no_opt:         bool;
@@ -29,7 +30,7 @@ type flags = {
   irgen:          bool;
   asmchomp:       bool;
   asmdebug:       bool;
-  outputs:        string list;
+  astfiles:       string list;
 } [@@deriving sexp]
 
 let resmap ~f =
@@ -134,13 +135,13 @@ let writes (outs: string list) (content_list: string list) =
   let zipped = List.zip_exn outs content_list in
   Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
 
-let get_asts (asts: string list) : Pos.full_prog list = 
-  let f = Pos.full_prog_of_sexp $ Sexp.of_string $ StdString.trim in
-  List.map ~f asts
+let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t = 
+  let f astfile = Reader.load_sexp_exn astfile Pos.full_prog_of_sexp in
+  Deferred.List.map ~f astfiles
 
-let main flags ast_strs () : unit Deferred.t =
+let main flags () : unit Deferred.t =
   (* parse the asts *)
-  let asts = get_asts ast_strs in 
+  get_asts flags.astfiles >>= fun asts ->
 
   (* functions to turn representations into strings *)
   let typed_strf = fun _ -> "Valid Xi Program" in
@@ -151,42 +152,42 @@ let main flags ast_strs () : unit Deferred.t =
   (* dispatch logic *)
   if flags.typecheck then
     let contents = asts_to_strs typecheck typed_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.tcdebug then
     let contents = asts_to_strs typecheck typed_debug_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.ast_cfold then
     let contents = asts_to_strs debug_ast_cfold typed_debug_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.basicir then
     let contents = asts_to_strs debug_ir_basic ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.ir_acfold then
     let contents = asts_to_strs debug_ir_astcfold ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.ir_cfold then
     let contents = asts_to_strs debug_ir_cfold ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.lower then
     let contents = asts_to_strs debug_ir_lower ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.blkreorder then
     let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.irgen && flags.no_opt then
     let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.irgen then
     let contents = asts_to_strs ir_gen ir_strf asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else if flags.no_opt then
     let asm_gen = asm_gen_no_opt flags.asmdebug flags.asmchomp in
     let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
   else
     let asm_gen = asm_gen_opt flags.asmdebug flags.asmchomp in
     let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.outputs contents
+    writes flags.astfiles contents
 
 let () =
   Command.async
@@ -205,10 +206,9 @@ let () =
       +> flag "--irgen"          no_arg ~doc:""
       +> flag "--asmchomp"       no_arg ~doc:""
       +> flag "--asmdebug"       no_arg ~doc:""
-      +> flag "--outputs"    (listed string) ~doc:""
-      +> anon (sequence ("asts" %: string))
+      +> flag "--astfiles"    (listed string) ~doc:""
     )
-    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 asts ->
+    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 ->
        let flags = {
           no_opt       = x00;
           typecheck    = x01;
@@ -222,7 +222,7 @@ let () =
           irgen        = x09;
           asmchomp     = x10;
           asmdebug     = x11;
-          outputs      = x12;
+          astfiles = x12;
        } in
-       main flags asts)
+       main flags)
   |> Command.run

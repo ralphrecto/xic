@@ -5,9 +5,10 @@ open Asm
 open Tiling
 open Fresh
 
-module LiveVariableLattice : LowerSemilattice = struct
-  type data = Int.Set.t
+module LiveVariableLattice : LowerSemilattice with
+  type data = Int.Set.t = struct
 
+  type data = Int.Set.t
   let top = Int.Set.empty
   let ( ** ) = Int.Set.union
   let ( === ) = Int.Set.equal
@@ -86,9 +87,10 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
           (Int.Set.empty, arg_set)
         else if List.mem unops_use name then
           (arg_set, Int.Set.empty) 
-        else
           (* TODO: HANDLE SPECIAL CASES!!! *)
+        else if List.mem unops_special name then
           (Int.Set.empty, Int.Set.empty)
+        else (Int.Set.empty, Int.Set.empty)
       | Op (name, arg1 :: arg2 :: []) ->
         let arg1_set = set_of_arg arg1 in
         let arg2_set = set_of_arg arg2 in
@@ -101,8 +103,8 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
       | _ -> (Int.Set.empty, Int.Set.empty)
 
   let transfer (n: node) (d: data) =
-    let asm = V.label n in
-    let use_n, def_n = usedvars asm in
+    let n_data = V.label n in
+    let use_n, def_n = usedvars n_data.asm in
     Int.Set.union use_n (Int.Set.diff d def_n)
 
 end

@@ -326,9 +326,8 @@ and eval_binop e1 op e2 =
     let i1' = big_int_of_int64 i1 in
     let i2' = big_int_of_int64 i2 in
     let mult = mult_big_int i1' i2' in
-    let max_long = big_int_of_int64 max_int in
-    let divided = div_big_int mult max_long in
-    let result = int64_of_big_int divided in
+    let result = shift_right_big_int mult 64 in
+    let result = int64_of_big_int result in
     Int result
   | Int i1, DIV, Int i2 -> Int (div i1 i2)
   | Int i1, MOD, Int i2 -> Int (rem i1 i2)

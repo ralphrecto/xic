@@ -17,6 +17,7 @@ module TodoRemoveThis_ItsOnlyUsedToBuildTiling = Tiling
 module TodoRemoveThis_ItsOnlyUsedToBuildFresh = Fresh
 module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
 module TodoRemoveThis_ItsOnlyUsedToBuildDataflow = Dataflow
+module TodoRemoveThis_ItsOnlyUsedToBuildRegalloc = Regalloc
 
 type flags = {
   no_opt:         bool;

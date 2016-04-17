@@ -13,19 +13,21 @@ module type LowerSemilattice = sig
 end
 
 module type CFGWithLatticeT = sig
-  include LowerSemilattice
-  include ControlFlowGraph
+  module Lattice : LowerSemilattice
+  module CFG : ControlFlowGraph
 
-  type graph = t
-  type node = V.t
+  type graph = CFG.t
+  type node = CFG.V.t
+  type data = Lattice.data
 
   val transfer : node -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
+  open CFGL
 
-  val iterative : CFGL.graph -> (CFGL.node * CFGL.data) list
+  val iterative : graph -> (node * data) list
 end
 
 module GenericAnalysis
@@ -35,6 +37,8 @@ module GenericAnalysis
 
   module CFGL = CFGLArg
   open CFGL
+  open Lattice
+  open CFG
 
   let neighbor_fold =
     match Config.direction with

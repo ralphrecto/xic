@@ -5,24 +5,22 @@ open Asm
 module type ControlFlowGraph = sig
   include Graph.Sig.I
 
-  (* program representation using this CFG, e.g. IR AST, asm lists, etc. *)
-  type representation
+  (* program repr using this CFG, e.g. IR AST, asm lists, etc. *)
+  type repr
+
   (* node type should be IR AST nodes, abstract asm stmts, etc. *)
   type nodedata
   (* information that will be kept on each CFG edge
    * we restrict CFG nodes to have at most 2 outgoing edges *)
   type edgedata = BranchOne | BranchTwo | NoBranch
 
-  (* create a CFG from a given program representation *)
-  val create_cfg : representation -> t
+  (* create a CFG from a given program repr *)
+  val create_cfg : repr -> t
 end
 
-module type AbstractAsmCFGT = sig
-  include ControlFlowGraph with type representation = abstract_asm list
-end
-
-module AbstractAsmCFG : AbstractAsmCFGT = struct
-  type representation = abstract_asm list
+module AbstractAsmCfg
+  : ControlFlowGraph with type repr = abstract_asm list = struct
+  type repr = abstract_asm list
   type nodedata = {
     num: int;
     asm: abstract_asm;
@@ -58,4 +56,3 @@ module AbstractAsmCFG : AbstractAsmCFGT = struct
     cfg
 
 end
-

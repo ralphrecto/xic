@@ -1065,6 +1065,10 @@ let rec chomp_binop
     let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
     create_binop_instr opcode reg1 asm1 reg2 asm2 dest
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
+  |> fun (r, asms) ->
+    let pre = (Ir.string_of_expr e) ^ " {" in
+    let post = "}" in
+    (r, debug_wrap debug pre post asms)
 
 and chomp_expr
   ?(debug=false)
@@ -1080,6 +1084,10 @@ and chomp_expr
   | (Const _ | Mem _ | Temp _| Call _| Name _| ESeq _) ->
     let (r, asm) = munch_expr curr_ctx fcontexts e in
     (Fake r, asm)
+  |> fun (r, asms) ->
+    let pre = (Ir.string_of_expr e) ^ " {" in
+    let post = "}" in
+    (r, debug_wrap debug pre post asms)
 
 and chomp_stmt
     ?(debug=false)
@@ -1167,6 +1175,10 @@ and chomp_stmt
     asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
   | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s
+  |> fun asms ->
+    let pre  = (Ir.string_of_stmt s) ^ " {" in
+    let post = "}" in
+    debug_wrap debug pre post asms
 
 let chomp_func_decl
   ?(debug=false)

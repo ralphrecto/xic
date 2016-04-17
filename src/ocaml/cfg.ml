@@ -6,13 +6,13 @@ module type ControlFlowGraph = sig
   include Graph.Sig.I
 end
 
-type nodedata = {
-  num: int;
-  asm: abstract_asm;
-}
-type edgedata = BranchOne | BranchTwo | NoBranch
-
 module type AbstractAsmCfgT = sig
+  type nodedata = {
+    num: int;
+    asm: abstract_asm;
+  }
+  type edgedata = BranchOne | BranchTwo | NoBranch
+
   include ControlFlowGraph with
     type V.label = nodedata
     and type E.label = edgedata
@@ -21,6 +21,11 @@ module type AbstractAsmCfgT = sig
 end
 
 module AbstractAsmCfg : AbstractAsmCfgT = struct
+  type nodedata = {
+    num: int;
+    asm: abstract_asm;
+  }
+  type edgedata = BranchOne | BranchTwo | NoBranch
 
   module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
     type t = nodedata

@@ -5,14 +5,14 @@ module type ControlFlowGraph = sig
   include Graph.Sig.I
 end
 
-type nodedata = {
-  num: int;
-  asm: abstract_asm;
-}
-
-type edgedata = BranchOne | BranchTwo | NoBranch
-
 module type AbstractAsmCfgT = sig
+  type nodedata = {
+    num: int;
+    asm: abstract_asm;
+  }
+
+  type edgedata = BranchOne | BranchTwo | NoBranch
+
   include ControlFlowGraph with
     type V.label = nodedata
     and type E.label = edgedata

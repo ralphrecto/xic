@@ -22,9 +22,18 @@ module type CFGWithLatticeT = sig
   val transfer : node -> data -> data
 end
 
+module type Analysis = sig
+  module CFGL : CFGWithLatticeT
+
+  val iterative : CFGL.graph -> (CFGL.node * CFGL.data) list
+end
+
 module GenericAnalysis
   (Config: sig val direction : [`Forward | `Backward] end)
-  (CFGL: CFGWithLatticeT) = struct
+  (CFGLArg: CFGWithLatticeT)
+  : Analysis = struct
+
+  module CFGL = CFGLArg
   open CFGL
 
   let neighbor_fold =

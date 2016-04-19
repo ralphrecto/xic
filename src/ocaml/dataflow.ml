@@ -1,5 +1,7 @@
 open Cfg
 
+type direction = Forward | Backward
+
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data

@@ -29,6 +29,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
     let set_of_arg (arg: abstract_reg operand) : Int.Set.t = 
       let fakes = fakes_of_operand arg in
       let f acc fake = 
+        (* TODO: need to fix not all the temporary registers will be of form __asmreg- *)
         match FreshReg.get fake with
         | None -> acc
         | Some x -> Int.Set.add acc x in
@@ -55,6 +56,10 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
       "decq";
       "negq";
     ] in
+    (* TODO: these should go in as a special case since we se CL for the
+     * instructions right now. 
+     * Although for register allocation we probably want to do something smarter
+     * and not default to CL but any other 8 bit register *)
     let unops_def = [
       "asete";
       "asetne";

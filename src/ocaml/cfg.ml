@@ -3,11 +3,13 @@ open Graph
 open Asm
 
 module type ControlFlowGraph = sig
+  (* including imperative graph *)
   include Graph.Sig.I
 end
 
 module type AbstractAsmCfgT = sig
   type nodedata = {
+    (* numbering the verticies to differentiate nodes with the same asm *)
     num: int;
     asm: abstract_asm;
   }
@@ -31,9 +33,12 @@ module AbstractAsmCfg : AbstractAsmCfgT = struct
     type t = nodedata
   end
 
+  (* Edge Label is a type Graph.Sig.ORDERED_TYPE_DFT to match signature of
+   * functor Imperative.Graph.AbstractLabeled *)
   module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
     type t = edgedata
 
+    (* since we don't really need to compare edges set to true for now *) 
     let compare _ _ = 0
     let default = NoBranch
   end

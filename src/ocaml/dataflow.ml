@@ -47,6 +47,8 @@ module GenericAnalysis
 
   let iterative (cfg: graph) : (node * data) list = 
     (* initializations *)
+    (* in a forward analysis we keep track of the outs and 
+     * in a backward analysis we keep track of the ins *)
     let table : (node, data) Hashtbl.t = Hashtbl.create (nb_edges cfg) in
     iter_vertex (fun node -> Hashtbl.add table node top) cfg;
 

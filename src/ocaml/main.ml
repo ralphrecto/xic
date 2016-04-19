@@ -13,6 +13,8 @@ open Printf
 open Xi_interpreter
 
 module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
+module TodoRemoveThis_ItsOnlyUsedToBuildDataflow = Dataflow
+module TodoRemoveThis_ItsOnlyUsedToBuildRegalloc = Regalloc
 
 type flags = {
   no_opt:         bool;

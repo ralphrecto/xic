@@ -695,6 +695,13 @@ let ir_constant_folding (comp_unit: Ir.comp_unit) : Ir.comp_unit =
     | BinOp (Const i1, ADD, Const i2) -> Const (add i1 i2)
     | BinOp (Const i1, SUB, Const i2) -> Const (sub i1 i2)
     | BinOp (Const i1, MUL, Const i2) -> Const (mul i1 i2)
+    | BinOp (Const i1, HMUL, Const i2) ->
+      let i1' = big_int_of_int64 i1 in
+      let i2' = big_int_of_int64 i2 in
+      let mult = mult_big_int i1' i2' in
+      let shifted = shift_right_big_int mult 64 in
+      let result = int64_of_big_int shifted in
+      Const result
     | BinOp (Const i1, DIV, Const i2) -> Const (div i1 i2)
     | BinOp (Const i1, MOD, Const i2) -> Const (rem i1 i2)
     | BinOp (Const i1, AND, Const i2) -> Const (logand i1 i2)
@@ -715,7 +722,6 @@ let ir_constant_folding (comp_unit: Ir.comp_unit) : Ir.comp_unit =
     | BinOp (Const i1, GT, Const i2) -> if (compare i1 i2) > 0 then Const (1L) else Const (0L)
     | BinOp (Const i1, LEQ, Const i2) -> if (compare i1 i2) <= 0 then Const (1L) else Const (0L)
     | BinOp (Const i1, GEQ, Const i2) -> if (compare i1 i2) >= 0 then Const (1L) else Const (0L)
-    | BinOp (_, HMUL, _) -> e
     | BinOp (e1, op, e2) ->
       begin
         match (fold_expr e1), (fold_expr e2) with

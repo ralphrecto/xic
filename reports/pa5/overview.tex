@@ -32,8 +32,7 @@ To build our executable, simply run \texttt{make src}. This will use
 \texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
 code. It will use \texttt{corebuild} to build our OCaml code. Invoking our
 code manually is hard; instead, we we recommend you use the \texttt{xic} script
-which invokes our code with everything configured properly.
-
+which invokes our code with everything configured properly. 
 In summary, perform the following:
 
 \begin{center}
@@ -44,6 +43,9 @@ make src
 ./xic [flags] <xi_file.xi>...
 \end{BVerbatim}
 \end{center}
+
+See the \texttt{opam} file for more information regarding our OCaml dependencies.
+
 
 \section{Summary}\label{sec:summary}
 In this programming assignment, we generated x86-64 assembly for the Xi programming language.

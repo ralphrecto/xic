@@ -54,38 +54,35 @@ run_and_diff() {
 
     cat "$pervasive_file" "$f" > "$tempname"
 
-        # "--tcdebug"
-        # "--ast-cfold"
     flags=(
+        "--tcdebug"
+        "--ast-cfold"
         "--basicir"
         "--ir-acfold"
         "--ir-cfold"
         "--lower"
         "--irgen"
         "--asmdebug"
-        "--asmchomp --asmdebug"
     )
-        # "typeddebug"
-        # "astcfold"
     extensions=(
+        "typeddebug"
+        "astcfold"
         "basicir"
         "iracfold"
         "ircfold"
         "lower"
         "ir"
         "s"
-        "chomped"
     )
-        # "./xi"
-        # "./xi"
     evaluators=(
+        "./xi"
+        "./xi"
         "./ir"
         "./ir"
         "./ir"
         "./ir"
         "./ir"
         "link_and_run_s"
-        "link_and_run_chomped"
     )
 
     generated=()

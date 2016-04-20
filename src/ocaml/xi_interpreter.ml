@@ -126,12 +126,17 @@ let rec bind_ids store ids =
 (* interpreter *)
 
 and eval_stmts store ss =
-  List.fold_left ~f:(fun (store', res) s ->
-      match res, (eval_stmt store' s) with
-      | Some _, (s', _) -> (s', res)
-      | None, evaled -> evaled)
-    ~init:(store, None)
-    ss
+  let rec helper (store1, res) s =
+    match s with
+    | h::tl ->
+      begin
+        match eval_stmt store1 h with
+        | store2, Some res -> (store2, Some res)
+        | store2, None -> helper (store2, None) tl
+      end
+    | [] -> (store1, res)
+  in
+  helper (store, None) ss
 
 and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option =
   match s with
@@ -321,9 +326,8 @@ and eval_binop e1 op e2 =
     let i1' = big_int_of_int64 i1 in
     let i2' = big_int_of_int64 i2 in
     let mult = mult_big_int i1' i2' in
-    let max_long = big_int_of_int64 max_int in
-    let divided = div_big_int mult max_long in
-    let result = int64_of_big_int divided in
+    let shifted = shift_right_big_int mult 64 in
+    let result = int64_of_big_int shifted in
     Int result
   | Int i1, DIV, Int i2 -> Int (div i1 i2)
   | Int i1, MOD, Int i2 -> Int (rem i1 i2)

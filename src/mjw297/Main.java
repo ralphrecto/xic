@@ -31,7 +31,6 @@ import static mjw297.XicException.*;
 public class Main {
 
     /* Utility flags */
-
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
 
@@ -395,24 +394,38 @@ public class Main {
         });
 
         List<Tuple<XiSource, FullProgram<Position>>> programs = fullyParsed.snd;
-        List<String> sexps = Lists.transform(programs, t -> {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
-            sexpOut.visit(t.snd);
-            sexpOut.flush();
-            return baos.toString();
-        });
 
-        for (Tuple<XiSource, FullProgram<Position>> t : programs) {
-            XiSource src = t.fst;
-            binArgs.add("--outputs");
-            binArgs.add(diagPathOut(t.fst, extension));
+        if (programs.size() > 0) {
+          binArgs.add("--astfiles");
+          programs.forEach(t -> {
+              XiSource src = t.fst;
+              FullProgram<Position> prog = t.snd;
+
+              // Convert AST to sexp
+              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+              SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
+              sexpOut.visit(prog);
+              sexpOut.flush();
+
+              // Write file 
+              String outputFilename = diagPathOut(src, extension);
+              File outputFile = Paths.get(outputFilename).toFile();
+              try {
+                Files.write(baos.toString().getBytes(), outputFile);
+              } catch(IOException e) {
+                System.out.println(e.getMessage()); 
+                e.printStackTrace();
+                System.exit(1);
+              }
+
+              // Pass filename to OCaml
+              binArgs.add(outputFilename);
+          });
         }
 
         List<String> args = new ArrayList<>();
         args.add("./bin/main.byte");
         args.addAll(binArgs);
-        args.addAll(sexps);
 
         ProcessBuilder pb = new ProcessBuilder(args)
             .directory(Paths.get(compilerPath).toFile());

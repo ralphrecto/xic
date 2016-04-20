@@ -276,7 +276,7 @@ let section_wrap debug asms name =
   let post = "----- end " ^ name ^ " -----" in
   debug_wrap debug pre post asms
 
-let create_binop_instr (opcode: Ir.binop_code) reg1 asm1 reg2 asm2 dest =
+let create_binop_instr (opcode: Ir.binop_code) (reg1, asm1) (reg2, asm2) dest =
   match opcode with
   | ADD | SUB | AND | OR | XOR ->
     begin
@@ -343,31 +343,11 @@ let rec munch_expr
       begin
         let (reg1, asm1) = munch_expr curr_ctx fcontexts e1 in
         let (reg2, asm2) = munch_expr curr_ctx fcontexts e2 in
-        match opcode with
-        | Ir.ADD | Ir.SUB | Ir.AND | Ir.OR | Ir.XOR ->
-          (reg1, asm1 @ asm2 @ (non_imm_binop opcode (Fake reg1) (Fake reg2) (Fake reg1)))
-        | Ir.LSHIFT | Ir.RSHIFT | Ir.ARSHIFT ->
-          (reg1, asm1 @ asm2 @ (non_imm_shift opcode (Fake reg1) (Fake reg2) (Fake reg1)))
-        | Ir.EQ | Ir.NEQ | Ir.LT | Ir.GT | Ir.LEQ | Ir.GEQ ->
-          (reg2, asm1 @ asm2 @ (non_imm_cmp opcode (Fake reg1) (Fake reg2) (Fake reg2)))
-        | Ir.MUL | Ir.HMUL ->
-          let r = if opcode = Ir.MUL then Rax else Rdx in
-          let mul_asm = [
-            movq (Reg (Fake reg1)) (Reg (Real Rax));
-            imulq (Reg (Fake reg2));
-            movq (Reg (Real r)) (Reg (Fake reg2));
-          ] in
-          (reg2, asm1 @ asm2 @ mul_asm)
-        | Ir.DIV | Ir.MOD ->
-          let r = if opcode = Ir.DIV then Rax else Rdx in
-          let div_asm = [
-            xorq (Reg (Real Rdx)) (Reg (Real Rdx));
-            movq (Reg (Fake reg1)) (Reg (Real Rax));
-            cqto;
-            idivq (Reg (Fake reg2));
-            movq (Reg (Real r)) (Reg (Fake reg2))
-          ] in
-          (reg2, asm1 @ asm2 @ div_asm)
+        let e1' = (Fake reg1, asm1) in
+        let e2' = (Fake reg2, asm2) in
+        match create_binop_instr opcode e1' e2' None with
+        | (Fake f, asms) -> (f, asms)
+        | _ -> failwith "shouldnt' happen" 
       end
     | Ir.Const c ->
         let new_tmp = FreshReg.fresh () in
@@ -1054,19 +1034,27 @@ let rec chomp_binop
         (reg2, asm1 @ asm2 @ (non_imm_cmp flipped_op reg1 reg2 reg2))
     end
   | BinOp (Temp reg1, opcode, Temp reg2) ->
-    create_binop_instr opcode (Fake reg1) [] (Fake reg2) [] dest
+    let e1' = (Fake reg1, []) in
+    let e2' = (Fake reg2, []) in
+    create_binop_instr opcode e1' e2' dest
   | BinOp (Temp reg1, opcode, e2) ->
-    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
-    create_binop_instr opcode (Fake reg1) [] reg2 asm2 dest
+    let e1' = (Fake reg1, []) in
+    let e2'  = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode e1' e2' dest
   | BinOp (e1, opcode, Temp reg2) ->
-    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-    create_binop_instr opcode reg1 asm1 (Fake reg2) [] dest
+    let e1' = chomp_expr curr_ctx fcontexts e1 in
+    let e2' = (Fake reg2, []) in
+    create_binop_instr opcode e1' e2' dest
   (* binop with non-immediate cases *)
   | BinOp (e1, opcode, e2) ->
-    let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
-    create_binop_instr opcode reg1 asm1 reg2 asm2 dest
+    let e1' = chomp_expr curr_ctx fcontexts e1 in
+    let e2' = chomp_expr curr_ctx fcontexts e2 in
+    create_binop_instr opcode e1' e2' dest
   | _ -> failwith "shouldn't happen - chomp_binop curr_ctx fcontexts"
+  |> fun (r, asms) ->
+    let pre = (Ir.string_of_expr e) ^ " {" in
+    let post = "}" in
+    (r, debug_wrap debug pre post asms)
 
 and chomp_expr
   ?(debug=false)
@@ -1082,6 +1070,10 @@ and chomp_expr
   | (Const _ | Mem _ | Temp _| Call _| Name _| ESeq _) ->
     let (r, asm) = munch_expr curr_ctx fcontexts e in
     (Fake r, asm)
+  |> fun (r, asms) ->
+    let pre = (Ir.string_of_expr e) ^ " {" in
+    let post = "}" in
+    (r, debug_wrap debug pre post asms)
 
 and chomp_stmt
     ?(debug=false)
@@ -1169,6 +1161,10 @@ and chomp_stmt
     asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
   | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s
+  |> fun asms ->
+    let pre  = (Ir.string_of_stmt s) ^ " {" in
+    let post = "}" in
+    debug_wrap debug pre post asms
 
 let chomp_func_decl
   ?(debug=false)

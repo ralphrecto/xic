@@ -31,7 +31,7 @@ module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : graph -> (node * data) list
+  val iterative : (node -> data) -> graph -> edge -> data
 
 end
 

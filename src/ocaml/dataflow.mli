@@ -33,6 +33,8 @@ module type Analysis = sig
 
   val iterative : (node -> data) -> graph -> edge -> data
 
+  val worklist : (node -> data) -> graph -> edge -> data
+
 end
 
 module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis

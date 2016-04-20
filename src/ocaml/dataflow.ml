@@ -1,15 +1,15 @@
 open Cfg
 
-type direction = Forward | Backward
-
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
 
   (* maximal value in semilattice *)
-  val top : data 
+  val top : data
+
   (* meet operation in the semilattice *)
   val ( ** ) : data -> data -> data
+
   (* equality over data values *)
   val ( === ) : data -> data -> bool
 end
@@ -20,20 +20,22 @@ module type CFGWithLatticeT = sig
 
   type graph = CFG.t
   type node = CFG.V.t
+  type edge = CFG.E.t
   type data = Lattice.data
 
-  val transfer : node -> data -> data
+  val transfer : edge -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : graph -> (node * data) list
+  val iterative : (node -> data) -> graph -> node -> data
+
 end
 
 module GenericAnalysis
-  (Config: sig val direction : [`Forward | `Backward] end)
+  (Config: sig val direction : [ `Forward | `Backward ] end)
   (CFGLArg: CFGWithLatticeT)
   : Analysis = struct
 
@@ -45,18 +47,18 @@ module GenericAnalysis
   let neighbor_fold =
     match Config.direction with
     | `Forward -> fold_pred
-    | `Backward -> fold_succ 
+    | `Backward -> fold_succ
 
-  let iterative (cfg: graph) : (node * data) list = 
+  let iterative (init: node -> data) (cfg: graph) : node -> data =
     (* initializations *)
-    (* in a forward analysis we keep track of the outs and 
+    (* in a forward analysis we keep track of the outs and
      * in a backward analysis we keep track of the ins *)
     let table : (node, data) Hashtbl.t = Hashtbl.create (nb_edges cfg) in
-    iter_vertex (fun node -> Hashtbl.add table node top) cfg;
+    iter_vertex (fun node -> Hashtbl.add table node (init node)) cfg;
 
-    let vertex_foldf (n: node) (changed : bool) =  
+    let vertex_foldf (n: node) (changed : bool) =
       let datum = Hashtbl.find table n in
-      let datum' = 
+      let datum' =
         let neighbor_foldf (n_neighbor: node) (d: data option) =
           (* return None if no predecessors, otherwise take meet *)
           let neighbor_datum = Hashtbl.find table n_neighbor in
@@ -70,7 +72,8 @@ module GenericAnalysis
       let v_changed = datum === datum' in
       if v_changed then
         begin Hashtbl.replace table n datum'; true end
-      else changed in
+      else changed
+    in
 
     let rec iterate () : (node * data) list =
       (* has the data for the CFG nodes changed? *)

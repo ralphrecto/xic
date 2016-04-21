@@ -7,9 +7,6 @@ module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
 
-  (* maximal value in semilattice *)
-  val top : data
-
   (* meet operation in the semilattice *)
   val ( ** ) : data -> data -> data
 
@@ -93,7 +90,7 @@ module GenericAnalysis
             let _ = Hash.replace table e new_datum in
             true
         in
-        transfer_fold update cfg n false
+        transfer_fold update cfg n changed
     in
 
     (* iterate through nodes until data does not change *)

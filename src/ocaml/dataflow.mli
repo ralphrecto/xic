@@ -5,9 +5,6 @@ module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
 
-  (* maximal value in semilattice *)
-  val top : data
-
   (* meet operation in the semilattice *)
   val ( ** ) : data -> data -> data
 

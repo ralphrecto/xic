@@ -26,7 +26,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
   type data = Lattice.data
 
   (* returns a sets of vars used and defd, respectively *)
-  let _usedvars : abstract_asm -> Int.Set.t * Int.Set.t =
+  let usedvars : abstract_asm -> Int.Set.t * Int.Set.t =
     let set_of_arg (arg: abstract_reg operand) : Int.Set.t =
       let fakes = fakes_of_operand arg in
       let f acc fake =
@@ -108,12 +108,10 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         else (Int.Set.empty, Int.Set.empty)
       | _ -> (Int.Set.empty, Int.Set.empty)
 
-  let transfer (_e: edge) (_d: data) = failwith "TODO"
-    (*
-    let n_data = V.label n in
+  let transfer (e: edge) (d: data) =
+    let n_data = V.label (E.src e) in
     let use_n, def_n = usedvars n_data.asm in
     Int.Set.union use_n (Int.Set.diff d def_n)
-    *)
 end
 
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)

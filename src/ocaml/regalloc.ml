@@ -1,4 +1,5 @@
 open Core.Std
+open Graph
 open Cfg
 open Dataflow
 open Asm
@@ -115,3 +116,48 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
 end
 
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)
+
+module type InterferenceGraphT = sig
+  type nodedata = string
+  type edgedata = unit
+
+  include Graph.Sig.I with
+    type V.label = nodedata and
+    type E.label = edgedata
+
+  val create_interg : string list -> (string * string) list -> t
+end
+
+module InterferenceGraph = struct
+  type nodedata = string
+  type edgedata = unit
+
+  module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
+    type t = nodedata
+  end
+
+  module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
+    type t = edgedata
+
+    let compare _ _ = 0
+    let default = ()
+  end
+
+  include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
+
+  let create_interg (nodes: string list) (edges: (string * string) list) =
+    let g = create () in
+
+    (* Add vertices *)
+    List.fold_left ~init:() nodes ~f:(fun _ n ->
+      let node = V.create n in
+      add_vertex g node);
+
+    (* Add edges *)
+    List.fold_left ~init:() edges ~f:(fun _ (n1, n2) ->
+      let node1 = V.create n1 in
+      let node2 = V.create n2 in
+      add_edge g node1 node2);
+
+    g
+end

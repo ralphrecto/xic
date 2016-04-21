@@ -2,48 +2,47 @@ open Core.Std
 open Graph
 open Asm
 
-module type ControlFlowGraph = sig
-  (* including imperative graph *)
-  include Graph.Sig.I
+module type ControlFlowGraph = Graph.Sig.I
+
+module type NodeData = sig
+  type t
 end
 
-module type AbstractAsmCfgT = sig
-  type nodedata = {
-    (* numbering the verticies to differentiate nodes with the same asm *)
-    num: int;
-    asm: abstract_asm;
-  }
-  type edgedata = BranchOne | BranchTwo | NoBranch
-
-  include ControlFlowGraph with
-    type V.label = nodedata
-    and type E.label = edgedata
-
-  val create_cfg : abstract_asm list -> t
+module EdgeData = struct
+  type t =
+    | Normal
+    | True
+    | False
+  [@@deriving sexp, compare]
+  let default = Normal
 end
 
-module AbstractAsmCfg : AbstractAsmCfgT = struct
-  type nodedata = {
+module Make(N: NodeData) = struct
+  include Imperative.Graph.AbstractLabeled(N)(EdgeData)
+end
+
+(* IR CFG *)
+module IrData = struct
+  type t = {
     num: int;
-    asm: abstract_asm;
+    ir:  Ir.stmt;
   }
-  type edgedata = BranchOne | BranchTwo | NoBranch
+end
+module IrCfg = struct
+  include Make(IrData)
+  let create_cfg _ss =
+    failwith "TODO"
+end
 
-  module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
-    type t = nodedata
-  end
-
-  (* Edge Label is a type Graph.Sig.ORDERED_TYPE_DFT to match signature of
-   * functor Imperative.Graph.AbstractLabeled *)
-  module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
-    type t = edgedata
-
-    (* since we don't really need to compare edges set to true for now *)
-    let compare _ _ = 0
-    let default = NoBranch
-  end
-
-  include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
+(* Asm CFG *)
+module AsmData = struct
+  type t = {
+    num: int;
+    asm: Asm.abstract_asm;
+  }
+end
+module AsmCfg = struct
+  include Make(AsmData)
 
   (* TODO: change this to include branches *)
   let create_cfg (asms: abstract_asm list) =

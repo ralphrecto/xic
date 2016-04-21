@@ -15,7 +15,7 @@ end
 
 module AsmWithLiveVar : CFGWithLatticeT = struct
   module Lattice = LiveVariableLattice
-  module CFG = AbstractAsmCfg
+  module CFG = AsmCfg
   open Lattice
   open CFG
 

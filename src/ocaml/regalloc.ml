@@ -146,9 +146,6 @@ module InterferenceGraph = struct
   include LiveVariableAnalysis
   include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
 
-  module T = Tuple.Make (Int) (Int)
-  module TS = Set.Make (struct include T include Sexpable (Int) (Int) end)
-
   (* TODO: make temps to be set type *)
   let create_edges temps =
     let rec create_edges' ts edges =
@@ -156,15 +153,13 @@ module InterferenceGraph = struct
       | [] -> edges
       | set::t ->
         (* Make edges for nodes interfering with each other in one statement *)
-        let new_edges = TS.fold ~init:TS.empty set ~f:(fun acci i ->
-          TS.union
-            (TS.fold ~init:TS.empty set ~f:(fun accj j ->
-              if i <> j then TS.union (i, j) accj else accj))
-            acci)
+        let new_edges = List.fold_left ~init:[] set ~f:(fun acci i ->
+          (List.fold_left ~init:[] set ~f:(fun accj j ->
+            if i <> j then (i, j)::accj else accj)) @ acci)
         in
-        create_edges' t (TS.union edges new_edges)
+        create_edges' t (edges@new_edges)
     in
-    create_edges' temps TS.empty
+    create_edges' temps []
 
   let create_interg (nodes: string list) (edges: (string * string) list) =
     let g = create () in

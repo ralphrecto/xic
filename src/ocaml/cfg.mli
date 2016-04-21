@@ -13,6 +13,14 @@ module type NodeData = sig
   type t
 end
 
+(** A functor to generate explicit labels for start and exit nodes. *)
+module StartExit(N: NodeData) : sig
+  type t =
+    | Node of N.t
+    | Start
+    | Exit
+end
+
 (** The type of edge labels. *)
 module EdgeData : sig
   type t =
@@ -35,8 +43,9 @@ module IrData : sig
     ir:  Ir.stmt;
   }
 end
+module IrDataStartExit : (module type of StartExit(IrData))
 module IrCfg : sig
-  include (module type of Make(IrData))
+  include (module type of Make(IrDataStartExit))
   val create_cfg : Ir.stmt list -> t
 end
 
@@ -47,7 +56,8 @@ module AsmData : sig
     asm: Asm.abstract_asm;
   }
 end
+module AsmDataStartExit : (module type of StartExit(AsmData))
 module AsmCfg : sig
-  include (module type of Make(AsmData))
+  include (module type of Make(AsmDataStartExit))
   val create_cfg : Asm.abstract_asm list -> t
 end

@@ -108,15 +108,15 @@ module BusyExprLattice: LowerSemilattice = struct
     | Set x', Set y' -> equal x' y'
 end
 
-module BusyExprCFG : CFGWithLatticeT = struct
-  module Lattice = BusyExprLattice
-  module CFG =
-  open Lattice
-  open CFG
+(* module BusyExprCFG : CFGWithLatticeT = struct *)
+  (* module Lattice = BusyExprLattice *)
+  (* module CFG = *)
+  (* open Lattice *)
+  (* open CFG *)
 
-  let transfer (e: edge) (d: data) =
+  (* let transfer (e: edge) (d: data) = *)
 
-end
+(* end *)
 
 module AvailExprLattice : LowerSemilattice = struct
   type data = Univ | Set of t

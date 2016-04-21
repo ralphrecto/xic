@@ -17,7 +17,7 @@ end
 module type CFGWithLatticeT = sig
   module Lattice : LowerSemilattice
   module CFG : ControlFlowGraph
-type graph = CFG.t
+  type graph = CFG.t
   type node = CFG.V.t
   type edge = CFG.E.t
   type data = Lattice.data

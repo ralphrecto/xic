@@ -7,51 +7,133 @@ open Fresh
 
 module ExprSet = Set.Make (struct type t = expr [@@deriving sexp, compare] end)
 
-let rec get_subexpr (e: expr) : ExprSet.t =
+open ExprSet
+
+(* first element of the tuple is the set of subexpressions
+ * second element of the tuple is the set of temps and mems used by expr *)
+let rec get_subexpr (e: expr) : (ExprSet.t * ExprSet.t) =
   match e with
-  | BinOp (e1, (DIV|MOD), e2) -> ExprSet.union (get_subexpr e1) (get_subexpr e2)
-  | BinOp (e1, _, e2) -> ExprSet.add (ExprSet.union (get_subexpr e1) (get_subexpr e2)) e
-  | Call (e1, elst) ->
-      let exprset1 = get_subexpr e1 in
-      let f acc e =
-        let set = get_subexpr e in
-        ExprSet.union acc set
-      in
-      List.fold_left ~f ~init: exprset1 elst
-  | Mem (e1, _) -> ExprSet.add (get_subexpr e1) e
-  | Const _ | Name _ | Temp _ -> ExprSet.empty
+  | BinOp (e1, _, e2) ->
+    let (subexpr1, mem_temp1) = get_subexpr e1 in
+    let (subexpr2, mem_temp2) = get_subexpr e2 in
+    (add (union subexpr1 subexpr2) e, union mem_temp1 mem_temp2)
+  | Call (_, elst) ->
+    let f (acc1, acc2) e =
+      let (subexpr, mem_temp) = get_subexpr e in
+      (union acc1 subexpr, union acc2 mem_temp)
+    in
+    List.fold_left ~f ~init: (empty, empty) elst
+  | Mem (e1, _) ->
+    let (subexpr, mem_temp) = get_subexpr e1 in
+    (add subexpr e, add mem_temp e)
+  | Temp _ -> (empty, add empty e)
+  | Const _ | Name _ -> (empty, empty)
   | ESeq _ -> failwith "shouldn't exist!"
 
-and get_subexpr_stmt (s: stmt) : ExprSet.t =
+(* first element of the tuple is the set of subexpressions
+ * second element of the tuple is the set of temps and mems used by stmt *)
+and get_subexpr_stmt (s: stmt) : (ExprSet.t * ExprSet.t) =
   match s with
-  | CJump (e1, _, _) -> get_subexpr e1
   | CJumpOne (e1, _) -> get_subexpr e1
   | Jump e1 -> get_subexpr e1
   | Exp e1 -> get_subexpr e1
-  | Move (e1, e2) -> ExprSet.union (get_subexpr e1) (get_subexpr e2)
+  | Move (e1, e2) ->
+    let (subexpr1, mem_temp1) = get_subexpr e1 in
+    let (subexpr2, mem_temp2) = get_subexpr e2 in
+    (union subexpr1 subexpr2, union mem_temp1 mem_temp2)
+  | Seq slst ->
+      let f (acc1, acc2) s =
+        let (subexpr, mem_temp) = get_subexpr_stmt s in
+        (union acc1 subexpr, union acc2 mem_temp)
+      in
+      List.fold_left ~f ~init: (empty, empty) slst
+  | Label _ | Return -> (empty, empty)
+  | CJump _ -> failwith "shouldn't exist!"
+
+let rec kill_func_args (elst: expr list) : ExprSet.t =
+  let f acc e =
+    match e with
+    | Mem _ -> add acc e
+    | Call (_, elst') -> kill_func_args elst'
+    | _ -> empty
+  in
+  List.fold_left ~f ~init: empty elst
+
+and kill_expr (e: expr) : ExprSet.t =
+  match e with
+  | Call (_, elst) -> kill_func_args elst
+  | Temp _
+  | Mem _ -> add empty e
+  | BinOp _
+  | Const _
+  | Name _ -> empty
+  | ESeq _ -> failwith "shouldn't exist!"
+
+and kill_stmt (s: stmt) : ExprSet.t =
+  match s with
+  | Move ((Temp _ | Mem _) as e1, Call (_, elst)) ->
+    let set = add empty e1 in
+    union set (kill_func_args elst)
+  | Move ((Temp _ | Mem _) as e1, _) -> add empty e1
   | Seq slst ->
       let f acc s =
-        let set = get_subexpr_stmt s in
-        ExprSet.union acc set
+        let set = kill_stmt s in
+        union acc set
       in
-      List.fold_left ~f ~init: ExprSet.empty slst
-  | Label _ | Return -> ExprSet.empty
+      List.fold_left ~f ~init: empty slst
+  | Exp e -> kill_expr e
+  | CJumpOne _
+  | Jump _
+  | Label _
+  | Return -> empty
+  | Move _
+  | CJump _ -> failwith "shouldn't exist!"
 
-module AvailableExprLattice : LowerSemilattice = struct
-  type data = Top | Set of ExprSet.t
+module BusyExprLattice: LowerSemilattice = struct
+  type data = Univ | Set of t
 
-  let top = Top
+  let top = Univ
 
   let ( ** ) = fun x y ->
     match x, y with
-    | Top, _ -> y
-    | _, Top -> x
-    | Set x', Set y' -> Set (ExprSet.inter x' y')
+    | Univ, _ -> y
+    | _, Univ -> x
+    | Set x', Set y' -> Set (inter x' y')
 
   let ( === ) = fun x y ->
     match x, y with
-    | Top, Top -> true
-    | Top, _ -> false
-    | _, Top -> false
-    | Set x', Set y' -> ExprSet.equal x' y'
+    | Univ, Univ -> true
+    | Univ, _ -> false
+    | _, Univ -> false
+    | Set x', Set y' -> equal x' y'
 end
+
+module BusyExprCFG : CFGWithLatticeT = struct
+  module Lattice = BusyExprLattice
+  module CFG =
+  open Lattice
+  open CFG
+
+  let transfer (e: edge) (d: data) =
+
+end
+
+module AvailExprLattice : LowerSemilattice = struct
+  type data = Univ | Set of t
+
+  let top = Univ
+
+  let ( ** ) = fun x y ->
+    match x, y with
+    | Univ, _ -> y
+    | _, Univ -> x
+    | Set x', Set y' -> Set (inter x' y')
+
+  let ( === ) = fun x y ->
+    match x, y with
+    | Univ, Univ -> true
+    | Univ, _ -> false
+    | _, Univ -> false
+    | Set x', Set y' -> equal x' y'
+end
+

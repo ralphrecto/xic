@@ -146,6 +146,13 @@ module InterferenceGraph = struct
   include LiveVariableAnalysis
   include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
 
+  module Extended_T = struct
+    include Tuple.Make (String) (String)
+    include Tuple.Sexpable (String) (String)
+    include Tuple.Comparable (String) (String)
+  end
+  module TS = Set.Make (Extended_T)
+
   (* TODO: make temps to be set type *)
   let create_edges temps =
     let rec create_edges' ts edges =

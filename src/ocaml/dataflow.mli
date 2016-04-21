@@ -6,9 +6,11 @@ module type LowerSemilattice = sig
   type data
 
   (* maximal value in semilattice *)
-  val top : data 
+  val top : data
+
   (* meet operation in the semilattice *)
   val ( ** ) : data -> data -> data
+
   (* equality over data values *)
   val ( === ) : data -> data -> bool
 end
@@ -19,16 +21,20 @@ module type CFGWithLatticeT = sig
 
   type graph = CFG.t
   type node = CFG.V.t
+  type edge = CFG.E.t
   type data = Lattice.data
 
-  val transfer : node -> data -> data
+  val transfer : edge -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : graph -> (node * data) list
+  val iterative : (node -> data) -> graph -> edge -> data
+
+  val worklist : (node -> data) -> graph -> edge -> data
+
 end
 
 module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis

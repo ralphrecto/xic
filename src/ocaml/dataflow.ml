@@ -48,11 +48,19 @@ module GenericAnalysis
   open Lattice
   open CFG
 
+  (* meet_fold     is used to fold over edges when computing the meet
+   * transfer_fold is used to fold over edges when computing the transfer
+   * transfer_iter is used when initializing the data table and iter over edges
+   *               when computing the tranfer
+   * update_node   is used to determine if the src or the dest of the edge should be added to
+   *               the worklist queue after the data has changed
+   *)
   let meet_fold, transfer_fold, transfer_iter, update_node  =
     match Config.direction with
     | `Forward -> fold_pred_e, fold_succ_e, iter_succ_e, E.dst
     | `Backward -> fold_succ_e, fold_pred_e, iter_pred_e, E.src
 
+  (* helper function when iterating over edges to calculate the meet *)
   let calc_meet (table: (edge, data) Hash.t) (e: edge) (acc: data option) =
     let edge_datum = Hash.find table e in
     match acc with
@@ -61,11 +69,18 @@ module GenericAnalysis
 
   let iterative (init: node -> data) (cfg: graph) : edge -> data =
     (* initializations *)
+    (* data table *)
     let table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
     iter_vertex (fun node -> transfer_iter (fun e -> Hash.add table e (init node)) cfg node) cfg;
 
+    (* helper function when folding over all nodes of graph to calculate fixpoint *)
     let vertex_foldf (n: node) (changed : bool) =
+      (* calculate meet *)
       let meet = meet_fold (calc_meet table) cfg n None in
+      (* if no predecessors/successors then data does not change
+       * otherwise calculate new datum for edges accordingly
+       * if the new datum is different, then update data table then mark that
+       * the data has changed *)
       match meet with
       | None -> changed
       | Some meet' ->
@@ -81,6 +96,7 @@ module GenericAnalysis
         transfer_fold update cfg n false
     in
 
+    (* iterate through nodes until data does not change *)
     let rec iterate () : edge -> data =
       (* has the data for the CFG nodes changed? *)
       if fold_vertex vertex_foldf cfg false then
@@ -93,18 +109,27 @@ module GenericAnalysis
 
   let worklist (init: node -> data) (cfg: graph) : edge -> data =
     (* initializations *)
+    (* data table *)
     let data_table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
+    (* worklist queue for nodes *)
     let node_set : node Queue.t = Queue.create () in
     iter_vertex
       (fun node ->
         transfer_iter (fun e -> Hash.add data_table e (init node)) cfg node;
         Queue.enqueue node_set node)
       cfg;
+
+    (* calculate data until queue is empty *)
     let rec work () =
       match Queue.dequeue node_set with
       | Some n ->
         begin
+          (* calculate meet *)
           let meet = meet_fold (calc_meet data_table) cfg n None in
+          (* if no predecessors/successors then data does not change
+           * otherwise calculate new datum for edges accordingly
+           * if new datum is different, then update data table and add src/dest
+           * to queue *)
           match meet with
           | None -> work ()
           | Some meet' ->

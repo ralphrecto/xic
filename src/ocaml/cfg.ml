@@ -38,7 +38,7 @@ module AbstractAsmCfg : AbstractAsmCfgT = struct
   module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
     type t = edgedata
 
-    (* since we don't really need to compare edges set to true for now *) 
+    (* since we don't really need to compare edges set to true for now *)
     let compare _ _ = 0
     let default = NoBranch
   end
@@ -52,7 +52,7 @@ module AbstractAsmCfg : AbstractAsmCfgT = struct
       let f i asm = V.create { num = i; asm = asm; } in
       List.mapi ~f asms in
 
-    let rec add_structure nodelist = 
+    let rec add_structure nodelist =
       match nodelist with
       | [] -> ()
       | hd :: [] -> add_vertex cfg hd

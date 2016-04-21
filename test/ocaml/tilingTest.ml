@@ -106,8 +106,8 @@ let test_munch_expr _ =
     let expected = ((gen 1), [
       movq (const 1) (fakeop 0);
       movq (const 2) (fakeop 1);
-      movq (fakeop 0) arax;
-      imulq (fakeop 1);
+      movq (fakeop 1) arax;
+      imulq (fakeop 0);
       movq asmreg (fakeop 1);
     ]) in
     test expected input
@@ -121,8 +121,8 @@ let test_munch_expr _ =
     let expected = ((gen 1), [
       movq (const 1) (fakeop 0);
       movq (const 2) (fakeop 1);
-      xorq ardx ardx;
       movq (fakeop 0) arax;
+      xorq ardx ardx;
       cqto;
       idivq (fakeop 1);
       movq asmreg (fakeop 1);

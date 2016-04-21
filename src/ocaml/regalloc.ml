@@ -9,7 +9,6 @@ module LiveVariableLattice : LowerSemilattice with
   type data = Int.Set.t = struct
 
   type data = Int.Set.t
-  let top = Int.Set.empty
   let ( ** ) = Int.Set.union
   let ( === ) = Int.Set.equal
 end
@@ -22,13 +21,14 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
 
   type graph = CFG.t
   type node = CFG.V.t
+  type edge = CFG.E.t
   type data = Lattice.data
 
   (* returns a sets of vars used and defd, respectively *)
-  let usedvars : abstract_asm -> Int.Set.t * Int.Set.t =
-    let set_of_arg (arg: abstract_reg operand) : Int.Set.t = 
+  let _usedvars : abstract_asm -> Int.Set.t * Int.Set.t =
+    let set_of_arg (arg: abstract_reg operand) : Int.Set.t =
       let fakes = fakes_of_operand arg in
-      let f acc fake = 
+      let f acc fake =
         (* TODO: need to fix not all the temporary registers will be of form __asmreg- *)
         match FreshReg.get fake with
         | None -> acc
@@ -57,7 +57,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
       "negq";
     ] in
     (* TODO: these should go in as a special case since we se CL for the
-     * instructions right now. 
+     * instructions right now.
      * Although for register allocation we probably want to do something smarter
      * and not default to CL but any other 8 bit register *)
     let unops_def = [
@@ -77,7 +77,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
     ] in
     let unops_use = [
       "push" ;
-      "pushq" 
+      "pushq"
     ] in
     let unops_special = [
       "imulq";
@@ -91,7 +91,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         else if List.mem unops_def name then
           (Int.Set.empty, arg_set)
         else if List.mem unops_use name then
-          (arg_set, Int.Set.empty) 
+          (arg_set, Int.Set.empty)
           (* TODO: HANDLE SPECIAL CASES!!! *)
         else if List.mem unops_special name then
           (Int.Set.empty, Int.Set.empty)
@@ -107,11 +107,12 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         else (Int.Set.empty, Int.Set.empty)
       | _ -> (Int.Set.empty, Int.Set.empty)
 
-  let transfer (n: node) (d: data) =
+  let transfer (_e: edge) (_d: data) = failwith "TODO"
+    (*
     let n_data = V.label n in
     let use_n, def_n = usedvars n_data.asm in
     Int.Set.union use_n (Int.Set.diff d def_n)
-
+    *)
 end
 
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)

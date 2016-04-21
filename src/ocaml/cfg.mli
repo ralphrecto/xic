@@ -11,6 +11,7 @@ module type ControlFlowGraph = Graph.Sig.I
  *)
 module type NodeData = sig
   type t
+  val to_string : t -> string
 end
 
 (** A functor to generate explicit labels for start and exit nodes. *)
@@ -19,6 +20,7 @@ module StartExit(N: NodeData) : sig
     | Node of N.t
     | Start
     | Exit
+  include NodeData with type t := t
 end
 
 (** The type of edge labels. *)
@@ -27,14 +29,17 @@ module EdgeData : sig
     | Normal (* non-branching edge *)
     | True   (* true branch *)
     | False  (* false branch *)
-  [@@deriving sexp, compare]
+  [@@deriving compare]
+
   val default : t
 end
 
 (* Make(N) is a graph with vertexes labeled with N.t and edges labled with
  * EdgeData.t This graph is the CFG. *)
-module Make(N: NodeData) :
-  (module type of Imperative.Graph.AbstractLabeled(N)(EdgeData))
+module Make(N: NodeData) : sig
+  include (module type of Imperative.Graph.AbstractLabeled(N)(EdgeData))
+  val to_dot : Pervasives.out_channel -> t -> unit
+end
 
 (* IR CFG *)
 module IrData : sig
@@ -42,6 +47,7 @@ module IrData : sig
     num: int;
     ir:  Ir.stmt;
   }
+  include NodeData with type t := t
 end
 module IrDataStartExit : (module type of StartExit(IrData))
 module IrCfg : sig
@@ -55,6 +61,7 @@ module AsmData : sig
     num: int;
     asm: Asm.abstract_asm;
   }
+  include NodeData with type t := t
 end
 module AsmDataStartExit : (module type of StartExit(AsmData))
 module AsmCfg : sig

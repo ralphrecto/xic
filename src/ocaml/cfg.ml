@@ -7,6 +7,14 @@ module type ControlFlowGraph = Graph.Sig.I
 module type NodeData = sig
   type t
   val to_string : t -> string
+  val to_int    : t -> int
+end
+
+module Poly(N: NodeData) = struct
+  include N
+  let compare = Pervasives.compare
+  let hash    = Hashtbl.hash
+  let equal   = (=)
 end
 
 module StartExit(N: NodeData) = struct
@@ -19,6 +27,12 @@ module StartExit(N: NodeData) = struct
     | Node n -> N.to_string n
     | Start  -> "start"
     | Exit   -> "exit"
+
+  let to_int a =
+    match a with
+    | Start -> 0
+    | Exit -> 1
+    | Node n -> N.to_int n + 2
 end
 
 module EdgeData = struct
@@ -29,20 +43,26 @@ module EdgeData = struct
   [@@deriving compare]
 
   let default = Normal
+
+  let to_string t =
+    match t with
+    | Normal -> ""
+    | True   -> "true"
+    | False  -> "false"
 end
 
 module Make(N: NodeData) = struct
-  include Imperative.Graph.AbstractLabeled(N)(EdgeData)
+  include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
 
   module X = struct
-    include Imperative.Graph.AbstractLabeled(N)(EdgeData)
+    include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
     let graph_attributes _ = []
     let default_vertex_attributes _ = []
-    let vertex_name v = Int.to_string (Mark.get v)
+    let vertex_name v = Int.to_string (N.to_int (V.label v))
     let vertex_attributes v = [`Label (N.to_string (V.label v))]
     let get_subgraph _ = None
     let default_edge_attributes _ = []
-    let edge_attributes _ = []
+    let edge_attributes e = [`Label (EdgeData.to_string (E.label e))]
   end
   include Graphviz.Dot(X)
   let to_dot = output_graph
@@ -54,9 +74,9 @@ module IrData = struct
     num: int;
     ir:  Ir.stmt;
   }
-  [@@deriving sexp, compare]
 
   let to_string {ir; _} = Ir.string_of_stmt ir
+  let to_int {num; _} = num
 end
 module IrDataStartExit = StartExit(IrData)
 module IrCfg = struct
@@ -66,9 +86,7 @@ module IrCfg = struct
   let create_cfg irs =
     (* Enumerate ir. Also create a map from each vertex's label to its vertex. *)
     let enumerated = List.mapi irs ~f:(fun num ir -> {num; ir}) in
-    let module IrMap = Map.Make(IrData) in
-    let association = List.map ~f:(fun ir -> (ir, V.create (Node ir))) enumerated in
-    let vertex_map = IrMap.of_alist_exn association in
+    let vertexes = List.map ~f:(fun ir -> V.create (Node ir)) enumerated in
 
     (* Map each label in the graph to it's enumerated counterpart. We'll use
      * this mapping to form the branches in our CFG. *)
@@ -86,7 +104,7 @@ module IrCfg = struct
     let g = create ~size () in
 
     (* add vertexes *)
-    List.iter (IrMap.data vertex_map) ~f:(add_vertex g);
+    List.iter vertexes ~f:(add_vertex g);
 
     (* add labels *)
     let rec add_edges irs =
@@ -95,11 +113,12 @@ module IrCfg = struct
         begin
           match a with
           | Ir.Exp _ | Ir.Label _ | Ir.Move _ ->
-              add_edge g (IrMap.find_exn vertex_map x) (IrMap.find_exn vertex_map y)
+              add_edge g (V.create (Node x)) (V.create (Node y))
           | Ir.Jump (Ir.Name l)
           | Ir.CJumpOne (_, l) -> begin
               let z = String.Map.find_exn label_map l in
-              add_edge g (IrMap.find_exn vertex_map x) (V.create z)
+              add_edge_e g (E.create (V.create (Node x)) False (V.create (Node y)));
+              add_edge_e g (E.create (V.create (Node x)) True  (V.create z))
           end
           | Ir.Return -> ()
           | Ir.Jump _ -> failwith "IR shouldn't jump to something other than a name"
@@ -116,12 +135,10 @@ module IrCfg = struct
     add_vertex g start;
     let connect_to_start v =
       match V.label v with
-      | Node _ -> begin
-          printf "%d\n" (in_degree g v);
-          if (in_degree g v / 2) = 0
+      | Node _ ->
+          if in_degree g v = 0
             then add_edge g start v
             else ()
-      end
       | Start | Exit -> ()
     in
     iter_vertex connect_to_start g;
@@ -131,19 +148,13 @@ module IrCfg = struct
     add_vertex g exit;
     let connect_to_exit v =
       match V.label v with
-      | Node _ -> begin
-          printf "%d\n" (in_degree g v);
-          if (out_degree g v / 2) = 0
+      | Node _ ->
+          if out_degree g v = 0
             then add_edge g v exit
             else ()
-      end
       | Start | Exit -> ()
     in
     iter_vertex connect_to_exit g;
-
-    (* Mark every node with a unique integer. This is used to pretty print
-     * graphs as DOT files.  *)
-    ignore (fold_vertex (fun v i -> Mark.set v i; i + 1) g 0);
 
     g
 end
@@ -155,7 +166,8 @@ module AsmData = struct
     asm: Asm.abstract_asm;
   }
 
-  let to_string _ = "TODO"
+  let to_string _ = failwith "TODO"
+  let to_int _ = failwith "TODO"
 end
 module AsmDataStartExit = StartExit(AsmData)
 module AsmCfg = struct

@@ -26,13 +26,12 @@ let rec get_subexpr (e: expr) : ExprSet.t =
 and get_subexpr_stmt (s: stmt) : ExprSet.t =
   match s with
   | CJumpOne (e1, _) -> get_subexpr e1
-  | Jump e1 -> get_subexpr e1
   | Exp e1 -> get_subexpr e1
   | Move (e1, e2) -> union (get_subexpr e1) (get_subexpr e2)
   | Seq slst ->
       let f acc s = union acc (get_subexpr_stmt s) in
       List.fold_left ~f ~init: empty slst
-  | Label _ | Return -> empty
+  | Jump _ | Label _ | Return -> empty
   | CJump _ -> failwith "shouldn't exist!"
 
 let rec get_mem_temp (e: expr) : ExprSet.t =

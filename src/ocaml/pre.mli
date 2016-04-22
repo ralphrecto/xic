@@ -15,9 +15,7 @@ val kill_stmt      : Ir.stmt -> ExprSet.t
 
 (** Anticipated Expressions (a.k.a. Very Busy Expressions) *)
 module BusyExprLattice : sig
-  type data =
-    | Univ
-    | Set of ExprSet.t
+  type data = ExprSet.t
   include Dataflow.LowerSemilattice with type data := data
 end
 

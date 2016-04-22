@@ -85,25 +85,12 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | Move _
   | CJump _ -> failwith "shouldn't exist!"
 
-module BusyExprLattice: LowerSemilattice = struct
-  type data =
-    | Univ
-    | Set of ExprSet.t
+module BusyExprLattice = struct
+  type data = ExprSet.t
 
-  let top = Univ
+  let ( ** ) = inter
 
-  let ( ** ) = fun x y ->
-    match x, y with
-    | Univ, _ -> y
-    | _, Univ -> x
-    | Set x', Set y' -> Set (inter x' y')
-
-  let ( === ) = fun x y ->
-    match x, y with
-    | Univ, Univ -> true
-    | Univ, _ -> false
-    | _, Univ -> false
-    | Set x', Set y' -> equal x' y'
+  let ( === ) = equal
 end
 
 (**
@@ -116,19 +103,24 @@ end
  * Meet (/\)         : intersection
  * Initialization    : in[n] = U
  *)
-module BusyExprCFG : CFGWithLatticeT = struct
+module BusyExprCFG = struct
   module Lattice = BusyExprLattice
   module CFG = IrCfg
   open Lattice
   open CFG
-  open IrDataStartExit
+  module IDSE = IrDataStartExit
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
 
   let transfer (e: edge) (d: data) =
     let node = E.dst e in
     match node with
-    | Start -> failwith "TODO"
-    | Exit -> failwith "TODO"
-    | Node d' ->
+    | IDSE.Start -> failwith "TODO"
+    | IDSE.Exit -> failwith "TODO"
+    | IDSE.Node d' ->
       let stmt = d'.ir in
       let use = get_subexpr_stmt stmt in
       let kill = kill_stmt stmt in
@@ -144,21 +136,12 @@ module BusyExprCFG : CFGWithLatticeT = struct
 end
 
 module AvailExprLattice : LowerSemilattice = struct
-  type data = Univ | Set of t
+  type data = ExprSet.t
 
-  let top = Univ
+  let ( ** ) = inter
 
-  let ( ** ) = fun x y ->
-    match x, y with
-    | Univ, _ -> y
-    | _, Univ -> x
-    | Set x', Set y' -> Set (inter x' y')
+  let ( === ) = equal
 
-  let ( === ) = fun x y ->
-    match x, y with
-    | Univ, Univ -> true
-    | Univ, _ -> false
-    | _, Univ -> false
-    | Set x', Set y' -> equal x' y'
 end
+
 

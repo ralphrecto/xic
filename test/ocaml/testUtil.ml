@@ -1,5 +1,5 @@
 open Core.Std
-open OUnit
+open OUnit2
 
 let (===) (x: 'a) (y: 'a) : unit =
   assert_equal x y

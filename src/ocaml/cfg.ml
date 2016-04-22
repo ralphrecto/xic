@@ -94,6 +94,7 @@ module Make(N: NodeData) = struct
     let b = Buffer.create arbitarary_size in
     let formatter = Format.formatter_of_buffer b in
     fprint_graph formatter t;
+    Format.pp_print_flush formatter ();
     Buffer.contents b
 end
 
@@ -104,7 +105,7 @@ module IrData = struct
     ir:  Ir.stmt;
   }
 
-  let to_string {ir; _} = Ir.string_of_stmt ir
+  let to_string {num; ir} = sprintf "%d: %s" num (Ir.string_of_stmt ir)
   let to_int {num; _} = num
 end
 
@@ -144,7 +145,10 @@ module IrCfg = struct
           match a with
           | Ir.Exp _ | Ir.Label _ | Ir.Move _ ->
               add_edge g (V.create (Node x)) (V.create (Node y))
-          | Ir.Jump (Ir.Name l)
+          | Ir.Jump (Ir.Name l) -> begin
+              let z = String.Map.find_exn label_map l in
+              add_edge g (V.create (Node x)) (V.create z);
+          end
           | Ir.CJumpOne (_, l) -> begin
               let z = String.Map.find_exn label_map l in
               add_edge_e g (E.create (V.create (Node x)) False (V.create (Node y)));
@@ -156,6 +160,9 @@ module IrCfg = struct
           | Ir.CJump _ -> failwith "lowered IR shouldn't have CJump";
         end;
         add_edges (y::irs)
+      | [{ir=Ir.Jump (Ir.Name l); _} as x] ->
+          let z = String.Map.find_exn label_map l in
+          add_edge g (V.create (Node x)) (V.create z)
       | [] | [_] -> ()
     in
     add_edges enumerated;
@@ -178,11 +185,11 @@ module IrCfg = struct
     add_vertex g exit;
     let connect_to_exit v =
       match V.label v with
-      | Node _ ->
+      | Start | Node _ ->
           if out_degree g v = 0
             then add_edge g v exit
             else ()
-      | Start | Exit -> ()
+      | Exit -> ()
     in
     iter_vertex connect_to_exit g;
 

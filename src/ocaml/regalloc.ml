@@ -146,6 +146,7 @@ module InterferenceGraph = struct
   include LiveVariableAnalysis
   include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
 
+  (* TODO: Remove or figure out how to integrate sets *)
   module Extended_T = struct
     include Tuple.Make (String) (String)
     include Tuple.Sexpable (String) (String)
@@ -160,8 +161,8 @@ module InterferenceGraph = struct
       | [] -> edges
       | set::t ->
         (* Make edges for nodes interfering with each other in one statement *)
-        let new_edges = List.fold_left ~init:[] set ~f:(fun acci i ->
-          (List.fold_left ~init:[] set ~f:(fun accj j ->
+        let new_edges = String.Set.fold ~init:[] set ~f:(fun acci i ->
+          (String.Set.fold ~init:[] set ~f:(fun accj j ->
             if i <> j then (i, j)::accj else accj)) @ acci)
         in
         create_edges' t (edges@new_edges)

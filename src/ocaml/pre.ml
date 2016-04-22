@@ -86,7 +86,9 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | CJump _ -> failwith "shouldn't exist!"
 
 module BusyExprLattice: LowerSemilattice = struct
-  type data = Univ | Set of ExprSet.t
+  type data =
+    | Univ
+    | Set of ExprSet.t
 
   let top = Univ
 
@@ -104,6 +106,16 @@ module BusyExprLattice: LowerSemilattice = struct
     | Set x', Set y' -> equal x' y'
 end
 
+(**
+ * Anticipated Expressions
+ * =======================
+ * Domain            : Sets of expressions
+ * Direction         : Backwards
+ * Transfer function : in(n) = use(n) + (out(n) - kill(n))
+ * Boundary          : in[exit] = 0
+ * Meet (/\)         : intersection
+ * Initialization    : in[n] = U
+ *)
 module BusyExprCFG : CFGWithLatticeT = struct
   module Lattice = BusyExprLattice
   module CFG = IrCfg

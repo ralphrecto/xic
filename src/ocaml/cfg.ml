@@ -189,3 +189,4 @@ module AsmCfg = struct
 
     add_structure nodes;
     cfg
+end

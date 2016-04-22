@@ -94,6 +94,7 @@ module Make(N: NodeData) = struct
     let b = Buffer.create arbitarary_size in
     let formatter = Format.formatter_of_buffer b in
     fprint_graph formatter t;
+    Format.pp_print_flush formatter ();
     Buffer.contents b
 end
 

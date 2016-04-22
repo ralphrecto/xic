@@ -306,3 +306,4 @@ TSWLatexianTemp*
 # Lexing out files
 out/*
 *.lexed
+.DS_Store

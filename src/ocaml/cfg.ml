@@ -54,6 +54,30 @@ end
 module Make(N: NodeData) = struct
   include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
 
+  module VertexSet = Set.Make(struct
+    type t = V.t
+    let compare = V.compare
+    let sexp_of_t _ = failwith "VertexSet sexp_of_t not supported"
+    let t_of_sexp _ = failwith "VertexSet sexp_of_t not supported"
+  end)
+
+  module EdgeSet = Set.Make(struct
+    type t = E.t
+    let compare = E.compare
+    let sexp_of_t _ = failwith "EdgeSet sexp_of_t not supported"
+    let t_of_sexp _ = failwith "EdgeSet sexp_of_t not supported"
+  end)
+
+  let vertex_set g =
+    fold_vertex (fun v g -> VertexSet.add g v) g VertexSet.empty
+
+  let edge_set g =
+    fold_edges_e (fun e g -> EdgeSet.add g e) g EdgeSet.empty
+
+  let equal x y =
+    VertexSet.equal (vertex_set x) (vertex_set y) &&
+    EdgeSet.equal   (edge_set x)   (edge_set y)
+
   module X = struct
     include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
     let graph_attributes _ = []

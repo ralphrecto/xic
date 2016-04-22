@@ -49,11 +49,25 @@ module EdgeData : sig
   val to_string : t -> string
 end
 
-(* Make(N) is a graph with vertexes labeled with N.t and edges labled with
- * EdgeData.t This graph is the CFG. *)
+(* Make(N), a CFG, is a graph with vertexes labeled with N.t and edges labled with
+ * EdgeData.t. In addition to the normal Graph.Sig.I interface, we also add a
+ * few helper functions that are quite useful. For example to_dot forms a DOT
+ * formatted string from thegraph. *)
 module Make(N: NodeData) : sig
   include (module type of
     Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData))
+
+  module VertexSet : sig
+    include Set.S with type Elt.t = V.t
+  end
+
+  module EdgeSet : sig
+    include Set.S with type Elt.t = E.t
+  end
+
+  val vertex_set : t -> VertexSet.t
+  val edge_set : t -> EdgeSet.t
+  val equal : t -> t -> bool
   val to_dot : t -> string
 end
 

@@ -118,18 +118,19 @@ end
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)
 
 module type InterferenceGraphT = sig
-  type nodedata = string
+  type nodedata = { temp: string; is_mov: bool }
   type edgedata = unit
 
   include Graph.Sig.I with
     type V.label = nodedata and
     type E.label = edgedata
 
-  val create_interg : string list -> (string * string) list -> t
+  (*val create_interg : string list -> (string * string) list -> (string * string)
+    -> String.Set -> t*)
 end
 
-module InterferenceGraph = struct
-  type nodedata = string
+module InterferenceGraph : InterferenceGraphT = struct
+  type nodedata = { temp: string; is_mov: bool }
   type edgedata = unit
 
   module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
@@ -154,7 +155,6 @@ module InterferenceGraph = struct
   end
   module TS = Set.Make (Extended_T)
 
-  (* TODO: make temps to be set type *)
   let create_edges temps =
     let rec create_edges' ts edges =
       match ts with
@@ -169,19 +169,70 @@ module InterferenceGraph = struct
     in
     create_edges' temps []
 
-  let create_interg (nodes: string list) (edges: (string * string) list) =
+  let is_mov_related _node = false (* TODO: how to get mov info? *)
+
+  let _create_interg nodes es f =
     let g = create () in
+
+    let edges = create_edges (List.fold_left ~init:[] es ~f:(fun acc e ->
+      (f e)::acc)) in
 
     (* Add vertices *)
     List.fold_left ~init:() nodes ~f:(fun _ n ->
-      let node = V.create n in
+      let node = V.create { temp = n; is_mov = is_mov_related n } in
       add_vertex g node);
 
     (* Add edges *)
     List.fold_left ~init:() edges ~f:(fun _ (n1, n2) ->
-      let node1 = V.create n1 in
-      let node2 = V.create n2 in
+      let node1 = V.create { temp = n1; is_mov = is_mov_related n1 } in
+      let node2 = V.create { temp = n2; is_mov = is_mov_related n2 } in
       add_edge g node1 node2);
 
     g
 end
+
+module IG = InterferenceGraph
+
+(* k is the number of registers available for coloring *)
+let k = 14
+
+let reg_alloc g k =
+  let _g' = IG.copy g in
+
+  (* Remove non-move-related nodes of low degree *)
+  let _simplify g stack =
+    (* Get non-move-related nodes of <k degree from graph *)
+    let non_mov_nodes = IG.fold_vertex (fun v acc -> if (IG.V.label v).is_mov then acc
+      else v::acc) g [] in
+    
+    (* Push all nodes of <k degree onto stack *)
+    let rec push acc =
+      (* Pick a non-move-related vertex that has <k degree *)
+      let node = List.fold_left ~init:None non_mov_nodes ~f:(fun acc v ->
+        match acc with
+        | None -> if IG.in_degree g v < k then Some v else None
+        | Some _ -> acc)
+      in
+      match node with
+      | None -> acc
+      | Some v -> IG.remove_vertex g v;
+        push (v::acc)
+    in
+  
+    let stack' = push stack in
+    stack'
+  in
+  
+  (* Coalesce move-related nodes *)
+  let _coalesce _g _stack = failwith "TODO" in
+  
+  (* Remove a move-related node of low degree *)
+  let _freeze _g _stack = failwith "TODO" in
+  
+  (* Spill a >=k degree node onto stack *)
+  let _spill _g _stack = failwith "TODO" in
+  
+  (* Pop nodes from the stack and assign a color *)
+  let _select _stack = failwith "TODO" in
+  
+  failwith "finish reg alloc!"

@@ -331,6 +331,15 @@ let fakes_of_asm asm =
 let fakes_of_asms asms =
   Util.ordered_dedup (List.concat_map ~f:fakes_of_asm asms)
 
+let regs_of_operand o =
+  match o with
+  | Reg r -> [r]
+  | Mem (Base (_, r)) -> [r]
+  | Mem (Off (_, r, _)) -> [r]
+  | Mem (BaseOff (_, r1, r2, _)) -> [r1; r2]
+  | Label _
+  | Const _ -> []
+
 (******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)

@@ -6,19 +6,35 @@ open Asm
 open Tiling
 open Fresh
 
-module LiveVariableLattice : LowerSemilattice with
-  type data = Int.Set.t = struct
+module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
+  struct
+  type t = abstract_reg 
 
-  type data = Int.Set.t
-  let ( ** ) = Int.Set.union
-  let ( === ) = Int.Set.equal
+  let t_of_sexp _ = failwith "implement t_of_sexp for AbstractRegElt"
+  let sexp_of_t _ = failwith "implement sexp_of_t for AbstractRegElt"
+  (* we arbitrarily choose Fakes < Reals *)
+  let compare a b =
+    match a, b with
+    | Fake _, Fake _ | Real _, Real _ -> 0
+    | Fake _, Real _ -> -1 
+    | Real _, Fake _ -> 1
+  end
+)
+
+module LiveVariableLattice : LowerSemilattice with
+  type data = AbstractRegSet.t = struct
+
+  type data = AbstractRegSet.t
+  let ( ** ) = AbstractRegSet.union
+  let ( === ) = AbstractRegSet.equal
 end
 
 module AsmWithLiveVar : CFGWithLatticeT = struct
   module Lattice = LiveVariableLattice
   module CFG = AsmCfg
+  module ADSE = AsmDataStartExit
   open Lattice
-  open CFG
+  open CFG 
 
   type graph = CFG.t
   type node = CFG.V.t
@@ -26,15 +42,9 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
   type data = Lattice.data
 
   (* returns a sets of vars used and defd, respectively *)
-  let usedvars : abstract_asm -> Int.Set.t * Int.Set.t =
-    let set_of_arg (arg: abstract_reg operand) : Int.Set.t =
-      let fakes = fakes_of_operand arg in
-      let f acc fake =
-        (* TODO: need to fix not all the temporary registers will be of form __asmreg- *)
-        match FreshReg.get fake with
-        | None -> acc
-        | Some x -> Int.Set.add acc x in
-      List.fold_left ~f ~init:Int.Set.empty fakes in
+  let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
+    let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
+      AbstractRegSet.of_list (regs_of_operand arg) in
     let binops_use_plus_def =  [
       "addq";
       "subq";
@@ -90,28 +100,32 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         if List.mem unops_use_plus_def name then
           (arg_set, arg_set)
         else if List.mem unops_def name then
-          (Int.Set.empty, arg_set)
+          (AbstractRegSet.empty, arg_set)
         else if List.mem unops_use name then
-          (arg_set, Int.Set.empty)
+          (arg_set, AbstractRegSet.empty)
           (* TODO: HANDLE SPECIAL CASES!!! *)
         else if List.mem unops_special name then
-          (Int.Set.empty, Int.Set.empty)
-        else (Int.Set.empty, Int.Set.empty)
+          (AbstractRegSet.empty, AbstractRegSet.empty)
+        else (AbstractRegSet.empty, AbstractRegSet.empty)
       | Op (name, arg1 :: arg2 :: []) ->
         let arg1_set = set_of_arg arg1 in
         let arg2_set = set_of_arg arg2 in
-        let arg_union = Int.Set.union arg1_set arg2_set in
+        let arg_union = AbstractRegSet.union arg1_set arg2_set in
         if List.mem binops_use_plus_def name then
           (arg_union, arg2_set)
         else if List.mem binops_use name then
-          (arg_union, Int.Set.empty)
-        else (Int.Set.empty, Int.Set.empty)
-      | _ -> (Int.Set.empty, Int.Set.empty)
+          (arg_union, AbstractRegSet.empty)
+        else (AbstractRegSet.empty, AbstractRegSet.empty)
+      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
-  let transfer (e: edge) (d: data) =
-    let n_data = V.label (E.src e) in
-    let use_n, def_n = usedvars n_data.asm in
-    Int.Set.union use_n (Int.Set.diff d def_n)
+  let transfer (e: AsmCfg.E.t) (d: Lattice.data) =
+    (* We use dest because live variable analysis is backwards *)
+    match E.dst e with 
+    | Start -> failwith "Live variable transfer: start cannot be dest"
+    | Exit -> AbstractRegSet.empty
+    | Node n_data -> 
+        let use_n, def_n = usedvars n_data.asm in
+        AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 end
 
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)

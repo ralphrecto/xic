@@ -230,6 +230,8 @@ val fakes_of_operands : abstract_reg operand list -> string list
 val fakes_of_asm      : abstract_asm              -> string list
 val fakes_of_asms     : abstract_asm list         -> string list
 
+val regs_of_operand   : abstract_reg operand      -> abstract_reg list
+
 (******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)

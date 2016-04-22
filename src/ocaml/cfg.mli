@@ -54,7 +54,7 @@ end
 module Make(N: NodeData) : sig
   include (module type of
     Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData))
-  val to_dot : Pervasives.out_channel -> t -> unit
+  val to_dot : t -> string
 end
 
 (* IR CFG *)

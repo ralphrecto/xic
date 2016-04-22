@@ -65,7 +65,12 @@ module Make(N: NodeData) = struct
     let edge_attributes e = [`Label (EdgeData.to_string (E.label e))]
   end
   include Graphviz.Dot(X)
-  let to_dot = output_graph
+  let to_dot t =
+    let arbitarary_size = 4096 in
+    let b = Buffer.create arbitarary_size in
+    let formatter = Format.formatter_of_buffer b in
+    fprint_graph formatter t;
+    Buffer.contents b
 end
 
 (* IR CFG *)

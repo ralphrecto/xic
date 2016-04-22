@@ -48,6 +48,7 @@ and stmt =
 and func_decl = string * stmt * (Expr.t * Expr.t)
 
 and comp_unit = string * func_decl String.Map.t
+    [@@deriving sexp, compare]
 
 (* abbreviations *)
 module Abbreviations = struct

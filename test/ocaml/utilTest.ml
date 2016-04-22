@@ -1,5 +1,5 @@
 open Core.Std
-open OUnit
+open OUnit2
 open TestUtil
 open Util
 

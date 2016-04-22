@@ -60,6 +60,7 @@ and func_decl = string * stmt * (Expr.t * Expr.t)
 
 (* name, functions *)
 and comp_unit = string * func_decl String.Map.t
+    [@@deriving sexp, compare]
 
 (* abbreviations *)
 module Abbreviations: sig

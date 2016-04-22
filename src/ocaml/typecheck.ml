@@ -32,7 +32,7 @@ module Expr = struct
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
-    [@@deriving sexp]
+    [@@deriving sexp, compare]
 
   let rec to_string t =
     match t with

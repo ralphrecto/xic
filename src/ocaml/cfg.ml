@@ -2,54 +2,219 @@ open Core.Std
 open Graph
 open Asm
 
-module type ControlFlowGraph = sig
-  (* including imperative graph *)
-  include Graph.Sig.I
+module type ControlFlowGraph = Graph.Sig.I
+
+module type NodeData = sig
+  type t
+  val to_string : t -> string
+  val to_int    : t -> int
 end
 
-module type AbstractAsmCfgT = sig
-  type nodedata = {
-    (* numbering the verticies to differentiate nodes with the same asm *)
-    num: int;
-    asm: abstract_asm;
-  }
-  type edgedata = BranchOne | BranchTwo | NoBranch
-
-  include ControlFlowGraph with
-    type V.label = nodedata
-    and type E.label = edgedata
-
-  val create_cfg : abstract_asm list -> t
+module Poly(N: NodeData) = struct
+  include N
+  let compare = Pervasives.compare
+  let hash    = Hashtbl.hash
+  let equal   = (=)
 end
 
-module AbstractAsmCfg : AbstractAsmCfgT = struct
-  type nodedata = {
+module StartExit(N: NodeData) = struct
+  type t =
+    | Node of N.t
+    | Start
+    | Exit
+
+  let to_string = function
+    | Node n -> N.to_string n
+    | Start  -> "start"
+    | Exit   -> "exit"
+
+  let to_int a =
+    match a with
+    | Start -> 0
+    | Exit -> 1
+    | Node n -> N.to_int n + 2
+end
+
+module EdgeData = struct
+  type t =
+    | Normal
+    | True
+    | False
+  [@@deriving compare]
+
+  let default = Normal
+
+  let to_string t =
+    match t with
+    | Normal -> ""
+    | True   -> "true"
+    | False  -> "false"
+end
+
+module Make(N: NodeData) = struct
+  include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
+
+  module VertexSet = Set.Make(struct
+    type t = V.t
+    let compare = V.compare
+    let sexp_of_t _ = failwith "VertexSet sexp_of_t not supported"
+    let t_of_sexp _ = failwith "VertexSet sexp_of_t not supported"
+  end)
+
+  module EdgeSet = Set.Make(struct
+    type t = E.t
+    let compare = E.compare
+    let sexp_of_t _ = failwith "EdgeSet sexp_of_t not supported"
+    let t_of_sexp _ = failwith "EdgeSet sexp_of_t not supported"
+  end)
+
+  let vertex_set g =
+    fold_vertex (fun v g -> VertexSet.add g v) g VertexSet.empty
+
+  let edge_set g =
+    fold_edges_e (fun e g -> EdgeSet.add g e) g EdgeSet.empty
+
+  let equal x y =
+    VertexSet.equal (vertex_set x) (vertex_set y) &&
+    EdgeSet.equal   (edge_set x)   (edge_set y)
+
+  module X = struct
+    include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)
+    let graph_attributes _ = []
+    let default_vertex_attributes _ = []
+    let vertex_name v = Int.to_string (N.to_int (V.label v))
+    let vertex_attributes v = [`Label (N.to_string (V.label v))]
+    let get_subgraph _ = None
+    let default_edge_attributes _ = []
+    let edge_attributes e = [`Label (EdgeData.to_string (E.label e))]
+  end
+  include Graphviz.Dot(X)
+  let to_dot t =
+    let arbitarary_size = 4096 in
+    let b = Buffer.create arbitarary_size in
+    let formatter = Format.formatter_of_buffer b in
+    fprint_graph formatter t;
+    Format.pp_print_flush formatter ();
+    Buffer.contents b
+end
+
+(* IR CFG *)
+module IrData = struct
+  type t = {
     num: int;
-    asm: abstract_asm;
+    ir:  Ir.stmt;
   }
-  type edgedata = BranchOne | BranchTwo | NoBranch
 
-  module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
-    type t = nodedata
-  end
+  let to_string {num; ir} = sprintf "%d: %s" num (Ir.string_of_stmt ir)
+  let to_int {num; _} = num
+end
 
-  (* Edge Label is a type Graph.Sig.ORDERED_TYPE_DFT to match signature of
-   * functor Imperative.Graph.AbstractLabeled *)
-  module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
-    type t = edgedata
+module IrDataStartExit = StartExit(IrData)
+module IrCfg = struct
+  open IrData
+  include Make(IrDataStartExit)
 
-    (* since we don't really need to compare edges set to true for now *)
-    let compare _ _ = 0
-    let default = NoBranch
-  end
+  let create_cfg irs =
+    (* Enumerate ir. Also create a map from each vertex's label to its vertex. *)
+    let enumerated = List.mapi irs ~f:(fun num ir -> {num; ir}) in
+    let vertexes = List.map ~f:(fun ir -> V.create (Node ir)) enumerated in
 
-  include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
+    (* Map each label in the graph to it's enumerated counterpart. We'll use
+     * this mapping to form the branches in our CFG. *)
+    let association = List.filter_map enumerated ~f:(fun {num; ir} ->
+      match ir with
+      | Ir.Label l -> Some (l, IrDataStartExit.Node {num; ir})
+      | _ -> None
+    ) in
+    let label_map = String.Map.of_alist_exn association in
+
+    (* Create graph *)
+    let one_for_start = 1 in
+    let one_for_exit  = 1 in
+    let size = List.length enumerated + one_for_start + one_for_exit in
+    let g = create ~size () in
+
+    (* add vertexes *)
+    List.iter vertexes ~f:(add_vertex g);
+
+    (* add labels *)
+    let rec add_edges irs =
+      match irs with
+      | ({ir=a; _} as x)::y::irs ->
+        begin
+          match a with
+          | Ir.Exp _ | Ir.Label _ | Ir.Move _ ->
+              add_edge g (V.create (Node x)) (V.create (Node y))
+          | Ir.Jump (Ir.Name l) -> begin
+              let z = String.Map.find_exn label_map l in
+              add_edge g (V.create (Node x)) (V.create z);
+          end
+          | Ir.CJumpOne (_, l) -> begin
+              let z = String.Map.find_exn label_map l in
+              add_edge_e g (E.create (V.create (Node x)) False (V.create (Node y)));
+              add_edge_e g (E.create (V.create (Node x)) True  (V.create z))
+          end
+          | Ir.Return -> ()
+          | Ir.Jump _ -> failwith "IR shouldn't jump to something other than a name"
+          | Ir.Seq _ -> failwith "lowered IR shouldn't have nested Seqs"
+          | Ir.CJump _ -> failwith "lowered IR shouldn't have CJump";
+        end;
+        add_edges (y::irs)
+      | [{ir=Ir.Jump (Ir.Name l); _} as x] ->
+          let z = String.Map.find_exn label_map l in
+          add_edge g (V.create (Node x)) (V.create z)
+      | [] | [_] -> ()
+    in
+    add_edges enumerated;
+
+    (* Add an edge from the start node to every node with 0 in-degree. *)
+    let start = V.create Start in
+    add_vertex g start;
+    let connect_to_start v =
+      match V.label v with
+      | Node _ ->
+          if in_degree g v = 0
+            then add_edge g start v
+            else ()
+      | Start | Exit -> ()
+    in
+    iter_vertex connect_to_start g;
+
+    (* Add an edge from every node with 0 out-degree to the exit node. *)
+    let exit = V.create Exit in
+    add_vertex g exit;
+    let connect_to_exit v =
+      match V.label v with
+      | Start | Node _ ->
+          if out_degree g v = 0
+            then add_edge g v exit
+            else ()
+      | Exit -> ()
+    in
+    iter_vertex connect_to_exit g;
+
+    g
+end
+
+(* Asm CFG *)
+module AsmData = struct
+  type t = {
+    num: int;
+    asm: Asm.abstract_asm;
+  }
+
+  let to_string _ = failwith "TODO"
+  let to_int _ = failwith "TODO"
+end
+module AsmDataStartExit = StartExit(AsmData)
+module AsmCfg = struct
+  include Make(AsmDataStartExit)
 
   (* TODO: change this to include branches *)
   let create_cfg (asms: abstract_asm list) =
     let cfg = create ~size:(List.length asms) () in
     let nodes =
-      let f i asm = V.create { num = i; asm = asm; } in
+      let f i asm = V.(create (Node { num = i; asm = asm; })) in
       List.mapi ~f asms in
 
     let rec add_structure nodelist =

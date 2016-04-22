@@ -15,7 +15,8 @@ open Xi_interpreter
 module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
 module TodoRemoveThis_ItsOnlyUsedToBuildDataflow = Dataflow
 module TodoRemoveThis_ItsOnlyUsedToBuildRegalloc = Regalloc
-module TodoRemoveThis_ItsOnlyUsedToBuildTranslate= Translate
+module TodoRemoveThis_ItsOnlyUsedToBuildTranslate = Translate
+module TodoRemoveThis_ItsOnlyUsedToBuildPre = Pre
 
 type flags = {
   no_opt:         bool;

@@ -14,7 +14,7 @@ module Expr: sig
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
-    [@@deriving sexp]
+    [@@deriving sexp, compare]
 
   val to_string: t -> string
   val of_typ: Pos.typ -> t

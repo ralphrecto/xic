@@ -10,14 +10,13 @@ module LiveVariableLattice : LowerSemilattice with
   type data = Int.Set.t = struct
 
   type data = Int.Set.t
-  let top = Int.Set.empty
   let ( ** ) = Int.Set.union
   let ( === ) = Int.Set.equal
 end
 
 module AsmWithLiveVar : CFGWithLatticeT = struct
   module Lattice = LiveVariableLattice
-  module CFG = AbstractAsmCfg
+  module CFG = AsmCfg
   open Lattice
   open CFG
 

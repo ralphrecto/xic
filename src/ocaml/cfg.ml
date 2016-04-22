@@ -78,6 +78,7 @@ module IrData = struct
   let to_string {ir; _} = Ir.string_of_stmt ir
   let to_int {num; _} = num
 end
+
 module IrDataStartExit = StartExit(IrData)
 module IrCfg = struct
   open IrData
@@ -188,4 +189,3 @@ module AsmCfg = struct
 
     add_structure nodes;
     cfg
-end

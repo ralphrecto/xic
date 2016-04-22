@@ -87,9 +87,7 @@ and kill_stmt (s: stmt) : ExprSet.t =
 
 module BusyExprLattice = struct
   type data = ExprSet.t
-
   let ( ** ) = inter
-
   let ( === ) = equal
 end
 
@@ -106,9 +104,9 @@ end
 module BusyExprCFG = struct
   module Lattice = BusyExprLattice
   module CFG = IrCfg
+  module IDSE = IrDataStartExit
   open Lattice
   open CFG
-  module IDSE = IrDataStartExit
 
   type graph = CFG.t
   type node = CFG.V.t
@@ -137,11 +135,6 @@ end
 
 module AvailExprLattice : LowerSemilattice = struct
   type data = ExprSet.t
-
   let ( ** ) = inter
-
   let ( === ) = equal
-
 end
-
-

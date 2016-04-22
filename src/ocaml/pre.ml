@@ -35,6 +35,17 @@ and get_subexpr_stmt (s: stmt) : ExprSet.t =
   | Label _ | Return -> empty
   | CJump _ -> failwith "shouldn't exist!"
 
+let rec get_mem_temp (e: expr) : ExprSet.t =
+  match e with
+  | BinOp (e1, _, e2) -> union (get_mem_temp e1) (get_mem_temp e2)
+  | Call (_, elst) ->
+    let f acc e = union acc (get_mem_temp e) in
+    List.fold_left ~f ~init: empty elst
+  | Mem (e1, _) -> add (get_mem_temp e1) e
+  | Temp _ -> add empty e
+  | Const _ | Name _ -> empty
+  | ESeq _ -> failwith "shouldn't exist!"
+
 let rec kill_func_args (elst: expr list) : ExprSet.t =
   let f acc e =
     match e with
@@ -103,20 +114,20 @@ module BusyExprCFG : CFGWithLatticeT = struct
   let transfer (e: edge) (d: data) =
     let node = E.dst e in
     match node with
-    | Start
-    | Exit
+    | Start -> failwith "TODO"
+    | Exit -> failwith "TODO"
     | Node d' ->
-      let stmt = d.ir in
-      let use = get_subexpr stmt in
-      let kill = get_kill stmt in
+      let stmt = d'.ir in
+      let use = get_subexpr_stmt stmt in
+      let kill = kill_stmt stmt in
       let f acc expr =
-        let mem_temps = get_mem_temps expr in
-        if is_empty (inter mem_temps kill) then
+        let mem_temps = get_mem_temp expr in
+        if ExprSet.is_empty (inter mem_temps kill) then
           add acc expr
         else
           acc
       in
-      let diff_expr_kill = fold ~f ~init: empty data in
+      let diff_expr_kill = fold ~f ~init: empty d in
       union use diff_expr_kill
 end
 

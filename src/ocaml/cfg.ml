@@ -2,7 +2,11 @@ open Core.Std
 open Graph
 open Asm
 
-module type ControlFlowGraph = Graph.Sig.I
+module type ControlFlowGraph = sig
+  include Graph.Sig.I
+  val string_of_vertex : V.t -> string
+  val string_of_edge   : E.t -> string
+end
 
 module type NodeData = sig
   type t
@@ -77,6 +81,13 @@ module Make(N: NodeData) = struct
   let equal x y =
     VertexSet.equal (vertex_set x) (vertex_set y) &&
     EdgeSet.equal   (edge_set x)   (edge_set y)
+
+  let string_of_vertex = N.to_string
+  let string_of_edge e =
+    let src = string_of_vertex (E.src e) in
+    let dst = string_of_vertex (E.dst e) in
+    let label = EdgeData.to_string (E.label e) in
+    sprintf "%s -[%s]-> %s" src label dst
 
   module X = struct
     include Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData)

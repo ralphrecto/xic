@@ -1,7 +1,11 @@
 open Core.Std
 open Graph
 
-module type ControlFlowGraph = Graph.Sig.I
+module type ControlFlowGraph = sig
+  include Graph.Sig.I
+  val string_of_vertex : V.t -> string
+  val string_of_edge   : E.t -> string
+end
 
 (**
  * The type of vertex labels in a CFG. For example,
@@ -57,18 +61,15 @@ module Make(N: NodeData) : sig
   include (module type of
     Imperative.Digraph.ConcreteBidirectionalLabeled(Poly(N))(EdgeData))
 
-  module VertexSet : sig
-    include Set.S with type Elt.t = V.t
-  end
-
-  module EdgeSet : sig
-    include Set.S with type Elt.t = E.t
-  end
-
+  module VertexSet : sig include Set.S with type Elt.t = V.t end
+  module EdgeSet   : sig include Set.S with type Elt.t = E.t end
   val vertex_set : t -> VertexSet.t
-  val edge_set : t -> EdgeSet.t
-  val equal : t -> t -> bool
-  val to_dot : t -> string
+  val edge_set   : t -> EdgeSet.t
+  val equal      : t -> t -> bool
+
+  val string_of_vertex : V.t -> string
+  val string_of_edge   : E.t -> string
+  val to_dot           : t -> string
 end
 
 (* IR CFG *)

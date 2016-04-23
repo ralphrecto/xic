@@ -12,6 +12,8 @@ module type LowerSemilattice = sig
 
   (* equality over data values *)
   val ( === ) : data -> data -> bool
+
+  val to_string : data -> string
 end
 
 module type CFGWithLatticeT = sig
@@ -71,6 +73,7 @@ module GenericAnalysis
 
     (* helper function when folding over all nodes of graph to calculate fixpoint *)
     let vertex_foldf (n: node) (changed : bool) =
+      (* printf "iterative on vertex %s\n" (CFGL.CFG.string_of_vertex n); *)
       (* calculate meet *)
       let meet = meet_fold (calc_meet table) cfg n None in
       (* if no predecessors/successors then data does not change
@@ -78,11 +81,18 @@ module GenericAnalysis
        * if the new datum is different, then update data table then mark that
        * the data has changed *)
       match meet with
-      | None -> changed
-      | Some meet' ->
+      | None -> begin
+        (* printf "  meet = None\n"; *)
+        changed
+      end
+      | Some meet' -> begin
+        (* printf "  meet = %s\n" (CFGL.Lattice.to_string meet'); *)
         let update (e:edge) (updated: bool) =
           let edge_datum = Hash.find table e in
           let new_datum = transfer e meet' in
+          (* printf "    edge %s\n" (CFGL.CFG.string_of_edge e); *)
+          (* printf "      edge datum %s\n" (CFGL.Lattice.to_string edge_datum); *)
+          (* printf "      new  datum %s\n" (CFGL.Lattice.to_string new_datum); *)
           if edge_datum === new_datum then
             updated
           else
@@ -90,6 +100,7 @@ module GenericAnalysis
             true
         in
         transfer_fold update cfg n changed
+      end
     in
 
     (* iterate through nodes until data does not change *)

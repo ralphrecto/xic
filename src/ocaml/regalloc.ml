@@ -27,6 +27,7 @@ module LiveVariableLattice : LowerSemilattice with
   type data = AbstractRegSet.t
   let ( ** ) = AbstractRegSet.union
   let ( === ) = AbstractRegSet.equal
+  let to_string _ = failwith "TODO"
 end
 
 module AsmWithLiveVar : CFGWithLatticeT = struct

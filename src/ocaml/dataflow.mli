@@ -10,6 +10,8 @@ module type LowerSemilattice = sig
 
   (* equality over data values *)
   val ( === ) : data -> data -> bool
+
+  val to_string : data -> string
 end
 
 module type CFGWithLatticeT = sig

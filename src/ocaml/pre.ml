@@ -89,6 +89,7 @@ module BusyExprLattice = struct
   type data = ExprSet.t
   let ( ** ) = inter
   let ( === ) = equal
+  let to_string _ = failwith "TODO"
 end
 
 (**
@@ -152,6 +153,7 @@ module AvailExprLattice : LowerSemilattice = struct
   type data = ExprSet.t
   let ( ** ) = inter
   let ( === ) = equal
+  let to_string _ = failwith "TODO"
 end
 
 

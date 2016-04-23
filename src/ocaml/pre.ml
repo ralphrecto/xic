@@ -5,12 +5,49 @@ open Ir
 open Tiling
 open Fresh
 
-module ExprSet = Set.Make (struct type t = expr [@@deriving sexp, compare] end)
+(* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
+module ExprSet = struct
+  include Set.Make (struct
+    type t = expr [@@deriving sexp, compare]
+  end)
 
+  let to_string irs =
+    to_list irs
+    |> List.map ~f:Ir.string_of_expr
+    |> List.map ~f:(fun s -> "  " ^ s ^ ",\n")
+    |> Util.join
+    |> fun s -> "{\n" ^ s ^ "\n}"
+end
 open ExprSet
 
-(* first element of the tuple is the set of subexpressions
- * second element of the tuple is the set of temps and mems used by expr *)
+module ExprSetIntersectLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = ExprSet.inter
+  let ( === ) = ExprSet.equal
+  let to_string = ExprSet.to_string
+end
+
+module ExprSetUnionLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = ExprSet.union
+  let ( === ) = ExprSet.equal
+  let to_string = ExprSet.to_string
+end
+
+module type ExprSetIntersectCFG = sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = ExprSetIntersectLattice and
+    module CFG = Cfg.IrCfg
+end
+
+module type ExprSetUnionCFG = sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = ExprSetUnionLattice and
+    module CFG = Cfg.IrCfg
+end
+
 let rec get_subexpr (e: expr) : ExprSet.t =
   match e with
   | BinOp (e1, (DIV|MOD), e2) -> union (get_subexpr e1) (get_subexpr e2)
@@ -22,8 +59,6 @@ let rec get_subexpr (e: expr) : ExprSet.t =
   | Temp _ | Const _ | Name _ -> empty
   | ESeq _ -> failwith "shouldn't exist!"
 
-(* first element of the tuple is the set of subexpressions
- * second element of the tuple is the set of temps and mems used by stmt *)
 and get_subexpr_stmt (s: stmt) : ExprSet.t =
   match s with
   | CJumpOne (e1, _) -> get_subexpr e1
@@ -85,6 +120,9 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | Move _
   | CJump _ -> failwith "shouldn't exist!"
 
+(* ************************************************************************** *)
+(* Preprocessing Step                                                         *)
+(* ************************************************************************** *)
 let dummy_ir = Label "__dummy"
 let preprocess g =
   let open Cfg in
@@ -131,25 +169,11 @@ let preprocess g =
     )
   ) |> ignore
 
-(**
- * Anticipated Expressions
- * =======================
- * Domain            : Sets of expressions
- * Direction         : Backwards
- * Transfer function : in(n) = use(n) + (out(n) - kill(n))
- * Boundary          : in[exit] = 0
- * Meet (/\)         : intersection
- * Initialization    : in[n] = U
- *)
-module BusyExprLattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
-  let to_string _ = failwith "TODO"
-end
-
+(* ************************************************************************** *)
+(* Anticipated Expressions                                                    *)
+(* ************************************************************************** *)
 module BusyExprCFG = struct
-  module Lattice = BusyExprLattice
+  module Lattice = ExprSetIntersectLattice
   module CFG = IrCfg
   module IDSE = IrDataStartExit
   open Lattice
@@ -191,15 +215,11 @@ module BusyExprCFG = struct
       union use diff_expr_kill
 end
 
-module AvailExprLattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
-  let to_string _ = failwith "TODO"
-end
-
+(* ************************************************************************** *)
+(* Available Expressions                                                      *)
+(* ************************************************************************** *)
 module AvailExprCFG = struct
-  module Lattice = AvailExprLattice
+  module Lattice = ExprSetIntersectLattice
   module CFG = IrCfg
   module IDSE = IrDataStartExit
   open Lattice
@@ -237,15 +257,11 @@ module AvailExprCFG = struct
     fold ~f ~init: empty union'
 end
 
-module PostponeExprLattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
-  let to_string _ = failwith "TODO"
-end
-
+(* ************************************************************************** *)
+(* Postponable Expressions                                                    *)
+(* ************************************************************************** *)
 module PostponeExprCFG = struct
-  module Lattice = PostponeExprLattice
+  module Lattice = ExprSetIntersectLattice
   module CFG = IrCfg
   module IDSE = IrDataStartExit
   open Lattice

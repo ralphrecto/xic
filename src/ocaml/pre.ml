@@ -286,3 +286,21 @@ module PostponeExprCFG = struct
 
   let transfer (_, _earliest, _use: extra_info) (_e: edge) (_d: data) = failwith "TODO"
 end
+
+(* ************************************************************************** *)
+(* Used Expressions                                                    *)
+(* ************************************************************************** *)
+module UsedExprCFG = struct
+  module Lattice = ExprSetIntersectLattice
+  module CFG = IrCfg
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  let direction = `Forward
+  type extra_info = unit (* TODO *)
+  let init _extra_info _g _v = failwith "TODO"
+  let transfer _extra_info _e _l = failwith "TODO"
+end

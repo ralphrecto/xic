@@ -57,7 +57,7 @@ val preprocess : Cfg.IrCfg.t -> unit
  * Transfer function : in(n) = use(n) + (out(n) - kill(n))
  * Boundary          : in[exit] = 0
  * Meet (/\)         : intersection
- * Initialization    : in[n] = U
+ * Initialization    : in[n] = set of all exprs
  *)
 module BusyExprCFG : ExprSetIntersectCFG
 
@@ -69,7 +69,7 @@ module BusyExprCFG : ExprSetIntersectCFG
  * Transfer function : out(n) = (anticipated[n].in + in[n]) - kill(n)
  * Boundary          : out[start] = 0
  * Meet (/\)         : intersection
- * Initialization    : out[n] = U
+ * Initialization    : out[n] = set of all exprs
  *)
 module AvailExprCFG : ExprSetIntersectCFG
 
@@ -81,6 +81,18 @@ module AvailExprCFG : ExprSetIntersectCFG
  * Transfer function : out(n) = (earliest(n) + in[n]) - use(n)
  * Boundary          : out[start] = 0
  * Meet (/\)         : intersection
- * Initialization    : out[n] = U
+ * Initialization    : out[n] = set of all exprs
  *)
 module PostponeExprCFG : ExprSetIntersectCFG
+
+(**
+ * Used Expressions
+ * ================
+ * Domain            : Sets of expressions
+ * Direction         : Backwards
+ * Transfer function : out(n) = (use(n) + in[n]) - latest(n)
+ * Boundary          : in[exit] = 0
+ * Meet (/\)         : union
+ * Initialization    : in[n] = empty set
+ *)
+module UsedExprCFG : ExprSetIntersectCFG

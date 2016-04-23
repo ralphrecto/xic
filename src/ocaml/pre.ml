@@ -85,12 +85,51 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | Move _
   | CJump _ -> failwith "shouldn't exist!"
 
-module BusyExprLattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
-  let to_string _ = failwith "TODO"
-end
+let dummy_ir = Label "__dummy"
+let preprocess g =
+  let open Cfg in
+  let open IrCfg in
+  let open IrData in
+  let open IrDataStartExit in
+
+  (* compare two IR CFG nodes *)
+  let v_compare a b =
+    Int.compare (to_int a) (to_int b)
+  in
+
+  (* compare two IR CFG edges *)
+  let e_compare a b =
+    v_compare (V.label (E.src a)) (V.label (E.src b))
+  in
+
+  (* dummy node helpers *)
+  let fresh_num = nb_vertex g in
+  let dummy i = V.create (Node {num=i; ir=dummy_ir}) in
+
+  (* gather all the vertices with more than on predecessor *)
+  let vs = vertex_set g in
+  let multiple_preds =
+    VertexSet.filter ~f:(fun v -> in_degree g v > 1) vs
+    |> VertexSet.to_list
+    |> List.sort ~cmp:v_compare
+  in
+
+  (* add dummy nodes on all the incoming edges *)
+  List.fold_left multiple_preds ~init:fresh_num ~f:(fun a v ->
+    let preds =
+      preds_e g v
+      |> EdgeSet.to_list
+      |> List.sort ~cmp:e_compare
+    in
+    List.fold_left preds ~init:a ~f:(fun a e ->
+      let d = dummy a in
+      remove_edge_e g e;
+      add_vertex g d;
+      add_edge g (E.src e) d;
+      add_edge g d (E.dst e);
+      a + 1
+    )
+  ) |> ignore
 
 (**
  * Anticipated Expressions
@@ -102,6 +141,13 @@ end
  * Meet (/\)         : intersection
  * Initialization    : in[n] = U
  *)
+module BusyExprLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = inter
+  let ( === ) = equal
+  let to_string _ = failwith "TODO"
+end
+
 module BusyExprCFG = struct
   module Lattice = BusyExprLattice
   module CFG = IrCfg

@@ -6,6 +6,24 @@ open Pre
 open Ir
 open ExprSet
 
+module IrCfgEq = struct
+  let (===) (a: Cfg.IrCfg.t) (b: Cfg.IrCfg.t) : unit =
+    assert_equal ~cmp:Cfg.IrCfg.equal ~printer:Cfg.IrCfg.to_dot a b
+
+  let (=/=) (a: Cfg.IrCfg.t) (b: Cfg.IrCfg.t) : unit =
+    if Cfg.IrCfg.equal a b then
+        let a = Cfg.IrCfg.to_dot a in
+        let b = Cfg.IrCfg.to_dot b in
+        assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
+end
+
+let make_graph vertexes edges =
+  let open Cfg.IrCfg in
+  let g = create () in
+  List.iter vertexes ~f:(fun i -> add_vertex g (V.create i));
+  List.iter edges ~f:(fun (i, l, j) -> add_edge_e g (E.create i l j));
+  g
+
 let get_subexpr_test _ =
 
   let make_binop e1 e2 = BinOp (e1, EQ, e2) in
@@ -710,12 +728,110 @@ let get_subexpr_test _ =
 
   ()
 
+let preprocess_test _ =
+  let open Ir.Abbreviations in
+  let open Cfg.IrData in
+  let open Cfg.IrDataStartExit in
+  let open IrCfgEq in
+
+  let test input_vs input_es expected_vs expected_es =
+    let input = make_graph input_vs input_es in
+    let expected = make_graph expected_vs expected_es in
+    Pre.preprocess input;
+    expected === input
+  in
+
+  let norm = Cfg.EdgeData.Normal in
+
+  let ir0 = move (temp "ir0") (zero) in
+  let ir1 = move (temp "ir1") (one) in
+  let ir2 = move (temp "ir2") (two) in
+  let ir3 = move (temp "ir3") (three) in
+  let ir4 = move (temp "ir4") (four) in
+  let ir5 = move (temp "ir5") (five) in
+  let ir6 = move (temp "ir6") (six) in
+
+  let n0 = Cfg.IrCfg.V.create (Node {num=0; ir=ir0}) in
+  let n1 = Cfg.IrCfg.V.create (Node {num=1; ir=ir1}) in
+  let n2 = Cfg.IrCfg.V.create (Node {num=2; ir=ir2}) in
+  let n3 = Cfg.IrCfg.V.create (Node {num=3; ir=ir3}) in
+  let n4 = Cfg.IrCfg.V.create (Node {num=4; ir=ir4}) in
+  let n5 = Cfg.IrCfg.V.create (Node {num=5; ir=ir5}) in
+  let n6 = Cfg.IrCfg.V.create (Node {num=6; ir=ir6}) in
+
+  let d3  = Cfg.IrCfg.V.create (Node {num=3;  ir=Pre.dummy_ir}) in
+  let d4  = Cfg.IrCfg.V.create (Node {num=4;  ir=Pre.dummy_ir}) in
+  let d5  = Cfg.IrCfg.V.create (Node {num=5;  ir=Pre.dummy_ir}) in
+  let d6  = Cfg.IrCfg.V.create (Node {num=6;  ir=Pre.dummy_ir}) in
+  let d7  = Cfg.IrCfg.V.create (Node {num=7;  ir=Pre.dummy_ir}) in
+  let d8  = Cfg.IrCfg.V.create (Node {num=8;  ir=Pre.dummy_ir}) in
+  let d9  = Cfg.IrCfg.V.create (Node {num=9;  ir=Pre.dummy_ir}) in
+  let d10 = Cfg.IrCfg.V.create (Node {num=10; ir=Pre.dummy_ir}) in
+
+  let ivs = [n0; n1] in
+  let ies = [(n0, norm, n1)] in
+  let evs = ivs in
+  let ees = ies in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2] in
+  let ies = [(n0, norm, n2); (n1, norm, n2)] in
+  let evs = ivs @ [d3; d4] in
+  let ees = [
+    (n0, norm, d3); (d3, norm, n2);
+    (n1, norm, d4); (d4, norm, n2);
+  ] in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2] in
+  let ies = [(n0, norm, n1); (n0, norm, n2)] in
+  let evs = ivs in
+  let ees = ies in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2; n3] in
+  let ies = [(n0, norm, n3); (n1, norm, n3); (n2, norm, n3)] in
+  let evs = ivs @ [d4; d5; d6] in
+  let ees = [
+    (n0, norm, d4); (d4, norm, n3);
+    (n1, norm, d5); (d5, norm, n3);
+    (n2, norm, d6); (d6, norm, n3);
+  ] in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2; n3; n4; n5; n6] in
+  let ies = [
+    (n0, norm, n1);
+    (n0, norm, n2);
+    (n1, norm, n3);
+    (n2, norm, n3);
+    (n3, norm, n4);
+    (n3, norm, n5);
+    (n4, norm, n6);
+    (n5, norm, n6);
+  ] in
+  let evs = ivs @ [d7; d8; d9; d10] in
+  let ees = [
+    (n0, norm, n1);
+    (n0, norm, n2);
+    (n1, norm, d7); (d7, norm, n3);
+    (n2, norm, d8); (d8, norm, n3);
+    (n3, norm, n4);
+    (n3, norm, n5);
+    (n4, norm, d9); (d9, norm, n6);
+    (n5, norm, d10); (d10, norm, n6);
+  ] in
+  test ivs ies evs ees;
+
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
       "get_subexpr_test" >:: get_subexpr_test;
+      "preprocess_test" >:: preprocess_test;
     ] |> run_test_tt_main
 
 let _ = main ()

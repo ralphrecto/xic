@@ -78,6 +78,9 @@ module Make(N: NodeData) = struct
   let edge_set g =
     fold_edges_e (fun e g -> EdgeSet.add g e) g EdgeSet.empty
 
+  let preds_e g v =
+    fold_pred_e (fun e g -> EdgeSet.add g e) g v EdgeSet.empty
+
   let equal x y =
     VertexSet.equal (vertex_set x) (vertex_set y) &&
     EdgeSet.equal   (edge_set x)   (edge_set y)

@@ -114,6 +114,9 @@ module BusyExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
+  (* first is a node to uses mapping and the second is a node to kill mapping *)
+  type extra_info = (node -> data) * (node -> data)
+
   let init (g: graph) =
     let f n acc =
       match n with
@@ -129,15 +132,14 @@ module BusyExprCFG = struct
       | IDSE.Start
       | IDSE.Node _ -> univ
 
-  let transfer (e: edge) (d: data) =
+  let transfer (uses, kills: extra_info) (e: edge) (d: data) =
     let node = E.dst e in
     match node with
     | IDSE.Start -> failwith "TODO"
     | IDSE.Exit -> failwith "TODO"
-    | IDSE.Node d' ->
-      let stmt = d'.ir in
-      let use = get_subexpr_stmt stmt in
-      let kill = kill_stmt stmt in
+    | IDSE.Node _ ->
+      let use = uses node in
+      let kill = kills node in
       let f acc expr =
         let mem_temps = get_mem_temp expr in
         if ExprSet.is_empty (inter mem_temps kill) then
@@ -149,7 +151,7 @@ module BusyExprCFG = struct
       union use diff_expr_kill
 end
 
-module AvailExprLattice : LowerSemilattice = struct
+module AvailExprLattice = struct
   type data = ExprSet.t
   let ( ** ) = inter
   let ( === ) = equal
@@ -163,6 +165,14 @@ module AvailExprCFG = struct
   open Lattice
   open CFG
 
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  (* first is a node to anticipated mapping the second is a node to kill mapping *)
+  type extra_info = (node -> data) * (node -> data)
+
   let init (g: graph) =
     let f n acc =
       match n with
@@ -174,9 +184,21 @@ module AvailExprCFG = struct
     let univ = fold_vertex f g empty in
     fun n ->
       match n with
-      | IDSE.Exit -> empty
-      | IDSE.Start
+      | IDSE.Start -> empty
+      | IDSE.Exit
       | IDSE.Node _ -> univ
 
-
+  let transfer (busy, kills: extra_info) (e:edge) (d: data) =
+    let source = E.src e in
+    let anticipated = busy source in
+    let kill = kills source in
+    let union' = union anticipated d in
+    let f acc expr =
+      let mem_temps = get_mem_temp expr in
+      if ExprSet.is_empty (inter mem_temps kill) then
+        add acc expr
+      else
+        acc
+    in
+    fold ~f ~init: empty union'
 end

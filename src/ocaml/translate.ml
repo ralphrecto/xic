@@ -19,5 +19,5 @@ module MakeAnalysis
     | `Backward -> Backward
   let join = C.Lattice.( ** )
   let equal = C.Lattice.( === )
-  let analyze = C.transfer
+  let analyze = failwith "lol"
 end

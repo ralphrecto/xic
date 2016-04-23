@@ -24,16 +24,18 @@ module type CFGWithLatticeT = sig
   type edge = CFG.E.t
   type data = Lattice.data
 
+  type extra_info
+
   val init: graph -> node -> data
-  val transfer : edge -> data -> data
+  val transfer : extra_info -> edge -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : graph -> edge -> data
-  val worklist : graph -> edge -> data
+  val iterative : extra_info -> graph -> edge -> data
+  val worklist : extra_info -> graph -> edge -> data
 end
 
 module GenericAnalysis
@@ -64,7 +66,7 @@ module GenericAnalysis
     | None -> Some edge_datum
     | Some d' -> Some (d' ** edge_datum)
 
-  let iterative (cfg: graph) : edge -> data =
+  let iterative (ei: extra_info) (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
@@ -84,7 +86,7 @@ module GenericAnalysis
       | Some meet' -> begin
         let update (e:edge) (updated: bool) =
           let edge_datum = Hash.find table e in
-          let new_datum = transfer e meet' in
+          let new_datum = transfer ei e meet' in
           if edge_datum === new_datum then
             updated
           else
@@ -106,7 +108,7 @@ module GenericAnalysis
 
     iterate ()
 
-  let worklist (cfg: graph) : edge -> data =
+  let worklist (ei: extra_info) (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let data_table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
@@ -135,7 +137,7 @@ module GenericAnalysis
           | Some meet' -> begin
             let update (e: edge) =
               let edge_datum = Hash.find data_table e in
-              let new_datum = transfer e meet' in
+              let new_datum = transfer ei e meet' in
               if edge_datum === new_datum then
                 ()
               else

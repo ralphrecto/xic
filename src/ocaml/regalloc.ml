@@ -42,6 +42,8 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
+  type extra_info = unit
+
   (* returns a sets of vars used and defd, respectively *)
   let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
     let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
@@ -121,7 +123,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
 
   let init (_: graph) = failwith "TODO"
 
-  let transfer (e: AsmCfg.E.t) (d: Lattice.data) =
+  let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
     | Start -> failwith "Live variable transfer: start cannot be dest"

@@ -23,16 +23,18 @@ module type CFGWithLatticeT = sig
   type edge = CFG.E.t
   type data = Lattice.data
 
+  type extra_info
+
   val init: graph -> node -> data
-  val transfer : edge -> data -> data
+  val transfer : extra_info -> edge -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : graph -> edge -> data
-  val worklist : graph -> edge -> data
+  val iterative : extra_info -> graph -> edge -> data
+  val worklist : extra_info -> graph -> edge -> data
 end
 
 module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL

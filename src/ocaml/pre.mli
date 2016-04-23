@@ -24,3 +24,14 @@ module BusyExprCFG : sig
     module Lattice = BusyExprLattice and
     module CFG = Cfg.IrCfg
 end
+
+module AvailExprLattice : sig
+  type data = ExprSet.t
+  include Dataflow.LowerSemilattice with type data := data
+end
+
+module AvailExprCFG : sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = BusyExprLattice and
+    module CFG = Cfg.IrCfg
+end

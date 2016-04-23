@@ -55,10 +55,12 @@ module Reachable = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
+  type extra_info = unit
+
   let start = -1
   let exit = -2
 
-  let transfer _ x = x
+  let transfer _ _ x = x
   let init _ v = CFG.V.label v = start || CFG.V.label v = exit
 end
 module ReachableForwards  = Dataflow.ForwardAnalysis(Reachable)
@@ -116,8 +118,8 @@ let test_dataflow _ =
     )
   in
 
-  test ReachableForwards.iterative;
-  test ReachableForwards.worklist;
+  test (ReachableForwards.iterative ());
+  test (ReachableForwards.worklist ());
   ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

@@ -3,6 +3,8 @@ open Cfg
 module Hash = Hashtbl
 open Core.Std
 
+type direction = [`Forward | `Backward]
+
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
@@ -26,7 +28,8 @@ module type CFGWithLatticeT = sig
 
   type extra_info
 
-  val init: graph -> node -> data
+  val direction : direction
+  val init: extra_info -> graph -> node -> data
   val transfer : extra_info -> edge -> data -> data
 end
 
@@ -34,12 +37,12 @@ module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
+  val direction : direction
   val iterative : extra_info -> graph -> edge -> data
   val worklist : extra_info -> graph -> edge -> data
 end
 
 module GenericAnalysis
-  (Config: sig val direction : [ `Forward | `Backward ] end)
   (CFGLArg: CFGWithLatticeT) = struct
 
   module CFGL = CFGLArg
@@ -54,8 +57,11 @@ module GenericAnalysis
    * update_node   is used to determine if the src or the dest of the edge should be added to
    *               the worklist queue after the data has changed
    *)
+
+  let direction = CFGL.direction
+
   let meet_fold, transfer_fold, transfer_iter, update_node  =
-    match Config.direction with
+    match direction with
     | `Forward -> fold_pred_e, fold_succ_e, iter_succ_e, E.dst
     | `Backward -> fold_succ_e, fold_pred_e, iter_pred_e, E.src
 
@@ -70,7 +76,7 @@ module GenericAnalysis
     (* initializations *)
     (* data table *)
     let table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
-    let init = CFGL.init cfg in
+    let init = CFGL.init ei cfg in
     iter_vertex (fun node -> transfer_iter (fun e -> Hash.add table e (init node)) cfg node) cfg;
 
     (* helper function when folding over all nodes of graph to calculate fixpoint *)
@@ -114,7 +120,7 @@ module GenericAnalysis
     let data_table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
     (* worklist queue for nodes *)
     let node_set : node Queue.t = Queue.create () in
-    let init = CFGL.init cfg in
+    let init = CFGL.init ei cfg in
     iter_vertex
       (fun node ->
         transfer_iter (fun e -> Hash.add data_table e (init node)) cfg node;
@@ -155,8 +161,3 @@ module GenericAnalysis
     work ()
 end
 
-module ForwardAnalysis (CFGL: CFGWithLatticeT) =
-  GenericAnalysis (struct let direction = `Forward end) (CFGL)
-
-module BackwardAnalysis (CFGL: CFGWithLatticeT) =
-  GenericAnalysis (struct let direction = `Backward end) (CFGL)

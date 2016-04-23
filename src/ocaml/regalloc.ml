@@ -44,6 +44,8 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
 
   type extra_info = unit
 
+  let direction = `Backward
+
   (* returns a sets of vars used and defd, respectively *)
   let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
     let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
@@ -121,7 +123,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         else (AbstractRegSet.empty, AbstractRegSet.empty)
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
-  let init (_: graph) = failwith "TODO"
+  let init (_: extra_info) (_: graph) = failwith "TODO"
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
@@ -133,7 +135,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 end
 
-module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)
+module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
 
 module type InterferenceGraphT = sig
   type nodedata = { temp: string; is_mov: bool }

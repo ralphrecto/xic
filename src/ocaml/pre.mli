@@ -35,3 +35,9 @@ module AvailExprCFG : sig
     module Lattice = BusyExprLattice and
     module CFG = Cfg.IrCfg
 end
+
+module PostponeExprLattice : sig
+  type data = ExprSet.t
+  include Dataflow.LowerSemilattice with type data := data
+end
+

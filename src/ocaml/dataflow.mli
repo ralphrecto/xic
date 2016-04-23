@@ -1,6 +1,8 @@
 open Graph
 open Cfg
 
+type direction = [`Forward | `Backward]
+
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
@@ -25,7 +27,8 @@ module type CFGWithLatticeT = sig
 
   type extra_info
 
-  val init: graph -> node -> data
+  val direction : direction
+  val init: extra_info -> graph -> node -> data
   val transfer : extra_info -> edge -> data -> data
 end
 
@@ -33,9 +36,9 @@ module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
+  val direction : direction
   val iterative : extra_info -> graph -> edge -> data
   val worklist : extra_info -> graph -> edge -> data
 end
 
-module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL
-module BackwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL
+module GenericAnalysis (CFGL: CFGWithLatticeT) : Analysis with module CFGL = CFGL

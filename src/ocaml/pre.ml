@@ -114,25 +114,19 @@ module BusyExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
-  (* first is a node to uses mapping and the second is a node to kill mapping *)
-  type extra_info = (node -> data) * (node -> data)
+  let direction = `Backward
 
-  let init (g: graph) =
-    let f n acc =
-      match n with
-      | IDSE.Start | IDSE. Exit -> acc
-      | IDSE.Node d' ->
-        let stmt = d'.ir in
-        union acc (get_subexpr_stmt stmt)
-    in
-    let univ = fold_vertex f g empty in
+  (* first is univ, second is a node to uses mapping and the third is a node to kill mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
     fun n ->
       match n with
       | IDSE.Exit -> empty
       | IDSE.Start
       | IDSE.Node _ -> univ
 
-  let transfer (uses, kills: extra_info) (e: edge) (d: data) =
+  let transfer (_, uses, kills: extra_info) (e: edge) (d: data) =
     let node = E.dst e in
     match node with
     | IDSE.Start -> failwith "TODO"
@@ -170,25 +164,19 @@ module AvailExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
-  (* first is a node to anticipated mapping the second is a node to kill mapping *)
-  type extra_info = (node -> data) * (node -> data)
+  let direction = `Forward
 
-  let init (g: graph) =
-    let f n acc =
-      match n with
-      | IDSE.Start | IDSE. Exit -> acc
-      | IDSE.Node d' ->
-        let stmt = d'.ir in
-        union acc (get_subexpr_stmt stmt)
-    in
-    let univ = fold_vertex f g empty in
+  (* first is univ second is a node to anticipated mapping the third is a node to kill mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
     fun n ->
       match n with
       | IDSE.Start -> empty
       | IDSE.Exit
       | IDSE.Node _ -> univ
 
-  let transfer (busy, kills: extra_info) (e:edge) (d: data) =
+  let transfer (_, busy, kills: extra_info) (e:edge) (d: data) =
     let source = E.src e in
     let anticipated = busy source in
     let kill = kills source in
@@ -201,4 +189,15 @@ module AvailExprCFG = struct
         acc
     in
     fold ~f ~init: empty union'
+end
+
+module PostponeExprLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = inter
+  let ( === ) = equal
+  let to_string _ = failwith "TODO"
+end
+
+module PostponeExprCFG = struct
+
 end

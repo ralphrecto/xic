@@ -199,5 +199,29 @@ module PostponeExprLattice = struct
 end
 
 module PostponeExprCFG = struct
+  module Lattice = PostponeExprLattice
+  module CFG = IrCfg
+  module IDSE = IrDataStartExit
+  open Lattice
+  open CFG
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  let direction = `Forward
+
+  (* first is univ second is a node to earliest mapping the third is a node to use mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
+    fun n ->
+      match n with
+      | IDSE.Start -> empty
+      | IDSE.Exit
+      | IDSE.Node _ -> univ
+
+  let tranfer (_, earliest, use: extra_info) (e: edge) (d: data) = failwith "TODO"
 
 end

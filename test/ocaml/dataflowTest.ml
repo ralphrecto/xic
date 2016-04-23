@@ -57,13 +57,15 @@ module Reachable = struct
 
   type extra_info = unit
 
+  let direction = `Forward
+
   let start = -1
   let exit = -2
 
   let transfer _ _ x = x
-  let init _ v = CFG.V.label v = start || CFG.V.label v = exit
+  let init _ _ v = CFG.V.label v = start || CFG.V.label v = exit
 end
-module ReachableForwards  = Dataflow.ForwardAnalysis(Reachable)
+module ReachableForwards  = Dataflow.GenericAnalysis(Reachable)
 module BfsReachable = struct
   include Graph.Traverse.Bfs(IntCfg)
   let reachable g start =

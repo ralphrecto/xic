@@ -38,8 +38,7 @@ end
 
 module GenericAnalysis
   (Config: sig val direction : [ `Forward | `Backward ] end)
-  (CFGLArg: CFGWithLatticeT)
-  : Analysis = struct
+  (CFGLArg: CFGWithLatticeT) = struct
 
   module CFGL = CFGLArg
   open CFGL

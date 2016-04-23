@@ -9,3 +9,8 @@ let assert_true (b: bool) : unit =
 
 let assert_false (b: bool) : unit =
 	b === false
+
+module IntEq = struct
+  let (===) (x: int) (y: int) : unit =
+    assert_equal ~printer:string_of_int x y
+end

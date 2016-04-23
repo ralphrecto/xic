@@ -22,6 +22,7 @@ module type CFGWithLatticeT = sig
   type edge = CFG.E.t
   type data = Lattice.data
 
+  val init: graph -> node -> data
   val transfer : edge -> data -> data
 end
 

@@ -8,7 +8,7 @@ open Fresh
 
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
-  type t = abstract_reg 
+  type t = abstract_reg
 
   let t_of_sexp _ = failwith "implement t_of_sexp for AbstractRegElt"
   let sexp_of_t _ = failwith "implement sexp_of_t for AbstractRegElt"
@@ -16,7 +16,7 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   let compare a b =
     match a, b with
     | Fake _, Fake _ | Real _, Real _ -> 0
-    | Fake _, Real _ -> -1 
+    | Fake _, Real _ -> -1
     | Real _, Fake _ -> 1
   end
 )
@@ -34,7 +34,7 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
   module CFG = AsmCfg
   module ADSE = AsmDataStartExit
   open Lattice
-  open CFG 
+  open CFG
 
   type graph = CFG.t
   type node = CFG.V.t
@@ -118,12 +118,14 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
         else (AbstractRegSet.empty, AbstractRegSet.empty)
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
+  let init (_: graph) = failwith "TODO"
+
   let transfer (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
-    match E.dst e with 
+    match E.dst e with
     | Start -> failwith "Live variable transfer: start cannot be dest"
     | Exit -> AbstractRegSet.empty
-    | Node n_data -> 
+    | Node n_data ->
         let use_n, def_n = usedvars n_data.asm in
         AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 end
@@ -217,7 +219,7 @@ let reg_alloc g k =
     (* Get non-move-related nodes of <k degree from graph *)
     let non_mov_nodes = IG.fold_vertex (fun v acc -> if (IG.V.label v).is_mov then acc
       else v::acc) g [] in
-    
+
     (* Push all nodes of <k degree onto stack *)
     let rec push acc =
       (* Pick a non-move-related vertex that has <k degree *)
@@ -231,21 +233,21 @@ let reg_alloc g k =
       | Some v -> IG.remove_vertex g v;
         push (v::acc)
     in
-  
+
     let stack' = push stack in
     stack'
   in
-  
+
   (* Coalesce move-related nodes *)
   let _coalesce _g _stack = failwith "TODO" in
-  
+
   (* Remove a move-related node of low degree *)
   let _freeze _g _stack = failwith "TODO" in
-  
+
   (* Spill a >=k degree node onto stack *)
   let _spill _g _stack = failwith "TODO" in
-  
+
   (* Pop nodes from the stack and assign a color *)
   let _select _stack = failwith "TODO" in
-  
+
   failwith "finish reg alloc!"

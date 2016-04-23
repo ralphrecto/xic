@@ -13,6 +13,7 @@ open ExprSet
  * second element of the tuple is the set of temps and mems used by expr *)
 let rec get_subexpr (e: expr) : ExprSet.t =
   match e with
+  | BinOp (e1, (DIV|MOD), e2) -> union (get_subexpr e1) (get_subexpr e2)
   | BinOp (e1, _, e2) -> add (union (get_subexpr e1) (get_subexpr e2)) e
   | Call (_, elst) ->
     let f acc e = union acc (get_subexpr e) in
@@ -112,6 +113,21 @@ module BusyExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
+  let init (g: graph) =
+    let f n acc =
+      match n with
+      | IDSE.Start | IDSE. Exit -> acc
+      | IDSE.Node d' ->
+        let stmt = d'.ir in
+        union acc (get_subexpr_stmt stmt)
+    in
+    let univ = fold_vertex f g empty in
+    fun n ->
+      match n with
+      | IDSE.Exit -> empty
+      | IDSE.Start
+      | IDSE.Node _ -> univ
+
   let transfer (e: edge) (d: data) =
     let node = E.dst e in
     match node with
@@ -137,3 +153,14 @@ module AvailExprLattice : LowerSemilattice = struct
   let ( ** ) = inter
   let ( === ) = equal
 end
+
+
+
+
+
+
+
+
+
+
+

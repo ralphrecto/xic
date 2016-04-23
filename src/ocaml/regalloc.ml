@@ -21,7 +21,7 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   end
 )
 
-module LiveVariableLattice : LowerSemilattice with
+module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t with
   type data = AbstractRegSet.t = struct
 
   type data = AbstractRegSet.t
@@ -29,7 +29,9 @@ module LiveVariableLattice : LowerSemilattice with
   let ( === ) = AbstractRegSet.equal
 end
 
-module AsmWithLiveVar : CFGWithLatticeT = struct
+module AsmWithLiveVar : CFGWithLatticeT
+  with module CFG = AsmCfg
+  and module Lattice = LiveVariableLattice = struct
   module Lattice = LiveVariableLattice
   module CFG = AsmCfg
   module ADSE = AsmDataStartExit
@@ -119,8 +121,8 @@ module AsmWithLiveVar : CFGWithLatticeT = struct
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
   let transfer (e: AsmCfg.E.t) (d: Lattice.data) =
-    (* We use dest because live variable analysis is backwards *)
-    match E.dst e with 
+    (* We use src because live variable analysis is backwards *)
+    match E.src e with 
     | Start -> failwith "Live variable transfer: start cannot be dest"
     | Exit -> AbstractRegSet.empty
     | Node n_data -> 
@@ -131,34 +133,35 @@ end
 module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)
 
 module type InterferenceGraphT = sig
-  type nodedata = { temp: string; is_mov: bool }
-  type edgedata = unit
+  (* TODO: add the rest of node states *)
+  type nodestate =
+    | Precolored
+    | Initial
+    | Spilled
 
-  include Graph.Sig.I with
-    type V.label = nodedata and
-    type E.label = edgedata
+  type nodedata = abstract_reg
 
-  (*val create_interg : string list -> (string * string) list -> (string * string)
-    -> String.Set -> t*)
+  include Graph.Sig.I
+    with type V.t = nodedata
+    and type V.label = nodedata
+    and type E.t = nodedata * nodedata
+    and type E.label = unit
 end
 
 module InterferenceGraph : InterferenceGraphT = struct
-  type nodedata = { temp: string; is_mov: bool }
-  type edgedata = unit
+  type nodestate =
+    | Precolored
+    | Initial
+    | Spilled
 
-  module NodeLabel : Graph.Sig.ANY_TYPE with type t = nodedata = struct
+  type nodedata = abstract_reg
+
+  include Imperative.Graph.Concrete (struct
     type t = nodedata
-  end
-
-  module EdgeLabel : Graph.Sig.ORDERED_TYPE_DFT with type t = edgedata = struct
-    type t = edgedata
-
-    let compare _ _ = 0
-    let default = ()
-  end
-
-  include LiveVariableAnalysis
-  include Imperative.Graph.AbstractLabeled (NodeLabel) (EdgeLabel)
+    let compare = Pervasives.compare
+    let hash    = Hashtbl.hash
+    let equal   = (=)
+  end)
 
   (* TODO: Remove or figure out how to integrate sets *)
   module Extended_T = struct
@@ -168,50 +171,140 @@ module InterferenceGraph : InterferenceGraphT = struct
   end
   module TS = Set.Make (Extended_T)
 
-  let create_edges temps =
-    let rec create_edges' ts edges =
-      match ts with
-      | [] -> edges
-      | set::t ->
-        (* Make edges for nodes interfering with each other in one statement *)
-        let new_edges = String.Set.fold ~init:[] set ~f:(fun acci i ->
-          (String.Set.fold ~init:[] set ~f:(fun accj j ->
-            if i <> j then (i, j)::accj else accj)) @ acci)
-        in
-        create_edges' t (edges@new_edges)
-    in
-    create_edges' temps []
-
-  let is_mov_related _node = false (* TODO: how to get mov info? *)
-
-  let _create_interg nodes es f =
-    let g = create () in
-
-    let edges = create_edges (List.fold_left ~init:[] es ~f:(fun acc e ->
-      (f e)::acc)) in
-
-    (* Add vertices *)
-    List.fold_left ~init:() nodes ~f:(fun _ n ->
-      let node = V.create { temp = n; is_mov = is_mov_related n } in
-      add_vertex g node);
-
-    (* Add edges *)
-    List.fold_left ~init:() edges ~f:(fun _ (n1, n2) ->
-      let node1 = V.create { temp = n1; is_mov = is_mov_related n1 } in
-      let node2 = V.create { temp = n2; is_mov = is_mov_related n2 } in
-      add_edge g node1 node2);
-
-    g
 end
 
 module IG = InterferenceGraph
 
+module NodeData = struct
+  module T = struct
+    type t = IG.nodedata
+    let compare = compare
+    let hash = Hashtbl.hash
+    let t_of_sexp _ = failwith "NodeData: implement t_of_sexp"
+    let sexp_of_t _ = failwith "NodeData: implement sexp_of_t"
+  end
+  include T
+  include Hashable.Make (T)
+end
+
+type temp_move = {
+  src: IG.nodedata;
+  dest: IG.nodedata;
+  move: AsmData.t; (* { num; abstract_asm } *)
+}
+
+type alloc_context = {
+  (* IG node lists *)
+  precolored         : IG.nodedata list; 
+  initial            : IG.nodedata list;
+  simplify_wl        : IG.nodedata list;
+  freeze_wl          : IG.nodedata list;
+  spill_wl           : IG.nodedata list;
+  spilled_nodes      : IG.nodedata list;
+  coalesced_nodes    : IG.nodedata list;
+  colored_nodes      : IG.nodedata list;
+  select_stack       : IG.nodedata list;
+  (* move lists *)
+  coalesced_moves    : temp_move list;
+  constrained_moves  : temp_move list;
+  frozen_moves       : temp_move list;
+  worklist_moves     : temp_move list;
+  active_moves       : temp_move list;
+  (* other data structures *)
+  move_list          : temp_move NodeData.Table.t;
+  alias              : IG.nodedata NodeData.Table.t;
+  nodestate          : IG.nodestate NodeData.Table.t;
+  (* TODO: make color type, change int to color type *)
+  color_map          : int NodeData.Table.t;
+}
+
+let empty_ctx num_moves num_nodes = {
+  (* IG node lists *)
+  precolored         = [];
+  initial            = [];
+  simplify_wl        = [];
+  freeze_wl          = [];
+  spill_wl           = [];
+  spilled_nodes      = [];
+  coalesced_nodes    = [];
+  colored_nodes      = [];
+  select_stack       = [];
+  (* move lists *)
+  coalesced_moves    = [];
+  constrained_moves  = [];
+  frozen_moves       = [];
+  worklist_moves     = [];
+  active_moves       = [];
+  (* other data structures *)
+  move_list          = NodeData.Table.create () ~size:num_moves;
+  alias              = NodeData.Table.create () ~size:num_nodes;
+  nodestate          = NodeData.Table.create () ~size:num_nodes;
+  color_map          = NodeData.Table.create () ~size:num_nodes;
+}
+
+(* moves between two temps can be coalesced
+ * TODO: is this a correct criterion? *)
+let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =  
+  match stmt with
+  | Start | Exit -> None
+  | Node { num; asm; } -> begin
+    match asm with
+    | Op (instr, op1 :: op2 :: []) when instr = "movq"  ->
+      begin
+      match fakes_of_operand op1, fakes_of_operand op2 with
+      | fake1 :: [], fake2 :: [] ->
+          Some { src = Fake fake1; dest = Fake fake2; move = {num; asm;}}
+      | _ -> None 
+      end
+    | _ -> None
+  end
+
+module Cfg = AsmWithLiveVar.CFG
+
+let build (asms : abstract_asm list) : alloc_context * IG.t = 
+  let cfg = Cfg.create_cfg asms in
+  let inter_graph = IG.create () in
+
+  let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
+    let _livevars = LiveVariableAnalysis.worklist (fun _ -> failwith "lol") cfg in
+    fun node -> 
+      match Cfg.succ_e cfg node with
+      | [] -> failwith "regalloc:build:livevars cfg node has no successors"
+      | edge :: _ -> _livevars edge in
+
+  (* make edges for nodes interfering with each other in one statement *)
+  let create_inter_edges (temps : AbstractRegSet.t) =
+    let g1 regnode1 = 
+      let g2 regnode2 =
+        IG.add_edge inter_graph regnode1 regnode2 in
+      AbstractRegSet.iter ~f:g2 temps in
+    AbstractRegSet.iter ~f:g1 temps in
+
+  let work (cfg_node : Cfg.vertex) regctx =
+    match cfg_node with 
+    (* TODO: should we handle procedure entry/exit differently? *)
+    | Start -> regctx
+    | Exit -> regctx
+    | Node _ -> begin
+        (* create interference graph edges *)
+        create_inter_edges (livevars cfg_node);
+        (* populate worklist_moves and move_list *)
+        match coalescable_move cfg_node with
+        | None -> regctx
+        | Some tempmove ->
+            Hashtbl.add regctx.move_list ~key:tempmove.src ~data:tempmove |> ignore;
+            Hashtbl.add regctx.move_list ~key:tempmove.dest ~data:tempmove |> ignore;
+            { regctx with worklist_moves = (tempmove :: regctx.worklist_moves) }
+      end in
+
+  (AsmCfg.fold_vertex work cfg (empty_ctx 100 100), inter_graph)
+
 (* k is the number of registers available for coloring *)
 let k = 14
 
-let reg_alloc g k =
-  let _g' = IG.copy g in
+let reg_alloc _ =
 
+  (*
   (* Remove non-move-related nodes of low degree *)
   let _simplify g stack =
     (* Get non-move-related nodes of <k degree from graph *)
@@ -235,6 +328,7 @@ let reg_alloc g k =
     let stack' = push stack in
     stack'
   in
+  *)
   
   (* Coalesce move-related nodes *)
   let _coalesce _g _stack = failwith "TODO" in

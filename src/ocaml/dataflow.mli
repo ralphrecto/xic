@@ -34,6 +34,6 @@ module type Analysis = sig
 
 end
 
-module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis
+module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL
 
-module BackwardAnalysis (CFGL : CFGWithLatticeT) : Analysis
+module BackwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL

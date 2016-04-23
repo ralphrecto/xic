@@ -32,13 +32,12 @@ module type Analysis = sig
   val iterative : (node -> data) -> graph -> edge -> data
 
   val worklist : (node -> data) -> graph -> edge -> data
-
 end
 
 module GenericAnalysis
   (Config: sig val direction : [ `Forward | `Backward ] end)
   (CFGLArg: CFGWithLatticeT)
-  : Analysis = struct
+  : Analysis with module CFGL = CFGLArg = struct
 
   module CFGL = CFGLArg
   open CFGL

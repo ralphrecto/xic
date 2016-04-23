@@ -268,6 +268,5 @@ module PostponeExprCFG = struct
       | IDSE.Exit
       | IDSE.Node _ -> univ
 
-  let tranfer (_, earliest, use: extra_info) (e: edge) (d: data) = failwith "TODO"
-
+  let transfer (_, _earliest, _use: extra_info) (_e: edge) (_d: data) = failwith "TODO"
 end

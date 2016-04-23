@@ -50,8 +50,14 @@ module AvailExprCFG : sig
     module CFG = Cfg.IrCfg
 end
 
+(** Postponable Expressions *)
 module PostponeExprLattice : sig
   type data = ExprSet.t
   include Dataflow.LowerSemilattice with type data := data
 end
 
+module PostponeExprCFG : sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = PostponeExprLattice and
+    module CFG = Cfg.IrCfg
+end

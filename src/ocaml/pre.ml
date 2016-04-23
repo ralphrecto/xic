@@ -156,13 +156,27 @@ module AvailExprLattice : LowerSemilattice = struct
   let to_string _ = failwith "TODO"
 end
 
+module AvailExprCFG = struct
+  module Lattice = AvailExprLattice
+  module CFG = IrCfg
+  module IDSE = IrDataStartExit
+  open Lattice
+  open CFG
+
+  let init (g: graph) =
+    let f n acc =
+      match n with
+      | IDSE.Start | IDSE. Exit -> acc
+      | IDSE.Node d' ->
+        let stmt = d'.ir in
+        union acc (get_subexpr_stmt stmt)
+    in
+    let univ = fold_vertex f g empty in
+    fun n ->
+      match n with
+      | IDSE.Exit -> empty
+      | IDSE.Start
+      | IDSE.Node _ -> univ
 
 
-
-
-
-
-
-
-
-
+end

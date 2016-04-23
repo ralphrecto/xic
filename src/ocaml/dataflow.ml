@@ -30,10 +30,8 @@ module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : (node -> data) -> graph -> edge -> data
-
-  val worklist : (node -> data) -> graph -> edge -> data
-
+  val iterative : graph -> edge -> data
+  val worklist : graph -> edge -> data
 end
 
 module GenericAnalysis
@@ -64,10 +62,11 @@ module GenericAnalysis
     | None -> Some edge_datum
     | Some d' -> Some (d' ** edge_datum)
 
-  let iterative (init: node -> data) (cfg: graph) : edge -> data =
+  let iterative (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
+    let init = CFGL.init cfg in
     iter_vertex (fun node -> transfer_iter (fun e -> Hash.add table e (init node)) cfg node) cfg;
 
     (* helper function when folding over all nodes of graph to calculate fixpoint *)
@@ -104,12 +103,13 @@ module GenericAnalysis
 
     iterate ()
 
-  let worklist (init: node -> data) (cfg: graph) : edge -> data =
+  let worklist (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let data_table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
     (* worklist queue for nodes *)
     let node_set : node Queue.t = Queue.create () in
+    let init = CFGL.init cfg in
     iter_vertex
       (fun node ->
         transfer_iter (fun e -> Hash.add data_table e (init node)) cfg node;

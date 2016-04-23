@@ -29,10 +29,8 @@ module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : (node -> data) -> graph -> edge -> data
-
-  val worklist : (node -> data) -> graph -> edge -> data
-
+  val iterative : graph -> edge -> data
+  val worklist : graph -> edge -> data
 end
 
 module ForwardAnalysis (CFGL : CFGWithLatticeT) : Analysis with module CFGL = CFGL

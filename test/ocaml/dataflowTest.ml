@@ -61,6 +61,8 @@ module Incrementing = struct
       match Int.Table.find cache i with
       | Some j -> (Int.Table.set cache ~key:i ~data:(max i (j + 1)); j)
       | None -> (Int.Table.set cache ~key:i ~data:(max i 1); 0)
+
+  let init _ _ = 0
 end
 module IncrementingForward = Dataflow.ForwardAnalysis(Incrementing)
 
@@ -77,8 +79,7 @@ let test_dataflow _ =
       let v = Random.int 100 in
       let prob = 0.001 in
       let g = RandIntCfg.gnp_labeled random_edge_label ~v ~prob () in
-      let init _ = Random.int 10 in
-      let f = flow_algorithm init g in
+      let f = flow_algorithm g in
       let open TestUtil.IntEq in
       IntCfg.iter_edges_e (fun e -> IntCfg.(V.label (E.src e)) === f e) g
     )

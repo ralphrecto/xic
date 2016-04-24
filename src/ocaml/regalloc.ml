@@ -221,11 +221,14 @@ type alloc_context = {
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
   (* other data structures *)
-  move_list          : temp_move NodeData.Table.t;
+  move_list          : (temp_move list) NodeData.Table.t;
   alias              : IG.nodedata NodeData.Table.t;
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
   color_map          : int NodeData.Table.t;
+  inter_graph        : IG.t;
+  (* number of available machine registers for allocation *)
+  num_colors         : int;
 }
 
 let empty_ctx num_moves num_nodes = {
@@ -250,6 +253,9 @@ let empty_ctx num_moves num_nodes = {
   alias              = NodeData.Table.create () ~size:num_nodes;
   nodestate          = NodeData.Table.create () ~size:num_nodes;
   color_map          = NodeData.Table.create () ~size:num_nodes;
+  (* the interference graph *)
+  inter_graph       = IG.create ();
+  num_colors        = 14;
 }
 
 (* moves between two temps can be coalesced
@@ -271,9 +277,21 @@ let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
 
 module Cfg = AsmWithLiveVar.CFG
 
-let build (asms : abstract_asm list) : alloc_context * IG.t = 
+(* helper predicates *)
+(* is a interference graph node still move related? *)
+let move_related (regctx: alloc_context) (node: IG.nodedata) = 
+  match NodeData.Table.find regctx.move_list node with 
+  | Some nodemoves -> 
+      let f move =
+        List.mem regctx.active_moves move ||
+        List.mem regctx.worklist_moves move in
+      List.exists ~f nodemoves
+  | None -> false
+
+(* build initializes data structures used by regalloc 
+ * this corresponds to Build() and MakeWorklist() in Appel *)
+let build (asms : abstract_asm list) : alloc_context = 
   let cfg = Cfg.create_cfg asms in
-  let inter_graph = IG.create () in
 
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
     let _livevars = LiveVariableAnalysis.worklist () cfg in
@@ -283,31 +301,60 @@ let build (asms : abstract_asm list) : alloc_context * IG.t =
       | edge :: _ -> _livevars edge in
 
   (* make edges for nodes interfering with each other in one statement *)
-  let create_inter_edges (temps : AbstractRegSet.t) =
+  let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) =
     let g1 regnode1 = 
       let g2 regnode2 =
-        IG.add_edge inter_graph regnode1 regnode2 in
+        (* don't add self loops in inter_graph *)
+        if regnode1 <> regnode2 then
+          IG.add_edge regctx.inter_graph regnode1 regnode2
+        else () in
       AbstractRegSet.iter ~f:g2 temps in
     AbstractRegSet.iter ~f:g1 temps in
 
-  let work (cfg_node : Cfg.vertex) regctx =
+  (* initialize regctx with move_list and worklist_moves *)
+  let init1 (cfg_node : Cfg.vertex) regctx =
     match cfg_node with 
     (* TODO: should we handle procedure entry/exit differently? *)
     | Start -> regctx
     | Exit -> regctx
     | Node _ -> begin
         (* create interference graph edges *)
-        create_inter_edges (livevars cfg_node);
+        create_inter_edges regctx (livevars cfg_node);
         (* populate worklist_moves and move_list *)
         match coalescable_move cfg_node with
         | None -> regctx
         | Some tempmove ->
-            Hashtbl.add regctx.move_list ~key:tempmove.src ~data:tempmove |> ignore;
-            Hashtbl.add regctx.move_list ~key:tempmove.dest ~data:tempmove |> ignore;
+            let srcmoves =
+              NodeData.Table.find_exn regctx.move_list tempmove.src in 
+            let destmoves =
+              NodeData.Table.find_exn regctx.move_list tempmove.dest in 
+            NodeData.Table.add
+              regctx.move_list
+              ~key:tempmove.src
+              ~data:(tempmove :: srcmoves) |> ignore;
+            NodeData.Table.add
+              regctx.move_list
+              ~key:tempmove.dest
+              ~data:(tempmove :: destmoves) |> ignore;
             { regctx with worklist_moves = (tempmove :: regctx.worklist_moves) }
       end in
 
-  (AsmCfg.fold_vertex work cfg (empty_ctx 100 100), inter_graph)
+  (* add all temps into either precolored or initial worklists *)
+  let init2 (reg : IG.nodedata) regctx =
+    match reg with
+    | Fake _ ->
+        (* assumption: our graph is actually directed and outdeg = indeg!!! *)
+        if IG.in_degree regctx.inter_graph reg >= regctx.num_colors then
+          { regctx with spill_wl = reg :: regctx.spill_wl }
+        else if move_related regctx reg then
+          { regctx with freeze_wl = reg :: regctx.freeze_wl }
+        else
+          { regctx with simplify_wl = reg :: regctx.simplify_wl }
+    | Real _ ->
+      { regctx with precolored = reg :: regctx.precolored } in
+
+  AsmCfg.fold_vertex init1 cfg (empty_ctx 100 100) |> fun regctx ->
+  IG.fold_vertex init2 regctx.inter_graph regctx
 
 (* k is the number of registers available for coloring *)
 let k = 14

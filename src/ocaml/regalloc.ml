@@ -359,28 +359,38 @@ let build (asms : abstract_asm list) : alloc_context =
 (* k is the number of registers available for coloring *)
 let k = 14
 
+(* Remove non-move-related nodes of low degree *)
+let _simplify context =
+  (* Pick a non-move-related vertex that has <k degree *)
+  match context.simplify_wl with
+  | [] -> context
+  | n::t -> (*IG.remove_vertex context.inter_graph n;*)
+      { context with simplify_wl = t; select_stack = n::context.select_stack }
+
+let get_alias _n = failwith "TODO"
+let _add_wl _u = failwith "TODO"
+
+(* Coalesce move-related nodes *)
+let _coalesce context = 
+  match context.worklist_moves with
+  | [] -> context
+  | m::t ->
+    let x = get_alias m.src in
+    let y = get_alias m.dest in
+    let _u, _v = if List.mem context.precolored y then y, x else x, y in
+    let _context' = { context with worklist_moves = t } in
+    (* let context'' =
+      if u = v then *)
+    failwith "Not done"
+
+(* Remove a move-related node of low degree *)
+let _freeze _g _stack = failwith "TODO"
+
+(* Spill a >=k degree node onto stack *)
+let _spill _g _stack = failwith "TODO"
+
+(* Pop nodes from the stack and assign a color *)
+let _select _stack = failwith "TODO"
+
 let reg_alloc _ =
-
-  
-  (* Remove non-move-related nodes of low degree *)
-  let _simplify context =
-    (* Pick a non-move-related vertex that has <k degree *)
-    match context.simplify_wl with
-    | [] -> context
-    | h::t -> (*IG.remove_vertex context.inter_graph h;*)
-        { context with simplify_wl = t; select_stack = h::context.select_stack }
-  in
-
-  (* Coalesce move-related nodes *)
-  let _coalesce _g _stack = failwith "TODO" in
-
-  (* Remove a move-related node of low degree *)
-  let _freeze _g _stack = failwith "TODO" in
-
-  (* Spill a >=k degree node onto stack *)
-  let _spill _g _stack = failwith "TODO" in
-
-  (* Pop nodes from the stack and assign a color *)
-  let _select _stack = failwith "TODO" in
-
   failwith "finish reg alloc!"

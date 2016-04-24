@@ -226,6 +226,8 @@ type alloc_context = {
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
   color_map          : int NodeData.Table.t;
+  (* number of times a temp appears; used for spill heuristic *)
+  node_occurrences   : int NodeData.Table.t;
   inter_graph        : IG.t;
   (* number of available machine registers for allocation *)
   num_colors         : int;
@@ -254,9 +256,10 @@ let empty_ctx num_moves num_nodes = {
   alias              = NodeData.Table.create () ~size:num_nodes;
   nodestate          = NodeData.Table.create () ~size:num_nodes;
   color_map          = NodeData.Table.create () ~size:num_nodes;
+  node_occurrences   = NodeData.Table.create () ~size:num_nodes;
   (* the interference graph *)
-  inter_graph       = IG.create ();
-  num_colors        = 14;
+  inter_graph        = IG.create ();
+  num_colors         = 14;
 }
 
 module Cfg = AsmWithLiveVar.CFG
@@ -335,7 +338,19 @@ let build (asms : abstract_asm list) : alloc_context =
     | Exit -> regctx
     | Node _ -> begin
         (* create interference graph edges *)
-        create_inter_edges regctx (livevars cfg_node);
+        let liveset = livevars cfg_node in
+        create_inter_edges regctx liveset;
+        (* update node occurrences *)
+        let occurrence_update reg = 
+          let occur_num =
+            NodeData.Table.find_or_add
+            ~default:(fun () -> 0)
+            regctx.node_occurrences reg in
+          NodeData.Table.set
+            regctx.node_occurrences
+            ~key:reg
+            ~data:(occur_num + 1) in
+        AbstractRegSet.iter ~f:occurrence_update liveset;
         (* populate worklist_moves and move_list *)
         match coalescable_move cfg_node with
         | None -> regctx
@@ -449,8 +464,29 @@ let _freeze (regctx : alloc_context) : alloc_context =
     } in
     freeze_moves regctx' fnode
 
-(* Spill a >=k degree node onto stack *)
-let _spill _g _stack = failwith "TODO"
+
+(* spill: spill a >=k degree node onto stack *)
+
+(* select a node to be spilled; heuristic used is
+ * number of program points on which the temp is live on *)
+let _select_spill (regctx : alloc_context) = 
+  let f reg = 
+    let occur_num = 
+      NodeData.Table.find_or_add
+      ~default:(fun () -> 0)
+      regctx.node_occurrences reg in
+    (reg, occur_num) in
+  let cmp (_, num1) (_, num2) =
+    Pervasives.compare num1 num2 in
+  match List.map ~f regctx.spill_wl |> List.sort ~cmp with
+  | [] -> regctx
+  | (chosenreg, _) :: _ ->
+      let regctx' = {
+        regctx with
+        spill_wl = remove regctx.spill_wl chosenreg;
+        simplify_wl = unduped_cons regctx.simplify_wl chosenreg;
+      } in
+      freeze_moves regctx' chosenreg
 
 (* Pop nodes from the stack and assign a color *)
 let _select _stack = failwith "TODO"

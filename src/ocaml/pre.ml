@@ -299,8 +299,32 @@ module UsedExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
-  let direction = `Forward
-  type extra_info = unit (* TODO *)
-  let init _extra_info _g _v = failwith "TODO"
-  let transfer _extra_info _e _l = failwith "TODO"
+  let direction = `Backward
+
+  type extra_info = {
+    g     : graph;        (* the graph *)
+    use   : node -> data; (* e_use_{B} *)
+    busy  : node -> data; (* anticipated[B].in *)
+    avail : node -> data; (* available[B].in *)
+    post  : node -> data; (* postponable[B].in *)
+  }
+
+  let init _ _ _ = ExprSet.empty
+
+  let (+) = ExprSet.union
+  let (-) = ExprSet.diff
+
+  let earliest ({busy; avail; _}: extra_info) (n: node) =
+    busy n - avail n
+
+  let latest ({g; use; post; _} as info: extra_info) (n: node) =
+    ExprSet.(filter (earliest info n + post n) ~f:(fun e ->
+      mem (use n) e || CFG.VertexSet.exists (CFG.succs g n) ~f:(fun n' ->
+        not (mem (earliest info n') e || mem (post n') e)
+      )
+    ))
+
+  let transfer ({use; _} as info) e x =
+    let n = CFG.E.dst e in
+    (use n + x) - latest info n
 end

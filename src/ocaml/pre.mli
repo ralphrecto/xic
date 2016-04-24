@@ -90,7 +90,7 @@ module PostponeExprCFG : ExprSetIntersectCFG
  * ================
  * Domain            : Sets of expressions
  * Direction         : Backwards
- * Transfer function : out(n) = (use(n) + in[n]) - latest(n)
+ * Transfer function : in(n) = (use(n) + out[n]) - latest(n)
  * Boundary          : in[exit] = 0
  * Meet (/\)         : union
  * Initialization    : in[n] = empty set

@@ -59,7 +59,19 @@ val preprocess : Cfg.IrCfg.t -> unit
  * Meet (/\)         : intersection
  * Initialization    : in[n] = set of all exprs
  *)
-module BusyExprCFG : ExprSetIntersectCFG
+module BusyExprCFG : sig
+  type extra_info = {
+    (* the graph *)
+    g : Cfg.IrCfg.t;
+    (* all of the used expressions in the graph *)
+    univ : ExprSetIntersectLattice.data;
+    (* uses[B] *)
+    uses : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+    (* kill[B] *)
+    kills : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+  }
+  include ExprSetIntersectCFG with type extra_info := extra_info
+end
 module BusyExpr : (module type of Dataflow.GenericAnalysis(BusyExprCFG))
 
 (**
@@ -72,7 +84,19 @@ module BusyExpr : (module type of Dataflow.GenericAnalysis(BusyExprCFG))
  * Meet (/\)         : intersection
  * Initialization    : out[n] = set of all exprs
  *)
-module AvailExprCFG : ExprSetIntersectCFG
+module AvailExprCFG : sig
+  type extra_info = {
+    (* the graph *)
+    g : Cfg.IrCfg.t;
+    (* all of the used expressions in the graph *)
+    univ : ExprSetIntersectLattice.data;
+    (* anticipated[B].in *)
+    busy : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+    (* kill[B] *)
+    kills : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+  }
+  include ExprSetIntersectCFG with type extra_info := extra_info
+end
 module AvailExpr : (module type of Dataflow.GenericAnalysis(AvailExprCFG))
 
 (**
@@ -85,7 +109,19 @@ module AvailExpr : (module type of Dataflow.GenericAnalysis(AvailExprCFG))
  * Meet (/\)         : intersection
  * Initialization    : out[n] = set of all exprs
  *)
-module PostponeExprCFG : ExprSetIntersectCFG
+module PostponeExprCFG : sig
+  type extra_info = {
+    (* the graph *)
+    g : Cfg.IrCfg.t;
+    (* all of the used expressions in the graph *)
+    univ : ExprSetIntersectLattice.data;
+    (* e_use_{B} *)
+    uses : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+    (* earlieset[B] *)
+    earliest : Cfg.IrCfg.vertex -> ExprSetIntersectLattice.data;
+  }
+  include ExprSetIntersectCFG with type extra_info := extra_info
+end
 module PostponeExpr : (module type of Dataflow.GenericAnalysis(PostponeExprCFG))
 
 (**
@@ -98,7 +134,19 @@ module PostponeExpr : (module type of Dataflow.GenericAnalysis(PostponeExprCFG))
  * Meet (/\)         : union
  * Initialization    : in[n] = empty set
  *)
-module UsedExprCFG : ExprSetIntersectCFG
+module UsedExprCFG : sig
+  type extra_info = {
+    (* the graph *)
+    g : Cfg.IrCfg.t;
+    (* e_use_{B} *)
+    uses : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
+    (* postponable[B].in *)
+    post : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
+    (* earlieset[B] *)
+    earliest : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
+  }
+  include ExprSetUnionCFG with type extra_info := extra_info
+end
 module UsedExpr : (module type of Dataflow.GenericAnalysis(UsedExprCFG))
 
 (** The whole enchilada! *)

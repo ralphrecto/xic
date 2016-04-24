@@ -186,12 +186,11 @@ module BusyExprCFG = struct
 
   let direction = `Backward
 
-  (* first is univ, second is a node to uses mapping and the third is a node to kill mapping *)
   type extra_info = {
-    g     : graph;        (* the graph *)
-    univ  : data;         (* all of the used expressions in the graph *)
-    uses  : node -> data; (* uses[B] *)
-    kills : node -> data; (* kill[B] *)
+    g     : graph;
+    univ  : data;
+    uses  : node -> data;
+    kills : node -> data;
   }
 
   let init ({univ; _} : extra_info) (_: graph) =
@@ -240,10 +239,10 @@ module AvailExprCFG = struct
   let direction = `Forward
 
   type extra_info = {
-    g     : graph;        (* the graph *)
-    univ  : data;         (* all of the used expressions in the graph *)
-    busy  : node -> data; (* anticipated[B].in *)
-    kills : node -> data; (* kill[B] *)
+    g     : graph;
+    univ  : data;
+    busy  : node -> data;
+    kills : node -> data;
   }
 
   let (+) = ExprSet.union
@@ -290,10 +289,10 @@ module PostponeExprCFG = struct
   let direction = `Forward
 
   type extra_info = {
-    g        : graph;        (* the graph *)
-    univ     : data;         (* all of the used expressions in the graph *)
-    uses     : node -> data; (* e_use_{B} *)
-    earliest : node -> data; (* earlieset[B] *)
+    g        : graph;
+    univ     : data;
+    uses     : node -> data;
+    earliest : node -> data;
   }
 
   let (+) = ExprSet.union
@@ -317,7 +316,7 @@ module PostponeExpr = Dataflow.GenericAnalysis(PostponeExprCFG)
 (* Used Expressions                                                           *)
 (* ************************************************************************** *)
 module UsedExprCFG = struct
-  module Lattice = ExprSetIntersectLattice
+  module Lattice = ExprSetUnionLattice
   module CFG = IrCfg
 
   type graph = CFG.t
@@ -328,10 +327,10 @@ module UsedExprCFG = struct
   let direction = `Backward
 
   type extra_info = {
-    g        : graph;        (* the graph *)
-    uses     : node -> data; (* e_use_{B} *)
-    post     : node -> data; (* postponable[B].in *)
-    earliest : node -> data; (* earlieset[B] *)
+    g        : graph;
+    uses     : node -> data;
+    post     : node -> data;
+    earliest : node -> data;
   }
 
   let init _ _ _ = ExprSet.empty
@@ -357,4 +356,4 @@ module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
 (* Whole Enchilada                                                            *)
 (* ************************************************************************** *)
 let pre _irs =
-  failwith "a"
+  failwith "TODO"

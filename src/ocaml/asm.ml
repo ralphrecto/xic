@@ -3,9 +3,9 @@ open Core.Std
 (******************************************************************************)
 (* types                                                                      *)
 (******************************************************************************)
-type label = string
+type label = string [@@deriving sexp, compare]
 
-type const = int64
+type const = int64 [@@deriving sexp, compare]
 
 type reg =
   | Rax
@@ -25,40 +25,46 @@ type reg =
   | R13
   | R14
   | R15
+[@@deriving sexp, compare]
 
-type fake = string
+type fake = string [@@deriving sexp, compare]
 type abstract_reg =
   | Fake of fake
   | Real of reg
+[@@deriving sexp, compare]
 
 type scale =
   | One
   | Two
   | Four
   | Eight
+[@@deriving sexp, compare]
 
 type 'reg mem =
   | Base    of const option * 'reg
   | Off     of const option * 'reg * scale
   | BaseOff of const option * 'reg * 'reg * scale
+[@@deriving sexp, compare]
 
 type 'reg operand =
   | Label of label
   | Reg   of 'reg
   | Const of const
   | Mem   of 'reg mem
+[@@deriving sexp, compare]
 
 type 'reg asm_template =
   | Op of string * 'reg operand list
   | Lab of label
   | Directive of string * string list
   | Comment of string
+[@@deriving sexp, compare]
 
-type abstract_asm = abstract_reg asm_template
+type abstract_asm = abstract_reg asm_template [@@deriving sexp, compare]
 
-type asm = reg asm_template
+type asm = reg asm_template [@@deriving sexp, compare]
 
-type asm_prog = asm list
+type asm_prog = asm list [@@deriving sexp, compare]
 
 (******************************************************************************)
 (* important register helpers                                                 *)

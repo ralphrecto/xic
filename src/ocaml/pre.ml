@@ -13,6 +13,9 @@ module ExprSet = struct
     type t = expr [@@deriving sexp, compare]
   end)
 
+  let concat_map xs ~f =
+    union_list (List.map xs ~f)
+
   let to_string irs =
     to_list irs
     |> List.map ~f:Ir.string_of_expr
@@ -355,5 +358,10 @@ module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
 (* ************************************************************************** *)
 (* Whole Enchilada                                                            *)
 (* ************************************************************************** *)
-let pre _irs =
-  failwith "TODO"
+let pre irs =
+  let g = Cfg.IrCfg.create_cfg irs in
+  let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
+  let uses = failwith "TODO" in
+  let kills = failwith "TODO" in
+  let _busy = BusyExpr.worklist {g; univ; uses; kills} g in
+  failwith "TOOO"

@@ -3,6 +3,7 @@ open Core.Std
 (** Types and Helper Functions *)
 module ExprSet : sig
   include Set.S with type Elt.t = Ir.expr
+  val concat_map : 'a list -> f:('a -> t) -> t
   val to_string : t -> string
 end
 

@@ -4,7 +4,7 @@ open TestUtil
 open Util
 
 module IntData = struct
-  type t = int
+  type t = int [@@deriving sexp, compare]
   let to_string = string_of_int
   let to_int x = x
 end

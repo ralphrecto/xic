@@ -9,7 +9,7 @@ module type ControlFlowGraph = sig
 end
 
 module type NodeData = sig
-  type t
+  type t [@@deriving sexp, compare]
   val to_string : t -> string
   val to_int    : t -> int
 end
@@ -26,6 +26,7 @@ module StartExit(N: NodeData) = struct
     | Node of N.t
     | Start
     | Exit
+  [@@deriving sexp, compare]
 
   let to_string = function
     | Node n -> N.to_string n
@@ -120,13 +121,14 @@ module IrData = struct
   type t = {
     num: int;
     ir:  Ir.stmt;
-  }
+  } [@@deriving sexp, compare]
 
   let to_string {num; ir} = sprintf "%d: %s" num (Ir.string_of_stmt ir)
   let to_int {num; _} = num
 end
 
 module IrDataStartExit = StartExit(IrData)
+
 module IrCfg = struct
   open IrData
   include Make(IrDataStartExit)
@@ -206,12 +208,15 @@ module IrCfg = struct
     g
 end
 
+module IrMap = Map.Make(IrData)
+module IrStartExitMap = Map.Make(IrDataStartExit)
+
 (* Asm CFG *)
 module AsmData = struct
   type t = {
     num: int;
     asm: Asm.abstract_asm;
-  }
+  } [@@deriving sexp, compare]
 
   let to_string _ = failwith "TODO"
   let to_int _ = failwith "TODO"

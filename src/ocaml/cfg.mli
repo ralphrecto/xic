@@ -14,7 +14,7 @@ end
  *    - an assembly CFG would have assembly instructions as labels.
  *)
 module type NodeData = sig
-  type t
+  type t [@@deriving sexp, compare]
 
   (* pretty printed vertex value *)
   val to_string : t -> string
@@ -38,6 +38,7 @@ module StartExit(N: NodeData) : sig
     | Node of N.t
     | Start
     | Exit
+    [@@deriving sexp, compare]
   include NodeData with type t := t
 end
 
@@ -79,7 +80,7 @@ module IrData : sig
   type t = {
     num: int;
     ir:  Ir.stmt;
-  }
+  } [@@deriving sexp, compare]
   include NodeData with type t := t
 end
 module IrDataStartExit : (module type of StartExit(IrData))
@@ -87,13 +88,15 @@ module IrCfg : sig
   include (module type of Make(IrDataStartExit))
   val create_cfg : Ir.stmt list -> t
 end
+module IrMap : Map.S with type Key.t = IrData.t
+module IrStartExitMap : Map.S with type Key.t = IrDataStartExit.t
 
 (* Abstract Assembly CFG *)
 module AsmData : sig
   type t = {
     num: int;
     asm: Asm.abstract_asm;
-  }
+  } [@@deriving sexp, compare]
   include NodeData with type t := t
 end
 module AsmDataStartExit : (module type of StartExit(AsmData))

@@ -6,6 +6,24 @@ open Pre
 open Ir
 open ExprSet
 
+module IrCfgEq = struct
+  let (===) (a: Cfg.IrCfg.t) (b: Cfg.IrCfg.t) : unit =
+    assert_equal ~cmp:Cfg.IrCfg.equal ~printer:Cfg.IrCfg.to_dot a b
+
+  let (=/=) (a: Cfg.IrCfg.t) (b: Cfg.IrCfg.t) : unit =
+    if Cfg.IrCfg.equal a b then
+        let a = Cfg.IrCfg.to_dot a in
+        let b = Cfg.IrCfg.to_dot b in
+        assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
+end
+
+let make_graph vertexes edges =
+  let open Cfg.IrCfg in
+  let g = create () in
+  List.iter vertexes ~f:(fun i -> add_vertex g (V.create i));
+  List.iter edges ~f:(fun (i, l, j) -> add_edge_e g (E.create i l j));
+  g
+
 let get_subexpr_test _ =
 
   let make_binop e1 e2 = BinOp (e1, EQ, e2) in
@@ -420,6 +438,174 @@ let get_subexpr_test _ =
   let move54 = Move (Temp "dummy", mem_binop10) in
   let move55 = Move (Temp "dummy", mem_binop11) in
 
+  let move56 = Move (mem1, binop1) in
+  let move57 = Move (mem1, binop10) in
+  let move58 = Move (mem1, binop11) in
+  let move59 = Move (mem1, binop12) in
+  let move60 = Move (mem1, binop13) in
+  let move61 = Move (mem1, binop14) in
+  let move62 = Move (mem1, binop15) in
+  let move63 = Move (mem1, binop16) in
+  let move64 = Move (mem1, binop17) in
+  let move65 = Move (mem1, binop18) in
+  let move66 = Move (mem1, binop19) in
+  let move67 = Move (mem1, call1) in
+  let move68 = Move (mem1, call10) in
+  let move69 = Move (mem1, call11) in
+  let move70 = Move (mem1, call12) in
+  let move71 = Move (mem1, call13) in
+  let move72 = Move (mem1, call14) in
+  let move73 = Move (mem1, call15) in
+  let move74 = Move (mem1, call16) in
+  let move75 = Move (mem1, call17) in
+  let move76 = Move (mem1, call18) in
+  let move77 = Move (mem1, call19) in
+  let move78 = Move (mem1, mem1) in
+  let move79 = Move (mem1, mem10) in
+  let move80 = Move (mem1, mem11) in
+  let move81 = Move (mem1, mem12) in
+  let move82 = Move (mem1, mem13) in
+  let move83 = Move (mem1, mem14) in
+  let move84 = Move (mem1, mem15) in
+  let move85 = Move (mem1, mem16) in
+  let move86 = Move (mem1, mem17) in
+  let move87 = Move (mem1, mem18) in
+  let move88 = Move (mem1, mem19) in
+  let move89 = Move (mem1, mem20) in
+  let move90 = Move (mem1, mem21) in
+  let move91 = Move (mem1, mem22) in
+  let move92 = Move (mem1, mem23) in
+  let move93 = Move (mem1, mem24) in
+  let move94 = Move (mem1, mem25) in
+  let move95 = Move (mem1, mem26) in
+  let move96 = Move (mem1, mem27) in
+  let move97 = Move (mem1, mem28) in
+  let move98 = Move (mem1, mem29) in
+  let move99 = Move (mem1, mem30) in
+  let move100 = Move (mem1, mem_binop1) in
+  let move101 = Move (mem1, mem_binop2) in
+  let move102 = Move (mem1, mem_binop3) in
+  let move103 = Move (mem1, mem_binop4) in
+  let move104 = Move (mem1, mem_binop5) in
+  let move105 = Move (mem1, mem_binop6) in
+  let move106 = Move (mem1, mem_binop7) in
+  let move107 = Move (mem1, mem_binop8) in
+  let move108 = Move (mem1, mem_binop9) in
+  let move109 = Move (mem1, mem_binop10) in
+  let move110 = Move (mem1, mem_binop11) in
+
+  let move_mem1 = mem1 :: subs1 in
+  let move_mem2 = mem1 :: subs2 in
+  let move_mem3 = mem1 :: subs3 in
+  let move_mem4 = mem1 :: subs4 in
+  let move_mem5 = mem1 :: subs5 in
+  let move_mem6 = mem1 :: subs6 in
+  let move_mem7 = mem1 :: subs7 in
+  let move_mem8 = mem1 :: subs8 in
+  let move_mem9 = mem1 :: subs9 in
+  let move_mem10 = mem1 :: subs10 in
+  let move_mem11 = mem1 :: subs11 in
+  let move_mem12 = mem1 :: subs1 in
+  let move_mem13 = mem1 :: subs2 in
+  let move_mem14 = mem1 :: subs3 in
+  let move_mem15 = mem1 :: subs4 in
+  let move_mem16 = mem1 :: subs5 in
+  let move_mem17 = mem1 :: subs6 in
+  let move_mem18 = mem1 :: subs7 in
+  let move_mem19 = mem1 :: subs8 in
+  let move_mem20 = mem1 :: subs9 in
+  let move_mem21 = mem1 :: subs10 in
+  let move_mem22 = mem1 :: subs11 in
+  let move_mem23 = mem1 :: mem_subs1 in
+  let move_mem24 = mem1 :: mem_subs2  in
+  let move_mem25 = mem1 :: mem_subs3  in
+  let move_mem26 = mem1 :: mem_subs4  in
+  let move_mem27 = mem1 :: mem_subs5  in
+  let move_mem28 = mem1 :: mem_subs6  in
+  let move_mem29 = mem1 :: mem_subs7  in
+  let move_mem30 = mem1 :: mem_subs8  in
+  let move_mem31 = mem1 :: mem_subs9  in
+  let move_mem32 = mem1 :: mem_subs10 in
+  let move_mem33 = mem1 :: mem_subs11 in
+  let move_mem34 = mem1 :: mem_subs12 in
+  let move_mem35 = mem1 :: mem_subs13 in
+  let move_mem36 = mem1 :: mem_subs14 in
+  let move_mem37 = mem1 :: mem_subs15 in
+  let move_mem38 = mem1 :: mem_subs16 in
+  let move_mem39 = mem1 :: mem_subs17 in
+  let move_mem40 = mem1 :: mem_subs18 in
+  let move_mem41 = mem1 :: mem_subs19 in
+  let move_mem42 = mem1 :: mem_subs20 in
+  let move_mem43 = mem1 :: mem_subs21 in
+  let move_mem44 = mem1 :: mem_subs22 in
+  let move_mem45 = mem1 :: mem_binop_subs1 in
+  let move_mem46 = mem1 :: mem_binop_subs2 in
+  let move_mem47 = mem1 :: mem_binop_subs3 in
+  let move_mem48 = mem1 :: mem_binop_subs4 in
+  let move_mem49 = mem1 :: mem_binop_subs5 in
+  let move_mem50 = mem1 :: mem_binop_subs6 in
+  let move_mem51 = mem1 :: mem_binop_subs7 in
+  let move_mem52 = mem1 :: mem_binop_subs8 in
+  let move_mem53 = mem1 :: mem_binop_subs9 in
+  let move_mem54 = mem1 :: mem_binop_subs10 in
+  let move_mem55 = mem1 :: mem_binop_subs11 in
+
+  let move_mem_subs1  = of_list move_mem1  in
+  let move_mem_subs2  = of_list move_mem2  in
+  let move_mem_subs3  = of_list move_mem3  in
+  let move_mem_subs4  = of_list move_mem4  in
+  let move_mem_subs5  = of_list move_mem5  in
+  let move_mem_subs6  = of_list move_mem6  in
+  let move_mem_subs7  = of_list move_mem7  in
+  let move_mem_subs8  = of_list move_mem8  in
+  let move_mem_subs9  = of_list move_mem9  in
+  let move_mem_subs10 = of_list move_mem10 in
+  let move_mem_subs11 = of_list move_mem11 in
+  let move_mem_subs12 = of_list move_mem12 in
+  let move_mem_subs13 = of_list move_mem13 in
+  let move_mem_subs14 = of_list move_mem14 in
+  let move_mem_subs15 = of_list move_mem15 in
+  let move_mem_subs16 = of_list move_mem16 in
+  let move_mem_subs17 = of_list move_mem17 in
+  let move_mem_subs18 = of_list move_mem18 in
+  let move_mem_subs19 = of_list move_mem19 in
+  let move_mem_subs20 = of_list move_mem20 in
+  let move_mem_subs21 = of_list move_mem21 in
+  let move_mem_subs22 = of_list move_mem22 in
+  let move_mem_subs23 = of_list move_mem23 in
+  let move_mem_subs24 = of_list move_mem24 in
+  let move_mem_subs25 = of_list move_mem25 in
+  let move_mem_subs26 = of_list move_mem26 in
+  let move_mem_subs27 = of_list move_mem27 in
+  let move_mem_subs28 = of_list move_mem28 in
+  let move_mem_subs29 = of_list move_mem29 in
+  let move_mem_subs30 = of_list move_mem30 in
+  let move_mem_subs31 = of_list move_mem31 in
+  let move_mem_subs32 = of_list move_mem32 in
+  let move_mem_subs33 = of_list move_mem33 in
+  let move_mem_subs34 = of_list move_mem34 in
+  let move_mem_subs35 = of_list move_mem35 in
+  let move_mem_subs36 = of_list move_mem36 in
+  let move_mem_subs37 = of_list move_mem37 in
+  let move_mem_subs38 = of_list move_mem38 in
+  let move_mem_subs39 = of_list move_mem39 in
+  let move_mem_subs40 = of_list move_mem40 in
+  let move_mem_subs41 = of_list move_mem41 in
+  let move_mem_subs42 = of_list move_mem42 in
+  let move_mem_subs43 = of_list move_mem43 in
+  let move_mem_subs44 = of_list move_mem44 in
+  let move_mem_subs45 = of_list move_mem45 in
+  let move_mem_subs46 = of_list move_mem46 in
+  let move_mem_subs47 = of_list move_mem47 in
+  let move_mem_subs48 = of_list move_mem48 in
+  let move_mem_subs49 = of_list move_mem49 in
+  let move_mem_subs50 = of_list move_mem50 in
+  let move_mem_subs51 = of_list move_mem51 in
+  let move_mem_subs52 = of_list move_mem52 in
+  let move_mem_subs53 = of_list move_mem53 in
+  let move_mem_subs54 = of_list move_mem54 in
+  let move_mem_subs55 = of_list move_mem55 in
+
   let _ = assert_true (equal (get_subexpr_stmt move1) subs_set1) in
   let _ = assert_true (equal (get_subexpr_stmt move2) subs_set2) in
   let _ = assert_true (equal (get_subexpr_stmt move3) subs_set3) in
@@ -476,6 +662,62 @@ let get_subexpr_test _ =
   let _ = assert_true (equal (get_subexpr_stmt move54) mem_binop_subs_set18) in
   let _ = assert_true (equal (get_subexpr_stmt move55) mem_binop_subs_set19) in
 
+  let _ = assert_true (equal (get_subexpr_stmt move56) move_mem_subs1) in
+  let _ = assert_true (equal (get_subexpr_stmt move57) move_mem_subs2) in
+  let _ = assert_true (equal (get_subexpr_stmt move58) move_mem_subs3) in
+  let _ = assert_true (equal (get_subexpr_stmt move59) move_mem_subs4) in
+  let _ = assert_true (equal (get_subexpr_stmt move60) move_mem_subs5) in
+  let _ = assert_true (equal (get_subexpr_stmt move61) move_mem_subs6) in
+  let _ = assert_true (equal (get_subexpr_stmt move62) move_mem_subs7) in
+  let _ = assert_true (equal (get_subexpr_stmt move63) move_mem_subs8) in
+  let _ = assert_true (equal (get_subexpr_stmt move64) move_mem_subs9) in
+  let _ = assert_true (equal (get_subexpr_stmt move65) move_mem_subs10) in
+  let _ = assert_true (equal (get_subexpr_stmt move66) move_mem_subs11) in
+  let _ = assert_true (equal (get_subexpr_stmt move67) move_mem_subs12) in
+  let _ = assert_true (equal (get_subexpr_stmt move68) move_mem_subs13) in
+  let _ = assert_true (equal (get_subexpr_stmt move69) move_mem_subs14) in
+  let _ = assert_true (equal (get_subexpr_stmt move70) move_mem_subs15) in
+  let _ = assert_true (equal (get_subexpr_stmt move71) move_mem_subs16) in
+  let _ = assert_true (equal (get_subexpr_stmt move72) move_mem_subs17) in
+  let _ = assert_true (equal (get_subexpr_stmt move73) move_mem_subs18) in
+  let _ = assert_true (equal (get_subexpr_stmt move74) move_mem_subs19) in
+  let _ = assert_true (equal (get_subexpr_stmt move75) move_mem_subs20) in
+  let _ = assert_true (equal (get_subexpr_stmt move76) move_mem_subs21) in
+  let _ = assert_true (equal (get_subexpr_stmt move77) move_mem_subs22) in
+  let _ = assert_true (equal (get_subexpr_stmt move78) move_mem_subs23) in
+  let _ = assert_true (equal (get_subexpr_stmt move79) move_mem_subs24) in
+  let _ = assert_true (equal (get_subexpr_stmt move80) move_mem_subs25) in
+  let _ = assert_true (equal (get_subexpr_stmt move81) move_mem_subs26) in
+  let _ = assert_true (equal (get_subexpr_stmt move82) move_mem_subs27) in
+  let _ = assert_true (equal (get_subexpr_stmt move83) move_mem_subs28) in
+  let _ = assert_true (equal (get_subexpr_stmt move84) move_mem_subs29) in
+  let _ = assert_true (equal (get_subexpr_stmt move85) move_mem_subs30) in
+  let _ = assert_true (equal (get_subexpr_stmt move86) move_mem_subs31) in
+  let _ = assert_true (equal (get_subexpr_stmt move87) move_mem_subs32) in
+  let _ = assert_true (equal (get_subexpr_stmt move88) move_mem_subs33) in
+  let _ = assert_true (equal (get_subexpr_stmt move89) move_mem_subs34) in
+  let _ = assert_true (equal (get_subexpr_stmt move90) move_mem_subs35) in
+  let _ = assert_true (equal (get_subexpr_stmt move91) move_mem_subs36) in
+  let _ = assert_true (equal (get_subexpr_stmt move92) move_mem_subs37) in
+  let _ = assert_true (equal (get_subexpr_stmt move93) move_mem_subs38) in
+  let _ = assert_true (equal (get_subexpr_stmt move94) move_mem_subs39) in
+  let _ = assert_true (equal (get_subexpr_stmt move95) move_mem_subs40) in
+  let _ = assert_true (equal (get_subexpr_stmt move96) move_mem_subs41) in
+  let _ = assert_true (equal (get_subexpr_stmt move97) move_mem_subs42) in
+  let _ = assert_true (equal (get_subexpr_stmt move98) move_mem_subs43) in
+  let _ = assert_true (equal (get_subexpr_stmt move99) move_mem_subs44) in
+  let _ = assert_true (equal (get_subexpr_stmt move100) move_mem_subs45) in
+  let _ = assert_true (equal (get_subexpr_stmt move101) move_mem_subs46) in
+  let _ = assert_true (equal (get_subexpr_stmt move102) move_mem_subs47) in
+  let _ = assert_true (equal (get_subexpr_stmt move103) move_mem_subs48) in
+  let _ = assert_true (equal (get_subexpr_stmt move104) move_mem_subs49) in
+  let _ = assert_true (equal (get_subexpr_stmt move105) move_mem_subs50) in
+  let _ = assert_true (equal (get_subexpr_stmt move106) move_mem_subs51) in
+  let _ = assert_true (equal (get_subexpr_stmt move107) move_mem_subs52) in
+  let _ = assert_true (equal (get_subexpr_stmt move108) move_mem_subs53) in
+  let _ = assert_true (equal (get_subexpr_stmt move109) move_mem_subs54) in
+  let _ = assert_true (equal (get_subexpr_stmt move110) move_mem_subs55) in
+
   let jump1 = Jump (Name "dummy") in
   let label1 = Label "dummy" in
   let return1 = Return in
@@ -486,12 +728,110 @@ let get_subexpr_test _ =
 
   ()
 
+let preprocess_test _ =
+  let open Ir.Abbreviations in
+  let open Cfg.IrData in
+  let open Cfg.IrDataStartExit in
+  let open IrCfgEq in
+
+  let test input_vs input_es expected_vs expected_es =
+    let input = make_graph input_vs input_es in
+    let expected = make_graph expected_vs expected_es in
+    Pre.preprocess input;
+    expected === input
+  in
+
+  let norm = Cfg.EdgeData.Normal in
+
+  let ir0 = move (temp "ir0") (zero) in
+  let ir1 = move (temp "ir1") (one) in
+  let ir2 = move (temp "ir2") (two) in
+  let ir3 = move (temp "ir3") (three) in
+  let ir4 = move (temp "ir4") (four) in
+  let ir5 = move (temp "ir5") (five) in
+  let ir6 = move (temp "ir6") (six) in
+
+  let n0 = Cfg.IrCfg.V.create (Node {num=0; ir=ir0}) in
+  let n1 = Cfg.IrCfg.V.create (Node {num=1; ir=ir1}) in
+  let n2 = Cfg.IrCfg.V.create (Node {num=2; ir=ir2}) in
+  let n3 = Cfg.IrCfg.V.create (Node {num=3; ir=ir3}) in
+  let n4 = Cfg.IrCfg.V.create (Node {num=4; ir=ir4}) in
+  let n5 = Cfg.IrCfg.V.create (Node {num=5; ir=ir5}) in
+  let n6 = Cfg.IrCfg.V.create (Node {num=6; ir=ir6}) in
+
+  let d3  = Cfg.IrCfg.V.create (Node {num=3;  ir=Pre.dummy_ir}) in
+  let d4  = Cfg.IrCfg.V.create (Node {num=4;  ir=Pre.dummy_ir}) in
+  let d5  = Cfg.IrCfg.V.create (Node {num=5;  ir=Pre.dummy_ir}) in
+  let d6  = Cfg.IrCfg.V.create (Node {num=6;  ir=Pre.dummy_ir}) in
+  let d7  = Cfg.IrCfg.V.create (Node {num=7;  ir=Pre.dummy_ir}) in
+  let d8  = Cfg.IrCfg.V.create (Node {num=8;  ir=Pre.dummy_ir}) in
+  let d9  = Cfg.IrCfg.V.create (Node {num=9;  ir=Pre.dummy_ir}) in
+  let d10 = Cfg.IrCfg.V.create (Node {num=10; ir=Pre.dummy_ir}) in
+
+  let ivs = [n0; n1] in
+  let ies = [(n0, norm, n1)] in
+  let evs = ivs in
+  let ees = ies in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2] in
+  let ies = [(n0, norm, n2); (n1, norm, n2)] in
+  let evs = ivs @ [d3; d4] in
+  let ees = [
+    (n0, norm, d3); (d3, norm, n2);
+    (n1, norm, d4); (d4, norm, n2);
+  ] in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2] in
+  let ies = [(n0, norm, n1); (n0, norm, n2)] in
+  let evs = ivs in
+  let ees = ies in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2; n3] in
+  let ies = [(n0, norm, n3); (n1, norm, n3); (n2, norm, n3)] in
+  let evs = ivs @ [d4; d5; d6] in
+  let ees = [
+    (n0, norm, d4); (d4, norm, n3);
+    (n1, norm, d5); (d5, norm, n3);
+    (n2, norm, d6); (d6, norm, n3);
+  ] in
+  test ivs ies evs ees;
+
+  let ivs = [n0; n1; n2; n3; n4; n5; n6] in
+  let ies = [
+    (n0, norm, n1);
+    (n0, norm, n2);
+    (n1, norm, n3);
+    (n2, norm, n3);
+    (n3, norm, n4);
+    (n3, norm, n5);
+    (n4, norm, n6);
+    (n5, norm, n6);
+  ] in
+  let evs = ivs @ [d7; d8; d9; d10] in
+  let ees = [
+    (n0, norm, n1);
+    (n0, norm, n2);
+    (n1, norm, d7); (d7, norm, n3);
+    (n2, norm, d8); (d8, norm, n3);
+    (n3, norm, n4);
+    (n3, norm, n5);
+    (n4, norm, d9); (d9, norm, n6);
+    (n5, norm, d10); (d10, norm, n6);
+  ] in
+  test ivs ies evs ees;
+
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 let main () =
     "suite" >::: [
       "get_subexpr_test" >:: get_subexpr_test;
+      "preprocess_test" >:: preprocess_test;
     ] |> run_test_tt_main
 
 let _ = main ()

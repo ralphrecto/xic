@@ -8,7 +8,7 @@ open Fresh
 
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
-  type t = abstract_reg 
+  type t = abstract_reg
 
   let t_of_sexp _ = failwith "implement t_of_sexp for AbstractRegElt"
   let sexp_of_t _ = failwith "implement sexp_of_t for AbstractRegElt"
@@ -16,7 +16,7 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   let compare a b =
     match a, b with
     | Fake _, Fake _ | Real _, Real _ -> 0
-    | Fake _, Real _ -> -1 
+    | Fake _, Real _ -> -1
     | Real _, Fake _ -> 1
   end
 )
@@ -27,21 +27,27 @@ module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t 
   type data = AbstractRegSet.t
   let ( ** ) = AbstractRegSet.union
   let ( === ) = AbstractRegSet.equal
+  let to_string _ = failwith "TODO"
 end
 
 module AsmWithLiveVar : CFGWithLatticeT
   with module CFG = AsmCfg
-  and module Lattice = LiveVariableLattice = struct
+  and module Lattice = LiveVariableLattice
+  and type extra_info = unit = struct
   module Lattice = LiveVariableLattice
   module CFG = AsmCfg
   module ADSE = AsmDataStartExit
   open Lattice
-  open CFG 
+  open CFG
 
   type graph = CFG.t
   type node = CFG.V.t
   type edge = CFG.E.t
   type data = Lattice.data
+
+  type extra_info = unit
+
+  let direction = `Backward
 
   (* returns a sets of vars used and defd, respectively *)
   let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
@@ -120,17 +126,21 @@ module AsmWithLiveVar : CFGWithLatticeT
         else (AbstractRegSet.empty, AbstractRegSet.empty)
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
-  let transfer (e: AsmCfg.E.t) (d: Lattice.data) =
+  let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
+    match n with
+    | Start | Exit -> AbstractRegSet.empty
+    | Node n_data -> fst (usedvars n_data.asm)
+
+  let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use src because live variable analysis is backwards *)
     match E.src e with 
-    | Start -> failwith "Live variable transfer: start cannot be dest"
-    | Exit -> AbstractRegSet.empty
-    | Node n_data -> 
+    | Start | Exit -> AbstractRegSet.empty
+    | Node n_data ->
         let use_n, def_n = usedvars n_data.asm in
         AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 end
 
-module LiveVariableAnalysis = BackwardAnalysis (AsmWithLiveVar)
+module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
 
 module type InterferenceGraphT = sig
   (* TODO: add the rest of node states *)
@@ -266,7 +276,7 @@ let build (asms : abstract_asm list) : alloc_context * IG.t =
   let inter_graph = IG.create () in
 
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
-    let _livevars = LiveVariableAnalysis.worklist (fun _ -> failwith "lol") cfg in
+    let _livevars = LiveVariableAnalysis.worklist () cfg in
     fun node -> 
       match Cfg.succ_e cfg node with
       | [] -> failwith "regalloc:build:livevars cfg node has no successors"
@@ -310,7 +320,7 @@ let reg_alloc _ =
     (* Get non-move-related nodes of <k degree from graph *)
     let non_mov_nodes = IG.fold_vertex (fun v acc -> if (IG.V.label v).is_mov then acc
       else v::acc) g [] in
-    
+
     (* Push all nodes of <k degree onto stack *)
     let rec push acc =
       (* Pick a non-move-related vertex that has <k degree *)
@@ -324,22 +334,22 @@ let reg_alloc _ =
       | Some v -> IG.remove_vertex g v;
         push (v::acc)
     in
-  
+
     let stack' = push stack in
     stack'
   in
   *)
-  
+
   (* Coalesce move-related nodes *)
   let _coalesce _g _stack = failwith "TODO" in
-  
+
   (* Remove a move-related node of low degree *)
   let _freeze _g _stack = failwith "TODO" in
-  
+
   (* Spill a >=k degree node onto stack *)
   let _spill _g _stack = failwith "TODO" in
-  
+
   (* Pop nodes from the stack and assign a color *)
   let _select _stack = failwith "TODO" in
-  
+
   failwith "finish reg alloc!"

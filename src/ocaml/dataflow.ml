@@ -3,6 +3,8 @@ open Cfg
 module Hash = Hashtbl
 open Core.Std
 
+type direction = [`Forward | `Backward]
+
 module type LowerSemilattice = sig
   (* data associated with each control flow node *)
   type data
@@ -12,6 +14,8 @@ module type LowerSemilattice = sig
 
   (* equality over data values *)
   val ( === ) : data -> data -> bool
+
+  val to_string : data -> string
 end
 
 module type CFGWithLatticeT = sig
@@ -22,22 +26,24 @@ module type CFGWithLatticeT = sig
   type edge = CFG.E.t
   type data = Lattice.data
 
-  val transfer : edge -> data -> data
+  type extra_info
+
+  val direction : direction
+  val init: extra_info -> graph -> node -> data
+  val transfer : extra_info -> edge -> data -> data
 end
 
 module type Analysis = sig
   module CFGL : CFGWithLatticeT
   open CFGL
 
-  val iterative : (node -> data) -> graph -> edge -> data
-
-  val worklist : (node -> data) -> graph -> edge -> data
+  val direction : direction
+  val iterative : extra_info -> graph -> edge -> data
+  val worklist : extra_info -> graph -> edge -> data
 end
 
 module GenericAnalysis
-  (Config: sig val direction : [ `Forward | `Backward ] end)
-  (CFGLArg: CFGWithLatticeT)
-  : Analysis with module CFGL = CFGLArg = struct
+  (CFGLArg: CFGWithLatticeT) = struct
 
   module CFGL = CFGLArg
   open CFGL
@@ -51,8 +57,11 @@ module GenericAnalysis
    * update_node   is used to determine if the src or the dest of the edge should be added to
    *               the worklist queue after the data has changed
    *)
+
+  let direction = CFGL.direction
+
   let meet_fold, transfer_fold, transfer_iter, update_node  =
-    match Config.direction with
+    match direction with
     | `Forward -> fold_pred_e, fold_succ_e, iter_succ_e, E.dst
     | `Backward -> fold_succ_e, fold_pred_e, iter_pred_e, E.src
 
@@ -63,10 +72,11 @@ module GenericAnalysis
     | None -> Some edge_datum
     | Some d' -> Some (d' ** edge_datum)
 
-  let iterative (init: node -> data) (cfg: graph) : edge -> data =
+  let iterative (ei: extra_info) (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
+    let init = CFGL.init ei cfg in
     iter_vertex (fun node -> transfer_iter (fun e -> Hash.add table e (init node)) cfg node) cfg;
 
     (* helper function when folding over all nodes of graph to calculate fixpoint *)
@@ -79,10 +89,10 @@ module GenericAnalysis
        * the data has changed *)
       match meet with
       | None -> changed
-      | Some meet' ->
+      | Some meet' -> begin
         let update (e:edge) (updated: bool) =
           let edge_datum = Hash.find table e in
-          let new_datum = transfer e meet' in
+          let new_datum = transfer ei e meet' in
           if edge_datum === new_datum then
             updated
           else
@@ -90,6 +100,7 @@ module GenericAnalysis
             true
         in
         transfer_fold update cfg n changed
+      end
     in
 
     (* iterate through nodes until data does not change *)
@@ -103,12 +114,13 @@ module GenericAnalysis
 
     iterate ()
 
-  let worklist (init: node -> data) (cfg: graph) : edge -> data =
+  let worklist (ei: extra_info) (cfg: graph) : edge -> data =
     (* initializations *)
     (* data table *)
     let data_table : (edge, data) Hash.t = Hash.create (nb_edges cfg) in
     (* worklist queue for nodes *)
     let node_set : node Queue.t = Queue.create () in
+    let init = CFGL.init ei cfg in
     iter_vertex
       (fun node ->
         transfer_iter (fun e -> Hash.add data_table e (init node)) cfg node;
@@ -128,17 +140,20 @@ module GenericAnalysis
            * to queue *)
           match meet with
           | None -> work ()
-          | Some meet' ->
+          | Some meet' -> begin
             let update (e: edge) =
               let edge_datum = Hash.find data_table e in
-              let new_datum = transfer e meet' in
+              let new_datum = transfer ei e meet' in
               if edge_datum === new_datum then
                 ()
               else
-                Queue.enqueue node_set (update_node e)
+                let _ = Hash.replace data_table e new_datum in
+                if not (Queue.mem node_set (update_node e)) then
+                  Queue.enqueue node_set (update_node e)
             in
-            let _ = transfer_iter update cfg n in
+            transfer_iter update cfg n;
             work ()
+          end
         end
       | None ->
         fun e' -> Hash.find data_table e'
@@ -146,8 +161,3 @@ module GenericAnalysis
     work ()
 end
 
-module ForwardAnalysis (CFGL: CFGWithLatticeT) =
-  GenericAnalysis (struct let direction = `Forward end) (CFGL)
-
-module BackwardAnalysis (CFGL: CFGWithLatticeT) =
-  GenericAnalysis (struct let direction = `Backward end) (CFGL)

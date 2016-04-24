@@ -5,14 +5,52 @@ open Ir
 open Tiling
 open Fresh
 
-module ExprSet = Set.Make (struct type t = expr [@@deriving sexp, compare] end)
+(* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
+module ExprSet = struct
+  include Set.Make (struct
+    type t = expr [@@deriving sexp, compare]
+  end)
 
+  let to_string irs =
+    to_list irs
+    |> List.map ~f:Ir.string_of_expr
+    |> List.map ~f:(fun s -> "  " ^ s ^ ",\n")
+    |> Util.join
+    |> fun s -> "{\n" ^ s ^ "\n}"
+end
 open ExprSet
 
-(* first element of the tuple is the set of subexpressions
- * second element of the tuple is the set of temps and mems used by expr *)
+module ExprSetIntersectLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = ExprSet.inter
+  let ( === ) = ExprSet.equal
+  let to_string = ExprSet.to_string
+end
+
+module ExprSetUnionLattice = struct
+  type data = ExprSet.t
+  let ( ** ) = ExprSet.union
+  let ( === ) = ExprSet.equal
+  let to_string = ExprSet.to_string
+end
+
+module type ExprSetIntersectCFG = sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = ExprSetIntersectLattice and
+    module CFG = Cfg.IrCfg
+end
+
+module type ExprSetUnionCFG = sig
+  include Dataflow.CFGWithLatticeT with
+    module Lattice = ExprSetUnionLattice and
+    module CFG = Cfg.IrCfg
+end
+
 let rec get_subexpr (e: expr) : ExprSet.t =
   match e with
+  | BinOp (e1, (DIV|MOD), e2) -> union (get_subexpr e1) (get_subexpr e2)
   | BinOp (e1, _, e2) -> add (union (get_subexpr e1) (get_subexpr e2)) e
   | Call (_, elst) ->
     let f acc e = union acc (get_subexpr e) in
@@ -21,8 +59,6 @@ let rec get_subexpr (e: expr) : ExprSet.t =
   | Temp _ | Const _ | Name _ -> empty
   | ESeq _ -> failwith "shouldn't exist!"
 
-(* first element of the tuple is the set of subexpressions
- * second element of the tuple is the set of temps and mems used by stmt *)
 and get_subexpr_stmt (s: stmt) : ExprSet.t =
   match s with
   | CJumpOne (e1, _) -> get_subexpr e1
@@ -84,24 +120,60 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | Move _
   | CJump _ -> failwith "shouldn't exist!"
 
-module BusyExprLattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
-end
+(* ************************************************************************** *)
+(* Preprocessing Step                                                         *)
+(* ************************************************************************** *)
+let dummy_ir = Label "__dummy"
+let preprocess g =
+  let open Cfg in
+  let open IrCfg in
+  let open IrData in
+  let open IrDataStartExit in
 
-(**
- * Anticipated Expressions
- * =======================
- * Domain            : Sets of expressions
- * Direction         : Backwards
- * Transfer function : in(n) = use(n) + (out(n) - kill(n))
- * Boundary          : in[exit] = 0
- * Meet (/\)         : intersection
- * Initialization    : in[n] = U
- *)
+  (* compare two IR CFG nodes *)
+  let v_compare a b =
+    Int.compare (to_int a) (to_int b)
+  in
+
+  (* compare two IR CFG edges *)
+  let e_compare a b =
+    v_compare (V.label (E.src a)) (V.label (E.src b))
+  in
+
+  (* dummy node helpers *)
+  let fresh_num = nb_vertex g in
+  let dummy i = V.create (Node {num=i; ir=dummy_ir}) in
+
+  (* gather all the vertices with more than on predecessor *)
+  let vs = vertex_set g in
+  let multiple_preds =
+    VertexSet.filter ~f:(fun v -> in_degree g v > 1) vs
+    |> VertexSet.to_list
+    |> List.sort ~cmp:v_compare
+  in
+
+  (* add dummy nodes on all the incoming edges *)
+  List.fold_left multiple_preds ~init:fresh_num ~f:(fun a v ->
+    let preds =
+      preds_e g v
+      |> EdgeSet.to_list
+      |> List.sort ~cmp:e_compare
+    in
+    List.fold_left preds ~init:a ~f:(fun a e ->
+      let d = dummy a in
+      remove_edge_e g e;
+      add_vertex g d;
+      add_edge g (E.src e) d;
+      add_edge g d (E.dst e);
+      a + 1
+    )
+  ) |> ignore
+
+(* ************************************************************************** *)
+(* Anticipated Expressions                                                    *)
+(* ************************************************************************** *)
 module BusyExprCFG = struct
-  module Lattice = BusyExprLattice
+  module Lattice = ExprSetIntersectLattice
   module CFG = IrCfg
   module IDSE = IrDataStartExit
   open Lattice
@@ -112,15 +184,26 @@ module BusyExprCFG = struct
   type edge = CFG.E.t
   type data = Lattice.data
 
-  let transfer (e: edge) (d: data) =
+  let direction = `Backward
+
+  (* first is univ, second is a node to uses mapping and the third is a node to kill mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
+    fun n ->
+      match n with
+      | IDSE.Exit -> empty
+      | IDSE.Start
+      | IDSE.Node _ -> univ
+
+  let transfer (_, uses, kills: extra_info) (e: edge) (d: data) =
     let node = E.dst e in
     match node with
     | IDSE.Start -> failwith "TODO"
     | IDSE.Exit -> failwith "TODO"
-    | IDSE.Node d' ->
-      let stmt = d'.ir in
-      let use = get_subexpr_stmt stmt in
-      let kill = kill_stmt stmt in
+    | IDSE.Node _ ->
+      let use = uses node in
+      let kill = kills node in
       let f acc expr =
         let mem_temps = get_mem_temp expr in
         if ExprSet.is_empty (inter mem_temps kill) then
@@ -132,8 +215,116 @@ module BusyExprCFG = struct
       union use diff_expr_kill
 end
 
-module AvailExprLattice : LowerSemilattice = struct
-  type data = ExprSet.t
-  let ( ** ) = inter
-  let ( === ) = equal
+(* ************************************************************************** *)
+(* Available Expressions                                                      *)
+(* ************************************************************************** *)
+module AvailExprCFG = struct
+  module Lattice = ExprSetIntersectLattice
+  module CFG = IrCfg
+  module IDSE = IrDataStartExit
+  open Lattice
+  open CFG
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  let direction = `Forward
+
+  (* first is univ second is a node to anticipated mapping the third is a node to kill mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
+    fun n ->
+      match n with
+      | IDSE.Start -> empty
+      | IDSE.Exit
+      | IDSE.Node _ -> univ
+
+  let transfer (_, busy, kills: extra_info) (e:edge) (d: data) =
+    let source = E.src e in
+    let anticipated = busy source in
+    let kill = kills source in
+    let union' = union anticipated d in
+    let f acc expr =
+      let mem_temps = get_mem_temp expr in
+      if ExprSet.is_empty (inter mem_temps kill) then
+        add acc expr
+      else
+        acc
+    in
+    fold ~f ~init: empty union'
+end
+
+(* ************************************************************************** *)
+(* Postponable Expressions                                                    *)
+(* ************************************************************************** *)
+module PostponeExprCFG = struct
+  module Lattice = ExprSetIntersectLattice
+  module CFG = IrCfg
+  module IDSE = IrDataStartExit
+  open Lattice
+  open CFG
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  let direction = `Forward
+
+  (* first is univ second is a node to earliest mapping the third is a node to use mapping *)
+  type extra_info = data * (node -> data) * (node -> data)
+
+  let init (univ, _, _ : extra_info) (_: graph) =
+    fun n ->
+      match n with
+      | IDSE.Start -> empty
+      | IDSE.Exit
+      | IDSE.Node _ -> univ
+
+  let transfer (_, _earliest, _use: extra_info) (_e: edge) (_d: data) = failwith "TODO"
+end
+
+(* ************************************************************************** *)
+(* Used Expressions                                                    *)
+(* ************************************************************************** *)
+module UsedExprCFG = struct
+  module Lattice = ExprSetIntersectLattice
+  module CFG = IrCfg
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  let direction = `Backward
+
+  type extra_info = {
+    g     : graph;        (* the graph *)
+    use   : node -> data; (* e_use_{B} *)
+    busy  : node -> data; (* anticipated[B].in *)
+    avail : node -> data; (* available[B].in *)
+    post  : node -> data; (* postponable[B].in *)
+  }
+
+  let init _ _ _ = ExprSet.empty
+
+  let (+) = ExprSet.union
+  let (-) = ExprSet.diff
+
+  let earliest ({busy; avail; _}: extra_info) (n: node) =
+    busy n - avail n
+
+  let latest ({g; use; post; _} as info: extra_info) (n: node) =
+    ExprSet.(filter (earliest info n + post n) ~f:(fun e ->
+      mem (use n) e || CFG.VertexSet.exists (CFG.succs g n) ~f:(fun n' ->
+        not (mem (earliest info n') e || mem (post n') e)
+      )
+    ))
+
+  let transfer ({use; _} as info) e x =
+    let n = CFG.E.dst e in
+    (use n + x) - latest info n
 end

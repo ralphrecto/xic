@@ -184,29 +184,22 @@ module IrCfg = struct
     in
     add_edges enumerated;
 
-    (* Add an edge from the start node to every node with 0 in-degree. *)
+    (* (1) Add an edge from the start node to the first ir node, or to the exit
+     *     node if no such node exists.
+     * (2) Add an edge from every return node to the exit node. *)
     let start = V.create Start in
-    add_vertex g start;
-    let connect_to_start v =
-      match V.label v with
-      | Node _ ->
-          if in_degree g v = 0
-            then add_edge g start v
-            else ()
-      | Start | Exit -> ()
-    in
-    iter_vertex connect_to_start g;
-
-    (* Add an edge from every node with 0 out-degree to the exit node. *)
     let exit = V.create Exit in
+    add_vertex g start;
     add_vertex g exit;
+
+    (match List.hd vertexes with
+     | Some v -> add_edge g start v
+     | None   -> add_edge g start exit);
+
     let connect_to_exit v =
       match V.label v with
-      | Start | Node _ ->
-          if out_degree g v = 0
-            then add_edge g v exit
-            else ()
-      | Exit -> ()
+      | Node {ir=Return; _} -> add_edge g v exit
+      | Node _ | Start | Exit -> ()
     in
     iter_vertex connect_to_exit g;
 

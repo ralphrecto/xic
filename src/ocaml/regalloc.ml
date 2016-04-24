@@ -314,31 +314,15 @@ let k = 14
 
 let reg_alloc _ =
 
-  (*
+  
   (* Remove non-move-related nodes of low degree *)
-  let _simplify g stack =
-    (* Get non-move-related nodes of <k degree from graph *)
-    let non_mov_nodes = IG.fold_vertex (fun v acc -> if (IG.V.label v).is_mov then acc
-      else v::acc) g [] in
-
-    (* Push all nodes of <k degree onto stack *)
-    let rec push acc =
-      (* Pick a non-move-related vertex that has <k degree *)
-      let node = List.fold_left ~init:None non_mov_nodes ~f:(fun acc v ->
-        match acc with
-        | None -> if IG.in_degree g v < k then Some v else None
-        | Some _ -> acc)
-      in
-      match node with
-      | None -> acc
-      | Some v -> IG.remove_vertex g v;
-        push (v::acc)
-    in
-
-    let stack' = push stack in
-    stack'
+  let _simplify context =
+    (* Pick a non-move-related vertex that has <k degree *)
+    match context.simplify_wl with
+    | [] -> context
+    | h::t -> (*IG.remove_vertex context.inter_graph h;*)
+        { context with simplify_wl = t; select_stack = h::context.select_stack }
   in
-  *)
 
   (* Coalesce move-related nodes *)
   let _coalesce _g _stack = failwith "TODO" in

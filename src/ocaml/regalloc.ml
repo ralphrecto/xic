@@ -320,21 +320,43 @@ let _simplify context =
   | n::t -> (*IG.remove_vertex context.inter_graph n;*)
       { context with simplify_wl = t; select_stack = n::context.select_stack }
 
-let get_alias _n = failwith "TODO"
-let _add_wl _u = failwith "TODO"
+let get_alias _n _context = failwith "TODO"
+let add_wl _u _context = failwith "TODO"
+let ok _t _r = failwith "TODO"
+let combine _u _v _context = failwith "TODO"
 
 (* Coalesce move-related nodes *)
 let _coalesce context = 
   match context.worklist_moves with
   | [] -> context
   | m::t ->
-    let x = get_alias m.src in
-    let y = get_alias m.dest in
-    let _u, _v = if List.mem context.precolored y then y, x else x, y in
-    let _context' = { context with worklist_moves = t } in
-    (* let context'' =
-      if u = v then *)
-    failwith "Not done"
+    let x = get_alias m.src context in
+    let y = get_alias m.dest context in
+    let u, v = if List.mem context.precolored y then (y, x) else (x, y) in
+    let context' = { context with worklist_moves = t } in
+    let new_context =
+      if u = v then
+        let context'' = { context' with
+                          coalesced_moves = m::context'.coalesced_moves } in
+        add_wl u context''        
+      else if List.mem context'.precolored v (*||
+              IG.mem_edge context'.inter_graph u v*) then
+        let context'' = { context' with
+                          constrained_moves = m::context'.constrained_moves } in
+        context'' |> add_wl u |> add_wl v
+      else if List.mem context'.precolored u (*&&
+              List.fold_left ~init:true (IG.succ context'.inter_graph v)
+                ~f:(fun acc n -> acc && (ok n u))*) ||
+              not (List.mem context'.precolored u) (*&&
+              conservative ((IG.succ context'.inter_graph u) @
+                (IG.succ context'.inter_graph v))*) then
+        let context'' = { context' with
+                          coalesced_moves = m::context'.coalesced_moves } in
+        context'' |> combine u v |> add_wl u
+      else
+        { context' with active_moves = m::context'.active_moves }
+    in
+    new_context
 
 (* Remove a move-related node of low degree *)
 let _freeze _g _stack = failwith "TODO"

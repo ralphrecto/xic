@@ -250,6 +250,7 @@ let empty_ctx num_moves num_nodes = {
   active_moves       = [];
   (* other data structures *)
   move_list          = NodeData.Table.create () ~size:num_moves;
+  (* initialized to the node's self *)
   alias              = NodeData.Table.create () ~size:num_nodes;
   nodestate          = NodeData.Table.create () ~size:num_nodes;
   color_map          = NodeData.Table.create () ~size:num_nodes;
@@ -367,19 +368,39 @@ let _simplify context =
   | n::t -> (*IG.remove_vertex context.inter_graph n;*)
       { context with simplify_wl = t; select_stack = n::context.select_stack }
 
-let get_alias _n = failwith "TODO"
-let _add_wl _u = failwith "TODO"
+(* return node alias after coalescing; if node has not been coalesced,
+ * reduces to identity function *)
+let get_alias (regctx : alloc_context) (node : IG.nodedata) : IG.nodedata =
+  match NodeData.Table.find regctx.alias node with
+  | Some alias -> alias
+  | None -> node
+
+(* potentially add a new node to simplify_wl; see Appel for details *)
+let add_worklist (regctx : alloc_context) (node : IG.nodedata) : alloc_context = 
+  if (not (List.mem regctx.precolored node) &&
+      not (move_related regctx node) &&
+      IG.in_degree regctx.inter_graph node >= regctx.num_colors) then
+      begin
+        let freeze_wl' =
+          let f node2 = node2 <> node in
+          List.filter ~f regctx.freeze_wl in
+        let simplify_wl' = regctx.simplify_wl in
+        { regctx with
+          freeze_wl = freeze_wl';
+          simplify_wl = simplify_wl'; }
+      end
+  else regctx
 
 (* Coalesce move-related nodes *)
-let _coalesce context = 
-  match context.worklist_moves with
-  | [] -> context
+let _coalesce regctx = 
+  match regctx.worklist_moves with
+  | [] -> regctx
   | m::t ->
-    let x = get_alias m.src in
-    let y = get_alias m.dest in
-    let _u, _v = if List.mem context.precolored y then y, x else x, y in
-    let _context' = { context with worklist_moves = t } in
-    (* let context'' =
+    let x = get_alias regctx m.src in
+    let y = get_alias regctx m.dest in
+    let _u, _v = if List.mem regctx.precolored y then y, x else x, y in
+    let _regctx' = { regctx with worklist_moves = t } in
+    (* let regctx'' =
       if u = v then *)
     failwith "Not done"
 

@@ -259,6 +259,20 @@ let empty_ctx num_moves num_nodes = {
   num_colors        = 14;
 }
 
+module Cfg = AsmWithLiveVar.CFG
+
+(* generic helper methods *)
+(* remove x from lst, if it exists *)
+let remove (lst : 'a list) (x : 'a) : 'a list =
+  let f y = x <> y in
+  List.filter ~f lst 
+
+(* conses x onto list unless x is already in list *)
+let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
+  if List.mem lst x then lst
+  else x :: lst
+
+(* regalloc helper predicates *)
 (* moves between two temps can be coalesced
  * TODO: is this a correct criterion? *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =  
@@ -276,18 +290,19 @@ let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
     | _ -> None
   end
 
-module Cfg = AsmWithLiveVar.CFG
-
-(* helper predicates *)
-(* is a interference graph node still move related? *)
-let move_related (regctx: alloc_context) (node: IG.nodedata) = 
+(* possibly coalescable moves involving the node *)
+let node_moves (regctx : alloc_context) (node : IG.nodedata) : temp_move list =
   match NodeData.Table.find regctx.move_list node with 
   | Some nodemoves -> 
       let f move =
         List.mem regctx.active_moves move ||
         List.mem regctx.worklist_moves move in
-      List.exists ~f nodemoves
-  | None -> false
+      List.filter ~f nodemoves
+  | None -> []
+
+(* is a interference graph node still move related? *)
+let move_related (regctx : alloc_context) (node: IG.nodedata) : bool = 
+  List.length (node_moves regctx node) > 0
 
 (* build initializes data structures used by regalloc 
  * this corresponds to Build() and MakeWorklist() in Appel *)
@@ -381,18 +396,14 @@ let add_worklist (regctx : alloc_context) (node : IG.nodedata) : alloc_context =
       not (move_related regctx node) &&
       IG.in_degree regctx.inter_graph node >= regctx.num_colors) then
       begin
-        let freeze_wl' =
-          let f node2 = node2 <> node in
-          List.filter ~f regctx.freeze_wl in
-        let simplify_wl' = regctx.simplify_wl in
         { regctx with
-          freeze_wl = freeze_wl';
-          simplify_wl = simplify_wl'; }
+          freeze_wl = remove regctx.freeze_wl node; 
+          simplify_wl = unduped_cons regctx.simplify_wl node; }
       end
   else regctx
 
 (* Coalesce move-related nodes *)
-let _coalesce regctx = 
+let _coalesce (regctx : alloc_context) : alloc_context = 
   match regctx.worklist_moves with
   | [] -> regctx
   | m::t ->
@@ -404,8 +415,39 @@ let _coalesce regctx =
       if u = v then *)
     failwith "Not done"
 
-(* Remove a move-related node of low degree *)
-let _freeze _g _stack = failwith "TODO"
+(* freeze: remove a move-related node of low degree *)
+let freeze_moves (regctx : alloc_context) (node: IG.nodedata) : alloc_context = 
+  let f ctxacc tempmove = 
+    let { src; dest; _; } = tempmove in
+    let v =
+      if get_alias ctxacc dest = get_alias ctxacc node then
+        get_alias ctxacc src
+      else
+        get_alias ctxacc dest in
+    let active_moves' = remove ctxacc.active_moves tempmove in
+    let frozen_moves' = unduped_cons ctxacc.frozen_moves tempmove in
+    let freeze_wl', simplify_wl' =
+      if (List.mem ctxacc.freeze_wl v) && not (move_related ctxacc v) then
+        remove ctxacc.freeze_wl v, unduped_cons ctxacc.simplify_wl v
+      else
+        ctxacc.freeze_wl, ctxacc.simplify_wl in
+    { ctxacc with
+      active_moves = active_moves';
+      frozen_moves = frozen_moves';
+      freeze_wl = freeze_wl';
+      simplify_wl = simplify_wl'; } in
+  List.fold_left ~f ~init:regctx (node_moves regctx node)
+
+let _freeze (regctx : alloc_context) : alloc_context =
+  match regctx.freeze_wl with
+  | [] -> regctx
+  | fnode :: _ ->
+    let regctx' = {
+      regctx with
+      freeze_wl = remove regctx.freeze_wl fnode;
+      simplify_wl = unduped_cons regctx.simplify_wl fnode;
+    } in
+    freeze_moves regctx' fnode
 
 (* Spill a >=k degree node onto stack *)
 let _spill _g _stack = failwith "TODO"

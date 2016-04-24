@@ -187,16 +187,21 @@ module BusyExprCFG = struct
   let direction = `Backward
 
   (* first is univ, second is a node to uses mapping and the third is a node to kill mapping *)
-  type extra_info = data * (node -> data) * (node -> data)
+  type extra_info = {
+    g     : graph;        (* the graph *)
+    univ  : data;         (* all of the used expressions in the graph *)
+    uses  : node -> data; (* uses[B] *)
+    kills : node -> data; (* kill[B] *)
+  }
 
-  let init (univ, _, _ : extra_info) (_: graph) =
+  let init ({univ; _} : extra_info) (_: graph) =
     fun n ->
       match n with
       | IDSE.Exit -> empty
       | IDSE.Start
       | IDSE.Node _ -> univ
 
-  let transfer (_, uses, kills: extra_info) (e: edge) (d: data) =
+  let transfer ({uses; kills; _}: extra_info) (e: edge) (d: data) =
     let node = E.dst e in
     match node with
     | IDSE.Start -> failwith "TODO"
@@ -232,21 +237,27 @@ module AvailExprCFG = struct
 
   let direction = `Forward
 
-  (* first is univ second is a node to anticipated mapping the third is a node to kill mapping *)
-  type extra_info = data * (node -> data) * (node -> data)
+  type extra_info = {
+    g     : graph;        (* the graph *)
+    univ  : data;         (* all of the used expressions in the graph *)
+    busy  : node -> data; (* anticipated[B].in *)
+    kills : node -> data; (* kill[B] *)
+  }
 
-  let init (univ, _, _ : extra_info) (_: graph) =
+  let (+) = ExprSet.union
+
+  let init ({univ; _}: extra_info) (_: graph) =
     fun n ->
       match n with
       | IDSE.Start -> empty
       | IDSE.Exit
       | IDSE.Node _ -> univ
 
-  let transfer (_, busy, kills: extra_info) (e:edge) (d: data) =
+  let transfer ({busy; kills; _}: extra_info) (e:edge) (d: data) =
     let source = E.src e in
     let anticipated = busy source in
     let kill = kills source in
-    let union' = union anticipated d in
+    let union' = anticipated + d in
     let f acc expr =
       let mem_temps = get_mem_temp expr in
       if ExprSet.is_empty (inter mem_temps kill) then
@@ -274,21 +285,30 @@ module PostponeExprCFG = struct
 
   let direction = `Forward
 
-  (* first is univ second is a node to earliest mapping the third is a node to use mapping *)
-  type extra_info = data * (node -> data) * (node -> data)
+  type extra_info = {
+    g        : graph;        (* the graph *)
+    univ     : data;         (* all of the used expressions in the graph *)
+    uses     : node -> data; (* e_use_{B} *)
+    earliest : node -> data; (* earlieset[B] *)
+  }
 
-  let init (univ, _, _ : extra_info) (_: graph) =
+  let (+) = ExprSet.union
+  let (-) = ExprSet.diff
+
+  let init ({univ; _}: extra_info) (_: graph) =
     fun n ->
       match n with
       | IDSE.Start -> empty
       | IDSE.Exit
       | IDSE.Node _ -> univ
 
-  let transfer (_, _earliest, _use: extra_info) (_e: edge) (_d: data) = failwith "TODO"
+  let transfer ({earliest; uses; _}: extra_info) (e: edge) (d: data) =
+    let source = E.src e in
+    ((earliest source) + d) - (uses source)
 end
 
 (* ************************************************************************** *)
-(* Used Expressions                                                    *)
+(* Used Expressions                                                           *)
 (* ************************************************************************** *)
 module UsedExprCFG = struct
   module Lattice = ExprSetIntersectLattice
@@ -302,11 +322,10 @@ module UsedExprCFG = struct
   let direction = `Backward
 
   type extra_info = {
-    g     : graph;        (* the graph *)
-    use   : node -> data; (* e_use_{B} *)
-    busy  : node -> data; (* anticipated[B].in *)
-    avail : node -> data; (* available[B].in *)
-    post  : node -> data; (* postponable[B].in *)
+    g        : graph;        (* the graph *)
+    uses     : node -> data; (* e_use_{B} *)
+    post     : node -> data; (* postponable[B].in *)
+    earliest : node -> data; (* earlieset[B] *)
   }
 
   let init _ _ _ = ExprSet.empty
@@ -314,17 +333,14 @@ module UsedExprCFG = struct
   let (+) = ExprSet.union
   let (-) = ExprSet.diff
 
-  let earliest ({busy; avail; _}: extra_info) (n: node) =
-    busy n - avail n
-
-  let latest ({g; use; post; _} as info: extra_info) (n: node) =
-    ExprSet.(filter (earliest info n + post n) ~f:(fun e ->
-      mem (use n) e || CFG.VertexSet.exists (CFG.succs g n) ~f:(fun n' ->
-        not (mem (earliest info n') e || mem (post n') e)
+  let latest ({g; uses; post; earliest; _}: extra_info) (n: node) =
+    ExprSet.(filter (earliest n + post n) ~f:(fun e ->
+      mem (uses n) e || CFG.VertexSet.exists (CFG.succs g n) ~f:(fun n' ->
+        not (mem (earliest n') e || mem (post n') e)
       )
     ))
 
-  let transfer ({use; _} as info) e x =
+  let transfer ({uses; _} as info) e x =
     let n = CFG.E.dst e in
-    (use n + x) - latest info n
+    (uses n + x) - latest info n
 end

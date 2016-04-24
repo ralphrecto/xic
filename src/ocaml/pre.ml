@@ -220,6 +220,8 @@ module BusyExprCFG = struct
       union use diff_expr_kill
 end
 
+module BusyExpr = Dataflow.GenericAnalysis(BusyExprCFG)
+
 (* ************************************************************************** *)
 (* Available Expressions                                                      *)
 (* ************************************************************************** *)
@@ -268,6 +270,8 @@ module AvailExprCFG = struct
     fold ~f ~init: empty union'
 end
 
+module AvailExpr = Dataflow.GenericAnalysis(AvailExprCFG)
+
 (* ************************************************************************** *)
 (* Postponable Expressions                                                    *)
 (* ************************************************************************** *)
@@ -307,6 +311,8 @@ module PostponeExprCFG = struct
     ((earliest source) + d) - (uses source)
 end
 
+module PostponeExpr = Dataflow.GenericAnalysis(PostponeExprCFG)
+
 (* ************************************************************************** *)
 (* Used Expressions                                                           *)
 (* ************************************************************************** *)
@@ -344,3 +350,11 @@ module UsedExprCFG = struct
     let n = CFG.E.dst e in
     (uses n + x) - latest info n
 end
+
+module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
+
+(* ************************************************************************** *)
+(* Whole Enchilada                                                            *)
+(* ************************************************************************** *)
+let pre _irs =
+  failwith "a"

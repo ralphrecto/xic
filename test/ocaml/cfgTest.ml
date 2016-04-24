@@ -138,15 +138,6 @@ let test_ir_cfg _ =
   let exit = Cfg.IrDataStartExit.Exit in
   let node num ir = Cfg.IrDataStartExit.Node {num; ir} in
 
-  let s0 = move (temp "x") (one + one) in
-  let n0 = node 0 s0 in
-  let s1 = move (temp "y") (call (temp "foo") [two; three]) in
-  let n1 = node 1 s1 in
-  let s2 = exp (call (temp "bar") []) in
-  let n2 = node 2 s2 in
-  let s3 = label "label" in
-  let n3 = node 3 s3 in
-
   let tru  = Cfg.EdgeData.True in
   let fls  = Cfg.EdgeData.False in
   let norm = Cfg.EdgeData.Normal in
@@ -158,10 +149,15 @@ let test_ir_cfg _ =
     g
   in
 
+  (* *)
   let irs = [] in
   let v = [start; exit] in
   let e = [(start, norm, exit)] in
   make_graph v e === Cfg.IrCfg.create_cfg irs;
+
+  (* *)
+  let s0 = return in
+  let n0 = node 0 s0 in
 
   let irs = [s0] in
   let v = [start; n0; exit] in
@@ -170,6 +166,17 @@ let test_ir_cfg _ =
     (n0, norm, exit);
   ] in
   make_graph v e === Cfg.IrCfg.create_cfg irs;
+
+  (* *)
+  let s0 = move (temp "s0") (zero) in
+  let s1 = move (temp "s1") (one) in
+  let s2 = move (temp "s2") (two) in
+  let s3 = return in
+
+  let n0 = node 0 s0 in
+  let n1 = node 1 s1 in
+  let n2 = node 2 s2 in
+  let n3 = node 3 s3 in
 
   let irs = [s0; s1; s2; s3] in
   let v = [start; n0; n1; n2; n3; exit] in
@@ -182,6 +189,7 @@ let test_ir_cfg _ =
   ] in
   make_graph v e === Cfg.IrCfg.create_cfg irs;
 
+  (* *)
   let s0 = cjumpone one "foo" in
   let s1 = label "baz" in
   let s2 = jump (name "bar") in
@@ -212,8 +220,6 @@ let test_ir_cfg _ =
   let v = [start; n0; n1; n2; n3; n4; n11; n5; n6; n7; n8; n9; n10; exit] in
   let e = [
     (start, norm, n0);
-    (start, norm, n7);
-    (start, norm, n10);
 
     (n0, fls, n1);
     (n1, norm, n2);

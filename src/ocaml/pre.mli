@@ -29,11 +29,14 @@ end
 
 val get_subexpr      : Ir.expr -> ExprSet.t
 val get_subexpr_stmt : Ir.stmt -> ExprSet.t
+val get_subexpr_stmt_v : Cfg.IrDataStartExit.t -> ExprSet.t
+
 val get_mem_temp     : Ir.expr -> ExprSet.t
 
 val kill_func_args : Ir.expr list -> ExprSet.t
 val kill_expr      : Ir.expr -> ExprSet.t
 val kill_stmt      : Ir.stmt -> ExprSet.t
+val kill_stmt_v : Cfg.IrDataStartExit.t -> ExprSet.t
 
 (**
  * Preprocessing Step.

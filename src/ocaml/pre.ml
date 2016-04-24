@@ -84,6 +84,12 @@ let rec get_mem_temp (e: expr) : ExprSet.t =
   | Const _ | Name _ -> empty
   | ESeq _ -> failwith "shouldn't exist!"
 
+let get_subexpr_stmt_v n =
+  let module I = IrDataStartExit in
+  match n with
+  | I.Node {ir; _} -> get_subexpr_stmt ir
+  | I.Start | I.Exit -> ExprSet.empty
+
 let rec kill_func_args (elst: expr list) : ExprSet.t =
   let f acc e =
     match e with
@@ -122,6 +128,12 @@ and kill_stmt (s: stmt) : ExprSet.t =
   | Return -> empty
   | Move _
   | CJump _ -> failwith "shouldn't exist!"
+
+let kill_stmt_v n =
+  let module I = IrDataStartExit in
+  match n with
+  | I.Node {ir; _} -> kill_stmt ir
+  | I.Start | I.Exit -> ExprSet.empty
 
 (* ************************************************************************** *)
 (* Preprocessing Step                                                         *)
@@ -359,9 +371,27 @@ module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
 (* Whole Enchilada                                                            *)
 (* ************************************************************************** *)
 let pre irs =
-  let g = Cfg.IrCfg.create_cfg irs in
+  let module C = Cfg.IrCfg in
+  let module M = Cfg.IrStartExitMap in
+
+  (* map a function into a map! *)
+  let map (g: C.t) ~(f:C.vertex -> 'a) : 'a M.t =
+    C.fold_vertex (fun v m -> M.add m ~key:v ~data:(f v)) g M.empty
+  in
+
+  (* turn a map into a function *)
+  let fun_of_map m = fun v -> M.find_exn m v in
+
+  let g = C.create_cfg irs in
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
-  let uses = failwith "TODO" in
-  let kills = failwith "TODO" in
-  let _busy = BusyExpr.worklist {g; univ; uses; kills} g in
+  let uses = map g ~f:get_subexpr_stmt_v in
+  let kills = map g ~f:kill_stmt_v in
+  let uses_fun = fun_of_map uses in
+  let kills_fun = fun_of_map kills in
+
+  let _busy_e = BusyExpr.worklist {g; univ; uses=uses_fun; kills=kills_fun} g in
+  let busy_v = failwith "TODO" in (* convert function from edges to vertex map *)
+  let busy_fun = fun_of_map busy_v in
+
+  let _avail = AvailExpr.worklist {g; univ; busy=busy_fun; kills=kills_fun} g in
   failwith "TOOO"

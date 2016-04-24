@@ -60,6 +60,7 @@ val preprocess : Cfg.IrCfg.t -> unit
  * Initialization    : in[n] = set of all exprs
  *)
 module BusyExprCFG : ExprSetIntersectCFG
+module BusyExpr : (module type of Dataflow.GenericAnalysis(BusyExprCFG))
 
 (**
  * Available Expressions
@@ -72,6 +73,7 @@ module BusyExprCFG : ExprSetIntersectCFG
  * Initialization    : out[n] = set of all exprs
  *)
 module AvailExprCFG : ExprSetIntersectCFG
+module AvailExpr : (module type of Dataflow.GenericAnalysis(AvailExprCFG))
 
 (**
  * Postponable Expressions
@@ -84,6 +86,7 @@ module AvailExprCFG : ExprSetIntersectCFG
  * Initialization    : out[n] = set of all exprs
  *)
 module PostponeExprCFG : ExprSetIntersectCFG
+module PostponeExpr : (module type of Dataflow.GenericAnalysis(PostponeExprCFG))
 
 (**
  * Used Expressions
@@ -96,3 +99,7 @@ module PostponeExprCFG : ExprSetIntersectCFG
  * Initialization    : in[n] = empty set
  *)
 module UsedExprCFG : ExprSetIntersectCFG
+module UsedExpr : (module type of Dataflow.GenericAnalysis(UsedExprCFG))
+
+(** The whole enchilada! *)
+val pre : Ir.stmt list -> Ir.stmt list

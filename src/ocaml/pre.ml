@@ -372,7 +372,10 @@ module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
 (* ************************************************************************** *)
 let pre irs =
   let module C = Cfg.IrCfg in
+  let module E = ExprSet in
+  let module IL = ExprSetIntersectLattice in
   let module M = Cfg.IrStartExitMap in
+  let module SE = Cfg.IrDataStartExit in
 
   (* map a function into a map! *)
   let map (g: C.t) ~(f:C.vertex -> 'a) : 'a M.t =
@@ -382,16 +385,51 @@ let pre irs =
   (* turn a map into a function *)
   let fun_of_map m = fun v -> M.find_exn m v in
 
+  (* Given a function from edges to lattice elements, construct a map from
+   * vertices to their in values, assuming we did a backwards analysis. *)
+  let make_in_backwards (g: C.t) (f: C.E.t -> 'a) (top: 'a): 'a M.t =
+    let h v =
+      match v with
+      | SE.Start -> C.fold_succ_e (fun e a -> IL.(f e ** a)) g v top
+      | SE.Exit | SE.Node _ -> C.fold_pred_e (fun e _ -> f e) g v top
+    in
+    map g ~f:h
+  in
+
+  (* Given a function from edges to lattice elements, construct a map from
+   * vertices to their in values, assuming we did a forwards analysis. *)
+  let make_in_forwards (g: C.t) (f: C.E.t -> 'a) (top: 'a) (bot: 'a): 'a M.t =
+    let h v =
+      match v with
+      | SE.Start -> bot
+      | SE.Exit | SE.Node _ -> C.fold_pred_e (fun e a -> IL.(f e ** a)) g v top
+    in
+    map g ~f:h
+  in
+
   let g = C.create_cfg irs in
+  preprocess g;
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
   let uses = map g ~f:get_subexpr_stmt_v in
   let kills = map g ~f:kill_stmt_v in
   let uses_fun = fun_of_map uses in
   let kills_fun = fun_of_map kills in
 
-  let _busy_e = BusyExpr.worklist {g; univ; uses=uses_fun; kills=kills_fun} g in
-  let busy_v = failwith "TODO" in (* convert function from edges to vertex map *)
+  let busy_e = BusyExpr.worklist {g; univ; uses=uses_fun; kills=kills_fun} g in
+  let busy_v = make_in_backwards g busy_e univ in
   let busy_fun = fun_of_map busy_v in
 
-  let _avail = AvailExpr.worklist {g; univ; busy=busy_fun; kills=kills_fun} g in
+  let avail_e = AvailExpr.worklist {g; univ; busy=busy_fun; kills=kills_fun} g in
+  let avail_v = make_in_forwards g avail_e univ E.empty in
+
+  let earliest_v = map g ~f:(fun v ->
+    M.(E.diff (find_exn busy_v v) (find_exn avail_v v))
+  ) in
+  let earliest_fun = fun_of_map earliest_v in
+
+  let post_e = PostponeExpr.worklist {g; univ; uses=uses_fun; earliest=earliest_fun} g in
+  let post_v = make_in_forwards g post_e univ E.empty in
+  let post_fun = fun_of_map post_v in
+
+  let _used_e = UsedExpr.worklist {g; uses=uses_fun; post=post_fun; earliest=earliest_fun} in
   failwith "TOOO"

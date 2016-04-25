@@ -379,7 +379,7 @@ module IL = ExprSetIntersectLattice
 module M = Cfg.IrStartExitMap
 module SE = Cfg.IrDataStartExit
 
-let subst exp ~latest ~used ~freshes =
+let subst exp ~uses ~latest ~used ~freshes =
   let rec help exp =
     if (not (E.mem latest exp)) || E.mem used exp then
       EM.find_exn freshes exp
@@ -391,7 +391,9 @@ let subst exp ~latest ~used ~freshes =
       | ESeq _ -> failwith "eseq shouldn't even exist; it's lowered"
       | Const _ | Name _ | Temp _ -> exp
   in
-  help exp
+  if E.mem uses exp
+    then help exp
+    else exp
 
 let flatten g =
   let f v acc =
@@ -429,11 +431,13 @@ let flatten g =
   |> List.concat
 
 
-let red_elim g ~univ ~latest ~used =
+let red_elim g ~univ ~uses ~latest ~used =
   (* step (a) *)
   let freshes =
-    List.map (E.to_list univ) ~f:(fun e -> (e, Ir.Temp (Ir_generation.FreshTemp.fresh ())))
-    |> List.dedup
+    E.to_list univ
+    |> List.sort ~cmp:Ir.compare_expr
+    |> List.remove_consecutive_duplicates ~equal:(fun e e' -> Ir.compare_expr e e' = 0)
+    |> List.map ~f:(fun e -> (e, Ir.Temp (Ir_generation.FreshTemp.fresh ())))
     |> EM.of_alist_exn
   in
 
@@ -466,20 +470,27 @@ let red_elim g ~univ ~latest ~used =
     | SE.Node {num; ir=Seq irs} as v -> begin
       match List.rev irs with
       | last::tl -> begin
-        let sub e = subst e ~latest:(latest v) ~used:(used v) ~freshes in
-        let new_last =
-          match last with
-          | CJumpOne (e, l) -> CJumpOne (sub e, l)
-          | Jump e -> Jump (sub e)
-          | Exp e -> Exp (sub e)
-          | Move (dst, src) -> Move (sub dst, sub src)
-          | Label _
-          | Return -> last
-          | CJump _ -> failwith "shouldn't be any cjumps"
-          | Seq _ -> failwith "shouldn't be any seqs"
-        in
-        let newv = SE.Node {num; ir=Seq (List.rev (new_last::tl))} in
-        C.swap new_g ~oldv:v ~newv
+        if last = dummy_ir then
+          ()
+        else
+          let n = SE.Node {num; ir=last} in
+          let sub e = subst e ~uses:(uses n)
+                              ~latest:(latest n)
+                              ~used:(used n)
+                              ~freshes in
+          let new_last =
+            match last with
+            | CJumpOne (e, l) -> CJumpOne (sub e, l)
+            | Jump e -> Jump (sub e)
+            | Exp e -> Exp (sub e)
+            | Move (dst, src) -> Move (sub dst, sub src)
+            | Label _
+            | Return -> last
+            | CJump _ -> failwith "shouldn't be any cjumps"
+            | Seq _ -> failwith "shouldn't be any seqs"
+          in
+          let newv = SE.Node {num; ir=Seq (List.rev (new_last::tl))} in
+          C.swap new_g ~oldv:v ~newv
       end
       | [] -> failwith "all seqs should have at least one thing"
     end
@@ -496,7 +507,14 @@ let pre irs =
   in
 
   (* turn a map into a function *)
-  let fun_of_map m = fun v -> M.find_exn m v in
+  let fun_of_map m v =
+    match M.find m v with
+    | Some es -> es
+    | None ->
+        let key = C.string_of_vertex v in
+        let map = M.to_string (E.to_small_string) m in
+        failwith (sprintf "vertex '%s' not in map %s\n" key map)
+  in
 
   (* Given a function from edges to lattice elements, construct a map from
    * vertices to their in values, assuming we did a backwards analysis. *)
@@ -570,6 +588,6 @@ let pre irs =
   let used_v = make_out_backwards g used_e univ in
   let used_fun = fun_of_map used_v in
 
-  let g = red_elim g ~univ ~latest:latest_fun ~used:used_fun in
+  let g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
 
   flatten g

@@ -154,6 +154,7 @@ module UsedExpr : (module type of Dataflow.GenericAnalysis(UsedExprCFG))
 
 (** The whole enchilada! *)
 val subst : Ir.expr ->
+            uses:ExprSet.t ->
             latest:ExprSet.t ->
             used:ExprSet.t ->
             freshes:(Ir.expr ExprMap.t) ->
@@ -161,6 +162,7 @@ val subst : Ir.expr ->
 
 val red_elim : Cfg.IrCfg.t ->
                univ:ExprSet.t ->
+               uses:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                latest:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                used:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                Cfg.IrCfg.t

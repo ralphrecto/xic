@@ -92,7 +92,10 @@ module IrCfg : sig
   val create_cfg : Ir.stmt list -> t
 end
 module IrMap : Map.S with type Key.t = IrData.t
-module IrStartExitMap : Map.S with type Key.t = IrDataStartExit.t
+module IrStartExitMap : sig
+  include Map.S with type Key.t = IrDataStartExit.t
+  val to_string : ('a -> string) -> 'a t -> string
+end
 
 (* Abstract Assembly CFG *)
 module AsmData : sig

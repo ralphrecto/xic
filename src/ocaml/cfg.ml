@@ -227,7 +227,17 @@ module IrCfg = struct
 end
 
 module IrMap = Map.Make(IrData)
-module IrStartExitMap = Map.Make(IrDataStartExit)
+
+module IrStartExitMap = struct
+  include Map.Make(IrDataStartExit)
+  let to_string f m =
+    to_alist m
+    |> List.map ~f:(fun (k, v) ->
+         sprintf "  '%s' -> %s" (IrDataStartExit.to_string k) (f v)
+       )
+    |> String.concat ~sep:",\n"
+    |> fun s -> "{\n" ^ s ^ "\n}"
+end
 
 (* Asm CFG *)
 module AsmData = struct

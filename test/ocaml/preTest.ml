@@ -1142,7 +1142,7 @@ let main () =
       "busy_test"        >:: busy_test;
       "avail_test"       >:: avail_test;
       "post_test"        >:: post_test;
-      (* "enchilada_test"   >:: enchilada_test; *)
+      "enchilada_test"   >:: enchilada_test;
     ] |> run_test_tt_main
 
 let _ = main ()

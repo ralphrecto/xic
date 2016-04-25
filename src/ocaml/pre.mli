@@ -5,6 +5,7 @@ module ExprSet : sig
   include Set.S with type Elt.t = Ir.expr
   val concat_map : 'a list -> f:('a -> t) -> t
   val to_string : t -> string
+  val to_small_string : t -> string
 end
 
 module ExprMap : Map.S with type Key.t = Ir.expr

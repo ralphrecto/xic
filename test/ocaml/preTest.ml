@@ -17,6 +17,38 @@ module IrCfgEq = struct
         assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
 end
 
+module EdgeToExprEq = struct
+  type mapping = (Cfg.IrCfg.E.t * Pre.ExprSet.t) list
+
+  let printer (f: mapping) : string =
+    List.map f ~f:(fun (edge, exprs) ->
+      sprintf "  (%s) -> %s"
+        (Cfg.IrCfg.string_of_edge edge)
+        (ExprSet.to_small_string exprs)
+    )
+    |> String.concat ~sep:",\n"
+    |> fun s -> "[\n" ^ s ^ "\n]"
+
+  let sort (f: mapping) : mapping =
+    List.sort ~cmp:(fun (edge, _) (edge', _) -> Cfg.IrCfg.E.compare edge edge') f
+
+  let cmp (a: mapping) (b: mapping) : bool =
+    List.length a = List.length b &&
+    List.for_all (List.zip_exn a b) ~f:(fun ((edge1, expr1), (edge2, expr2)) ->
+      Cfg.IrCfg.E.compare edge1 edge2 = 0 &&
+      Pre.ExprSet.equal expr1 expr2
+    )
+
+  let (===) (a: mapping) (b: mapping) : unit =
+    assert_equal ~cmp ~printer (sort a) (sort b)
+
+  let (=/=) (a: mapping) (b: mapping) : unit =
+    if cmp a b then
+        let a = printer a in
+        let b = printer b in
+        assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
+end
+
 let make_graph vertexes edges =
   let open Cfg.IrCfg in
   let g = create () in
@@ -826,7 +858,50 @@ let preprocess_test _ =
   ()
 
 let busy_test _ =
-  (* TODO *)
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+  let module C = Cfg.IrCfg in
+  let module D = Cfg.IrData in
+  let module SE = Cfg.IrDataStartExit in
+  let module E = Pre.ExprSet in
+
+  (* testing helper *)
+  let test expected edges g univ uses kills =
+    let open EdgeToExprEq in
+    let make_edge (src, l, dst) = C.E.create src l dst in
+    let edges = List.map edges ~f:make_edge in
+    let expected = List.map expected ~f:(fun (edge, expr) -> (make_edge edge, expr)) in
+    let actual = Pre.BusyExpr.worklist BusyExprCFG.{g; univ; uses; kills} g in
+    expected === List.map edges ~f:(fun edge -> (edge, actual edge))
+  in
+
+  (* helpers *)
+  let start = C.V.create SE.Start in
+  let exit = C.V.create SE.Exit in
+  let norm = Cfg.EdgeData.Normal in
+
+  (* (start) -> (x = 1 + 2) -> (exit) *)
+  let n0 = C.V.create (SE.Node D.{num=0; ir=(move (temp "x") (one + two))}) in
+  let vs = [start; n0; exit] in
+
+  let e0 = (start, norm, n0) in
+  let e1 = (n0, norm, exit) in
+  let es = [(start, norm, n0); (n0, norm, exit)] in
+
+  let g = make_graph vs es in
+  let univ = E.of_list [one + two] in
+  let uses = function
+    | SE.Start | SE.Exit -> E.empty
+    | SE.Node _ -> E.of_list [one + two]
+  in
+  let kills = fun _ -> E.empty in
+
+  let expected = [
+    (e0, E.of_list [one + two]);
+    (e1, E.empty);
+  ] in
+  test expected es g univ uses kills;
+
   ()
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)

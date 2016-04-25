@@ -19,9 +19,15 @@ module ExprSet = struct
   let to_string irs =
     to_list irs
     |> List.map ~f:Ir.string_of_expr
-    |> List.map ~f:(fun s -> "  " ^ s ^ ",\n")
+    |> List.map ~f:(fun s -> "  " ^ s ^ ",")
     |> Util.join
     |> fun s -> "{\n" ^ s ^ "\n}"
+
+  let to_small_string irs =
+    to_list irs
+    |> List.map ~f:Ir.string_of_expr
+    |> Util.commas
+    |> fun s -> "{" ^ s ^ "}"
 end
 open ExprSet
 

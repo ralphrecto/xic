@@ -448,6 +448,16 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
 (* k is the number of registers available for coloring *)
 let k = 14
 
+(* TODO: is this function even necessary? IG.add_edge does not seem to check
+ * for self-loop. *)
+let add_edge u v regctx =
+  (* TODO: can i compare nodes with <>? *)
+  if (not (IG.mem_edge regctx.inter_graph u v)) && (u <> v) then
+    (* TODO: should I copy the graph?
+     * The graph is undirected right? But it seems like direction matters
+     * in the Appel algorithm?! *)
+    IG.add_edge regctx.inter_graph u v
+
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
 let adjacent n regctx =  
@@ -511,9 +521,17 @@ let add_wl (node : IG.nodedata) (regctx : alloc_context) : alloc_context =
       end
   else regctx
 
-let ok _t _r _regctx = failwith "TODO"
+let ok t r regctx =
+  (degree t regctx) < k ||
+  List.mem regctx.precolored t ||
+  IG.mem_edge regctx.inter_graph t r
 
-let conservative _nodes _regctx = failwith "TODO"
+let conservative nodes regctx =
+  let k' = 0 in
+  let result = List.fold_left ~init:k' nodes ~f:(fun acc n ->
+    if (degree n regctx) >= k then acc + 1 else acc) in
+  result < k
+
 let combine u v regctx =
   let set t k d = NodeData.Table.set t ~key:k ~data:d in
   let find_exn t k = NodeData.Table.find_exn t k in
@@ -529,10 +547,14 @@ let combine u v regctx =
   let move_list = (find_exn regctx'.move_list u) @ (find_exn regctx'.move_list v) in
   set regctx'.move_list u move_list;
   let regctx' = enable_moves [v] regctx' in
-  let _neighbors = IG.succ regctx'.inter_graph v in
-  failwith "TODO"
-  (*List.fold_left ~init:regctx' neighbors ~f:(fun acc t ->
-    add_edge t u |> decrement_degree t *)
+  let regctx' = List.fold_left ~init:regctx' (adjacent v regctx')
+    ~f:(fun regctx'' t -> add_edge t u regctx''; decrement_degree t regctx'') in
+  if (degree u regctx') >= k && List.mem regctx'.freeze_wl u then
+    { regctx' with
+      freeze_wl = remove regctx'.freeze_wl u;
+      spill_wl = u::regctx'.spill_wl }
+  else
+    regctx'
 
 (* Coalesce move-related nodes *)
 let coalesce (regctx : alloc_context) : alloc_context =

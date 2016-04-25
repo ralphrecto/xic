@@ -17,6 +17,7 @@ module TodoRemoveThis_ItsOnlyUsedToBuildDataflow = Dataflow
 module TodoRemoveThis_ItsOnlyUsedToBuildRegalloc = Regalloc
 module TodoRemoveThis_ItsOnlyUsedToBuildTranslate = Translate
 module TodoRemoveThis_ItsOnlyUsedToBuildPre = Pre
+module TodoRemoveThis_ItsOnlyUsedToBuildCcp = Ccp
 
 type flags = {
   no_opt:         bool;

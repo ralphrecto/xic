@@ -367,7 +367,7 @@ let move_related (node: IG.nodedata) (regctx : alloc_context) : bool =
 
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
-let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
+let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = Cfg.create_cfg asms in
 
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
@@ -376,6 +376,24 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       match Cfg.succ_e cfg node with
       | [] -> failwith "regalloc:build:livevars cfg node has no successors"
       | edge :: _ -> _livevars edge in
+
+  let initctx =
+    (* initialize initctx when first called from reg_alloc:
+      * the algo assumes that on the first invocation, the context
+      * will have initial and precolored nonempty *)
+    if init then
+      begin
+      let f ctxacc reg =
+        match reg with
+        | Fake _ -> { ctxacc with initial = reg :: ctxacc.initial }
+        | Real _ -> { ctxacc with precolored = reg :: ctxacc.precolored } in
+      let vars =
+        let get_vars cfgnode varset =
+          AbstractRegSet.union (livevars cfgnode) varset in
+        Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
+      AbstractRegSet.fold ~f ~init:ctxarg vars
+      end
+    else ctxarg in
 
   (* make edges for nodes interfering with each other in one statement *)
   let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) =
@@ -428,8 +446,8 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
             { regctx with worklist_moves = (tempmove :: regctx.worklist_moves) }
       end in
 
-  (* add all temps into either precolored or initial worklists *)
-  let init2 (reg : IG.nodedata) regctx =
+  (* add all initial (i.e. non-precolored) temps into appropriate worklists *)
+  let init2 (regctx : alloc_context) (reg : IG.nodedata) =
     match reg with
     | Fake _ ->
         (* assumption: our graph is actually directed and outdeg = indeg!!! *)
@@ -439,14 +457,11 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
           { regctx with freeze_wl = reg :: regctx.freeze_wl }
         else
           { regctx with simplify_wl = reg :: regctx.simplify_wl }
-    | Real _ ->
-      { regctx with precolored = reg :: regctx.precolored } in
+    (* precolored registers should not appear in initial! *)
+    | Real _ -> regctx in
 
   AsmCfg.fold_vertex init1 cfg initctx |> fun regctx' ->
-  IG.fold_vertex init2 regctx'.inter_graph regctx'
-
-(* k is the number of registers available for coloring *)
-let k = 14
+    List.fold_left ~f:init2 ~init:{ regctx' with initial = [] } regctx'.initial
 
 (* TODO: is this function even necessary? IG.add_edge does not seem to check
  * for self-loop. *)
@@ -803,6 +818,7 @@ let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
 let reg_alloc (given_asms : abstract_asm list) =
 
   let rec main
+    ?(init = false)
     (regctx : alloc_context)
     (asms : abstract_asm list)
     : alloc_context * abstract_asm list =
@@ -819,13 +835,13 @@ let reg_alloc (given_asms : abstract_asm list) =
           else if not (empty innerctx.freeze_wl) then freeze innerctx
           else select_spill innerctx in
         loop innerctx' in
-    build regctx asms |> loop |> assign_colors |> fun regctx' ->
+    build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->
       if not (empty regctx'.spilled_nodes) then
         let newctx, newasms = rewrite_program regctx' asms in
         main newctx newasms
       else regctx', asms in
 
   (* lol 100 is an empirically determined number *)
-  let finctx, finasms = main (empty_ctx 100 100) given_asms in
+  let finctx, finasms = main ~init:true (empty_ctx 100 100) given_asms in
   (* translate asms with allocated nodes *)
   List.map ~f:(translate_asm finctx) finasms

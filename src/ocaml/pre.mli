@@ -160,9 +160,10 @@ val subst : Ir.expr ->
 
 val red_elim : Cfg.IrCfg.t ->
                univ:ExprSet.t ->
-               uses:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                latest:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                used:(Cfg.IrCfg.V.t -> ExprSet.t) ->
                Cfg.IrCfg.t
+
+val flatten : Cfg.IrCfg.t -> Ir.stmt list
 
 val pre : Ir.stmt list -> Ir.stmt list

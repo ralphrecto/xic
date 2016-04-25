@@ -386,7 +386,43 @@ let subst exp ~latest ~used ~freshes =
   in
   help exp
 
-let red_elim g ~univ ~uses ~latest ~used =
+let flatten g =
+  let f v acc =
+    match v with
+    | SE.Exit -> acc
+    | SE.Node {num; ir=Ir.Seq irs} ->
+      begin
+        let rev_irs = List.rev irs in
+        match rev_irs with
+        | last::tl ->
+            if last = dummy_ir then
+              match C.VertexSet.to_list (C.succs g v) with
+              | [SE.Node {num; _}] ->
+                begin
+                  match Int.Map.find acc num with
+                  | None -> Int.Map.add acc ~key:num ~data:(List.rev tl)
+                  | Some irs' -> Int.Map.add acc ~key:num ~data:((List.rev tl)@irs')
+                end
+              | [SE.Exit] -> (assert ((List.length tl) = 0); acc)
+              | _ -> failwith "shouldn't happen flatten"
+            else
+              begin
+                match Int.Map.find acc num with
+                | None -> Int.Map.add acc ~key:num ~data:irs
+                | Some irs' -> Int.Map.add acc ~key:num ~data:(irs'@irs)
+              end
+        | _ -> failwith "shouldn't happen flatten"
+      end
+    | SE.Node _ -> failwith "shouldn't happen"
+    | SE.Start -> failwith "no more start"
+  in
+  let mapping_list = Int.Map.to_alist (C.fold_vertex f g Int.Map.empty) in
+  List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2) mapping_list
+  |> List.map ~f:snd
+  |> List.concat
+
+
+let red_elim g ~univ ~latest ~used =
   (* step (a) *)
   let freshes =
     List.map (E.to_list univ) ~f:(fun e -> (e, Ir.Temp (Ir_generation.FreshTemp.fresh ())))
@@ -397,16 +433,20 @@ let red_elim g ~univ ~uses ~latest ~used =
   (* step (b) *)
   let new_g = C.copy g in
   let f v =
+    let new_irs = E.fold univ ~init:[] ~f:(fun acc exp ->
+      if E.mem (latest v) exp && E.mem (used v) exp
+        then (Ir.Move (EM.find_exn freshes exp, exp))::acc
+        else acc
+    )
+    in
     match v with
-    | SE.Start | SE.Exit -> ()
+    | SE.Start ->
+      let newv = C.V.create (Node {num=(-1); ir=Ir.Seq (new_irs@[dummy_ir])}) in
+      C.swap new_g ~oldv:v ~newv
     | SE.Node {num; ir} ->
-      let new_irs = E.fold (uses v) ~init:[] ~f:(fun acc exp ->
-        if E.mem (latest v) exp && E.mem (used v) exp
-          then (Ir.Move (EM.find_exn freshes exp, exp))::acc
-          else acc
-      ) in
       let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
       C.swap new_g ~oldv:v ~newv
+    | SE.Exit -> ()
   in
   C.iter_vertex f g;
 
@@ -523,7 +563,6 @@ let pre irs =
   let used_v = make_out_backwards g used_e univ in
   let used_fun = fun_of_map used_v in
 
-  let _g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
-  (* TODO: fuck with graph *)
+  let g = red_elim g ~univ ~latest:latest_fun ~used:used_fun in
 
-  failwith "TOOO"
+  flatten g

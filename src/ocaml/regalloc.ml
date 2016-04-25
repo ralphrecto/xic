@@ -197,6 +197,22 @@ module NodeData = struct
   include Hashable.Make (T)
 end
 
+type color =
+  | Reg1
+  | Reg2
+  | Reg3
+  | Reg4
+  | Reg5
+  | Reg6
+  | Reg7
+  | Reg8
+  | Reg9
+  | Reg10
+  | Reg11
+  | Reg12
+  | Reg13
+  | Reg14
+
 type temp_move = {
   src: IG.nodedata;
   dest: IG.nodedata;
@@ -225,7 +241,7 @@ type alloc_context = {
   alias              : IG.nodedata NodeData.Table.t;
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
-  color_map          : int NodeData.Table.t;
+  color_map          : color NodeData.Table.t;
   (* number of times a temp appears; used for spill heuristic *)
   node_occurrences   : int NodeData.Table.t;
   inter_graph        : IG.t;
@@ -265,6 +281,31 @@ let empty_ctx num_moves num_nodes = {
 module Cfg = AsmWithLiveVar.CFG
 
 (* generic helper methods *)
+let get_next_color (colors : color list) : color option =
+  let colorlist = [
+    Reg1;
+    Reg2;
+    Reg3;
+    Reg4;
+    Reg5;
+    Reg6;
+    Reg7;
+    Reg8;
+    Reg9;
+    Reg10;
+    Reg11;
+    Reg12;
+    Reg13;
+    Reg14;
+  ] in
+  let f acc x = 
+    match acc with
+    | Some _ -> acc
+    | None ->
+        if List.mem colors x then Some x
+        else None in
+  List.fold_left ~f ~init:None colorlist
+
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
@@ -488,7 +529,6 @@ let _freeze (regctx : alloc_context) : alloc_context =
     } in
     freeze_moves regctx' fnode
 
-
 (* spill: spill a >=k degree node onto stack *)
 
 (* select a node to be spilled; heuristic used is
@@ -513,7 +553,43 @@ let _select_spill (regctx : alloc_context) =
       freeze_moves regctx' chosenreg
 
 (* Pop nodes from the stack and assign a color *)
-let _select _stack = failwith "TODO"
+let assign_colors (regctx : alloc_context) : alloc_context = 
+
+  let select_assign ctxacc select_node =
+    let neighbors = IG.succ ctxacc.inter_graph select_node in
+    let neighbor_colors =
+      let f acc neighbor =
+        let alias = get_alias neighbor ctxacc in
+        if (List.mem ctxacc.colored_nodes alias ||
+            List.mem ctxacc.precolored alias) then
+          begin 
+            match NodeData.Table.find ctxacc.color_map alias with
+            | Some c -> c :: acc
+            | None -> acc
+          end
+        else acc in
+      List.fold_left ~f ~init:[] neighbors in
+    begin
+    match get_next_color neighbor_colors with    
+    | None ->
+        { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
+    | Some c ->
+        NodeData.Table.set ctxacc.color_map ~key:select_node ~data:c;
+        { ctxacc with colored_nodes = select_node :: ctxacc.colored_nodes; }
+    end in
+
+  List.fold_left ~f:select_assign ~init:regctx regctx.select_stack |> fun regctx' ->
+    let f coalesced_node =
+      match NodeData.Table.find regctx'.alias coalesced_node with
+      | None -> failwith "assign_colors: coalesced node has no alias"
+      | Some alias -> begin
+        match NodeData.Table.find regctx'.color_map alias with
+        | None -> failwith "assign_colors: coalesced node's alias is not colored"
+        | Some c -> 
+            NodeData.Table.set regctx'.color_map ~key:coalesced_node ~data:c
+      end in
+    List.iter ~f regctx'.coalesced_nodes;
+    regctx
 
 let reg_alloc _ =
   failwith "finish reg alloc!"

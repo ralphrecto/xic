@@ -5,6 +5,7 @@ open Ir
 open Tiling
 open Fresh
 
+(*
 module CCPLattice = struct
   type reachable = Reach | Unreach
   type defined = Undef | Def of Int64.t | Overdef
@@ -49,3 +50,4 @@ module CCPLattice = struct
     | Reach -> Printf.sprintf "(reach, [%s])" defined_string
     | Unreach -> Printf.sprintf "(unreach, [%s])" defined_string
 end
+*)

@@ -1,3 +1,3 @@
 main(_: int[][]) {
-    println("hello world!");
+  _:int = 3+5
 }

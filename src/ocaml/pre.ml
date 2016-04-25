@@ -227,21 +227,17 @@ module BusyExprCFG = struct
 
   let transfer ({uses; kills; _}: extra_info) (e: edge) (d: data) =
     let node = E.dst e in
-    match node with
-    | IDSE.Start -> failwith "TODO"
-    | IDSE.Exit -> failwith "TODO"
-    | IDSE.Node _ ->
-      let use = uses node in
-      let kill = kills node in
-      let f acc expr =
-        let mem_temps = get_mem_temp expr in
-        if ExprSet.is_empty (inter mem_temps kill) then
-          add acc expr
-        else
-          acc
-      in
-      let diff_expr_kill = fold ~f ~init: empty d in
-      union use diff_expr_kill
+    let use = uses node in
+    let kill = kills node in
+    let f acc expr =
+      let mem_temps = get_mem_temp expr in
+      if ExprSet.is_empty (inter mem_temps kill) then
+        add acc expr
+      else
+        acc
+    in
+    let diff_expr_kill = fold ~f ~init: empty d in
+    union use diff_expr_kill
 end
 
 module BusyExpr = Dataflow.GenericAnalysis(BusyExprCFG)

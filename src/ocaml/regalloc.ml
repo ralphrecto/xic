@@ -239,6 +239,7 @@ type alloc_context = {
   (* other data structures *)
   move_list          : (temp_move list) NodeData.Table.t;
   alias              : IG.nodedata NodeData.Table.t;
+  degree             : int NodeData.Table.t;
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
   color_map          : color NodeData.Table.t;
@@ -270,6 +271,7 @@ let empty_ctx num_moves num_nodes = {
   move_list          = NodeData.Table.create () ~size:num_moves;
   (* initialized to the node's self *)
   alias              = NodeData.Table.create () ~size:num_nodes;
+  degree             = NodeData.Table.create () ~size:num_nodes;
   nodestate          = NodeData.Table.create () ~size:num_nodes;
   color_map          = NodeData.Table.create () ~size:num_nodes;
   node_occurrences   = NodeData.Table.create () ~size:num_nodes;
@@ -393,7 +395,10 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
         Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
-    else ctxarg in
+    else
+      (* TODO: check other things that need to be freshened on recursive calls *)
+      { ctxarg with
+        inter_graph = IG.create (); } in
 
   (* make edges for nodes interfering with each other in one statement *)
   let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) =
@@ -446,8 +451,12 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
             { regctx with worklist_moves = (tempmove :: regctx.worklist_moves) }
       end in
 
-  (* add all initial (i.e. non-precolored) temps into appropriate worklists *)
+  (* initialize other data structures,
+   * add all initial (i.e. non-precolored) temps into appropriate worklists *)
   let init2 (regctx : alloc_context) (reg : IG.nodedata) =
+    (* do other initializations here, e.g. of degree table, etc. *)
+    let regdeg = IG.in_degree regctx.inter_graph reg in
+    NodeData.Table.set regctx.degree ~key:reg ~data:regdeg;
     match reg with
     | Fake _ ->
         (* assumption: our graph is actually directed and outdeg = indeg!!! *)
@@ -461,7 +470,9 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
     | Real _ -> regctx in
 
   AsmCfg.fold_vertex init1 cfg initctx |> fun regctx' ->
-    List.fold_left ~f:init2 ~init:{ regctx' with initial = [] } regctx'.initial
+  let empty_init = { regctx' with initial = [] } in
+  List.fold_left ~f:init2 ~init:empty_init regctx'.initial
+
 
 (* TODO: is this function even necessary? IG.add_edge does not seem to check
  * for self-loop. *)
@@ -475,27 +486,27 @@ let add_edge u v regctx =
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
-let adjacent n regctx =  
+let adjacent n regctx =
   let used = regctx.select_stack @ regctx.coalesced_nodes in
   List.filter (IG.succ regctx.inter_graph n) ~f:(fun m -> not (List.mem used m))
 
-(* TODO: use a degree data structure maybe? *)
-let degree node regctx = IG.in_degree regctx.inter_graph node
+let degree node regctx =
+  NodeData.Table.find_exn regctx.degree node
 
 let enable_moves nodes regctx =
   List.fold_left ~init:regctx nodes ~f:(fun regctx' n ->
     List.fold_left ~init:regctx' (node_moves n regctx') ~f:(fun regctx'' m ->
       if List.mem regctx''.active_moves m then
-        let regctx'' = { regctx'' with
-                         active_moves = remove regctx''.active_moves m } in
-        { regctx'' with worklist_moves = m::regctx''.worklist_moves }
+        { regctx'' with
+          active_moves = remove regctx''.active_moves m;
+          worklist_moves = m::regctx''.worklist_moves; }
       else
         regctx''))
 
 let decrement_degree m regctx =
   let d = degree m regctx in
-  (* TODO: update degree *)
-  if d = k then
+  NodeData.Table.set regctx.degree ~key:m ~data:(d-1);
+  if d = regctx.num_colors then
     let regctx' = enable_moves (m::(adjacent m regctx)) regctx in
     let regctx' = { regctx' with spill_wl = remove regctx'.spill_wl m } in
     if move_related m regctx' then
@@ -537,15 +548,15 @@ let add_wl (node : IG.nodedata) (regctx : alloc_context) : alloc_context =
   else regctx
 
 let ok t r regctx =
-  (degree t regctx) < k ||
+  (degree t regctx) < regctx.num_colors ||
   List.mem regctx.precolored t ||
   IG.mem_edge regctx.inter_graph t r
 
 let conservative nodes regctx =
   let k' = 0 in
   let result = List.fold_left ~init:k' nodes ~f:(fun acc n ->
-    if (degree n regctx) >= k then acc + 1 else acc) in
-  result < k
+    if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc) in
+  result < (regctx.num_colors)
 
 let combine u v regctx =
   let set t k d = NodeData.Table.set t ~key:k ~data:d in
@@ -564,7 +575,7 @@ let combine u v regctx =
   let regctx' = enable_moves [v] regctx' in
   let regctx' = List.fold_left ~init:regctx' (adjacent v regctx')
     ~f:(fun regctx'' t -> add_edge t u regctx''; decrement_degree t regctx'') in
-  if (degree u regctx') >= k && List.mem regctx'.freeze_wl u then
+  if (degree u regctx') >= (regctx.num_colors) && List.mem regctx'.freeze_wl u then
     { regctx' with
       freeze_wl = remove regctx'.freeze_wl u;
       spill_wl = u::regctx'.spill_wl }

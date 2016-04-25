@@ -7,6 +7,8 @@ module ExprSet : sig
   val to_string : t -> string
 end
 
+module ExprMap : Map.S with type Key.t = Ir.expr
+
 module ExprSetIntersectLattice : sig
   include Dataflow.LowerSemilattice with type data = ExprSet.t
 end
@@ -140,18 +142,27 @@ module PostponeExpr : (module type of Dataflow.GenericAnalysis(PostponeExprCFG))
  *)
 module UsedExprCFG : sig
   type extra_info = {
-    (* the graph *)
-    g : Cfg.IrCfg.t;
     (* e_use_{B} *)
     uses : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
-    (* postponable[B].in *)
-    post : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
-    (* earlieset[B] *)
-    earliest : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
+    (* latest[B] *)
+    latest : Cfg.IrCfg.vertex -> ExprSetUnionLattice.data;
   }
   include ExprSetUnionCFG with type extra_info := extra_info
 end
 module UsedExpr : (module type of Dataflow.GenericAnalysis(UsedExprCFG))
 
 (** The whole enchilada! *)
+val subst : Ir.expr ->
+            latest:ExprSet.t ->
+            used:ExprSet.t ->
+            freshes:(Ir.expr ExprMap.t) ->
+            Ir.expr
+
+val red_elim : Cfg.IrCfg.t ->
+               univ:ExprSet.t ->
+               uses:(Cfg.IrCfg.V.t -> ExprSet.t) ->
+               latest:(Cfg.IrCfg.V.t -> ExprSet.t) ->
+               used:(Cfg.IrCfg.V.t -> ExprSet.t) ->
+               Cfg.IrCfg.t
+
 val pre : Ir.stmt list -> Ir.stmt list

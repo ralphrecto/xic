@@ -85,9 +85,27 @@ module Make(N: NodeData) = struct
   let preds_e g v =
     fold_pred_e (fun e g -> EdgeSet.add g e) g v EdgeSet.empty
 
+  let succs_e g v =
+    fold_succ_e (fun e g -> EdgeSet.add g e) g v EdgeSet.empty
+
   let equal x y =
     VertexSet.equal (vertex_set x) (vertex_set y) &&
     EdgeSet.equal   (edge_set x)   (edge_set y)
+
+  let swap g ~oldv ~newv =
+    let change v =
+      if V.compare v oldv = 0
+        then newv
+        else v
+    in
+
+    let edges = EdgeSet.union (preds_e g oldv) (succs_e g oldv) in
+    remove_vertex g oldv;
+    add_vertex g newv;
+    let new_edges = EdgeSet.map edges ~f:(fun e ->
+      E.create (change (E.src e)) (E.label e) (change (E.dst e))
+    ) in
+    EdgeSet.iter new_edges ~f:(add_edge_e g)
 
   let string_of_vertex = N.to_string
   let string_of_edge e =

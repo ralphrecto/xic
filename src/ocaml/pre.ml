@@ -25,6 +25,10 @@ module ExprSet = struct
 end
 open ExprSet
 
+module ExprMap = Map.Make(struct
+  type t = expr [@@deriving sexp, compare]
+end)
+
 module ExprSetIntersectLattice = struct
   type data = ExprSet.t
   let ( ** ) = ExprSet.inter
@@ -342,10 +346,8 @@ module UsedExprCFG = struct
   let direction = `Backward
 
   type extra_info = {
-    g        : graph;
-    uses     : node -> data;
-    post     : node -> data;
-    earliest : node -> data;
+    uses   : node -> data;
+    latest : node -> data;
   }
 
   let init _ _ _ = ExprSet.empty
@@ -353,16 +355,9 @@ module UsedExprCFG = struct
   let (+) = ExprSet.union
   let (-) = ExprSet.diff
 
-  let latest ({g; uses; post; earliest; _}: extra_info) (n: node) =
-    ExprSet.(filter (earliest n + post n) ~f:(fun e ->
-      mem (uses n) e || CFG.VertexSet.exists (CFG.succs g n) ~f:(fun n' ->
-        not (mem (earliest n') e || mem (post n') e)
-      )
-    ))
-
-  let transfer ({uses; _} as info) e x =
+  let transfer {uses; latest} e x =
     let n = CFG.E.dst e in
-    (uses n + x) - latest info n
+    (uses n + x) - latest n
 end
 
 module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
@@ -370,13 +365,84 @@ module UsedExpr = Dataflow.GenericAnalysis(UsedExprCFG)
 (* ************************************************************************** *)
 (* Whole Enchilada                                                            *)
 (* ************************************************************************** *)
-let pre irs =
-  let module C = Cfg.IrCfg in
-  let module E = ExprSet in
-  let module IL = ExprSetIntersectLattice in
-  let module M = Cfg.IrStartExitMap in
-  let module SE = Cfg.IrDataStartExit in
+module C = Cfg.IrCfg
+module E = ExprSet
+module EM = ExprMap
+module IL = ExprSetIntersectLattice
+module M = Cfg.IrStartExitMap
+module SE = Cfg.IrDataStartExit
 
+let subst exp ~latest ~used ~freshes =
+  let rec help exp =
+    if (not (E.mem latest exp)) || E.mem used exp then
+      EM.find_exn freshes exp
+    else
+      match exp with
+      | BinOp (lhs, o, rhs) -> BinOp (help lhs, o, help rhs)
+      | Call (f, args) -> Call (f, List.map ~f:help args)
+      | Mem (e, t) -> Mem (help e, t)
+      | ESeq _ -> failwith "eseq shouldn't even exist; it's lowered"
+      | Const _ | Name _ | Temp _ -> exp
+  in
+  help exp
+
+let red_elim g ~univ ~uses ~latest ~used =
+  (* step (a) *)
+  let freshes =
+    List.map (E.to_list univ) ~f:(fun e -> (e, Ir.Temp (Ir_generation.FreshTemp.fresh ())))
+    |> List.dedup
+    |> EM.of_alist_exn
+  in
+
+  (* step (b) *)
+  let new_g = C.copy g in
+  let f v =
+    match v with
+    | SE.Start | SE.Exit -> ()
+    | SE.Node {num; ir} ->
+      let new_irs = E.fold (uses v) ~init:[] ~f:(fun acc exp ->
+        if E.mem (latest v) exp && E.mem (used v) exp
+          then (Ir.Move (EM.find_exn freshes exp, exp))::acc
+          else acc
+      ) in
+      let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
+      C.swap new_g ~oldv:v ~newv
+  in
+  C.iter_vertex f g;
+
+  (* step (c) *)
+  let g = new_g in
+  let new_g = C.copy g in
+  let f v =
+    match v with
+    | SE.Start | SE.Exit -> ()
+    | SE.Node {num; ir=Seq irs} as v -> begin
+      match List.rev irs with
+      | last::tl -> begin
+        let sub e = subst e ~latest:(latest v) ~used:(used v) ~freshes in
+        let new_last =
+          match last with
+          | CJumpOne (e, l) -> CJumpOne (sub e, l)
+          | Jump e -> Jump (sub e)
+          | Exp e -> Exp (sub e)
+          | Move (dst, src) -> Move (sub dst, sub src)
+          | Label _
+          | Return -> last
+          | CJump _ -> failwith "shouldn't be any cjumps"
+          | Seq _ -> failwith "shouldn't be any seqs"
+        in
+        let newv = SE.Node {num; ir=Seq (List.rev (new_last::tl))} in
+        C.swap new_g ~oldv:v ~newv
+      end
+      | [] -> failwith "all seqs should have at least one thing"
+    end
+    | SE.Node _ -> failwith "red_elim: all irs should be Seqs"
+  in
+  C.iter_vertex f g;
+
+  new_g
+
+let pre irs =
   (* map a function into a map! *)
   let map (g: C.t) ~(f:C.vertex -> 'a) : 'a M.t =
     C.fold_vertex (fun v m -> M.add m ~key:v ~data:(f v)) g M.empty
@@ -407,6 +473,17 @@ let pre irs =
     map g ~f:h
   in
 
+  (* Given a function from edges to lattice elements, construct a map from
+   * vertices to their in values, assuming we did a backwards analysis. *)
+  let make_out_backwards (g: C.t) (f: C.E.t -> 'a) (top: 'a): 'a M.t =
+    let h v =
+      match v with
+      | SE.Exit -> C.fold_pred_e (fun e a -> IL.(f e ** a)) g v top
+      | SE.Start | SE.Node _ -> C.fold_succ_e (fun e _ -> f e) g v top
+    in
+    map g ~f:h
+  in
+
   let g = C.create_cfg irs in
   preprocess g;
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
@@ -431,5 +508,22 @@ let pre irs =
   let post_v = make_in_forwards g post_e univ E.empty in
   let post_fun = fun_of_map post_v in
 
-  let _used_e = UsedExpr.worklist {g; uses=uses_fun; post=post_fun; earliest=earliest_fun} in
+  let f v =
+    (* g uses post earliest (n: node) = *)
+    ExprSet.(filter (union (earliest_fun v) (post_fun v)) ~f:(fun exp ->
+      mem (uses_fun v) exp || C.VertexSet.exists (C.succs g v) ~f:(fun v' ->
+        not (mem (earliest_fun v') exp || mem (post_fun v') exp)
+      )
+    ))
+  in
+  let latest_v = map g ~f in
+  let latest_fun = fun_of_map latest_v in
+
+  let used_e = UsedExpr.worklist {uses=uses_fun; latest=latest_fun} g in
+  let used_v = make_out_backwards g used_e univ in
+  let used_fun = fun_of_map used_v in
+
+  let _g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
+  (* TODO: fuck with graph *)
+
   failwith "TOOO"

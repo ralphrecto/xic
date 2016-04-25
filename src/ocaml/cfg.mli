@@ -68,7 +68,10 @@ module Make(N: NodeData) : sig
   val edge_set   : t -> EdgeSet.t
   val succs      : t -> vertex -> VertexSet.t
   val preds_e    : t -> vertex -> EdgeSet.t
+  val succs_e    : t -> vertex -> EdgeSet.t
   val equal      : t -> t -> bool
+
+  val swap : t -> oldv:vertex -> newv:vertex -> unit
 
   val string_of_vertex : V.t -> string
   val string_of_edge   : E.t -> string

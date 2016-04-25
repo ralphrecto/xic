@@ -2,6 +2,7 @@ open Core.Std
 open OUnit2
 open TestUtil
 open Util
+open Fresh
 
 module AsmsEq = struct
   let (===) (a: Asm.asm list) (b: Asm.asm list) : unit =

@@ -23,3 +23,7 @@ module Make(N: Name) = struct
       else None
 end
 
+(* Tiling fresh modules *)
+module FreshReg    = Make(struct let name = "_asmreg" end)
+module FreshAsmRet = Make(struct let name = "_asmret" end)
+module FreshLabel  = Make(struct let name = "_asmlabel" end)

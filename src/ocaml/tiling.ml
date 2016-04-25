@@ -3,10 +3,9 @@ open Asm
 open Func_context
 open Ir_generation
 open Typecheck
+open Regalloc
+open Fresh
 
-module FreshReg    = Fresh.Make(struct let name = "_asmreg" end)
-module FreshAsmRet = Fresh.Make(struct let name = "_asmret" end)
-module FreshLabel  = Fresh.Make(struct let name = "_asmlabel" end)
 let ret_ptr_reg   = Fake "_asmretptr"
 
 type ('input, 'output) with_fcontext =
@@ -347,7 +346,7 @@ let rec munch_expr
         let e2' = (Fake reg2, asm2) in
         match create_binop_instr opcode e1' e2' None with
         | (Fake f, asms) -> (f, asms)
-        | _ -> failwith "shouldnt' happen" 
+        | _ -> failwith "shouldnt' happen"
       end
     | Ir.Const c ->
         let new_tmp = FreshReg.fresh () in
@@ -1188,7 +1187,10 @@ let asm_eat
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
   let munched = eat_comp_unit ~debug func_contexts comp_unit in
-  List.concat_map ~f:(register_allocate ~debug) munched
+  if debug then
+    List.concat_map ~f:(reg_alloc) munched
+  else
+    List.concat_map ~f:(register_allocate ~debug) munched
 
 let asm_munch
   ?(debug=false)

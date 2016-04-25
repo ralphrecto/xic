@@ -51,3 +51,8 @@ module type S = sig
 end
 
 module Make(N: Name): S
+
+(* Tiling fresh modules *)
+module FreshReg    : S
+module FreshAsmRet : S
+module FreshLabel  : S

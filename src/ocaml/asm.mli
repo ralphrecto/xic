@@ -70,6 +70,10 @@ type asm_prog = asm list [@@deriving sexp, compare]
 (******************************************************************************)
 (* asm helpers                                                                *)
 (******************************************************************************)
+val callee_saved_regs : reg list
+
+val caller_saved_regs : reg list
+
 (* offsets n words from reg contents *)
 val ( $ ) : int -> abstract_reg -> abstract_reg mem
 

@@ -1,10 +1,6 @@
 open Core.Std
 open Func_context
 
-module FreshReg    : Fresh.S
-module FreshAsmRet : Fresh.S
-module FreshLabel  : Fresh.S
-
 (* variable used for implicit 0th argument *)
 val ret_ptr_reg : Asm.abstract_reg
 

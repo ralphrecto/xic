@@ -3,8 +3,17 @@ open Graph
 open Cfg
 open Dataflow
 open Asm
-open Tiling
 open Fresh
+
+(* remove x from lst, if it exists *)
+let remove (lst : 'a list) (x : 'a) : 'a list =
+  let f y = x <> y in
+  List.filter ~f lst
+
+(* conses x onto list unless x is already in list *)
+let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
+  if List.mem lst x then lst
+  else x :: lst
 
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
@@ -51,8 +60,16 @@ module AsmWithLiveVar : CFGWithLatticeT
 
   (* returns a sets of vars used and defd, respectively *)
   let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
+      (* we do not include Rbp and Rsp at all in our regalloc algo *)
+    let no_rbp_or_rsp (regs : abstract_reg list) =
+      remove regs (Real Rbp) |> fun regs' ->
+      remove regs' (Real Rsp) in
+
+    (* grabs all temps that appear in an operand *)
     let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
-      AbstractRegSet.of_list (regs_of_operand arg) in
+      let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
+      AbstractRegSet.of_list regs_list in
+
     let binops_use_plus_def =  [
       "addq";
       "subq";
@@ -100,30 +117,63 @@ module AsmWithLiveVar : CFGWithLatticeT
     ] in
     let unops_special = [
       "imulq";
-      "idivq"
+      "idivq";
+      "call";
     ] in
     function
+      | Op (name, []) ->
+          begin
+            (* retq uses all callee-save registers *)
+            if name = "retq" then
+              let useset =
+                callee_saved_regs |>
+                List.map ~f:(fun reg -> Real reg) |>
+                no_rbp_or_rsp |>
+                AbstractRegSet.of_list in
+              (AbstractRegSet.empty, useset)
+            else
+              (AbstractRegSet.empty, AbstractRegSet.empty)
+          end
       | Op (name, arg :: []) ->
-        let arg_set = set_of_arg arg in
-        if List.mem unops_use_plus_def name then
-          (arg_set, arg_set)
-        else if List.mem unops_def name then
-          (AbstractRegSet.empty, arg_set)
-        else if List.mem unops_use name then
-          (arg_set, AbstractRegSet.empty)
-          (* TODO: HANDLE SPECIAL CASES!!! *)
-        else if List.mem unops_special name then
-          (AbstractRegSet.empty, AbstractRegSet.empty)
-        else (AbstractRegSet.empty, AbstractRegSet.empty)
+        begin
+          let arg_set = set_of_arg arg in
+          if List.mem unops_use_plus_def name then
+            (arg_set, arg_set)
+          else if List.mem unops_def name then
+            (AbstractRegSet.empty, arg_set)
+          else if List.mem unops_use name then
+            (arg_set, AbstractRegSet.empty)
+          else if List.mem unops_special name then
+            begin
+              (* imulq, idivq: def rax, rdx; use rax *)
+              if name = "imulq" || name = "idivq" then
+                let useset = AbstractRegSet.add arg_set (Real Rax) in
+                let defset = AbstractRegSet.of_list [Real Rax; Real Rdx;] in
+                (useset, defset)
+              (* per Appel, calls def all caller-saved registers *)
+              else if name = "call" then
+                let defset =
+                  caller_saved_regs |>
+                  List.map ~f:(fun reg -> Real reg) |>
+                  no_rbp_or_rsp |>
+                  AbstractRegSet.of_list in
+                (AbstractRegSet.empty, defset)
+              else
+                (AbstractRegSet.empty, AbstractRegSet.empty)
+            end
+          else (AbstractRegSet.empty, AbstractRegSet.empty)
+        end
       | Op (name, arg1 :: arg2 :: []) ->
-        let arg1_set = set_of_arg arg1 in
-        let arg2_set = set_of_arg arg2 in
-        let arg_union = AbstractRegSet.union arg1_set arg2_set in
-        if List.mem binops_use_plus_def name then
-          (arg_union, arg2_set)
-        else if List.mem binops_use name then
-          (arg_union, AbstractRegSet.empty)
-        else (AbstractRegSet.empty, AbstractRegSet.empty)
+        begin
+          let arg1_set = set_of_arg arg1 in
+          let arg2_set = set_of_arg arg2 in
+          let arg_union = AbstractRegSet.union arg1_set arg2_set in
+          if List.mem binops_use_plus_def name then
+            (arg_union, arg2_set)
+          else if List.mem binops_use name then
+            (arg_union, AbstractRegSet.empty)
+          else (AbstractRegSet.empty, AbstractRegSet.empty)
+        end
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
@@ -324,16 +374,6 @@ let color_to_reg (c : color) : reg =
   | Reg12 -> R13
   | Reg13 -> R14
   | Reg14 -> R15
-
-(* remove x from lst, if it exists *)
-let remove (lst : 'a list) (x : 'a) : 'a list =
-  let f y = x <> y in
-  List.filter ~f lst
-
-(* conses x onto list unless x is already in list *)
-let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
-  if List.mem lst x then lst
-  else x :: lst
 
 (* regalloc helper predicates *)
 (* moves between two temps can be coalesced

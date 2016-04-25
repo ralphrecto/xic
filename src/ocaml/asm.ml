@@ -69,6 +69,28 @@ type asm_prog = asm list [@@deriving sexp, compare]
 (******************************************************************************)
 (* important register helpers                                                 *)
 (******************************************************************************)
+let callee_saved_regs = [
+  Rbx;
+  Rbp;
+  R12;
+  R13;
+  R14;
+  R15;
+]
+
+let caller_saved_regs = [
+  Rax;
+  Rcx;
+  Rdx;
+  Rsi;
+  Rdi;
+  Rsp;
+  R8;
+  R9;
+  R10;
+  R11;
+]
+
 let ( $ ) n reg =
   Base (Some (Int64.of_int n), reg)
 

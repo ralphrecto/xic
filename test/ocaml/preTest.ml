@@ -940,6 +940,11 @@ module BookExample = struct
     if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n5; n6; n3; n4; n7; n9] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
+
+  let earliest = fun v ->
+    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n3; n5] v
+      then E.singleton (temp "b" + temp "c")
+      else E.empty
 end
 
 let busy_test _ =
@@ -1053,6 +1058,48 @@ let avail_test _ =
 
   ()
 
+let post_test _ =
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+  let module C = Cfg.IrCfg in
+  let module D = Cfg.IrData in
+  let module SE = Cfg.IrDataStartExit in
+  let module E = Pre.ExprSet in
+
+  (* testing helper *)
+  let test expected edges g univ uses earliest =
+    let open EdgeToExprEq in
+    let make_edge (src, l, dst) = C.E.create src l dst in
+    let edges = List.map edges ~f:make_edge in
+    let expected = List.map expected ~f:(fun (edge, expr) -> (make_edge edge, expr)) in
+    let actual = Pre.PostponeExpr.worklist PostponeExprCFG.{g; univ; uses; earliest} g in
+    expected === List.map edges ~f:(fun edge -> (edge, actual edge))
+  in
+
+  (* book example *)
+  let open BookExample in
+  let bc = E.singleton (temp "b" + temp "c") in
+  let expected = [
+    (es_1,   E.empty);
+    (e1_2,   E.empty);
+    (e2_3,   bc);
+    (e3_4,   bc);
+    (e4_7,   E.empty);
+    (e1_5,   E.empty);
+    (e5_6,   E.empty);
+    (e6_7,   E.empty);
+    (e7_8,   E.empty);
+    (e8_9,   E.empty);
+    (e9_10,  E.empty);
+    (e10_11, E.empty);
+    (e11_e,  E.empty);
+    (e8_10,  E.empty);
+    (e10_9,  E.empty);
+  ] in
+  test expected es g univ uses earliest;
+
+  ()
+
 let enchilada_test _ =
   let open StmtsEq in
   let open Ir.Abbreviations in
@@ -1094,6 +1141,7 @@ let main () =
       "preprocess_test"  >:: preprocess_test;
       "busy_test"        >:: busy_test;
       "avail_test"       >:: avail_test;
+      "post_test"        >:: post_test;
       (* "enchilada_test"   >:: enchilada_test; *)
     ] |> run_test_tt_main
 

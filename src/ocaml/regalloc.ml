@@ -306,7 +306,7 @@ let get_next_color (colors : color list) : color option =
         else None in
   List.fold_left ~f ~init:None colorlist
 
-let color_to_reg (c : color) : reg = 
+let color_to_reg (c : color) : reg =
   match c with
   | Reg1 -> Rax
   | Reg2 -> Rbx
@@ -641,15 +641,15 @@ let rewrite_program
   (* a lot of this logic is already in tiling.ml; see comments
    * there for design decisions e.g. why 15, etc. *)
 
-  let spilled_names = 
+  let spilled_names =
     let f reg =
       match reg with
       | Real _ -> failwith "rewrite_program: Real register in spilled_nodes!"
       | Fake str -> str in
     List.map ~f regctx.spilled_nodes in
-  
+
   (* a mapping between abstract reg -> offset index *)
-  let spill_env : int String.Table.t = 
+  let spill_env : int String.Table.t =
     let f i spill_name = (spill_name, i + 15) in
     spilled_names
     |> List.mapi ~f
@@ -699,11 +699,11 @@ let rewrite_program
         let f fake = List.mem op_fakes fake in
         List.filter ~f spilled_names in
       let spilled_to_fresh =
-        let f acc spilled = 
+        let f acc spilled =
           (spilled, Fake (FreshReg.fresh ())) :: acc in
         List.fold_left ~f ~init:[] spilled_fakes in
       let spill_env = String.Map.of_alist_exn spilled_to_fresh in
-      let spill_to_op spill = 
+      let spill_to_op spill =
         Reg (String.Map.find_exn spill_env spill) in
 
       let pre =
@@ -729,7 +729,7 @@ let rewrite_program
 
 let empty (l: 'a list) = List.length l > 0
 
-let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg = 
+let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg =
   match reg with
   | Real r -> r
   | Fake _ -> NodeData.Table.find_exn regctx.color_map reg |> color_to_reg
@@ -744,7 +744,7 @@ let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : reg
   | Label l -> Label l
   | Const c -> Const c
 
-let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm = 
+let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
   match asm with
   | Op (instr, operands) ->
       Op (instr, List.map ~f:(translate_operand regctx) operands)
@@ -761,7 +761,7 @@ let reg_alloc (given_asms : abstract_asm list) =
 
     let rec loop (innerctx : alloc_context) =
       if empty innerctx.simplify_wl &&
-         empty innerctx.worklist_moves && 
+         empty innerctx.worklist_moves &&
          empty innerctx.freeze_wl &&
          empty innerctx.spill_wl then innerctx
       else

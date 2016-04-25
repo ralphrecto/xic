@@ -49,6 +49,12 @@ module EdgeToExprEq = struct
         assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
 end
 
+module StmtsEq = struct
+  open Ir
+  let (===) (a: stmt list) (b: stmt list) : unit =
+    assert_equal ~printer:string_of_stmts a b
+end
+
 let make_graph vertexes edges =
   let open Cfg.IrCfg in
   let g = create () in
@@ -997,6 +1003,38 @@ let busy_test _ =
 
   ()
 
+let enchilada_test _ =
+  let open StmtsEq in
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+
+  let a = temp "a" in
+  let b = temp "b" in
+  let c = temp "c" in
+  let d = temp "d" in
+  let e = temp "e" in
+
+  let irs = [
+    cjumpone one "n5";
+    move c two;
+    jump (name "n7");
+    label "n5";
+    move a (b + c);
+    label "n7";
+    move d (b + c);
+    cjumpone one "n11";
+    label "n9";
+    move e (b + c);
+    cjumpone one "n9";
+    label "n11";
+  ] in
+
+  let expected = [
+    (* TODO *)
+  ] in
+  expected === Pre.pre irs;
+  ()
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -1005,6 +1043,7 @@ let main () =
       "get_subexpr_test" >:: get_subexpr_test;
       "preprocess_test"  >:: preprocess_test;
       "busy_test"        >:: busy_test;
+      "enchilada_test"   >:: enchilada_test;
     ] |> run_test_tt_main
 
 let _ = main ()

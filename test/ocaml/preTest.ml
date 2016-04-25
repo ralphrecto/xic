@@ -857,6 +857,77 @@ let preprocess_test _ =
 
   ()
 
+module BookExample = struct
+  open Ir.Abbreviations
+  open Ir.Infix
+  module C = Cfg.IrCfg
+  module D = Cfg.IrData
+  module SE = Cfg.IrDataStartExit
+  module E = Pre.ExprSet
+
+  let tru = Cfg.EdgeData.True
+  let fls = Cfg.EdgeData.False
+  let start = C.V.create SE.Start
+  let exit = C.V.create SE.Exit
+  let norm = Cfg.EdgeData.Normal
+  let node num ir = C.V.create (SE.Node D.{num; ir})
+
+  (* vertexes *)
+  let n1 = node 1 (label "node1")
+  let n2 = node 2 (move (temp "c") two)
+  let n3 = node 3 (label "node3")
+  let n4 = node 4 (label "node4")
+  let n5 = node 5 (move (temp "a") (temp "b" + temp "c"))
+  let n6 = node 6 (label "node6")
+  let n7 = node 7 (move (temp "d") (temp "b" + temp "c"))
+  let n8 = node 8 (label "node8")
+  let n9 = node 9 (move (temp "e") (temp "b" + temp "c"))
+  let n10 = node 10 (label "node10")
+  let n11 = node 11 (label "node11")
+  let vs = [start; n1; n2; n3; n4; n5; n6; n7; n8; n9; n10; n11; exit]
+
+  (* edges *)
+  let es_1   = (start, norm, n1)
+  let e1_2   = (n1,    fls,  n2)
+  let e2_3   = (n2,    norm, n3)
+  let e3_4   = (n3,    norm, n4)
+  let e4_7   = (n4,    norm, n7)
+  let e1_5   = (n1,    tru,  n5)
+  let e5_6   = (n5,    norm, n6)
+  let e6_7   = (n6,    norm, n7)
+  let e7_8   = (n7,    norm, n8)
+  let e8_9   = (n8,    fls,  n9)
+  let e9_10  = (n9,    norm, n10)
+  let e10_11 = (n10,   tru,  n11)
+  let e11_e  = (n11,   norm, exit)
+  let e8_10  = (n8,    tru,  n10)
+  let e10_9  = (n10,   fls,  n9)
+  let es = [
+    es_1; e1_2; e2_3; e3_4; e4_7; e1_5; e5_6; e6_7; e7_8; e8_9; e9_10; e10_11;
+    e11_e; e8_10; e10_9;
+  ]
+
+  (* graph *)
+  let g = make_graph vs es
+  let univ = E.of_list [temp "b" + temp "c"]
+  let uses = fun v ->
+    match v with
+    | SE.Start
+    | SE.Exit -> E.empty
+    | SE.Node _ ->
+        if Pervasives.(v = n5 || v = n7 || v = n9)
+          then E.of_list [temp "b" + temp "c"]
+          else E.empty
+
+  let kills = fun v ->
+    match v with
+    | v when v = n2 -> E.singleton (temp "c")
+    | v when v = n5 -> E.singleton (temp "a")
+    | v when v = n7 -> E.singleton (temp "d")
+    | v when v = n9 -> E.singleton (temp "e")
+    | SE.Start | SE.Exit | SE.Node _ -> E.empty
+end
+
 let busy_test _ =
   let open Ir.Abbreviations in
   let open Ir.Infix in
@@ -899,6 +970,28 @@ let busy_test _ =
   let expected = [
     (e0, E.of_list [one + two]);
     (e1, E.empty);
+  ] in
+  test expected es g univ uses kills;
+
+  (* book example *)
+  let open BookExample in
+  let bc = E.singleton (temp "b" + temp "c") in
+  let expected = [
+    (es_1,   E.empty);
+    (e1_2,   E.empty);
+    (e2_3,   bc);
+    (e3_4,   bc);
+    (e4_7,   bc);
+    (e1_5,   bc);
+    (e5_6,   bc);
+    (e6_7,   bc);
+    (e7_8,   E.empty);
+    (e8_9,   bc);
+    (e9_10,  E.empty);
+    (e10_11, E.empty);
+    (e11_e,  E.empty);
+    (e8_10,  E.empty);
+    (e10_9,  bc);
   ] in
   test expected es g univ uses kills;
 

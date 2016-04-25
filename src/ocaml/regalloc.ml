@@ -306,6 +306,23 @@ let get_next_color (colors : color list) : color option =
         else None in
   List.fold_left ~f ~init:None colorlist
 
+let color_to_reg (c : color) : reg = 
+  match c with
+  | Reg1 -> Rax
+  | Reg2 -> Rbx
+  | Reg3 -> Rcx
+  | Reg4 -> Rdx
+  | Reg5 -> Rsi
+  | Reg6 -> Rdi
+  | Reg7 -> R8
+  | Reg8 -> R9
+  | Reg9 -> R10
+  | Reg10 -> R11
+  | Reg11 -> R12
+  | Reg12 -> R13
+  | Reg13 -> R14
+  | Reg14 -> R15
+
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
@@ -350,7 +367,7 @@ let move_related (regctx : alloc_context) (node: IG.nodedata) : bool =
 
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
-let build (asms : abstract_asm list) : alloc_context =
+let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = Cfg.create_cfg asms in
 
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
@@ -425,8 +442,8 @@ let build (asms : abstract_asm list) : alloc_context =
     | Real _ ->
       { regctx with precolored = reg :: regctx.precolored } in
 
-  AsmCfg.fold_vertex init1 cfg (empty_ctx 100 100) |> fun regctx ->
-  IG.fold_vertex init2 regctx.inter_graph regctx
+  AsmCfg.fold_vertex init1 cfg initctx |> fun regctx' ->
+  IG.fold_vertex init2 regctx'.inter_graph regctx'
 
 (* k is the number of registers available for coloring *)
 let k = 14
@@ -438,7 +455,7 @@ let adjacent _n _regctx = failwith "TODO"
 let decrement_degree _m _regctx = failwith "TODO"
 
 (* Remove non-move-related nodes of low degree *)
-let _simplify regctx =
+let simplify regctx =
   (* Pick a non-move-related vertex that has <k degree *)
   match regctx.simplify_wl with
   | [] -> regctx
@@ -490,7 +507,7 @@ let combine u v regctx =
     add_edge t u |> decrement_degree t *)
 
 (* Coalesce move-related nodes *)
-let _coalesce (regctx : alloc_context) : alloc_context =
+let coalesce (regctx : alloc_context) : alloc_context =
   match regctx.worklist_moves with
   | [] -> regctx
   | m::t ->
@@ -543,7 +560,7 @@ let freeze_moves (regctx : alloc_context) (node: IG.nodedata) : alloc_context =
       simplify_wl = simplify_wl'; } in
   List.fold_left ~f ~init:regctx (node_moves regctx node)
 
-let _freeze (regctx : alloc_context) : alloc_context =
+let freeze (regctx : alloc_context) : alloc_context =
   match regctx.freeze_wl with
   | [] -> regctx
   | fnode :: _ ->
@@ -558,7 +575,7 @@ let _freeze (regctx : alloc_context) : alloc_context =
 
 (* select a node to be spilled; heuristic used is
  * number of program points on which the temp is live on *)
-let _select_spill (regctx : alloc_context) =
+let select_spill (regctx : alloc_context) =
   let f reg =
     let occur_num =
       NodeData.Table.find_or_add
@@ -710,5 +727,57 @@ let rewrite_program
   } in
   (regctx', rewritten)
 
-let reg_alloc _ =
-  failwith "finish reg alloc!"
+let empty (l: 'a list) = List.length l > 0
+
+let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg = 
+  match reg with
+  | Real r -> r
+  | Fake _ -> NodeData.Table.find_exn regctx.color_map reg |> color_to_reg
+
+let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : reg operand =
+  match op with
+  | Reg reg -> Reg (get_real_reg regctx reg)
+  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
+  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg regctx reg, s))
+  | Mem (BaseOff (c, reg1, reg2, s)) ->
+      Mem (BaseOff (c, get_real_reg regctx reg1, get_real_reg regctx reg2, s))
+  | Label l -> Label l
+  | Const c -> Const c
+
+let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm = 
+  match asm with
+  | Op (instr, operands) ->
+      Op (instr, List.map ~f:(translate_operand regctx) operands)
+  | Lab l -> Lab l
+  | Directive (s, l) -> Directive (s, l)
+  | Comment s -> Comment s
+
+let reg_alloc (given_asms : abstract_asm list) =
+
+  let rec main
+    (regctx : alloc_context)
+    (asms : abstract_asm list)
+    : alloc_context * abstract_asm list =
+
+    let rec loop (innerctx : alloc_context) =
+      if empty innerctx.simplify_wl &&
+         empty innerctx.worklist_moves && 
+         empty innerctx.freeze_wl &&
+         empty innerctx.spill_wl then innerctx
+      else
+        let innerctx' =
+          if not (empty innerctx.simplify_wl) then simplify innerctx
+          else if not (empty innerctx.worklist_moves) then coalesce innerctx
+          else if not (empty innerctx.freeze_wl) then freeze innerctx
+          else select_spill innerctx in
+        loop innerctx' in
+    build regctx asms |> loop |> assign_colors |> fun regctx' ->
+      if not (empty regctx'.spilled_nodes) then
+        let newctx, newasms = rewrite_program regctx' asms in
+        main newctx newasms
+      else regctx', asms in
+
+  (* lol 100 is an empirically determined number *)
+  let finctx, finasms = main (empty_ctx 100 100) given_asms in
+  (* translate asms with allocated nodes *)
+  List.map ~f:(translate_asm finctx) finasms

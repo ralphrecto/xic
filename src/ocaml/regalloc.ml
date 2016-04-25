@@ -431,13 +431,22 @@ let build (asms : abstract_asm list) : alloc_context =
 (* k is the number of registers available for coloring *)
 let k = 14
 
+(* Returns a list of nodes adjacent to n that are not selected or coalesced.
+ * Does not update the context. *)
+let adjacent _n _regctx = failwith "TODO"
+
+let decrement_degree _m _regctx = failwith "TODO"
+
 (* Remove non-move-related nodes of low degree *)
 let _simplify regctx =
   (* Pick a non-move-related vertex that has <k degree *)
   match regctx.simplify_wl with
   | [] -> regctx
-  | n::t -> (*IG.remove_vertex regctx.inter_graph n;*)
-      { regctx with simplify_wl = t; select_stack = n::regctx.select_stack }
+  | n::t -> let regctx' = { regctx with
+                            simplify_wl = t;
+                            select_stack = n::regctx.select_stack } in
+  List.fold_left ~init:regctx' (adjacent n regctx') ~f:(fun regctx'' m ->
+    decrement_degree m regctx'')
 
 (* return node alias after coalescing; if node has not been coalesced,
  * reduces to identity function *)
@@ -459,7 +468,26 @@ let add_wl (node : IG.nodedata) (regctx : alloc_context) : alloc_context =
   else regctx
 
 let ok _t _r = failwith "TODO"
-let combine _u _v _regctx = failwith "TODO"
+let enable_moves _nodes _regctx = failwith "TODO"
+let combine u v regctx =
+  let set t k d = NodeData.Table.set t ~key:k ~data:d in
+  let find_exn t k = NodeData.Table.find_exn t k in
+
+  let regctx' =
+    if List.mem regctx.freeze_wl v then
+      { regctx with freeze_wl = remove regctx.freeze_wl v }
+    else
+      { regctx with spill_wl = remove regctx.spill_wl v }
+  in
+  let regctx' = { regctx' with coalesced_nodes = v::regctx'.coalesced_nodes } in
+  set regctx'.alias v u;
+  let move_list = (find_exn regctx'.move_list u) @ (find_exn regctx'.move_list v) in
+  set regctx'.move_list u move_list;
+  let regctx' = enable_moves v regctx' in
+  let _neighbors = IG.succ regctx'.inter_graph v in
+  failwith "TODO"
+  (*List.fold_left ~init:regctx' neighbors ~f:(fun acc t ->
+    add_edge t u |> decrement_degree t *)
 
 (* Coalesce move-related nodes *)
 let _coalesce (regctx : alloc_context) : alloc_context =
@@ -471,29 +499,26 @@ let _coalesce (regctx : alloc_context) : alloc_context =
     let u, v = if List.mem regctx.precolored y then (y, x) else (x, y) in
     let regctx' = { regctx with worklist_moves = t } in
     let _regctx' = { regctx with worklist_moves = t } in
-    let new_regctx =
-      if u = v then
-        let regctx'' = { regctx' with
-                          coalesced_moves = m::regctx'.coalesced_moves } in
-        add_wl u regctx''
-      else if List.mem regctx'.precolored v (*||
-              IG.mem_edge regctx'.inter_graph u v*) then
-        let regctx'' = { regctx' with
-                          constrained_moves = m::regctx'.constrained_moves } in
-        regctx'' |> add_wl u |> add_wl v
-      else if List.mem regctx'.precolored u (*&&
-              List.fold_left ~init:true (IG.succ regctx'.inter_graph v)
-                ~f:(fun acc n -> acc && (ok n u))*) ||
-              not (List.mem regctx'.precolored u) (*&&
-              conservative ((IG.succ regctx'.inter_graph u) @
-                (IG.succ regctx'.inter_graph v))*) then
-        let regctx'' = { regctx' with
-                          coalesced_moves = m::regctx'.coalesced_moves } in
-        regctx'' |> combine u v |> add_wl u
-      else
-        { regctx' with active_moves = m::regctx'.active_moves }
-    in
-    new_regctx
+    if u = v then
+      let regctx'' = { regctx' with
+                        coalesced_moves = m::regctx'.coalesced_moves } in
+      add_wl u regctx''
+    else if List.mem regctx'.precolored v (*||
+            IG.mem_edge regctx'.inter_graph u v*) then
+      let regctx'' = { regctx' with
+                        constrained_moves = m::regctx'.constrained_moves } in
+      regctx'' |> add_wl u |> add_wl v
+    else if List.mem regctx'.precolored u (*&&
+            List.fold_left ~init:true (IG.succ regctx'.inter_graph v)
+              ~f:(fun acc n -> acc && (ok n u))*) ||
+            not (List.mem regctx'.precolored u) (*&&
+            conservative ((IG.succ regctx'.inter_graph u) @
+              (IG.succ regctx'.inter_graph v))*) then
+      let regctx'' = { regctx' with
+                        coalesced_moves = m::regctx'.coalesced_moves } in
+      regctx'' |> combine u v |> add_wl u
+    else
+      { regctx' with active_moves = m::regctx'.active_moves }
 
 (* freeze: remove a move-related node of low degree *)
 let freeze_moves (regctx : alloc_context) (node: IG.nodedata) : alloc_context =

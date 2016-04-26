@@ -107,6 +107,46 @@ public class Main {
     @Option(name = "--asmdebug", usage = "Asm gen debug mode", hidden = true)
     private static boolean asmDebugMode = false;
 
+    /* Optimizations */
+    @Option(name="--optir", usage="Optimized IR")
+    private static String optIr = "";
+    @Option(name="--optcfg", usage="Optimized CFG dot files")
+    private static String optCfg = "";
+
+    @Option(name="-Ocf", usage="Constant folding")
+    private static boolean constantFolding = false;
+    @Option(name="-Oreg", usage="Register allocation")
+    private static boolean registerAllocation = false;
+    @Option(name="-Omc", usage="Move coalescing")
+    private static boolean moveCoalescing = false;
+    @Option(name="-Ouce", usage="Unreachable code elimination")
+    private static boolean unreachableCodeElim = false;
+    @Option(name="-Ocse", usage="Common subsexpression elimination")
+    private static boolean commonSubexprElim = false;
+    @Option(name="-Olicm", usage="Loop invariant code motion")
+    private static boolean loopInvariantCodeMotion = false;
+    @Option(name="-Opre", usage="Partial redundancy elimination")
+    private static boolean partialRedundancyElim = false;
+    @Option(name="-Ocp", usage="Constant propagation")
+    private static boolean constantPropagation = false;
+
+    @Option(name="-O-no-cf", usage="No constant folding")
+    private static boolean noConstantFolding = true;
+    @Option(name="-O-no-reg", usage="No register allocation")
+    private static boolean noRegisterAllocation = true;
+    @Option(name="-O-no-mc", usage="No move coalescing")
+    private static boolean noMoveCoalescing = true;
+    @Option(name="-O-no-uce", usage="No unreachable code elimination")
+    private static boolean noUnreachableCodeElim = true;
+    @Option(name="-O-no-cse", usage="No common subsexpression elimination")
+    private static boolean noCommonSubexprElim = true;
+    @Option(name="-O-no-licm", usage="No loop invariant code motion")
+    private static boolean noLoopInvariantCodeMotion = true;
+    @Option(name="-O-no-pre", usage="No partial redundancy elimination")
+    private static boolean noPartialRedundancyElim = true;
+    @Option(name="-O-no-cp", usage="No constant propagation")
+    private static boolean noConstantPropagation = true;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 

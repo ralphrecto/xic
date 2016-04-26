@@ -728,35 +728,20 @@ public class Main {
             // TODO: pass opts around
             List<String> opts = gatherOpts();
 
-            if (lexMode) {
-                doLex(arguments);
-            } else if (parseMode) {
-                doParse(arguments);
-            } else if (typecheckMode) {
-                doTypecheck(arguments);
-            } else if (typecheckDebugMode) {
-                doTypecheckDebug(arguments);
-            } else if (astCfoldMode) {
-                doAstCfold(arguments);
-            } else if (irGenMode && noOptimize) {
-                doIRGenNoOpt(arguments);
-            } else if (irAstCfoldMode) {
-                doIRAstCfold(arguments);
-            } else if (irCfoldMode) {
-                doIRCfold(arguments);
-            } else if (lowerMode) {
-                doIRLower(arguments);
-            } else if (blkReorderMode) {
-                doIRBlkReorder(arguments);
-            } else if (irGenMode) {
-                doIRGen(arguments);
-            } else if (basicIRMode) {
-                doBasicIR(arguments);
-            } else if (noOptimize){
-                doAsmGenNoOpt(arguments);
-            } else {
-                doAsmGen(arguments);
-            }
+                 if (lexMode)                 { doLex           (arguments); }
+            else if (parseMode)               { doParse         (arguments); }
+            else if (typecheckMode)           { doTypecheck     (arguments); }
+            else if (typecheckDebugMode)      { doTypecheckDebug(arguments); }
+            else if (astCfoldMode)            { doAstCfold      (arguments); }
+            else if (irGenMode && noOptimize) { doIRGenNoOpt    (arguments); }
+            else if (irAstCfoldMode)          { doIRAstCfold    (arguments); }
+            else if (irCfoldMode)             { doIRCfold       (arguments); }
+            else if (lowerMode)               { doIRLower       (arguments); }
+            else if (blkReorderMode)          { doIRBlkReorder  (arguments); }
+            else if (irGenMode)               { doIRGen         (arguments); }
+            else if (basicIRMode)             { doBasicIR       (arguments); }
+            else if (noOptimize)              { doAsmGenNoOpt   (arguments); }
+            else                              { doAsmGen        (arguments); }
 
         } catch(CmdLineException e) {
             System.err.println(e.getMessage());

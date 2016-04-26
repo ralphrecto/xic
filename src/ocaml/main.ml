@@ -20,19 +20,23 @@ module TodoRemoveThis_ItsOnlyUsedToBuildPre = Pre
 module TodoRemoveThis_ItsOnlyUsedToBuildCcp = Ccp
 
 type flags = {
-  no_opt:         bool;
-  typecheck:      bool;
-  tcdebug:        bool;
-  ast_cfold:      bool;
-  basicir:        bool;
-  ir_acfold:      bool;
-  ir_cfold:       bool;
-  lower:          bool;
-  blkreorder:     bool;
-  irgen:          bool;
-  asmchomp:       bool;
-  asmdebug:       bool;
-  astfiles:       string list;
+  no_opt:     bool;
+  typecheck:  bool;
+  tcdebug:    bool;
+  ast_cfold:  bool;
+  basicir:    bool;
+  ir_acfold:  bool;
+  ir_cfold:   bool;
+  lower:      bool;
+  blkreorder: bool;
+  irgen:      bool;
+  asmchomp:   bool;
+  asmdebug:   bool;
+  cf:         bool;
+  cp:         bool;
+  pre:        bool;
+  reg:        bool;
+  astfiles:   string list;
 } [@@deriving sexp]
 
 let resmap ~f =
@@ -152,79 +156,79 @@ let main flags () : unit Deferred.t =
   let ir_strf = sexp_of_comp_unit in
 
   (* dispatch logic *)
-  if flags.typecheck then
-    let contents = asts_to_strs typecheck typed_strf asts in
-    writes flags.astfiles contents
-  else if flags.tcdebug then
-    let contents = asts_to_strs typecheck typed_debug_strf asts in
-    writes flags.astfiles contents
-  else if flags.ast_cfold then
-    let contents = asts_to_strs debug_ast_cfold typed_debug_strf asts in
-    writes flags.astfiles contents
-  else if flags.basicir then
-    let contents = asts_to_strs debug_ir_basic ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.ir_acfold then
-    let contents = asts_to_strs debug_ir_astcfold ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.ir_cfold then
-    let contents = asts_to_strs debug_ir_cfold ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.lower then
-    let contents = asts_to_strs debug_ir_lower ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.blkreorder then
-    let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.irgen && flags.no_opt then
-    let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.irgen then
-    let contents = asts_to_strs ir_gen ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.no_opt then
-    let asm_gen = asm_gen_no_opt flags.asmdebug flags.asmchomp in
-    let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.astfiles contents
-  else
-    let asm_gen = asm_gen_opt flags.asmdebug flags.asmchomp in
-    let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.astfiles contents
+  let contents =
+    if flags.typecheck then
+      asts_to_strs typecheck typed_strf asts
+    else if flags.tcdebug then
+      asts_to_strs typecheck typed_debug_strf asts
+    else if flags.ast_cfold then
+      asts_to_strs debug_ast_cfold typed_debug_strf asts
+    else if flags.basicir then
+      asts_to_strs debug_ir_basic ir_strf asts
+    else if flags.ir_acfold then
+      asts_to_strs debug_ir_astcfold ir_strf asts
+    else if flags.ir_cfold then
+      asts_to_strs debug_ir_cfold ir_strf asts
+    else if flags.lower then
+      asts_to_strs debug_ir_lower ir_strf asts
+    else if flags.blkreorder then
+      asts_to_strs debug_ir_blkreorder ir_strf asts
+    else if flags.irgen && flags.no_opt then
+      asts_to_strs ir_gen_no_opt ir_strf asts
+    else if flags.irgen then
+      asts_to_strs ir_gen ir_strf asts
+    else if flags.no_opt then
+      let asm_gen = asm_gen_no_opt flags.asmdebug flags.asmchomp in
+      asts_to_strs asm_gen string_of_asms asts
+    else
+      let asm_gen = asm_gen_opt flags.asmdebug flags.asmchomp in
+      asts_to_strs asm_gen string_of_asms asts
+  in
+  writes flags.astfiles contents
+
 
 let () =
   Command.async
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
-      +> flag "--no-opt"         no_arg ~doc:""
-      +> flag "--typecheck"      no_arg ~doc:""
-      +> flag "--tcdebug"        no_arg ~doc:""
-      +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--basicir"        no_arg ~doc:""
-      +> flag "--ir-acfold"       no_arg ~doc:""
-      +> flag "--ir-cfold"       no_arg ~doc:""
-      +> flag "--lower"          no_arg ~doc:""
-      +> flag "--blkreorder"     no_arg ~doc:""
-      +> flag "--irgen"          no_arg ~doc:""
-      +> flag "--asmchomp"       no_arg ~doc:""
-      +> flag "--asmdebug"       no_arg ~doc:""
-      +> flag "--astfiles"    (listed string) ~doc:""
+      +> flag "--no-opt"     no_arg ~doc:""
+      +> flag "--typecheck"  no_arg ~doc:""
+      +> flag "--tcdebug"    no_arg ~doc:""
+      +> flag "--ast-cfold"  no_arg ~doc:""
+      +> flag "--basicir"    no_arg ~doc:""
+      +> flag "--ir-acfold"  no_arg ~doc:""
+      +> flag "--ir-cfold"   no_arg ~doc:""
+      +> flag "--lower"      no_arg ~doc:""
+      +> flag "--blkreorder" no_arg ~doc:""
+      +> flag "--irgen"      no_arg ~doc:""
+      +> flag "--asmchomp"   no_arg ~doc:""
+      +> flag "--asmdebug"   no_arg ~doc:""
+      +> flag "--cf"         no_arg ~doc:""
+      +> flag "--cp"         no_arg ~doc:""
+      +> flag "--pre"        no_arg ~doc:""
+      +> flag "--reg"        no_arg ~doc:""
+      +> flag "--astfiles"   (listed string) ~doc:""
     )
-    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 ->
+    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 x13 x14 x15 x16 ->
        let flags = {
-          no_opt       = x00;
-          typecheck    = x01;
-          tcdebug      = x02;
-          ast_cfold    = x03;
-          basicir      = x04;
-          ir_acfold    = x05;
-          ir_cfold     = x06;
-          lower        = x07;
-          blkreorder   = x08;
-          irgen        = x09;
-          asmchomp     = x10;
-          asmdebug     = x11;
-          astfiles = x12;
+          no_opt     = x00;
+          typecheck  = x01;
+          tcdebug    = x02;
+          ast_cfold  = x03;
+          basicir    = x04;
+          ir_acfold  = x05;
+          ir_cfold   = x06;
+          lower      = x07;
+          blkreorder = x08;
+          irgen      = x09;
+          asmchomp   = x10;
+          asmdebug   = x11;
+          cf         = x12;
+          cp         = x13;
+          pre        = x14;
+          reg        = x15;
+          astfiles   = x16;
        } in
        main flags)
   |> Command.run

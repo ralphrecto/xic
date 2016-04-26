@@ -66,122 +66,150 @@ module AsmWithLiveVar : CFGWithLatticeT
 
   let direction = `Backward
 
+  type usedefs = AbstractRegSet.t * AbstractRegSet.t
+
+  type usedef_pattern =
+    | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
+    | Unop of string list * (abstract_reg operand -> usedefs)
+    | Zeroop of string list * usedefs
+
+  type usedef_val =
+    | BinopV of string * abstract_reg operand * abstract_reg operand
+    | UnopV of string * abstract_reg operand
+    | ZeroopV of string
+
+  (* we do not include Rbp and Rsp at all in our regalloc algo *)
+  let no_rbp_or_rsp (regs : abstract_reg list) =
+    remove regs (Real Rbp) |> fun regs' ->
+    remove regs' (Real Rsp)
+
+  (* grabs all temps that appear in an operand *)
+  let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
+    let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
+    AbstractRegSet.of_list regs_list
+
+  let usedef_match (patterns : usedef_pattern list) (v : usedef_val) =
+    let f acc (pat : usedef_pattern) =
+      if acc <> None then acc else
+      begin
+        match pat, v with
+        | Binop (names, f), BinopV (n, lhs, rhs) ->
+            if List.mem names n then Some (f lhs rhs) else None
+        | Unop (names, f), UnopV (n, op) ->
+            if List.mem names n then Some (f op) else None
+        | Zeroop (names, usedef), ZeroopV n ->
+            if List.mem names n then Some usedef else None
+        | _ -> None
+      end in
+    match List.fold_left ~f ~init:None patterns with
+    | Some usedef -> usedef
+    | None -> AbstractRegSet.empty, AbstractRegSet.empty
+
+  let binops_use_plus_def =
+    let instr = [
+      "addq"; "subq"; "andq"; "orq"; "xorq"; "shlq";
+      "shrq"; "sarq"; "leaq"; "movq"
+    ] in
+    let f op1 op2 =
+      let uses = set_of_arg op1 in
+      match op2 with
+      | Reg _ ->
+        (uses, set_of_arg op2)
+      | Mem _ ->
+        (AbstractRegSet.union uses (set_of_arg op2), AbstractRegSet.empty)
+      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+    Binop (instr, f)
+
+  let binops_use =
+    let instr = [ "bt"; "cmpq"; "test" ] in
+    let f op1 op2 =
+      let uses = AbstractRegSet.union (set_of_arg op1) (set_of_arg op2) in
+      (uses, AbstractRegSet.empty) in
+    Binop (instr, f)
+
+  let unops_use_plus_def =
+    let instr = [ "incq"; "decq"; "negq"; ] in
+    let f op =
+      let opregs = set_of_arg op in
+      match op with
+      | Reg _ -> (opregs, opregs)
+      | Mem _ -> (opregs, AbstractRegSet.empty)
+      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty) in
+    Unop (instr, f)
+
+  (* TODO: these should go in as a special case since we se CL for the
+   * instructions right now.
+   * Although for register allocation we probably want to do something smarter
+   * and not default to CL but any other 8 bit register *)
+  let unops_def =
+    let instr = [
+      "asete"; "asetne"; "asetl"; "asetg"; "asetle"; "asetge"; "asetz";
+      "asetnz"; "asets"; "asetns"; "asetc"; "asetnc"; "pop"
+    ] in
+    let f op =
+      let opregs = set_of_arg op in
+      match op with
+      | Reg _ -> (AbstractRegSet.empty, opregs)
+      | Mem _ -> (opregs, AbstractRegSet.empty)
+      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty) in
+    Unop (instr, f)
+
+  let unops_use =
+    let instr = [ "push" ; "pushq" ] in
+    let f op = (set_of_arg op, AbstractRegSet.empty) in
+    Unop (instr, f)
+
+  let unops_mul_div =
+    let instr = [ "imulq"; "idivq"; ] in
+    let f op =
+      let useset = AbstractRegSet.add (set_of_arg op) (Real Rax) in
+      let defset = AbstractRegSet.of_list [Real Rax; Real Rdx;] in
+      (useset, defset) in
+    Unop (instr, f)
+
+  let unops_call =
+    let instr = [ "call"; ] in
+    let f op =
+      let useset = set_of_arg op in
+      let defset =
+        caller_saved_regs |>
+        List.map ~f:(fun reg -> Real reg) |>
+        no_rbp_or_rsp |>
+        AbstractRegSet.of_list in
+      (useset, defset) in
+    Unop (instr, f)
+
+  let zeroop_ret =
+    let instr = ["retq"] in
+    let useset =
+      callee_saved_regs |>
+      List.map ~f:(fun reg -> Real reg) |>
+      no_rbp_or_rsp |>
+      AbstractRegSet.of_list in
+    Zeroop (instr, (AbstractRegSet.empty, useset))
+
+  let asm_match =
+    let patterns = [
+      binops_use_plus_def;
+      binops_use;
+      unops_use_plus_def;
+      unops_def;
+      unops_use;
+      unops_mul_div;
+      unops_call;
+      zeroop_ret;
+    ] in
+    usedef_match patterns
+
   (* returns a sets of vars used and defd, respectively *)
   let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
-      (* we do not include Rbp and Rsp at all in our regalloc algo *)
-    let no_rbp_or_rsp (regs : abstract_reg list) =
-      remove regs (Real Rbp) |> fun regs' ->
-      remove regs' (Real Rsp) in
-
-    (* grabs all temps that appear in an operand *)
-    let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
-      let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
-      AbstractRegSet.of_list regs_list in
-
-    let binops_use_plus_def =  [
-      "addq";
-      "subq";
-      "andq";
-      "orq";
-      "xorq";
-      "shlq";
-      "shrq";
-      "sarq";
-      "leaq";
-      "movq"
-    ] in
-    let binops_use = [
-      "bt";
-      "cmpq";
-      "test"
-    ] in
-    let unops_use_plus_def = [
-      "incq";
-      "decq";
-      "negq";
-    ] in
-    (* TODO: these should go in as a special case since we se CL for the
-     * instructions right now.
-     * Although for register allocation we probably want to do something smarter
-     * and not default to CL but any other 8 bit register *)
-    let unops_def = [
-      "asete";
-      "asetne";
-      "asetl";
-      "asetg";
-      "asetle";
-      "asetge";
-      "asetz";
-      "asetnz";
-      "asets";
-      "asetns";
-      "asetc";
-      "asetnc";
-      "pop"
-    ] in
-    let unops_use = [
-      "push" ;
-      "pushq"
-    ] in
-    let unops_special = [
-      "imulq";
-      "idivq";
-      "call";
-    ] in
     function
       | Op (name, []) ->
-          begin
-            (* retq uses all callee-save registers *)
-            if name = "retq" then
-              let useset =
-                callee_saved_regs |>
-                List.map ~f:(fun reg -> Real reg) |>
-                no_rbp_or_rsp |>
-                AbstractRegSet.of_list in
-              (AbstractRegSet.empty, useset)
-            else
-              (AbstractRegSet.empty, AbstractRegSet.empty)
-          end
+          asm_match (ZeroopV name)
       | Op (name, arg :: []) ->
-        begin
-          let arg_set = set_of_arg arg in
-          if List.mem unops_use_plus_def name then
-            (arg_set, arg_set)
-          else if List.mem unops_def name then
-            (AbstractRegSet.empty, arg_set)
-          else if List.mem unops_use name then
-            (arg_set, AbstractRegSet.empty)
-          else if List.mem unops_special name then
-            begin
-              (* imulq, idivq: def rax, rdx; use rax *)
-              if name = "imulq" || name = "idivq" then
-                let useset = AbstractRegSet.add arg_set (Real Rax) in
-                let defset = AbstractRegSet.of_list [Real Rax; Real Rdx;] in
-                (useset, defset)
-              (* per Appel, calls def all caller-saved registers *)
-              else if name = "call" then
-                let defset =
-                  caller_saved_regs |>
-                  List.map ~f:(fun reg -> Real reg) |>
-                  no_rbp_or_rsp |>
-                  AbstractRegSet.of_list in
-                (AbstractRegSet.empty, defset)
-              else
-                (AbstractRegSet.empty, AbstractRegSet.empty)
-            end
-          else (AbstractRegSet.empty, AbstractRegSet.empty)
-        end
+          asm_match (UnopV (name, arg))
       | Op (name, arg1 :: arg2 :: []) ->
-        begin
-          let arg1_set = set_of_arg arg1 in
-          let arg2_set = set_of_arg arg2 in
-          let arg_union = AbstractRegSet.union arg1_set arg2_set in
-          if List.mem binops_use_plus_def name then
-            (arg_union, arg2_set)
-          else if List.mem binops_use name then
-            (arg_union, AbstractRegSet.empty)
-          else (AbstractRegSet.empty, AbstractRegSet.empty)
-        end
+          asm_match (BinopV (name, arg1, arg2))
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
@@ -190,8 +218,8 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Node n_data -> fst (usedvars n_data.asm)
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
-    (* We use src because live variable analysis is backwards *)
-    match E.src e with
+    (* TODO: We use dest (??) because live variable analysis is backwards *)
+    match E.dst e with
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
         let use_n, def_n = usedvars n_data.asm in
@@ -441,20 +469,17 @@ module Cfg = AsmWithLiveVar.CFG
 let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = Cfg.create_cfg asms in
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
+
+  let () =
+    failwith (Cfg.fold_edges_e (fun edge set -> AbstractRegSet.union (livevars_edge edge) set) cfg AbstractRegSet.empty |> _set_to_string) in
+
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
     function
       | Start | Exit -> AbstractRegSet.empty
       | Node _ as node ->
         begin
           match Cfg.succ_e cfg node with
-          (* TODO: clean this *)
           | [] -> AbstractRegSet.empty
-              (*let _graphstr = Cfg.to_dot cfg in*)
-              (*let _nodestr = Cfg.string_of_vertex node in*)
-              (*let _failstr =*)
-               (*"regalloc:build:livevars cfg node has no successors: " ^*)
-               (*_nodestr ^ "\n\n" ^ _graphstr in*)
-              (*failwith _failstr*)
           | edge :: _ -> livevars_edge edge
         end in
 
@@ -471,8 +496,9 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
       let vars =
         let get_vars cfgnode varset =
           AbstractRegSet.union (livevars cfgnode) varset in
-        Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
-        (*failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (set_to_string y));*)
+        let y = Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
+        failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (_set_to_string y));
+        y in
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
     else

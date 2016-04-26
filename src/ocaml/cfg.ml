@@ -257,20 +257,83 @@ module AsmDataStartExit = StartExit(AsmData)
 module AsmCfg = struct
   include Make(AsmDataStartExit)
 
-  (* TODO: change this to include branches *)
   let create_cfg (asms: abstract_asm list) =
+    (* a list of jumping instructions *)
+    let jump_instr = [
+      "jmp";
+      "je";
+      "jne";
+      "jnz";
+      "jz";
+      "jg";
+      "jge";
+      "jl";
+      "jle";
+      "js";
+      "jns";
+      "jc";
+      "jnc";
+    ] in
+
+    (* If asm is a jump, return Some labelstr; otherwise None.
+     * Note that we do not include calls here, since in general we may
+     * be calling functions that are linked in and are not within the same
+     * compilation unit, i.e. we do not know the labels for them, nor do we
+     * represent those labels with nodes in our cfg. This is fine as we build
+     * CFGs on a per-function basis. That is, we treat calls as effectively
+     * doing some magical work that puts stuff into the return registers/
+     * return space in stack and then gives control to the next node.
+     * Jumps are fine as we should only ever generate jumps within the
+     * same compilation unit (indeed, the same function) *)
+    let is_jump (asm : abstract_asm) : string option =
+      match asm with
+      | Op (instr, Label labelstr :: []) when List.mem jump_instr instr ->
+          Some labelstr
+      | _ -> None in
+
     let cfg = create () in
 
-    let nodes =
-      let f i asm = V.(create (Node { num = i; asm = asm; })) in
-      List.mapi ~f asms in
+    (* a list of asm cfg nodes, a label str -> asm cfg node map *)
+    let nodes, label_map =
+      let f (nodeacc, mapacc) (num, asm) =
+        let node : AsmData.t = { num; asm; } in
+        let mapacc' =
+          match asm with
+          | Lab labelstr -> String.Map.add ~key:labelstr ~data:node mapacc
+          | _ -> mapacc in
+        (node :: nodeacc, mapacc') in
+      let numbered_asms =
+        let f i asm = (i, asm) in
+        List.mapi ~f asms in
+      List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
 
-    let rec add_structure nodelist =
+    let rec add_structure (nodelist : AsmData.t list) =
       match nodelist with
       | [] -> ()
-      | hd :: [] -> add_vertex cfg hd
-      | hd1 :: hd2 :: tl -> add_edge cfg hd1 hd2; add_structure (hd2 :: tl) in
+      | { asm; _; } as hd :: [] ->
+        begin
+          let target =
+            match is_jump asm with
+            | Some labelstr ->
+                V.create (Node (String.Map.find_exn label_map labelstr))
+            (* In this case, we presume that asm is retq *)
+            | None -> V.create Exit in
+           add_edge cfg (V.create (Node hd)) target
+        end
+      (* we presume that hd1 cannot be retq (otherwise hd2 is unreachable) *)
+      | hd1 :: hd2 :: tl ->
+        begin
+          let { asm = asm1; _; } : AsmData.t = hd1 in
+          let target =
+            match is_jump asm1 with
+            | Some labelstr -> String.Map.find_exn label_map labelstr
+            (* asm1 not a jump = give control to asm2 (i.e. from hd2) *)
+            | None -> hd2 in
+          add_edge cfg (V.create (Node hd1)) (V.create (Node target));
+          add_structure (hd2 :: tl)
+        end in
 
     add_structure nodes;
     cfg
+
 end

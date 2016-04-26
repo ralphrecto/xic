@@ -510,16 +510,9 @@ let red_elim g ~univ ~uses ~latest ~used =
     in
     match v with
     | SE.Start ->
-      (* get rid of start *)
-      begin
-        match get_one_succ g v with
-        | Node {num; ir} as succv ->
-            let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
-            (C.remove_vertex new_g v;
-            C.swap new_g ~oldv:succv ~newv)
-        | Exit -> ()
-        | Start -> failwith "can't happen"
-      end
+      let new_label = Ir.Label (Fresh.FreshLabel.fresh ()) in
+      let newv = C.V.create (Node {num=(-1); ir=Ir.Seq (new_irs@[new_label])}) in
+      C.swap new_g ~oldv:v ~newv
     | SE.Node {num; ir} ->
       let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
       C.swap new_g ~oldv:v ~newv

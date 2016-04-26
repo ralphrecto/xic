@@ -30,7 +30,7 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   end
 )
 
-let set_to_string (set : AbstractRegSet.t) : string =
+let _set_to_string (set : AbstractRegSet.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
   "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }"
 
@@ -247,16 +247,17 @@ end
 
 module IG = InterferenceGraph
 
+module NodeDataKey = struct
+  type t = IG.nodedata
+  let compare = compare
+  let hash = Hashtbl.hash
+  let t_of_sexp _ = failwith "NodeData: implement t_of_sexp"
+  let sexp_of_t _ = failwith "NodeData: implement sexp_of_t"
+end
+
 module NodeData = struct
-  module T = struct
-    type t = IG.nodedata
-    let compare = compare
-    let hash = Hashtbl.hash
-    let t_of_sexp _ = failwith "NodeData: implement t_of_sexp"
-    let sexp_of_t _ = failwith "NodeData: implement sexp_of_t"
-  end
-  include T
-  include Hashable.Make (T)
+  include NodeDataKey
+  include Hashable.Make (NodeDataKey)
 end
 
 type color =
@@ -358,8 +359,6 @@ let empty_ctx num_moves num_nodes = {
   num_colors         = 14;
 }
 
-module Cfg = AsmWithLiveVar.CFG
-
 (* generic helper methods *)
 let get_next_color (colors : color list) : color option =
   let colorlist = [
@@ -435,6 +434,8 @@ let node_moves (node : IG.nodedata) (regctx : alloc_context) : temp_move list =
 let move_related (node: IG.nodedata) (regctx : alloc_context) : bool =
   List.length (node_moves node regctx) > 0
 
+module Cfg = AsmWithLiveVar.CFG
+
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
@@ -470,9 +471,8 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
       let vars =
         let get_vars cfgnode varset =
           AbstractRegSet.union (livevars cfgnode) varset in
-        let y = Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
-        failwith (set_to_string y);
-        y in
+        Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
+        (*failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (set_to_string y));*)
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
     else

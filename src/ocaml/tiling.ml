@@ -1188,7 +1188,7 @@ let asm_eat
   let func_contexts = get_context_map callable_decls comp_unit in
   let munched = eat_comp_unit ~debug func_contexts comp_unit in
   if debug then
-    List.concat_map ~f:(reg_alloc) munched
+    List.concat_map ~f:(reg_alloc) (List.tl_exn munched)
   else
     List.concat_map ~f:(register_allocate ~debug) munched
 

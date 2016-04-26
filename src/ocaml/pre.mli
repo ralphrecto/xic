@@ -170,3 +170,4 @@ val red_elim : Cfg.IrCfg.t ->
 val flatten : Cfg.IrCfg.t -> Ir.stmt list
 
 val pre : Ir.stmt list -> Ir.stmt list
+val pre_comp_unit : Ir.comp_unit -> Ir.comp_unit

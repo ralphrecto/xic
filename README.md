@@ -38,10 +38,14 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
     - `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
     - `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
     - `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
+    - `--tcdebug`: same as `--typecheck`
+    - `--nolower`:  same as `--irgen`
+    - `--lower`: same as `--irgen`
     - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
     - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
     - `--optcfg (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
     - ` `: `a/b/foo.xi --> a/b/foo.s`
+    - `--asmdebug`: same as ` `
 - Options
     - `-sourcepath <path> [default: dir where xic run]`
         - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
@@ -96,6 +100,7 @@ Here is a list of all the optimizations we support:
 | `pre`  | Partial Redundancy Elimination   |       |
 | `cse`  | Common Subexpression Elimination | `pre` |
 | `licm` | Loop Invariant Code Motion       | `pre` |
+| `is`   | Good Instruction Selection       |       |
 
 Here is how optimization flags interact with different modes:
 

@@ -241,3 +241,11 @@ let ccp irs =
   |> Int.Map.to_alist
   |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
   |> List.map ~f:snd
+
+let ccp_comp_unit (id, funcs) =
+  let f ((fname, stmt, typ): Ir.func_decl) =
+    match stmt with
+    | Seq irs -> (fname, Seq (ccp irs), typ)
+    | _ -> failwith "ccp_comp_unit: lowered func_decls should only have seqs"
+  in
+  (id, String.Map.map ~f funcs)

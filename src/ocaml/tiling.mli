@@ -70,13 +70,13 @@ type ('input, 'output) without_fcontext =
 val munch_expr      : (Ir.expr, Asm.fake * Asm.abstract_asm list) with_fcontext
 val munch_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
 val munch_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
-val munch_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext
+val munch_comp_unit : (Ir.comp_unit, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
 
 (* Maximal munch tiling algorithm with good tiles. *)
 val chomp_expr      : (Ir.expr, Asm.abstract_reg * Asm.abstract_asm list) with_fcontext
 val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
 val chomp_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
-val chomp_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext
+val chomp_comp_unit : (Ir.comp_unit, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
 
 (* Naive register allocation.
  *

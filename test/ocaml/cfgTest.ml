@@ -32,6 +32,17 @@ module IrCfgEq = struct
         assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
 end
 
+module AsmCfgEq = struct
+  let (===) (a: Cfg.AsmCfg.t) (b: Cfg.AsmCfg.t) : unit =
+    assert_equal ~cmp:Cfg.AsmCfg.equal ~printer:Cfg.AsmCfg.to_dot a b
+
+  let (=/=) (a: Cfg.AsmCfg.t) (b: Cfg.AsmCfg.t) : unit =
+    if Cfg.AsmCfg.equal a b then
+        let a = Cfg.AsmCfg.to_dot a in
+        let b = Cfg.AsmCfg.to_dot b in
+        assert_failure (sprintf "These are equal, but shouldn't be:\n%s\n%s" a b)
+end
+
 let test_cfg_equal _ =
   let open IntCfg in
   let open IntCfgEq in
@@ -246,6 +257,41 @@ let test_ir_cfg _ =
 
   ()
 
+
+let test_asm_cfg _ =
+  let open Cfg.AsmCfg in
+  let open Cfg.AsmData in
+  let open AsmCfgEq in
+  let open Asm in
+
+  let start = Cfg.AsmDataStartExit.Start in
+  let exit = Cfg.AsmDataStartExit.Exit in
+  let node num asm = Cfg.AsmDataStartExit.Node {num; asm} in
+
+  let tru  = Cfg.EdgeData.True in
+  let fls  = Cfg.EdgeData.False in
+  let norm = Cfg.EdgeData.Normal in
+
+  let make_graph vertexes edges =
+    let g = create () in
+    List.iter vertexes ~f:(fun i -> add_vertex g (V.create i));
+    List.iter edges ~f:(fun (i, l, j) -> add_edge_e g (E.create i l j));
+    g
+  in
+
+  let _ = [tru; fls; norm] in
+  let _ = node in
+
+  (* *)
+  let asms = [] in
+  let v = [start; exit] in
+  let e = [(start, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  ()
+
+
+
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 (* ! DON'T FORGET TO ADD YOUR TESTS HERE                                     ! *)
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -253,6 +299,7 @@ let main () =
     "suite" >::: [
       "test_cfg_equal" >:: test_cfg_equal;
       "test_ir_cfg"    >:: test_ir_cfg;
+      "test_asm_cfg"   >:: test_asm_cfg;
     ] |> run_test_tt_main
 
 let _ = main ()

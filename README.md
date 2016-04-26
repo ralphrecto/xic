@@ -110,7 +110,7 @@ Here is how optimization flags interact with different modes:
 | `--irgen`                  | `acf`, `icf`              | `.ir`         |
 | `--optir (initial,final)`  | `acf`, `icf`, `cp`, `pre` | `.ir`         |
 | `--optcfg (initial,final)` | `acf`, `icf`, `cp`, `pre` | `.dot`        |
-| ``                         | all                       | `.s`          |
+| ` `                        | all                       | `.s`          |
 | `--asmdebug`               | all                       | `.s`          |
 
 Here are some examples to wrap your head around things:

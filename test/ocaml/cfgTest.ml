@@ -284,7 +284,7 @@ let test_asm_cfg _ =
   let _ = [tru; fls; norm] in
   let _ = node in
 
-  (* *)
+  (* test 1 *********************************************************)
   let asms = [] in
   let v = [start; exit] in
   let e = [(start, norm, exit)] in
@@ -319,7 +319,7 @@ let main () =
     "suite" >::: [
       "test_cfg_equal" >:: test_cfg_equal;
       "test_ir_cfg"    >:: test_ir_cfg;
-      "test_asm_cfg"   >:: test_asm_cfg;
+      (* "test_asm_cfg"   >:: test_asm_cfg; *)
     ] |> run_test_tt_main
 
 let _ = main ()

@@ -275,7 +275,9 @@ module AsmCfg = struct
       "jnc";
     ] in
 
-    (* If asm is a jump, return Some labelstr; otherwise None.
+    (* If asm is a jump, return Some (labelstr, bool); otherwise None.
+     * The bool denotes whether or not the jump is conditional.
+     *
      * Note that we do not include calls here, since in general we may
      * be calling functions that are linked in and are not within the same
      * compilation unit, i.e. we do not know the labels for them, nor do we
@@ -285,10 +287,11 @@ module AsmCfg = struct
      * return space in stack and then gives control to the next node.
      * Jumps are fine as we should only ever generate jumps within the
      * same compilation unit (indeed, the same function) *)
-    let is_jump (asm : abstract_asm) : string option =
+    let is_jump (asm : abstract_asm) : (string * bool) option =
       match asm with
       | Op (instr, Label labelstr :: []) when List.mem jump_instr instr ->
-          Some labelstr
+          let conditional = not (instr = "jmp") in
+          Some (labelstr, conditional)
       | _ -> None in
 
     let cfg = create () in
@@ -305,7 +308,9 @@ module AsmCfg = struct
       let numbered_asms =
         let f i asm = (i, asm) in
         List.mapi ~f asms in
-      List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
+      let fin_asms, map =
+        List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
+      (List.rev fin_asms, map) in
 
     let rec add_structure (nodelist : AsmData.t list) =
       match nodelist with
@@ -314,7 +319,7 @@ module AsmCfg = struct
         begin
           let target =
             match is_jump asm with
-            | Some labelstr ->
+            | Some (labelstr, _) ->
                 V.create (Node (String.Map.find_exn label_map labelstr))
             (* In this case, we presume that asm is retq *)
             | None -> V.create Exit in
@@ -324,12 +329,17 @@ module AsmCfg = struct
       | hd1 :: hd2 :: tl ->
         begin
           let { asm = asm1; _; } : AsmData.t = hd1 in
-          let target =
+          let targets =
             match is_jump asm1 with
-            | Some labelstr -> String.Map.find_exn label_map labelstr
+            | Some (labelstr, conditional) ->
+                let labelnode = String.Map.find_exn label_map labelstr in
+                if conditional then [labelnode; hd2]
+                else [hd2]
             (* asm1 not a jump = give control to asm2 (i.e. from hd2) *)
-            | None -> hd2 in
-          add_edge cfg (V.create (Node hd1)) (V.create (Node target));
+            | None -> [hd2] in
+          let f target =
+            add_edge cfg (V.create (Node hd1)) (V.create (Node target)) in
+          List.iter ~f targets;
           add_structure (hd2 :: tl)
         end in
 

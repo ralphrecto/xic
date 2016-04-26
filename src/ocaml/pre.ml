@@ -186,9 +186,10 @@ let preprocess g =
     in
     List.fold_left preds ~init:a ~f:(fun a e ->
       let d = dummy a in
+      let l = IrCfg.E.label e in
       remove_edge_e g e;
       add_vertex g d;
-      add_edge g (E.src e) d;
+      add_edge_e g (IrCfg.E.create (E.src e) l d);
       add_edge g d (E.dst e);
       a + 1
     )
@@ -413,7 +414,7 @@ let get_non_dummy g =
     match n with
     | SE.Node {ir=Seq ir'; _} -> (Ir.compare_stmt (List.last_exn ir') dummy_ir) <> 0
     | SE.Exit -> false
-    | _ -> failwith "can't happen"
+    | _ -> failwith ("get_non_dummy: " ^ (SE.to_string n))
   in
   C.VertexSet.filter ~f vertices
 
@@ -423,7 +424,7 @@ let get_dummy g =
     match n with
     | SE.Node {ir=Seq ir'; _} -> (Ir.compare_stmt (List.last_exn ir') dummy_ir) = 0
     | SE.Exit -> false
-    | _ -> failwith "can't happen"
+    | _ -> failwith ("get_dummy: " ^ (SE.to_string n))
   in
   C.VertexSet.filter ~f vertices
 
@@ -435,14 +436,15 @@ let non_dummy_pass g : mapping =
     match v with
     | SE.Node {ir = Seq ir'; num} ->
       Int.Map.add ~key:num ~data:(Util.init ir', List.last_exn ir') acc
-    | _ -> failwith "can't happen"
+    | _ -> failwith ("non_dummy_pass: " ^ (SE.to_string v))
   in
   C.VertexSet.fold ~init:Int.Map.empty ~f vertices
 
 let dummy_pass g (m: mapping) : mapping =
   let vertices = get_dummy g in
-  let f acc v =
+  let f m v =
     match v with
+    | SE.Node {ir = Seq [_]; _} -> m
     | SE.Node {ir = Seq ir'; num} ->
       begin
         match get_one_pred_succ g v with
@@ -462,7 +464,8 @@ let dummy_pass g (m: mapping) : mapping =
                 | Cfg.EdgeData.False ->
                   let (old_prepend, last) = Int.Map.find_exn m num_succ in
                   Int.Map.add ~key:num_succ ~data:(new_irs@old_prepend, last) m
-                | Cfg.EdgeData.Normal -> failwith "can't happen"
+                | Cfg.EdgeData.Normal ->
+                    failwith ("dummy_pass: " ^ (C.string_of_edge (get_one_pred_e g v)))
               end
             | Jump _ ->
               let (old_prepend, last) = Int.Map.find_exn m num_pred in
@@ -473,10 +476,10 @@ let dummy_pass g (m: mapping) : mapping =
               let (old_prepend, last) = Int.Map.find_exn m num_succ in
               Int.Map.add ~key:num_succ ~data:(new_irs@old_prepend, last) m
           end
-        | SE.Node _, SE.Exit -> acc
-        | _ -> failwith "can't happen"
+        | SE.Node _, SE.Exit -> m
+        | _ -> failwith "dummy_pass one"
       end
-    | _ -> failwith "can't happen"
+    | _ -> failwith "dummy_pass two"
   in
   C.VertexSet.fold ~init:m ~f vertices
 
@@ -487,7 +490,6 @@ let flatten g =
   |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
   |> List.map ~f: (fun (_, (prepends, last)) -> prepends@[last])
   |> List.concat
-
 
 let red_elim g ~univ ~uses ~latest ~used =
   (* step (a) *)

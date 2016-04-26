@@ -1174,8 +1174,10 @@ let enchilada_test _ =
   ] in
 
   Ir_generation.FreshTemp.reset();
+  Fresh.FreshLabel.reset();
   let t = Ir.Temp (Ir_generation.FreshTemp.gen 0) in
   let expected = [
+    label (Fresh.FreshLabel.gen 0);  (* start *)
     cjumpone one "n5";  (* B1 *)
     move c two;         (* B2 *)
     move t (b + c);     (* B3 *)

@@ -328,11 +328,6 @@ module PostponeExprCFG = struct
 
   let transfer ({earliest; uses; _}: extra_info) (e: edge) (d: data) =
     let source = E.src e in
-    printf "transferring edge %s\n" (CFG.string_of_edge e);
-    printf "  source = %s\n" (CFG.string_of_vertex source);
-    printf "  earliest = %s\n" (ExprSet.to_small_string (earliest source));
-    printf "  d = %s\n" (ExprSet.to_small_string d);
-    printf "  uses = %s\n" (ExprSet.to_small_string (uses source));
     ((earliest source) + d) - (uses source)
 end
 

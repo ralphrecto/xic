@@ -212,3 +212,32 @@ module CcpCFG = struct
     | _, IDSE.Start -> d
     | _, IDSE.Exit -> failwith "cannot happen"
 end
+
+module Ccp = Dataflow.GenericAnalysis(CcpCFG)
+
+let ccp irs =
+  let module C = IrCfg in
+  let module IDSE = IrDataStartExit in
+  let module L = CcpLattice in
+  let g = C.create_cfg irs in
+  let undef_mapping = map_temp_undef (get_all_temps g) in
+  let ccp_e = Ccp.worklist undef_mapping g in
+  let f_vertex v acc =
+    match v with
+    | IDSE.Start
+    | IDSE.Exit -> acc
+    | IDSE.Node {ir; num} ->
+      let f_edge e acc' =
+        match acc', fst(ccp_e e) with
+        | L.Unreach, L.Unreach -> L.Unreach
+        | _, L.Reach -> L.Reach
+        | L.Reach, _ -> L.Reach
+      in
+      match C.fold_pred_e f_edge g v (L.Unreach) with
+      | L.Unreach -> acc
+      | L.Reach -> Int.Map.add ~key:num ~data:ir acc
+  in
+  C.fold_vertex f_vertex g Int.Map.empty
+  |> Int.Map.to_alist
+  |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
+  |> List.map ~f:snd

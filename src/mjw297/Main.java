@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -108,8 +109,12 @@ public class Main {
     private static boolean asmDebugMode = false;
 
     /* Optimizations */
+    @Option(name="--report-opts", usage="Report available optimizations")
+    private static boolean reportOpts = false;
+
     @Option(name="--optir", usage="Optimized IR")
     private static String optIr = "";
+
     @Option(name="--optcfg", usage="Optimized CFG dot files")
     private static String optCfg = "";
 
@@ -594,6 +599,14 @@ public class Main {
 
             if (helpMode) {
                 printUsage();
+                System.exit(0);
+            }
+
+            if (reportOpts) {
+                List<String> opts = Arrays.asList(
+                    "cf", "reg", "mc", "uce", "cse", "licm", "pre", "cp"
+                );
+                opts.forEach(System.out::println);
                 System.exit(0);
             }
 

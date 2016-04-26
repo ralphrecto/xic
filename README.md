@@ -40,7 +40,7 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
     - `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
     - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
     - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
-    - `--optcf (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
+    - `--optcfg (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
     - ` `: `a/b/foo.xi --> a/b/foo.s`
 - Options
     - `-sourcepath <path> [default: dir where xic run]`
@@ -96,6 +96,64 @@ Here is a list of all the optimizations we support:
 | `pre`  | Partial Redundancy Elimination   |       |
 | `cse`  | Common Subexpression Elimination | `pre` |
 | `licm` | Loop Invariant Code Motion       | `pre` |
+
+Here is how optimization flags interact with different modes:
+
+| Mode                       | Flags Used                | Extension     |
+| -------------------------- | ------------------------- | ------------- |
+| `--lex`                    | none                      | `.lexed`      |
+| `--parse`                  | none                      | `.parsed`     |
+| `--typecheck`              | `acf`                     | `.typed`      |
+| `--tcdebug`                | `acf`                     | `.typeddebug` |
+| `--nolower`                | `acf`, `icf`              | `.nolower`    |
+| `--lower`                  | `acf`, `icf`, `cp`, `pre` | `.lower`      |
+| `--irgen`                  | `acf`, `icf`              | `.ir`         |
+| `--optir (initial,final)`  | `acf`, `icf`, `cp`, `pre` | `.ir`         |
+| `--optcfg (initial,final)` | `acf`, `icf`, `cp`, `pre` | `.dot`        |
+| ``                         | all                       | `.s`          |
+| `--asmdebug`               | all                       | `.s`          |
+
+Here are some examples to wrap your head around things:
+
+| Flags                                    | Meaning                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| `--lex`                                  | Lex the code                                                              |
+| `--lex -O<opt>`                          | Lex the code; optimization ignored                                        |
+| `--parse`                                | Parse the code                                                            |
+| `--parse -O<opt>`                        | Parse the code; optimization ignored                                      |
+| `--typecheck`                            | Typecheck, then AST constant fold                                         |
+| `--typecheck -O`                         | Typecheck; no optimization                                                |
+| `--typecheck -Ocp`                       | Typecheck; no optimization                                                |
+| `--typecheck -Oacf`                      | Typecheck, then AST constant fold                                         |
+| `--tcdebug`                              | Typecheck, AST constant fold, and output AST                              |
+| `--tcdebug -Ocp`                         | Typecheck and output AST; no optimization                                 |
+| `--tcdebug -Oacf`                        | Typecheck, AST constant fold, and output AST                              |
+| `--nolower`                              | Generate IR with constant folding, but w/o lowering or block reordering   |
+| `--nolower -O`                           | Generate IR w/o constant folding, lowering, or block reordering           |
+| `--nolower -Oacf`                        | Generate IR with AST constant folding but no lowering or block reordering |
+| `--nolower -Oicf`                        | Generate IR with IR constant folding but no lowering or block reordering  |
+| `--nolower -Oacf -Oicf`                  | Generate IR with constant folding but no lowering or block reordering     |
+| `--lower`                                | Generate IR with all optimizations and lowering, but w/o block reordering |
+| `--lower -O`                             | Generate IR w/o optimizations, with lowering, and w/o block reordering    |
+| `--lower -Oacf -Oicf`                    | Generate IR with constant folding, and lowering, but w/o block reordering |
+| `--lower -Oacf -Oicf -Ocp -Opre`         | Generate IR with all optimizations and lowering, but w/o block reordering |
+| `--irgen`                                | Generate IR with constant folding, lowering, and block reordering         |
+| `--irgen -O`                             | Generate IR w/o constant folding, but with lowering and block reordering  |
+| `--optir initial -O`                     | Generate IR w/o optimizations, but with lowering and block reordering     |
+| `--optir initial`                        | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir initial -Oacf -Oicf`            | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir initial -Oacf -Oicf -Ocp -Opre` | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir final -O`                       | Generate IR w/o optimizations, but with lowering and block reordering     |
+| `--optir final`                          | Generate IR with all optimizations, lowering, and block reordering        |
+| `--optir final -Oacf -Oicf`              | Generate IR with constant folding, lowering, and block reordering         |
+| `--optir final -Oacf -Oicf -Ocp -Opre`   | Generate IR with all optimizations, lowering, and block reordering        |
+| `--optcfg ...`                           | Same as `--optir`                                                         |
+| ` `                                      | Generate assembly with all optimizations                                  |
+| `-O`                                     | Generate assembly with no optimizations                                   |
+| `-Oacf -Oicf`                            | Generate assembly with only constant folding                              |
+| `--asmdebug  `                           | Generate commented assembly with all optimizations                        |
+| `--asmdebug -O`                          | Generate commented assembly with no optimizations                         |
+| `--asmdebug -Oacf -Oicf`                 | Generate commented assembly with only constant folding                    |
 
 ## x86-64 ##
 |     |      |      |              |

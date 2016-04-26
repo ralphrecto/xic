@@ -113,15 +113,15 @@ public class Main {
     /* Optimizations */
     @Option(name="--report-opts", usage="Report available optimizations")
     private static boolean reportOpts = false;
-
     @Option(name="--optir", usage="Optimized IR")
-    private static String optIr = "";
-
+    private static List<String> optIr;
     @Option(name="--optcfg", usage="Optimized CFG dot files")
-    private static String optCfg = "";
+    private static List<String> optCfg;
 
-    @Option(name="-Ocf", usage="Constant folding")
-    private static boolean constantFolding = false;
+    @Option(name="-Oacf", usage="AST Constant folding")
+    private static boolean astConstantFolding = false;
+    @Option(name="-Oicf", usage="IR Constant folding")
+    private static boolean irConstantFolding = false;
     @Option(name="-Oreg", usage="Register allocation")
     private static boolean registerAllocation = false;
     @Option(name="-Omc", usage="Move coalescing")
@@ -137,8 +137,10 @@ public class Main {
     @Option(name="-Ocp", usage="Constant propagation")
     private static boolean constantPropagation = false;
 
-    @Option(name="-O-no-cf", usage="No constant folding")
-    private static boolean noConstantFolding = false;
+    @Option(name="-O-no-acf", usage="No AST constant folding")
+    private static boolean noAstConstantFolding = false;
+    @Option(name="-O-no-icf", usage="No IR constant folding")
+    private static boolean noIrConstantFolding = false;
     @Option(name="-O-no-reg", usage="No register allocation")
     private static boolean noRegisterAllocation = false;
     @Option(name="-O-no-mc", usage="No move coalescing")
@@ -158,7 +160,8 @@ public class Main {
     // reg = mc
     // cp = uce
     // pre = cse = licm
-    private static String cf   = "cf";
+    private static String acf  = "acf";
+    private static String icf  = "icf";
     private static String reg  = "reg";
     private static String mc   = "mc";
     private static String uce  = "uce";
@@ -167,7 +170,8 @@ public class Main {
     private static String pre  = "pre";
     private static String cp   = "cp";
 
-    private static String cfFlag   = "--" + cf;
+    private static String acfFlag  = "--" + acf;
+    private static String icfFlag  = "--" + icf;
     private static String regFlag  = "--" + reg;
     private static String mcFlag   = "--" + reg;
     private static String uceFlag  = "--" + cp;
@@ -620,7 +624,8 @@ public class Main {
      */
     public List<String> gatherOpts() {
         List<Boolean> opts = Arrays.asList(
-            constantFolding,
+            astConstantFolding,
+            irConstantFolding,
             registerAllocation,
             moveCoalescing,
             unreachableCodeElim,
@@ -632,7 +637,8 @@ public class Main {
         boolean optsSpecified = any(opts, b -> b);
 
         List<Boolean> noOpts = Arrays.asList(
-            noConstantFolding,
+            noIrConstantFolding,
+            noAstConstantFolding,
             noRegisterAllocation,
             noMoveCoalescing,
             noUnreachableCodeElim,
@@ -655,7 +661,8 @@ public class Main {
 
         // if nothing is specified, we perform all optimizations
         List<String> allFlags = new ArrayList<>(Arrays.asList(
-            cfFlag, regFlag, mcFlag, uceFlag, cseFlag, licmFlag, preFlag, cpFlag
+            acfFlag, icfFlag, regFlag, mcFlag, uceFlag, cseFlag, licmFlag,
+            preFlag, cpFlag
         ));
         if (!optsSpecified && !noOptsSpecified) {
             return allFlags;
@@ -664,7 +671,8 @@ public class Main {
         // -O-<opt>
         if (optsSpecified) {
             List<String> flags = new ArrayList<>();
-            if (constantFolding)         { flags.add(cfFlag);   }
+            if (astConstantFolding)      { flags.add(acfFlag);  }
+            if (irConstantFolding)       { flags.add(icfFlag);  }
             if (registerAllocation)      { flags.add(regFlag);  }
             if (moveCoalescing)          { flags.add(mcFlag);   }
             if (unreachableCodeElim)     { flags.add(uceFlag);  }
@@ -678,7 +686,8 @@ public class Main {
         // -O-no-<opt>
         assert noOptsSpecified;
         List<String> flags = allFlags;
-        if (noConstantFolding)         { flags.remove(cfFlag);   }
+        if (noAstConstantFolding)      { flags.remove(acfFlag);  }
+        if (noIrConstantFolding)       { flags.remove(icfFlag);  }
         if (noRegisterAllocation)      { flags.remove(regFlag);  }
         if (noMoveCoalescing)          { flags.remove(mcFlag);   }
         if (noUnreachableCodeElim)     { flags.remove(uceFlag);  }
@@ -705,7 +714,7 @@ public class Main {
 
             if (reportOpts) {
                 List<String> opts = Arrays.asList(
-                    cf, reg, mc, uce, cse, licm, pre, cp
+                    acf, icf, reg, mc, uce, cse, licm, pre, cp
                 );
                 opts.forEach(System.out::println);
                 System.exit(0);

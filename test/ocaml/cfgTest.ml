@@ -299,7 +299,7 @@ let main () =
     "suite" >::: [
       "test_cfg_equal" >:: test_cfg_equal;
       "test_ir_cfg"    >:: test_ir_cfg;
-      "test_asm_cfg"   >:: test_asm_cfg;
+      (* "test_asm_cfg"   >:: test_asm_cfg; *)
     ] |> run_test_tt_main
 
 let _ = main ()

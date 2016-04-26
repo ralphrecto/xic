@@ -32,12 +32,36 @@ type flags = {
   irgen:      bool;
   asmchomp:   bool;
   asmdebug:   bool;
-  cf:         bool;
+  acf:        bool;
+  icf:        bool;
   cp:         bool;
   pre:        bool;
   reg:        bool;
   astfiles:   string list;
 } [@@deriving sexp]
+
+type opts = {
+  acf : Typecheck.full_prog -> Typecheck.full_prog;
+  icf : Ir.comp_unit -> Ir.comp_unit;
+  cp  : Ir.stmt list -> Ir.stmt list;
+  pre : Ir.stmt list -> Ir.stmt list;
+  reg : ?debug:bool -> Asm.abstract_asm list -> Asm.asm list;
+}
+
+let opts_of_flags ({acf; icf; cp; pre; reg; _}: flags) : opts =
+  {
+    acf = (if acf then Ast_optimization.ast_constant_folding else fun x -> x);
+    icf = (if icf then Ir_generation.ir_constant_folding else fun x -> x);
+    cp  = (if cp  then Ccp.ccp else fun x -> x);
+    pre = (if pre then Pre.pre else fun x -> x);
+    reg = (if reg then Regalloc.reg_alloc else Tiling.register_allocate);
+  }
+
+let acf = Ast_optimization.ast_constant_folding
+let icf = Ir_generation.ir_constant_folding
+
+let cp = Ccp.ccp
+let pre = Pre.pre
 
 let resmap ~f =
   List.map ~f:(function
@@ -204,13 +228,14 @@ let () =
       +> flag "--irgen"      no_arg ~doc:""
       +> flag "--asmchomp"   no_arg ~doc:""
       +> flag "--asmdebug"   no_arg ~doc:""
-      +> flag "--cf"         no_arg ~doc:""
+      +> flag "--acf"        no_arg ~doc:""
+      +> flag "--icf"        no_arg ~doc:""
       +> flag "--cp"         no_arg ~doc:""
       +> flag "--pre"        no_arg ~doc:""
       +> flag "--reg"        no_arg ~doc:""
       +> flag "--astfiles"   (listed string) ~doc:""
     )
-    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 x13 x14 x15 x16 ->
+    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 x13 x14 x15 x16 x17 ->
        let flags = {
           no_opt     = x00;
           typecheck  = x01;
@@ -224,11 +249,12 @@ let () =
           irgen      = x09;
           asmchomp   = x10;
           asmdebug   = x11;
-          cf         = x12;
-          cp         = x13;
-          pre        = x14;
-          reg        = x15;
-          astfiles   = x16;
+          acf        = x12;
+          icf        = x13;
+          cp         = x14;
+          pre        = x15;
+          reg        = x16;
+          astfiles   = x17;
        } in
        main flags)
   |> Command.run

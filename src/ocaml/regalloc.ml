@@ -910,7 +910,10 @@ let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
   | Directive (s, l) -> Directive (s, l)
   | Comment s -> Comment s
 
-let reg_alloc (given_asms : abstract_asm list) =
+let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
+  (* TODO use debug *)
+  ignore debug;
+
   let rec main
     ?(init = false)
     (regctx : alloc_context)

@@ -4,7 +4,7 @@ open Asm
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg
 
 (* performs register allocation with move coalescing *)
-val reg_alloc : abstract_asm list -> asm list
+val reg_alloc : ?debug:bool -> abstract_asm list -> asm list
 
 module LiveVariableLattice : Dataflow.LowerSemilattice with
   type data = AbstractRegSet.t

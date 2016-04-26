@@ -230,7 +230,7 @@ let ccp irs =
       let f_edge e acc' =
         match acc', fst(ccp_e e) with
         | L.Unreach, L.Unreach -> L.Unreach
-        | _, L.Reach -> L.Reach
+        | _, L.Reach
         | L.Reach, _ -> L.Reach
       in
       match C.fold_pred_e f_edge g v (L.Unreach) with

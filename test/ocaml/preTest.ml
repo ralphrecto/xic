@@ -906,11 +906,11 @@ module BookExample = struct
   let e9_10  = (n9,    norm, n10)
   let e10_11 = (n10,   tru,  n11)
   let e11_e  = (n11,   norm, exit)
-  let e8_10  = (n8,    tru,  n10)
+  let e8_11  = (n8,    tru,  n11)
   let e10_9  = (n10,   fls,  n9)
   let es = [
     es_1; e1_2; e2_3; e3_4; e4_7; e1_5; e5_6; e6_7; e7_8; e8_9; e9_10; e10_11;
-    e11_e; e8_10; e10_9;
+    e11_e; e8_11; e10_9;
   ]
 
   (* graph *)
@@ -943,6 +943,11 @@ module BookExample = struct
 
   let earliest = fun v ->
     if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n3; n5] v
+      then E.singleton (temp "b" + temp "c")
+      else E.empty
+
+  let latest = fun v ->
+    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n4; n5] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
 end
@@ -1009,7 +1014,7 @@ let busy_test _ =
     (e9_10,  E.empty);
     (e10_11, E.empty);
     (e11_e,  E.empty);
-    (e8_10,  E.empty);
+    (e8_11,  E.empty);
     (e10_9,  bc);
   ] in
   test expected es g univ busy kills;
@@ -1051,7 +1056,7 @@ let avail_test _ =
     (e9_10,  bc);
     (e10_11, bc);
     (e11_e,  bc);
-    (e8_10,  bc);
+    (e8_11,  bc);
     (e10_9,  bc);
   ] in
   test expected es g univ busy kills;
@@ -1093,10 +1098,52 @@ let post_test _ =
     (e9_10,  E.empty);
     (e10_11, E.empty);
     (e11_e,  E.empty);
-    (e8_10,  E.empty);
+    (e8_11,  E.empty);
     (e10_9,  E.empty);
   ] in
   test expected es g univ uses earliest;
+
+  ()
+
+let used_test _ =
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+  let module C = Cfg.IrCfg in
+  let module D = Cfg.IrData in
+  let module SE = Cfg.IrDataStartExit in
+  let module E = Pre.ExprSet in
+
+  (* testing helper *)
+  let test expected edges g uses latest =
+    let open EdgeToExprEq in
+    let make_edge (src, l, dst) = C.E.create src l dst in
+    let edges = List.map edges ~f:make_edge in
+    let expected = List.map expected ~f:(fun (edge, expr) -> (make_edge edge, expr)) in
+    let actual = Pre.UsedExpr.worklist UsedExprCFG.{uses; latest} g in
+    expected === List.map edges ~f:(fun edge -> (edge, actual edge))
+  in
+
+  (* book example *)
+  let open BookExample in
+  let bc = E.singleton (temp "b" + temp "c") in
+  let expected = [
+    (es_1,   E.empty);
+    (e1_2,   E.empty);
+    (e2_3,   E.empty);
+    (e3_4,   E.empty);
+    (e4_7,   bc);
+    (e1_5,   E.empty);
+    (e5_6,   bc);
+    (e6_7,   bc);
+    (e7_8,   bc);
+    (e8_9,   bc);
+    (e9_10,  bc);
+    (e10_11, E.empty);
+    (e11_e,  E.empty);
+    (e8_11,  E.empty);
+    (e10_9,  bc);
+  ] in
+  test expected es g uses latest;
 
   ()
 
@@ -1142,6 +1189,7 @@ let main () =
       "busy_test"        >:: busy_test;
       "avail_test"       >:: avail_test;
       "post_test"        >:: post_test;
+      "used_test"        >:: used_test;
       (* "enchilada_test"   >:: enchilada_test; *)
     ] |> run_test_tt_main
 

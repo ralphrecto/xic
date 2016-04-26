@@ -312,6 +312,11 @@ module AsmCfg = struct
         List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
       (List.rev fin_asms, map) in
 
+    let is_ret asm =
+      match asm with
+      | Op ("retq", []) -> true
+      | _ -> false in
+
     let rec add_structure (nodelist : AsmData.t list) =
       match nodelist with
       | [] -> ()
@@ -325,18 +330,23 @@ module AsmCfg = struct
             | None -> V.create Exit in
            add_edge cfg (V.create (Node hd)) target
         end
-      (* we presume that hd1 cannot be retq (otherwise hd2 is unreachable) *)
       | hd1 :: hd2 :: tl ->
         begin
           let { asm = asm1; _; } : AsmData.t = hd1 in
           let targets =
             match is_jump asm1 with
-            | Some (labelstr, conditional) ->
+            | Some (labelstr, conditional) -> begin
                 let labelnode = String.Map.find_exn label_map labelstr in
                 if conditional then [labelnode; hd2]
-                else [hd2]
-            (* asm1 not a jump = give control to asm2 (i.e. from hd2) *)
-            | None -> [hd2] in
+                else [hd2] end
+            (* asm1 not a jump *)
+            | None -> 
+                if is_ret asm1 then
+                  (add_edge cfg (V.create (Node hd1)) (V.create Exit);
+                  [])
+                else
+                  [hd2]
+          in
           let f target =
             add_edge cfg (V.create (Node hd1)) (V.create (Node target)) in
           List.iter ~f targets;

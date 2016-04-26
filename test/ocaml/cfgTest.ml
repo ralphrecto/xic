@@ -272,6 +272,8 @@ let test_asm_cfg _ =
   let fls  = Cfg.EdgeData.False in
   let norm = Cfg.EdgeData.Normal in
 
+  let lab l = Label l in
+
   let make_graph vertexes edges =
     let g = create () in
     List.iter vertexes ~f:(fun i -> add_vertex g (V.create i));
@@ -286,6 +288,24 @@ let test_asm_cfg _ =
   let asms = [] in
   let v = [start; exit] in
   let e = [(start, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jmp (lab "tru"); label_op "tru"; ret] in
+  let v = [start; node 0 (jmp (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; exit] in
+  let e = [(start, norm, node 0 (jmp (lab "tru")));
+           (node 0 (jmp (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [je (lab "tru"); label_op "tru"; ret] in
+  let v = [start; node 0 (je (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; exit] in
+  let e = [(start, norm, node 0 (jmp (lab "tru")));
+           (node 0 (je (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
   make_graph v e === Cfg.AsmCfg.create_cfg asms;
 
   ()

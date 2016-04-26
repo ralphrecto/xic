@@ -31,20 +31,71 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
 ```
 
 ## Flags ##
-- `--help`
-- `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
-- `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
-- `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
-- `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
-- `-sourcepath <path> [default: dir where xic run]`
-    - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
-    - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
-- `-libpath <path> [default: dir where xic run]`
-- `-D <path> [default: dir where xic run]`
-    - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`
-    - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo.xi`
-    - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo.xi`
-- `-O`
+- Miscellaneous
+    - `--help`
+    - `--report-opts`
+- Modes
+    - `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
+    - `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
+    - `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
+    - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
+    - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
+    - `--optcf (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
+    - ``
+- Options
+    - `-sourcepath <path> [default: dir where xic run]`
+        - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
+        - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
+    - `-libpath <path> [default: dir where xic run]`
+    - `-D <path>` (diagnostic files) [default: dir where xic run]
+        - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`
+        - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo.xi`
+        - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo.xi`
+    - `-d <path>` (asm files) [default: dir where xic run]
+        - same as `-D`
+    - `-target linux`
+    - `-O<opt>, -O-no-<opt>, -O`
+        - `-O<opt>` and `-O-no-<opt>` are mutually exclusive. If you set a
+          `-O<opt>` flag and also a `-O-no-<opt>`, the compiler will exit with
+          error.
+        - If a `-O<opt>` or `-O-no-<opt>` flag is set, `-O` is ignored.
+        - Here's a case analysis of all possible flag combinations.
+
+          | `-O<opt>` | `-O-no-<opt>` | `-O` | Behavior                 |
+          | --------- | ------------- | ---- | ------------------------ |
+          | n         | n             | n    | all flags                |
+          | n         | n             | y    | no flags                 |
+          | y         | n             | _    | only `-O<opt>` flags     |
+          | n         | y             | _    | only `-O-no-<opt>` flags |
+          | y         | y             | _    | error                    |
+
+## Optimizations ##
+We support a bunch of optimization flags, but some are aliases for others. For
+example, `cse` and `pre` are aliases. Here is an example of how aliases work.
+
+| Flags                          | PRE performed? |
+| ------------------------------ | -------------- |
+| `-cf`                          | no             |
+| `-cf -cse`                     | yes            |
+| `-cf -pre`                     | yes            |
+| `-cf -pre -cse`                | yes            |
+| `-O-no-cf -O-no-cse`           | no             |
+| `-O-no-cf -O-no-pre`           | no             |
+| `-O-no-cf -O-no-pre -O-no-cse` | no             |
+
+Here is a list of all the optimizations we support:
+
+| Flag   | Name                             | Alias |
+| ------ | -------------------------------- | ----- |
+| `acf`  | AST Constant Folding             |       |
+| `icf`  | IR Constant Folding              |       |
+| `reg`  | Register Allocation              |       |
+| `mc`   | Move Coalescing                  | `reg` |
+| `cp`   | Constant Propagation             |       |
+| `uce`  | Unreachable Code Elimination     | `cp`  |
+| `pre`  | Partial Redundancy Elimination   |       |
+| `cse`  | Common Subexpression Elimination | `pre` |
+| `licm` | Loop Invariant Code Motion       | `pre` |
 
 ## x86-64 ##
 |     |      |      |              |

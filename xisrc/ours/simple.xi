@@ -1,3 +1,5 @@
 main(_: int[][]) {
-  _:int = 3+5
+  x:int = 3
+  y:int = 5
+  z:int = x + y
 }

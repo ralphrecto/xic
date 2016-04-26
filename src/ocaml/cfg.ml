@@ -246,8 +246,9 @@ module AsmData = struct
     asm: Asm.abstract_asm;
   } [@@deriving sexp, compare]
 
-  let to_string _ = failwith "TODO"
-  let to_int _ = failwith "TODO"
+  let to_string asmdata =
+    ((string_of_int asmdata.num) ^ ": " ^ (string_of_abstract_asm asmdata.asm))
+  let to_int asmdata = asmdata.num
 end
 module AsmDataStartExit = StartExit(AsmData)
 module AsmCfg = struct
@@ -255,7 +256,8 @@ module AsmCfg = struct
 
   (* TODO: change this to include branches *)
   let create_cfg (asms: abstract_asm list) =
-    let cfg = create ~size:(List.length asms) () in
+    let cfg = create () in
+
     let nodes =
       let f i asm = V.(create (Node { num = i; asm = asm; })) in
       List.mapi ~f asms in

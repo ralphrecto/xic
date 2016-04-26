@@ -30,13 +30,21 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   end
 )
 
+let set_to_string (set : AbstractRegSet.t) : string =
+  let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
+  "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }"
+
+
 module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t with
   type data = AbstractRegSet.t = struct
 
   type data = AbstractRegSet.t
   let ( ** ) = AbstractRegSet.union
   let ( === ) = AbstractRegSet.equal
-  let to_string _ = failwith "TODO"
+  let to_string data =
+    let f acc reg =
+      string_of_abstract_reg reg ^ ", " ^ acc in
+    AbstractRegSet.fold ~f ~init:"" data
 end
 
 module AsmWithLiveVar : CFGWithLatticeT
@@ -206,6 +214,8 @@ module type InterferenceGraphT = sig
     and type V.label = nodedata
     and type E.t = nodedata * nodedata
     and type E.label = unit
+
+  val string_of_nodedata : nodedata -> string
 end
 
 module InterferenceGraph : InterferenceGraphT = struct
@@ -231,6 +241,8 @@ module InterferenceGraph : InterferenceGraphT = struct
   end
   module TS = Set.Make (Extended_T)
 
+  let string_of_nodedata n =
+    "( " ^ (string_of_abstract_reg n) ^ " )"
 end
 
 module IG = InterferenceGraph
@@ -299,6 +311,22 @@ type alloc_context = {
   (* number of available machine registers for allocation *)
   num_colors         : int;
 }
+
+let string_of_ctx (regctx : alloc_context) : string =
+  let strflat (listname : string) (sl : string list) =
+    let f acc s = s ^ ", " ^ acc in
+    "[[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" sl) ^ "]]]\n\n" in
+
+  "{" ^
+  strflat "precolored" (List.map ~f:IG.string_of_nodedata regctx.precolored) ^
+  strflat "initial" (List.map ~f:IG.string_of_nodedata regctx.initial) ^
+  strflat "simplify_wl" (List.map ~f:IG.string_of_nodedata regctx.simplify_wl) ^
+  strflat "freeze_wl" (List.map ~f:IG.string_of_nodedata regctx.freeze_wl) ^
+  strflat "spill_wl" (List.map ~f:IG.string_of_nodedata regctx.spill_wl) ^
+  strflat "spilled_nodes" (List.map ~f:IG.string_of_nodedata regctx.spilled_nodes) ^
+  strflat "coalesced_node" (List.map ~f:IG.string_of_nodedata regctx.coalesced_nodes) ^
+  strflat "colored_nodes" (List.map ~f:IG.string_of_nodedata regctx.colored_nodes) ^
+  strflat "select_stack" (List.map ~f:IG.string_of_nodedata regctx.select_stack)
 
 let empty_ctx num_moves num_nodes = {
   (* IG node lists *)
@@ -411,13 +439,23 @@ let move_related (node: IG.nodedata) (regctx : alloc_context) : bool =
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = Cfg.create_cfg asms in
-
+  let livevars_edge = LiveVariableAnalysis.worklist () cfg in
   let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
-    let _livevars = LiveVariableAnalysis.worklist () cfg in
-    fun node ->
-      match Cfg.succ_e cfg node with
-      | [] -> failwith "regalloc:build:livevars cfg node has no successors"
-      | edge :: _ -> _livevars edge in
+    function
+      | Start | Exit -> AbstractRegSet.empty
+      | Node _ as node ->
+        begin
+          match Cfg.succ_e cfg node with
+          (* TODO: clean this *)
+          | [] -> AbstractRegSet.empty
+              (*let _graphstr = Cfg.to_dot cfg in*)
+              (*let _nodestr = Cfg.string_of_vertex node in*)
+              (*let _failstr =*)
+               (*"regalloc:build:livevars cfg node has no successors: " ^*)
+               (*_nodestr ^ "\n\n" ^ _graphstr in*)
+              (*failwith _failstr*)
+          | edge :: _ -> livevars_edge edge
+        end in
 
   let initctx =
     (* initialize initctx when first called from reg_alloc:
@@ -430,9 +468,11 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
         | Fake _ -> { ctxacc with initial = reg :: ctxacc.initial }
         | Real _ -> { ctxacc with precolored = reg :: ctxacc.precolored } in
       let vars =
-        let get_vars cfgnode varset =
-          AbstractRegSet.union (livevars cfgnode) varset in
-        Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
+        let get_vars cfgedge varset =
+          AbstractRegSet.union (livevars_edge cfgedge) varset in
+        let y = Cfg.fold_edges_e get_vars cfg AbstractRegSet.empty in
+        failwith (set_to_string y);
+        y in
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
     else
@@ -477,9 +517,13 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
         | None -> regctx
         | Some tempmove ->
             let srcmoves =
-              NodeData.Table.find_exn regctx.move_list tempmove.src in
+              NodeData.Table.find_or_add
+                ~default:(fun () -> [])
+                regctx.move_list tempmove.src in
             let destmoves =
-              NodeData.Table.find_exn regctx.move_list tempmove.dest in
+              NodeData.Table.find_or_add
+                ~default:(fun () -> [])
+                regctx.move_list tempmove.dest in
             NodeData.Table.add
               regctx.move_list
               ~key:tempmove.src
@@ -867,7 +911,6 @@ let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
   | Comment s -> Comment s
 
 let reg_alloc (given_asms : abstract_asm list) =
-
   let rec main
     ?(init = false)
     (regctx : alloc_context)
@@ -881,12 +924,24 @@ let reg_alloc (given_asms : abstract_asm list) =
          empty innerctx.spill_wl then innerctx
       else
         let innerctx' =
-          if not (empty innerctx.simplify_wl) then simplify innerctx
-          else if not (empty innerctx.worklist_moves) then coalesce innerctx
-          else if not (empty innerctx.freeze_wl) then freeze innerctx
-          else select_spill innerctx in
+          if not (empty innerctx.simplify_wl) then
+            let x = simplify innerctx in
+            failwith "simplify done";
+            x
+          else if not (empty innerctx.worklist_moves) then
+            let x = coalesce innerctx in
+            failwith "coalesce done";
+            x
+          else if not (empty innerctx.freeze_wl) then
+            let x = freeze innerctx in
+            x
+          else
+            let x = select_spill innerctx in
+            failwith "spill done";
+            x in
         loop innerctx' in
-    build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->
+    build ~init regctx asms |>
+    fun ctx -> failwith ((string_of_abstract_asms asms) ^ "\n\n\n" ^ (string_of_ctx ctx)) |> loop |> assign_colors |> fun regctx' ->
       if not (empty regctx'.spilled_nodes) then
         let newctx, newasms = rewrite_program regctx' asms in
         main newctx newasms

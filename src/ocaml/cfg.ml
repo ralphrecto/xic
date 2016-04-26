@@ -82,6 +82,9 @@ module Make(N: NodeData) = struct
   let succs g v =
     fold_succ (fun v' g -> VertexSet.add g v') g v VertexSet.empty
 
+  let preds g v =
+    fold_pred (fun v' g -> VertexSet.add g v') g v VertexSet.empty
+
   let preds_e g v =
     fold_pred_e (fun e g -> EdgeSet.add g e) g v EdgeSet.empty
 

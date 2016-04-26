@@ -390,39 +390,102 @@ let subst exp ~uses ~latest ~used ~freshes =
     then help exp
     else exp
 
-let flatten g =
-  let f v acc =
-    match v with
-    | SE.Exit -> acc
-    | SE.Node {num; ir=Ir.Seq irs} ->
-      begin
-        let rev_irs = List.rev irs in
-        match rev_irs with
-        | last::tl ->
-            if last = dummy_ir then
-              match C.VertexSet.to_list (C.succs g v) with
-              | [SE.Node {num; _}] ->
-                begin
-                  match Int.Map.find acc num with
-                  | None -> Int.Map.add acc ~key:num ~data:(List.rev tl)
-                  | Some irs' -> Int.Map.add acc ~key:num ~data:((List.rev tl)@irs')
-                end
-              | [SE.Exit] -> (assert ((List.length tl) = 0); acc)
-              | _ -> failwith "shouldn't happen flatten"
-            else
-              begin
-                match Int.Map.find acc num with
-                | None -> Int.Map.add acc ~key:num ~data:irs
-                | Some irs' -> Int.Map.add acc ~key:num ~data:(irs'@irs)
-              end
-        | _ -> failwith "shouldn't happen flatten"
-      end
-    | SE.Node _ -> failwith "shouldn't happen"
-    | SE.Start -> failwith "no more start"
+let get_one_pred_e g v =
+  match C.EdgeSet.to_list (C.preds_e g v) with
+  | [x] -> x
+  | _ -> failwith "what"
+
+let get_one_pred g v =
+  match C.VertexSet.to_list (C.preds g v) with
+  | [x] -> x
+  | _ -> failwith "lol what"
+
+let get_one_succ g v =
+  match C.VertexSet.to_list (C.succs g v) with
+  | [x] -> x
+  | _ -> failwith "lol what"
+
+let get_one_pred_succ g v = (get_one_pred g v, get_one_succ g v)
+
+let get_non_dummy g =
+  let vertices = C.vertex_set g in
+  let f n =
+    match n with
+    | SE.Node {ir=Seq ir'; _} -> (Ir.compare_stmt (List.last_exn ir') dummy_ir) <> 0
+    | SE.Exit -> false
+    | _ -> failwith "can't happen"
   in
-  let mapping_list = Int.Map.to_alist (C.fold_vertex f g Int.Map.empty) in
-  List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2) mapping_list
-  |> List.map ~f:snd
+  C.VertexSet.filter ~f vertices
+
+let get_dummy g =
+  let vertices = C.vertex_set g in
+  let f n =
+    match n with
+    | SE.Node {ir=Seq ir'; _} -> (Ir.compare_stmt (List.last_exn ir') dummy_ir) = 0
+    | SE.Exit -> false
+    | _ -> failwith "can't happen"
+  in
+  C.VertexSet.filter ~f vertices
+
+type mapping = (Ir.stmt list * Ir.stmt) Int.Map.t
+
+let non_dummy_pass g : mapping =
+  let vertices = get_non_dummy g in
+  let f acc v =
+    match v with
+    | SE.Node {ir = Seq ir'; num} ->
+      Int.Map.add ~key:num ~data:(Util.init ir', List.last_exn ir') acc
+    | _ -> failwith "can't happen"
+  in
+  C.VertexSet.fold ~init:Int.Map.empty ~f vertices
+
+let dummy_pass g (m: mapping) : mapping =
+  let vertices = get_dummy g in
+  let f acc v =
+    match v with
+    | SE.Node {ir = Seq ir'; num} ->
+      begin
+        match get_one_pred_succ g v with
+        | SE.Node {ir=Seq ir_pred; num=num_pred}, SE.Node {num=num_succ; _} ->
+          begin
+            let new_irs = Util.init ir' in
+            match List.last_exn ir_pred with
+            | CJumpOne (e, l) ->
+              begin
+                match C.E.label (get_one_pred_e g v) with
+                | Cfg.EdgeData.True ->
+                  let new_label = FreshLabel.fresh () in
+                  let new_cjump_one = CJumpOne (e, new_label) in
+                  let (old_prepend, _) = Int.Map.find_exn m num_pred in
+                  let m' = Int.Map.add ~key:num_pred ~data:(old_prepend, new_cjump_one) m in
+                  Int.Map.add ~key:num ~data:((Label new_label)::new_irs, Jump (Name l)) m'
+                | Cfg.EdgeData.False ->
+                  let (old_prepend, last) = Int.Map.find_exn m num_succ in
+                  Int.Map.add ~key:num_succ ~data:(new_irs@old_prepend, last) m
+                | Cfg.EdgeData.Normal -> failwith "can't happen"
+              end
+            | Jump _ ->
+              let (old_prepend, last) = Int.Map.find_exn m num_pred in
+              Int.Map.add ~key:num_pred ~data:(new_irs@old_prepend, last) m
+            | CJump _
+            | Seq _ -> failwith "shouldn't exist anymore dummy pass"
+            | _ ->
+              let (old_prepend, last) = Int.Map.find_exn m num_succ in
+              Int.Map.add ~key:num_succ ~data:(new_irs@old_prepend, last) m
+          end
+        | SE.Node _, SE.Exit -> acc
+        | _ -> failwith "can't happen"
+      end
+    | _ -> failwith "can't happen"
+  in
+  C.VertexSet.fold ~init:m ~f vertices
+
+let flatten g =
+  non_dummy_pass g
+  |> dummy_pass g
+  |> Int.Map.to_alist
+  |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
+  |> List.map ~f: (fun (_, (prepends, last)) -> prepends@[last])
   |> List.concat
 
 
@@ -447,8 +510,16 @@ let red_elim g ~univ ~uses ~latest ~used =
     in
     match v with
     | SE.Start ->
-      let newv = C.V.create (Node {num=(-1); ir=Ir.Seq (new_irs@[dummy_ir])}) in
-      C.swap new_g ~oldv:v ~newv
+      (* get rid of start *)
+      begin
+        match get_one_succ g v with
+        | Node {num; ir} as succv ->
+            let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
+            (C.remove_vertex new_g v;
+            C.swap new_g ~oldv:succv ~newv)
+        | Exit -> ()
+        | Start -> failwith "can't happen"
+      end
     | SE.Node {num; ir} ->
       let newv = C.V.create (Node {num; ir=Ir.Seq (new_irs@[ir])}) in
       C.swap new_g ~oldv:v ~newv

@@ -67,6 +67,7 @@ module Make(N: NodeData) : sig
   val vertex_set : t -> VertexSet.t
   val edge_set   : t -> EdgeSet.t
   val succs      : t -> vertex -> VertexSet.t
+  val preds      : t -> vertex -> VertexSet.t
   val preds_e    : t -> vertex -> EdgeSet.t
   val succs_e    : t -> vertex -> EdgeSet.t
   val equal      : t -> t -> bool

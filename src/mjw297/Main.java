@@ -1,35 +1,45 @@
 package mjw297;
-import com.google.common.collect.Lists;
 
-import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
-import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
-import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
-import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
-import java_cup.runtime.Symbol;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-import com.google.common.io.Files;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static mjw297.Util.Tuple;
-import static mjw297.Util.Either;
-import static mjw297.Ast.*;
-import static mjw297.Actions.*;
-import static mjw297.XicException.*;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
-/**
- * The main compiler frontend/CLI interface to the compiler.
- */
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+
+import java_cup.runtime.Symbol;
+
+import lombok.AllArgsConstructor;
+
+import mjw297.Actions.Lexed;
+import mjw297.Actions.Parsed;
+import mjw297.Ast.FullProgram;
+import mjw297.Ast.Interface;
+import mjw297.Ast.Program;
+import mjw297.Ast.Use;
+import mjw297.Main.XiSource;
+import mjw297.Util.Either;
+import mjw297.Util.Tuple;
+import mjw297.XicException.ErrorType;
+import mjw297.XicException.XiUseException;
+
+/** The main compiler frontend/CLI interface to the compiler. */
 public class Main {
-
     /* Utility flags */
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
@@ -56,7 +66,6 @@ public class Main {
     private static String targetOS = "linux";
 
     /* Compiler modes */
-
     @Option(name = "--lex", usage = "Generate output from lexical analysis; .lexed files")
     private static boolean lexMode = false;
 
@@ -109,36 +118,27 @@ public class Main {
 
     /**
      * {@code XiSource} represents a Xi Source file. Any instance of this
-     * necessarily has a .xi extension
+     * necessarily has a .xi or .ixi extension.
      */
+    @AllArgsConstructor
     static class XiSource {
-
-        @SuppressWarnings("serial")
-        static class XiSourceException extends Exception {
-            XiSourceException(String msg) {
-                super(msg);
-            }
-        }
-
-        String filename;
-        FileReader reader;
-        File file;
-
-        private XiSource(String filename, File f, FileReader reader) {
-            this.filename = filename;
-            this.reader = reader;
-            this.file = f;
-        }
+        public String filename;
+        public File file;
+        public FileReader reader;
 
         /**
-         * Change the source's extension. Use for output files that
-         * will live in the same directory.
+         * Change the source's extension. Use for output files that will live in
+         * the same directory. It is a precondition that the file extension is
+         * ".xi".
+         *
+         * changeExtension(foo/bar/baz.xi, yolo) -> foo/bar/baz.yolo
          */
         String changeExtension(String newExt) {
+            assert filename.substring(filename.length() - 3, filename.length()).equals(".xi");
             return String.format(
-                "%s.%s", filename.substring(0, filename.length() - 3),
-                newExt
-            );
+                       "%s.%s", filename.substring(0, filename.length() - 3),
+                       newExt
+                   );
         }
 
         static XiSource create(String baseDir, String filename) {
@@ -153,10 +153,10 @@ public class Main {
                     Paths.get(baseDir, filename).toFile();
                 return new XiSource(filename, f, new FileReader(f));
             } catch (FileNotFoundException e) {
-                System.out.println(e.getMessage());
+                e.printStackTrace();
                 System.exit(1);
+                return null;
             }
-            return null;
         }
 
         static XiSource create(String filename) {
@@ -174,7 +174,6 @@ public class Main {
         static List<XiSource> createMany(List<String> filenames) {
             return createMany(sourcePath, filenames);
         }
-
     }
 
     /**
@@ -407,13 +406,13 @@ public class Main {
               sexpOut.visit(prog);
               sexpOut.flush();
 
-              // Write file 
+              // Write file
               String outputFilename = diagPathOut(src, extension);
               File outputFile = Paths.get(outputFilename).toFile();
               try {
                 Files.write(baos.toString().getBytes(), outputFile);
               } catch(IOException e) {
-                System.out.println(e.getMessage()); 
+                System.out.println(e.getMessage());
                 e.printStackTrace();
                 System.exit(1);
               }

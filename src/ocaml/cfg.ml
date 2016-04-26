@@ -308,7 +308,9 @@ module AsmCfg = struct
       let numbered_asms =
         let f i asm = (i, asm) in
         List.mapi ~f asms in
-      List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
+      let fin_asms, map =
+        List.fold_left ~f ~init:([], String.Map.empty) numbered_asms in
+      (List.rev fin_asms, map) in
 
     let rec add_structure (nodelist : AsmData.t list) =
       match nodelist with

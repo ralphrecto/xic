@@ -468,9 +468,9 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
         | Fake _ -> { ctxacc with initial = reg :: ctxacc.initial }
         | Real _ -> { ctxacc with precolored = reg :: ctxacc.precolored } in
       let vars =
-        let get_vars cfgedge varset =
-          AbstractRegSet.union (livevars_edge cfgedge) varset in
-        let y = Cfg.fold_edges_e get_vars cfg AbstractRegSet.empty in
+        let get_vars cfgnode varset =
+          AbstractRegSet.union (livevars cfgnode) varset in
+        let y = Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
         failwith (set_to_string y);
         y in
       AbstractRegSet.fold ~f ~init:ctxarg vars

@@ -87,11 +87,11 @@ let bind_ids_vals store ids_vals =
 let rec bind_ids store ids =
   let rec populate_list store t size =
     let rec populate_list' t count acc =
-      let filler = 
+      let filler =
         match t with
         | TInt | TBool -> Int 0L
         | TArray (_, None) -> Array (ref [])
-        | TArray ((_, t'), Some e) -> 
+        | TArray ((_, t'), Some e) ->
             let size =
               match eval_expr store e with
               | Int i -> i
@@ -99,7 +99,7 @@ let rec bind_ids store ids =
             in
             Array (ref (populate_list store t' size))
       in
-      if count > 0L then 
+      if count > 0L then
         populate_list' t (Long.pred count) (filler::acc)
       else
         acc
@@ -108,15 +108,15 @@ let rec bind_ids store ids =
   in
   let bind_ids' s (i, t) =
     match i, t with
-    | Some i', Some (TArray (_, None)) -> 
+    | Some i', Some (TArray (_, None)) ->
         String.Map.add s ~key:i' ~data: (Some (Value (Array (ref []))))
-    | Some i', Some (TArray ((_, t), Some e)) -> 
+    | Some i', Some (TArray ((_, t), Some e)) ->
         let size =
           match eval_expr store e with
           | Int i -> i
           | _ -> failwith "bind_ids array size is not an int!!!"
         in
-        let dummy_list = populate_list store t size in 
+        let dummy_list = populate_list store t size in
         String.Map.add s ~key:i' ~data: (Some (Value (Array (ref dummy_list))))
     | Some i', _-> String.Map.add s ~key:i' ~data: None
     | None, _ -> s
@@ -175,12 +175,12 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
           | Array l, Int i ->
             let arr_length = Long.of_int (List.length (!l)) in
             let e2' = eval_expr store e2 in
-            if 0L <= i && i < arr_length then 
+            if 0L <= i && i < arr_length then
               let i' = Long.to_int i in
               let new_l = List.mapi ~f: (fun idx e -> if idx = i' then e2' else e) (!l) in
               l := new_l;
               (store, None)
-            else 
+            else
               failwith "assigning to index out of bounds!"
           | _ -> failwith "shouldn't happen in asgn"
         end
@@ -371,6 +371,6 @@ let get_main_val context : value option =
 let eval_full_prog (store: context) (FullProg (_, prog, _): Typecheck.full_prog) : value option =
   let updated_store = eval_prog store prog in
   get_main_val updated_store
-  
+
 let eval (p: Typecheck.prog) : unit =
   ignore (get_main_val (eval_prog String.Map.empty p))

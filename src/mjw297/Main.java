@@ -1,35 +1,48 @@
 package mjw297;
-import com.google.common.collect.Lists;
 
-import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
-import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
-import edu.cornell.cs.cs4120.xic.ir.parse.IRLexer;
-import edu.cornell.cs.cs4120.xic.ir.parse.IRParser;
-import java_cup.runtime.Symbol;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-import com.google.common.io.Files;
+import static com.google.common.collect.Iterables.any;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static mjw297.Util.Tuple;
-import static mjw297.Util.Either;
-import static mjw297.Ast.*;
-import static mjw297.Actions.*;
-import static mjw297.XicException.*;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
-/**
- * The main compiler frontend/CLI interface to the compiler.
- */
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+
+import java_cup.runtime.Symbol;
+
+import lombok.AllArgsConstructor;
+
+import mjw297.Actions.Lexed;
+import mjw297.Actions.Parsed;
+import mjw297.Ast.FullProgram;
+import mjw297.Ast.Interface;
+import mjw297.Ast.Program;
+import mjw297.Ast.Use;
+import mjw297.Main.XiSource;
+import mjw297.Util.Either;
+import mjw297.Util.Tuple;
+import mjw297.XicException.ErrorType;
+import mjw297.XicException.XiUseException;
+
+/** The main compiler frontend/CLI interface to the compiler. */
 public class Main {
-
     /* Utility flags */
     @Option(name = "--help", usage = "Print a synopsis of options.")
     private static boolean helpMode = false;
@@ -56,7 +69,6 @@ public class Main {
     private static String targetOS = "linux";
 
     /* Compiler modes */
-
     @Option(name = "--lex", usage = "Generate output from lexical analysis; .lexed files")
     private static boolean lexMode = false;
 
@@ -98,6 +110,72 @@ public class Main {
     @Option(name = "--asmdebug", usage = "Asm gen debug mode", hidden = true)
     private static boolean asmDebugMode = false;
 
+    /* Optimizations */
+    @Option(name="--report-opts", usage="Report available optimizations")
+    private static boolean reportOpts = false;
+
+    @Option(name="--optir", usage="Optimized IR")
+    private static String optIr = "";
+
+    @Option(name="--optcfg", usage="Optimized CFG dot files")
+    private static String optCfg = "";
+
+    @Option(name="-Ocf", usage="Constant folding")
+    private static boolean constantFolding = false;
+    @Option(name="-Oreg", usage="Register allocation")
+    private static boolean registerAllocation = false;
+    @Option(name="-Omc", usage="Move coalescing")
+    private static boolean moveCoalescing = false;
+    @Option(name="-Ouce", usage="Unreachable code elimination")
+    private static boolean unreachableCodeElim = false;
+    @Option(name="-Ocse", usage="Common subsexpression elimination")
+    private static boolean commonSubexprElim = false;
+    @Option(name="-Olicm", usage="Loop invariant code motion")
+    private static boolean loopInvariantCodeMotion = false;
+    @Option(name="-Opre", usage="Partial redundancy elimination")
+    private static boolean partialRedundancyElim = false;
+    @Option(name="-Ocp", usage="Constant propagation")
+    private static boolean constantPropagation = false;
+
+    @Option(name="-O-no-cf", usage="No constant folding")
+    private static boolean noConstantFolding = false;
+    @Option(name="-O-no-reg", usage="No register allocation")
+    private static boolean noRegisterAllocation = false;
+    @Option(name="-O-no-mc", usage="No move coalescing")
+    private static boolean noMoveCoalescing = false;
+    @Option(name="-O-no-uce", usage="No unreachable code elimination")
+    private static boolean noUnreachableCodeElim = false;
+    @Option(name="-O-no-cse", usage="No common subsexpression elimination")
+    private static boolean noCommonSubexprElim = false;
+    @Option(name="-O-no-licm", usage="No loop invariant code motion")
+    private static boolean noLoopInvariantCodeMotion = false;
+    @Option(name="-O-no-pre", usage="No partial redundancy elimination")
+    private static boolean noPartialRedundancyElim = false;
+    @Option(name="-O-no-cp", usage="No constant propagation")
+    private static boolean noConstantPropagation = false;
+
+    // some equivalences:
+    // reg = mc
+    // cp = uce
+    // pre = cse = licm
+    private static String cf   = "cf";
+    private static String reg  = "reg";
+    private static String mc   = "mc";
+    private static String uce  = "uce";
+    private static String cse  = "cse";
+    private static String licm = "licm";
+    private static String pre  = "pre";
+    private static String cp   = "cp";
+
+    private static String cfFlag   = "--" + cf;
+    private static String regFlag  = "--" + reg;
+    private static String mcFlag   = "--" + reg;
+    private static String uceFlag  = "--" + cp;
+    private static String cseFlag  = "--" + pre;
+    private static String licmFlag = "--" + pre;
+    private static String preFlag  = "--" + pre;
+    private static String cpFlag   = "--" + cp;
+
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
 
@@ -109,36 +187,27 @@ public class Main {
 
     /**
      * {@code XiSource} represents a Xi Source file. Any instance of this
-     * necessarily has a .xi extension
+     * necessarily has a .xi or .ixi extension.
      */
+    @AllArgsConstructor
     static class XiSource {
-
-        @SuppressWarnings("serial")
-        static class XiSourceException extends Exception {
-            XiSourceException(String msg) {
-                super(msg);
-            }
-        }
-
-        String filename;
-        FileReader reader;
-        File file;
-
-        private XiSource(String filename, File f, FileReader reader) {
-            this.filename = filename;
-            this.reader = reader;
-            this.file = f;
-        }
+        public String filename;
+        public File file;
+        public FileReader reader;
 
         /**
-         * Change the source's extension. Use for output files that
-         * will live in the same directory.
+         * Change the source's extension. Use for output files that will live in
+         * the same directory. It is a precondition that the file extension is
+         * ".xi".
+         *
+         * changeExtension(foo/bar/baz.xi, yolo) -> foo/bar/baz.yolo
          */
         String changeExtension(String newExt) {
+            assert filename.substring(filename.length() - 3, filename.length()).equals(".xi");
             return String.format(
-                "%s.%s", filename.substring(0, filename.length() - 3),
-                newExt
-            );
+                       "%s.%s", filename.substring(0, filename.length() - 3),
+                       newExt
+                   );
         }
 
         static XiSource create(String baseDir, String filename) {
@@ -153,10 +222,10 @@ public class Main {
                     Paths.get(baseDir, filename).toFile();
                 return new XiSource(filename, f, new FileReader(f));
             } catch (FileNotFoundException e) {
-                System.out.println(e.getMessage());
+                e.printStackTrace();
                 System.exit(1);
+                return null;
             }
-            return null;
         }
 
         static XiSource create(String filename) {
@@ -174,7 +243,6 @@ public class Main {
         static List<XiSource> createMany(List<String> filenames) {
             return createMany(sourcePath, filenames);
         }
-
     }
 
     /**
@@ -407,13 +475,13 @@ public class Main {
               sexpOut.visit(prog);
               sexpOut.flush();
 
-              // Write file 
+              // Write file
               String outputFilename = diagPathOut(src, extension);
               File outputFile = Paths.get(outputFilename).toFile();
               try {
                 Files.write(baos.toString().getBytes(), outputFile);
               } catch(IOException e) {
-                System.out.println(e.getMessage()); 
+                System.out.println(e.getMessage());
                 e.printStackTrace();
                 System.exit(1);
               }
@@ -546,6 +614,82 @@ public class Main {
     }
 
     /**
+     * Given a mix of -O<opt>, -O, and -O-no-<opt>, figure out which
+     * optimizations should actually be set. If both -O and -O-no-opt flags are
+     * set, we die with error.
+     */
+    public List<String> gatherOpts() {
+        List<Boolean> opts = Arrays.asList(
+            constantFolding,
+            registerAllocation,
+            moveCoalescing,
+            unreachableCodeElim,
+            commonSubexprElim,
+            loopInvariantCodeMotion,
+            partialRedundancyElim,
+            constantPropagation
+        );
+        boolean optsSpecified = any(opts, b -> b);
+
+        List<Boolean> noOpts = Arrays.asList(
+            noConstantFolding,
+            noRegisterAllocation,
+            noMoveCoalescing,
+            noUnreachableCodeElim,
+            noCommonSubexprElim,
+            noLoopInvariantCodeMotion,
+            noPartialRedundancyElim,
+            noConstantPropagation
+        );
+        boolean noOptsSpecified = any(noOpts, b -> b);
+
+        if (optsSpecified && noOptsSpecified) {
+            System.out.println("-O<opt> and -O-no-<opt> are mutually exclusive");
+            System.exit(1);
+        }
+
+        // -O is only effective when neither of -O<opt>, -O-no-<opt> specified
+        if (noOptimize && !optsSpecified && !noOptsSpecified) {
+            return new ArrayList<String>();
+        }
+
+        // if nothing is specified, we perform all optimizations
+        List<String> allFlags = new ArrayList<>(Arrays.asList(
+            cfFlag, regFlag, mcFlag, uceFlag, cseFlag, licmFlag, preFlag, cpFlag
+        ));
+        if (!optsSpecified && !noOptsSpecified) {
+            return allFlags;
+        }
+
+        // -O-<opt>
+        if (optsSpecified) {
+            List<String> flags = new ArrayList<>();
+            if (constantFolding)         { flags.add(cfFlag);   }
+            if (registerAllocation)      { flags.add(regFlag);  }
+            if (moveCoalescing)          { flags.add(mcFlag);   }
+            if (unreachableCodeElim)     { flags.add(uceFlag);  }
+            if (commonSubexprElim)       { flags.add(cseFlag);  }
+            if (loopInvariantCodeMotion) { flags.add(licmFlag); }
+            if (partialRedundancyElim)   { flags.add(preFlag);  }
+            if (constantPropagation)     { flags.add(cpFlag);   }
+            return flags;
+        }
+
+        // -O-no-<opt>
+        assert noOptsSpecified;
+        List<String> flags = allFlags;
+        if (noConstantFolding)         { flags.remove(cfFlag);   }
+        if (noRegisterAllocation)      { flags.remove(regFlag);  }
+        if (noMoveCoalescing)          { flags.remove(mcFlag);   }
+        if (noUnreachableCodeElim)     { flags.remove(uceFlag);  }
+        if (noCommonSubexprElim)       { flags.remove(cseFlag);  }
+        if (noLoopInvariantCodeMotion) { flags.remove(licmFlag); }
+        if (noPartialRedundancyElim)   { flags.remove(preFlag);  }
+        if (noConstantPropagation)     { flags.remove(cpFlag);   }
+        return flags;
+    }
+
+    /**
      * Main entry point. Handles actions for the different CLI options.
      * @param args The command line arguments
      */
@@ -555,6 +699,15 @@ public class Main {
 
             if (helpMode) {
                 printUsage();
+                System.exit(0);
+            }
+
+
+            if (reportOpts) {
+                List<String> opts = Arrays.asList(
+                    cf, reg, mc, uce, cse, licm, pre, cp
+                );
+                opts.forEach(System.out::println);
                 System.exit(0);
             }
 
@@ -571,6 +724,9 @@ public class Main {
 
             sourcePath = sourcePath.equals("") ?
                     "" : Files.simplifyPath(sourcePath);
+
+            // TODO: pass opts around
+            List<String> opts = gatherOpts();
 
             if (lexMode) {
                 doLex(arguments);

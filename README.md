@@ -41,16 +41,16 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
     - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
     - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
     - `--optcf (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
-    - ``
+    - ` `: `a/b/foo.xi --> a/b/foo.s`
 - Options
     - `-sourcepath <path> [default: dir where xic run]`
         - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
         - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
     - `-libpath <path> [default: dir where xic run]`
     - `-D <path>` (diagnostic files) [default: dir where xic run]
-        - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`
-        - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo.xi`
-        - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo.xi`
+        - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo._`
+        - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo._`
+        - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo._`
     - `-d <path>` (asm files) [default: dir where xic run]
         - same as `-D`
     - `-target linux`

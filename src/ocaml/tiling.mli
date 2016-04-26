@@ -117,5 +117,11 @@ val chomp_comp_unit : (Ir.comp_unit, Asm.abstract_asm list list) without_fcontex
  *)
 val register_allocate : ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
 
-val asm_munch : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
-val asm_chomp : ?debug:bool -> Typecheck.full_prog -> Ir.comp_unit -> Asm.asm_prog
+type allocator = ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
+type eater = ?debug:bool ->
+             allocator ->
+             Typecheck.full_prog ->
+             Ir.comp_unit ->
+             Asm.asm_prog
+val asm_munch : eater
+val asm_chomp : eater

@@ -652,3 +652,11 @@ let pre irs =
   let g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
 
   flatten g
+
+let pre_comp_unit (id, funcs) =
+  let f ((fname, stmt, typ): Ir.func_decl) =
+    match stmt with
+    | Seq irs -> (fname, Seq (pre irs), typ)
+    | _ -> failwith "pre_comp_unit: lowered func_decls should only have seqs"
+  in
+  (id, String.Map.map ~f funcs)

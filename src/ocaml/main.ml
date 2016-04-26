@@ -19,118 +19,77 @@ module TodoRemoveThis_ItsOnlyUsedToBuildTranslate = Translate
 module TodoRemoveThis_ItsOnlyUsedToBuildPre = Pre
 module TodoRemoveThis_ItsOnlyUsedToBuildCcp = Ccp
 
+(* ************************************************************************** *)
+(* types                                                                      *)
+(* ************************************************************************** *)
 type flags = {
-  no_opt:         bool;
-  typecheck:      bool;
-  tcdebug:        bool;
-  ast_cfold:      bool;
-  basicir:        bool;
-  ir_acfold:      bool;
-  ir_cfold:       bool;
-  lower:          bool;
-  blkreorder:     bool;
-  irgen:          bool;
-  asmchomp:       bool;
-  asmdebug:       bool;
-  astfiles:       string list;
+  (* mode *)
+  typecheck      : bool;
+  tcdebug        : bool;
+  nolower        : bool;
+  lower          : bool;
+  irgen          : bool;
+  optir_initial  : bool;
+  optir_final    : bool;
+  optcfg_initial : bool;
+  optcfg_final   : bool;
+  asmdebug       : bool;
+
+  (* optimizations *)
+  acf : bool;
+  icf : bool;
+  cp  : bool;
+  pre : bool;
+  is  : bool;
+  reg : bool;
+
+  (* args *)
+  astfiles : string list;
 } [@@deriving sexp]
 
-let resmap ~f =
-  List.map ~f:(function
-      | Ok x -> Ok (f x)
-      | Error e-> Error e)
+type opts = {
+  acf : Typecheck.full_prog -> Typecheck.full_prog;
+  icf : Ir.comp_unit -> Ir.comp_unit;
+  cp  : Ir.comp_unit -> Ir.comp_unit;
+  pre : Ir.comp_unit -> Ir.comp_unit;
+  is  : Tiling.eater;
+  reg : Tiling.allocator;
+}
 
-let do_if (b: bool) (f: 'a -> 'a) (x: 'a) : 'a =
-  if b then f x else x
+let opts_of_flags ({acf; icf; cp; pre; is; reg; _}: flags) : opts =
+  {
+    acf = (if acf then Ast_optimization.ast_constant_folding else fun x -> x);
+    icf = (if icf then Ir_generation.ir_constant_folding else fun x -> x);
+    cp  = (if cp  then Ccp.ccp_comp_unit else fun x -> x);
+    pre = (if pre then Pre.pre_comp_unit else fun x -> x);
+    is  = (if is  then Tiling.asm_chomp else Tiling.asm_munch);
+    reg = (if reg then Regalloc.reg_alloc else Tiling.register_allocate);
+  }
 
-let format_err_output row col msg =
-  row ^ ":" ^ col ^ " error: " ^ msg
+(* ************************************************************************** *)
+(* helpers                                                                    *)
+(* ************************************************************************** *)
+let ($) = Fn.compose
 
-let format_err_print filename line col msg =
-  "Semantic error at " ^ filename ^ ":" ^ line ^ ":" ^ col ^ ": " ^ msg
+let format_err_output (row: int) (col: int) (msg: string) : string =
+  sprintf "%d:%d error: %s" row col msg
 
-let get_callable_decls ((FullProg (_, _, interfaces)): Pos.full_prog) =
- List.fold_left
-   ~f:(fun acc (_, Interface clist) -> clist @ acc)
-   ~init:[] interfaces
-
-let ( $ ) = Fn.compose
-
-(* actual compiler options *)
-let typecheck (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
-    prog_typecheck ast
-
-let ir_gen (ast: Pos.full_prog) : Ir.comp_unit Error.result =
-  let f =
-    block_reorder_comp_unit $
-    lower_comp_unit $
-    ir_constant_folding $
-    gen_comp_unit $
-    ast_constant_folding in
-  Result.map (typecheck ast) ~f
-
-let ir_gen_no_opt (ast: Pos.full_prog) : Ir.comp_unit Error.result =
-  let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
-  Result.map (typecheck ast) ~f
-
-let asm_gen_opt
-  (debug: bool)
-  (chomp: bool)
-  (ast: Pos.full_prog) : Asm.asm_prog Error.result =
-  let f =
-    block_reorder_comp_unit $
-    lower_comp_unit $
-    ir_constant_folding $
-    gen_comp_unit $
-    ast_constant_folding in
-  Result.bind (typecheck ast) begin fun fullprog ->
-    let comp_unit = f fullprog in
-    let asm_eat = if chomp then asm_chomp else asm_munch in
-    Ok (asm_eat ~debug:debug fullprog comp_unit)
-  end
-
-let asm_gen_no_opt
-  (debug: bool)
-  (chomp: bool)
-  (ast: Pos.full_prog) : Asm.asm_prog Error.result =
-  let f = block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit in
-  Result.bind (typecheck ast) begin fun fullprog ->
-    let comp_unit = f fullprog in
-    let asm_eat = if chomp then asm_chomp else asm_munch in
-    Ok (asm_eat ~debug:debug fullprog comp_unit)
-  end
-
-(* debugging paths *)
-let debug_ast_cfold (ast: Pos.full_prog) : Typecheck.full_prog Error.result =
-  Result.map (typecheck ast) ~f:ast_constant_folding
-
-let debug_ir_astcfold (ast: Pos.full_prog) : Ir.comp_unit Error.result =
-  Result.map (debug_ast_cfold ast) ~f:gen_comp_unit
-
-let debug_ir_cfold (ast: Pos.full_prog): Ir.comp_unit Error.result =
-  Result.map (debug_ir_astcfold ast) ~f:ir_constant_folding
-
-let debug_ir_lower (ast: Pos.full_prog): Ir.comp_unit Error.result =
-  Result.map (debug_ir_cfold ast) ~f:lower_comp_unit
-
-let debug_ir_blkreorder (ast: Pos.full_prog): Ir.comp_unit Error.result =
-  Result.map (debug_ir_lower ast) ~f:block_reorder_comp_unit
-
-let debug_ir_basic (ast: Pos.full_prog): Ir.comp_unit Error.result =
-  Result.map (typecheck ast) ~f:gen_comp_unit
+let format_err_print (filename: string) (line: int) (col: int) (msg: string) : string =
+  sprintf "Semantic error at %s:%d:%d: %s" filename line col msg
 
 let asts_to_strs
   (tcf: Pos.full_prog -> 'a Error.result)
   (strf: 'a -> string)
-  (asts: Pos.full_prog list) =
-  let f (Ast.S.FullProg (name, prog, interfaces)) =
-    match tcf (Ast.S.FullProg (name, prog, interfaces)) with
+  (asts: Pos.full_prog list)
+  : string list =
+  let f (Ast.S.FullProg (name, _, _) as p) =
+    match tcf p with
     | Ok el -> strf el
-    | Error ((row, col), msg) ->
-        let row_s = string_of_int row in
-        let col_s = string_of_int col in
-        Print.print_endline (format_err_print name row_s col_s msg);
-        format_err_output row_s col_s msg in
+    | Error ((row, col), msg) -> (
+        Print.print_endline (format_err_print name row col msg);
+        format_err_output row col msg
+    )
+  in
   List.map ~f asts
 
 let writes (outs: string list) (content_list: string list) =
@@ -141,90 +100,127 @@ let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t =
   let f astfile = Reader.load_sexp_exn astfile Pos.full_prog_of_sexp in
   Deferred.List.map ~f astfiles
 
-let main flags () : unit Deferred.t =
+(* ************************************************************************** *)
+(* modes                                                                      *)
+(* ************************************************************************** *)
+(*
+| Mode                       | Flags Used                | Extension     |
+| -------------------------- | ------------------------- | ------------- |
+| `--lex`                    | none                      | `.lexed`      |
+| `--parse`                  | none                      | `.parsed`     |
+| `--typecheck`              | `acf`                     | `.typed`      |
+| `--tcdebug`                | `acf`                     | `.typeddebug` |
+| `--nolower`                | `acf`, `icf`              | `.nolower`    |
+| `--lower`                  | `acf`, `icf`, `cp`, `pre` | `.lower`      |
+| `--irgen`                  | `acf`, `icf`              | `.ir`         |
+| `--optir (initial,final)`  | `acf`, `icf`, `cp`, `pre` | `.ir`         |
+| `--optcfg (initial,final)` | `acf`, `icf`, `cp`, `pre` | `.dot`        |
+| ` `                        | all                       | `.s`          |
+| `--asmdebug`               | all                       | `.s`          |
+*)
+type 'a modef = opts -> Pos.full_prog -> 'a Error.result
+
+let typecheck : Typecheck.full_prog modef = fun {acf; _} ast ->
+  Result.(prog_typecheck ast >>| acf)
+
+let nolower : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
+  Result.(typecheck opts ast >>| (icf $ gen_comp_unit))
+
+let lower : Ir.comp_unit modef = fun ({icf; cp; pre; _} as opts) ast ->
+  Result.(typecheck opts ast >>| (pre $ cp $ icf $ lower_comp_unit $ gen_comp_unit))
+
+let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
+  Result.(
+    typecheck opts ast >>| (
+      icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $ gen_comp_unit
+    )
+  )
+
+let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
+  Result.(
+    typecheck opts ast >>= fun typed_prog ->
+    irgen opts ast >>| fun ir_prog ->
+    is ~debug reg typed_prog ir_prog
+  )
+
+(* ************************************************************************** *)
+(* pretty printers                                                            *)
+(* ************************************************************************** *)
+let typed_strf (_: 'a) : string =
+  "Valid Xi Program"
+
+let typed_debug_strf (Ast.S.FullProg (_, prog, _): Typecheck.full_prog) : string =
+  prog |> Typecheck.sexp_of_prog |> Sexp.to_string
+
+let ir_strf : Ir.comp_unit -> string =
+  sexp_of_comp_unit
+
+let asm_strf : Asm.asm list -> string =
+  string_of_asms
+
+(* ************************************************************************** *)
+(* main                                                                       *)
+(* ************************************************************************** *)
+let main opts flags () : unit Deferred.t =
   (* parse the asts *)
   get_asts flags.astfiles >>= fun asts ->
 
-  (* functions to turn representations into strings *)
-  let typed_strf = fun _ -> "Valid Xi Program" in
-  let typed_debug_strf (FullProg (_, prog, _): Typecheck.full_prog) : string =
-    prog |> Typecheck.sexp_of_prog |> Sexp.to_string in
-  let ir_strf = sexp_of_comp_unit in
-
   (* dispatch logic *)
-  if flags.typecheck then
-    let contents = asts_to_strs typecheck typed_strf asts in
-    writes flags.astfiles contents
-  else if flags.tcdebug then
-    let contents = asts_to_strs typecheck typed_debug_strf asts in
-    writes flags.astfiles contents
-  else if flags.ast_cfold then
-    let contents = asts_to_strs debug_ast_cfold typed_debug_strf asts in
-    writes flags.astfiles contents
-  else if flags.basicir then
-    let contents = asts_to_strs debug_ir_basic ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.ir_acfold then
-    let contents = asts_to_strs debug_ir_astcfold ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.ir_cfold then
-    let contents = asts_to_strs debug_ir_cfold ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.lower then
-    let contents = asts_to_strs debug_ir_lower ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.blkreorder then
-    let contents = asts_to_strs debug_ir_blkreorder ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.irgen && flags.no_opt then
-    let contents = asts_to_strs ir_gen_no_opt ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.irgen then
-    let contents = asts_to_strs ir_gen ir_strf asts in
-    writes flags.astfiles contents
-  else if flags.no_opt then
-    let asm_gen = asm_gen_no_opt flags.asmdebug flags.asmchomp in
-    let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.astfiles contents
-  else
-    let asm_gen = asm_gen_opt flags.asmdebug flags.asmchomp in
-    let contents = asts_to_strs asm_gen string_of_asms asts in
-    writes flags.astfiles contents
+  let write contents = writes flags.astfiles contents in
+  match () with
+  | _ when flags.typecheck -> write (asts_to_strs (typecheck opts) typed_strf asts)
+  | _ when flags.tcdebug   -> write (asts_to_strs (typecheck opts) typed_debug_strf asts)
+  | _ when flags.nolower   -> write (asts_to_strs (nolower opts) ir_strf asts)
+  | _ when flags.lower     -> write (asts_to_strs (lower opts) ir_strf asts)
+  | _ when flags.irgen     -> write (asts_to_strs (irgen opts) ir_strf asts)
+  | _ when flags.optir_initial || flags.optir_final -> failwith "TODO"
+  | _ when flags.optcfg_initial || flags.optcfg_final -> failwith "TODO"
+  | _ when flags.asmdebug -> write (asts_to_strs (asmgen true opts) asm_strf asts)
+  | _                     -> write (asts_to_strs (asmgen false opts) asm_strf asts)
 
 let () =
   Command.async
     ~summary:"Xi Compiler"
     Command.Spec.(
       empty
-      +> flag "--no-opt"         no_arg ~doc:""
       +> flag "--typecheck"      no_arg ~doc:""
       +> flag "--tcdebug"        no_arg ~doc:""
-      +> flag "--ast-cfold"      no_arg ~doc:""
-      +> flag "--basicir"        no_arg ~doc:""
-      +> flag "--ir-acfold"       no_arg ~doc:""
-      +> flag "--ir-cfold"       no_arg ~doc:""
+      +> flag "--nolower"        no_arg ~doc:""
       +> flag "--lower"          no_arg ~doc:""
-      +> flag "--blkreorder"     no_arg ~doc:""
       +> flag "--irgen"          no_arg ~doc:""
-      +> flag "--asmchomp"       no_arg ~doc:""
+      +> flag "--optir-initial"  no_arg ~doc:""
+      +> flag "--optir-final"    no_arg ~doc:""
+      +> flag "--optcfg-initial" no_arg ~doc:""
+      +> flag "--optcfg-final"   no_arg ~doc:""
       +> flag "--asmdebug"       no_arg ~doc:""
-      +> flag "--astfiles"    (listed string) ~doc:""
+      +> flag "--acf"            no_arg ~doc:""
+      +> flag "--icf"            no_arg ~doc:""
+      +> flag "--cp"             no_arg ~doc:""
+      +> flag "--pre"            no_arg ~doc:""
+      +> flag "--is"             no_arg ~doc:""
+      +> flag "--reg"            no_arg ~doc:""
+      +> flag "--astfiles"   (listed string) ~doc:""
     )
-    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 ->
+    (fun x00 x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 x11 x12 x13 x14 x15 x16 ->
        let flags = {
-          no_opt       = x00;
-          typecheck    = x01;
-          tcdebug      = x02;
-          ast_cfold    = x03;
-          basicir      = x04;
-          ir_acfold    = x05;
-          ir_cfold     = x06;
-          lower        = x07;
-          blkreorder   = x08;
-          irgen        = x09;
-          asmchomp     = x10;
-          asmdebug     = x11;
-          astfiles = x12;
+         typecheck      = x00;
+         tcdebug        = x01;
+         nolower        = x02;
+         lower          = x03;
+         irgen          = x04;
+         optir_initial  = x05;
+         optir_final    = x06;
+         optcfg_initial = x07;
+         optcfg_final   = x08;
+         asmdebug       = x09;
+         acf            = x10;
+         icf            = x11;
+         cp             = x12;
+         pre            = x13;
+         is             = x14;
+         reg            = x15;
+         astfiles       = x16;
        } in
-       main flags)
+       main (opts_of_flags flags) flags
+    )
   |> Command.run

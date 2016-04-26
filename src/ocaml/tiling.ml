@@ -1177,7 +1177,15 @@ let chomp_comp_unit
     (comp_unit: Ir.comp_unit) =
   eat_comp_unit chomp_func_decl ~debug fcontexts comp_unit
 
+type allocator = ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
+type eater = ?debug:bool ->
+             allocator ->
+             Typecheck.full_prog ->
+             Ir.comp_unit ->
+             Asm.asm_prog
+
 let asm_eat
+  (a: allocator)
   (eat_comp_unit: (Ir.comp_unit, Asm.abstract_asm list list) without_fcontext)
   ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
@@ -1187,20 +1195,10 @@ let asm_eat
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls comp_unit in
   let munched = eat_comp_unit ~debug func_contexts comp_unit in
-  if debug then
-    List.concat_map ~f:(reg_alloc) (List.tl_exn munched)
-  else
-    List.concat_map ~f:(register_allocate ~debug) munched
+  List.concat_map ~f:(a ~debug) munched
 
-let asm_munch
-  ?(debug=false)
-  (full_prog: Typecheck.full_prog)
-  (comp_unit : Ir.comp_unit) : Asm.asm list =
-  asm_eat munch_comp_unit ~debug full_prog comp_unit
+let asm_munch ?(debug=false) a typed_prog ir_prog =
+  asm_eat a munch_comp_unit ~debug typed_prog ir_prog
 
-let asm_chomp
-  ?(debug=false)
-  (full_prog: Typecheck.full_prog)
-  (comp_unit : Ir.comp_unit) : Asm.asm list =
-  asm_eat chomp_comp_unit ~debug full_prog comp_unit
-
+let asm_chomp ?(debug=false) a typed_prog ir_prog =
+  asm_eat a chomp_comp_unit ~debug typed_prog ir_prog

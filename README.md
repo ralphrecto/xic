@@ -31,20 +31,134 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
 ```
 
 ## Flags ##
-- `--help`
-- `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
-- `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
-- `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
-- `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
-- `-sourcepath <path> [default: dir where xic run]`
-    - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
-    - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
-- `-libpath <path> [default: dir where xic run]`
-- `-D <path> [default: dir where xic run]`
-    - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo.xi`
-    - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo.xi`
-    - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo.xi`
-- `-O`
+- Miscellaneous
+    - `--help`
+    - `--report-opts`
+- Modes
+    - `--lex`: `a/b/foo.xi --> a/b/foo.lexed`
+    - `--parse`: `a/b/foo.xi --> a/b/foo.parsed`
+    - `--typecheck`: `a/b/foo.xi --> a/b/foo.typed`
+    - `--tcdebug`: same as `--typecheck`
+    - `--nolower`:  same as `--irgen`
+    - `--lower`: same as `--irgen`
+    - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
+    - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
+    - `--optcfg (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
+    - ` `: `a/b/foo.xi --> a/b/foo.s`
+    - `--asmdebug`: same as ` `
+- Options
+    - `-sourcepath <path> [default: dir where xic run]`
+        - `-sourcepath a/b  c/d/foo.xi: a/b/c/d/foo.xi -->  c/d/foo._`
+        - `-sourcepath a/b /c/d/foo.xi: a/b/c/d/foo.xi --> /c/d/foo._`
+    - `-libpath <path> [default: dir where xic run]`
+    - `-D <path>` (diagnostic files) [default: dir where xic run]
+        - `-D a/b/  c/d/foo.xi: c/d/foo.xi --> a/b/c/d/foo._`
+        - `-D a/b/ /c/d/foo.xi: c/d/foo.xi --> /c/d/foo._`
+        - `-sourcepath 0/1/ -D a/b/ /c/d/foo.xi: 0/1/c/d/foo.xi --> a/b/c/d/foo._`
+    - `-d <path>` (asm files) [default: dir where xic run]
+        - same as `-D`
+    - `-target linux`
+    - `-O<opt>, -O-no-<opt>, -O`
+        - `-O<opt>` and `-O-no-<opt>` are mutually exclusive. If you set a
+          `-O<opt>` flag and also a `-O-no-<opt>`, the compiler will exit with
+          error.
+        - If a `-O<opt>` or `-O-no-<opt>` flag is set, `-O` is ignored.
+        - Here's a case analysis of all possible flag combinations.
+
+          | `-O<opt>` | `-O-no-<opt>` | `-O` | Behavior                 |
+          | --------- | ------------- | ---- | ------------------------ |
+          | n         | n             | n    | all flags                |
+          | n         | n             | y    | no flags                 |
+          | y         | n             | _    | only `-O<opt>` flags     |
+          | n         | y             | _    | only `-O-no-<opt>` flags |
+          | y         | y             | _    | error                    |
+
+## Optimizations ##
+We support a bunch of optimization flags, but some are aliases for others. For
+example, `cse` and `pre` are aliases. Here is an example of how aliases work.
+
+| Flags                          | PRE performed? |
+| ------------------------------ | -------------- |
+| `-cf`                          | no             |
+| `-cf -cse`                     | yes            |
+| `-cf -pre`                     | yes            |
+| `-cf -pre -cse`                | yes            |
+| `-O-no-cf -O-no-cse`           | no             |
+| `-O-no-cf -O-no-pre`           | no             |
+| `-O-no-cf -O-no-pre -O-no-cse` | no             |
+
+Here is a list of all the optimizations we support:
+
+| Flag   | Name                             | Alias |
+| ------ | -------------------------------- | ----- |
+| `acf`  | AST Constant Folding             |       |
+| `icf`  | IR Constant Folding              |       |
+| `reg`  | Register Allocation              |       |
+| `mc`   | Move Coalescing                  | `reg` |
+| `cp`   | Constant Propagation             |       |
+| `uce`  | Unreachable Code Elimination     | `cp`  |
+| `pre`  | Partial Redundancy Elimination   |       |
+| `cse`  | Common Subexpression Elimination | `pre` |
+| `licm` | Loop Invariant Code Motion       | `pre` |
+| `is`   | Good Instruction Selection       |       |
+
+Here is how optimization flags interact with different modes:
+
+| Mode                       | Flags Used                | Extension     |
+| -------------------------- | ------------------------- | ------------- |
+| `--lex`                    | none                      | `.lexed`      |
+| `--parse`                  | none                      | `.parsed`     |
+| `--typecheck`              | `acf`                     | `.typed`      |
+| `--tcdebug`                | `acf`                     | `.typeddebug` |
+| `--nolower`                | `acf`, `icf`              | `.nolower`    |
+| `--lower`                  | `acf`, `icf`, `cp`, `pre` | `.lower`      |
+| `--irgen`                  | `acf`, `icf`              | `.ir`         |
+| `--optir (initial,final)`  | `acf`, `icf`, `cp`, `pre` | `.ir`         |
+| `--optcfg (initial,final)` | `acf`, `icf`, `cp`, `pre` | `.dot`        |
+| ` `                        | all                       | `.s`          |
+| `--asmdebug`               | all                       | `.s`          |
+
+Here are some examples to wrap your head around things:
+
+| Flags                                    | Meaning                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| `--lex`                                  | Lex the code                                                              |
+| `--lex -O<opt>`                          | Lex the code; optimization ignored                                        |
+| `--parse`                                | Parse the code                                                            |
+| `--parse -O<opt>`                        | Parse the code; optimization ignored                                      |
+| `--typecheck`                            | Typecheck, then AST constant fold                                         |
+| `--typecheck -O`                         | Typecheck; no optimization                                                |
+| `--typecheck -Ocp`                       | Typecheck; no optimization                                                |
+| `--typecheck -Oacf`                      | Typecheck, then AST constant fold                                         |
+| `--tcdebug`                              | Typecheck, AST constant fold, and output AST                              |
+| `--tcdebug -Ocp`                         | Typecheck and output AST; no optimization                                 |
+| `--tcdebug -Oacf`                        | Typecheck, AST constant fold, and output AST                              |
+| `--nolower`                              | Generate IR with constant folding, but w/o lowering or block reordering   |
+| `--nolower -O`                           | Generate IR w/o constant folding, lowering, or block reordering           |
+| `--nolower -Oacf`                        | Generate IR with AST constant folding but no lowering or block reordering |
+| `--nolower -Oicf`                        | Generate IR with IR constant folding but no lowering or block reordering  |
+| `--nolower -Oacf -Oicf`                  | Generate IR with constant folding but no lowering or block reordering     |
+| `--lower`                                | Generate IR with all optimizations and lowering, but w/o block reordering |
+| `--lower -O`                             | Generate IR w/o optimizations, with lowering, and w/o block reordering    |
+| `--lower -Oacf -Oicf`                    | Generate IR with constant folding, and lowering, but w/o block reordering |
+| `--lower -Oacf -Oicf -Ocp -Opre`         | Generate IR with all optimizations and lowering, but w/o block reordering |
+| `--irgen`                                | Generate IR with constant folding, lowering, and block reordering         |
+| `--irgen -O`                             | Generate IR w/o constant folding, but with lowering and block reordering  |
+| `--optir initial -O`                     | Generate IR w/o optimizations, but with lowering and block reordering     |
+| `--optir initial`                        | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir initial -Oacf -Oicf`            | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir initial -Oacf -Oicf -Ocp -Opre` | Generate IR with AST constant folding, lowering, and block reordering     |
+| `--optir final -O`                       | Generate IR w/o optimizations, but with lowering and block reordering     |
+| `--optir final`                          | Generate IR with all optimizations, lowering, and block reordering        |
+| `--optir final -Oacf -Oicf`              | Generate IR with constant folding, lowering, and block reordering         |
+| `--optir final -Oacf -Oicf -Ocp -Opre`   | Generate IR with all optimizations, lowering, and block reordering        |
+| `--optcfg ...`                           | Same as `--optir`                                                         |
+| ` `                                      | Generate assembly with all optimizations                                  |
+| `-O`                                     | Generate assembly with no optimizations                                   |
+| `-Oacf -Oicf`                            | Generate assembly with only constant folding                              |
+| `--asmdebug  `                           | Generate commented assembly with all optimizations                        |
+| `--asmdebug -O`                          | Generate commented assembly with no optimizations                         |
+| `--asmdebug -Oacf -Oicf`                 | Generate commented assembly with only constant folding                    |
 
 ## x86-64 ##
 |     |      |      |              |

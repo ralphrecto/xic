@@ -272,6 +272,8 @@ let test_asm_cfg _ =
   let fls  = Cfg.EdgeData.False in
   let norm = Cfg.EdgeData.Normal in
 
+  let lab l = Label l in
+
   let make_graph vertexes edges =
     let g = create () in
     List.iter vertexes ~f:(fun i -> add_vertex g (V.create i));
@@ -288,6 +290,165 @@ let test_asm_cfg _ =
   let e = [(start, norm, exit)] in
   make_graph v e === Cfg.AsmCfg.create_cfg asms;
 
+  let asms = [jmp (lab "tru"); label_op "tru"; ret] in
+  let v = [start; node 0 (jmp (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; exit] in
+  let e = [(start, norm, node 0 (jmp (lab "tru")));
+           (node 0 (jmp (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [je (lab "tru"); label_op "tru"; ret] in
+  let v = [start; node 0 (je (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; exit] in
+  let e = [(start, norm, node 0 (je (lab "tru")));
+           (node 0 (je (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+(*
+  let asms = [je (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (je (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (je (lab "tru")));
+           (node 0 (je (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit);
+           (node 0 (je (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+*)
+  let asms = [jne (lab "tru"); label_op "tru"; ret] in
+  let v = [start; node 0 (jne (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; exit] in
+  let e = [(start, norm, node 0 (jne (lab "tru")));
+           (node 0 (jne (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+(*
+  let asms = [jne (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jne (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jne (lab "tru")));
+           (node 0 (jne (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jne (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jnz (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jnz (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jnz (lab "tru")));
+           (node 0 (jnz (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jnz (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jz (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jz (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jz (lab "tru")));
+           (node 0 (jz (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jz (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jg (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jg (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jg (lab "tru")));
+           (node 0 (jg (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jg (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jge (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jge (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jge (lab "tru")));
+           (node 0 (jge (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jge (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jl (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jl (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jl (lab "tru")));
+           (node 0 (jl (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jl (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jle (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jle (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jle (lab "tru")));
+           (node 0 (jle (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jle (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [js (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (js (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (js (lab "tru")));
+           (node 0 (js (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (js (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jns (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jns (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jns (lab "tru")));
+           (node 0 (jns (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jns (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jc (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jc (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jc (lab "tru")));
+           (node 0 (jc (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jc (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+
+  let asms = [jnc (lab "tru"); ret; label_op "tru"; ret] in
+  let v = [start; node 0 (jnc (lab "tru")); node 1 (label_op "tru");
+           node 2 ret; node 3 ret; exit] in
+  let e = [(start, norm, node 0 (jnc (lab "tru")));
+           (node 0 (jnc (lab "tru")), norm, node 1 (label_op "tru"));
+           (node 1 (label_op "tru"), norm, node 2 ret);
+           (node 2 ret, norm, exit);
+           (node 0 (jnc (lab "tru")), norm, node 3 ret);
+           (node 3 ret, norm, exit)] in
+  make_graph v e === Cfg.AsmCfg.create_cfg asms;
+*)
   ()
 
 
@@ -299,7 +460,7 @@ let main () =
     "suite" >::: [
       "test_cfg_equal" >:: test_cfg_equal;
       "test_ir_cfg"    >:: test_ir_cfg;
-      (* "test_asm_cfg"   >:: test_asm_cfg; *)
+      "test_asm_cfg"   >:: test_asm_cfg;
     ] |> run_test_tt_main
 
 let _ = main ()

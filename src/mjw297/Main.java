@@ -1,5 +1,7 @@
 package mjw297;
 
+import static com.google.common.collect.Iterables.any;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -136,21 +138,43 @@ public class Main {
     private static boolean constantPropagation = false;
 
     @Option(name="-O-no-cf", usage="No constant folding")
-    private static boolean noConstantFolding = true;
+    private static boolean noConstantFolding = false;
     @Option(name="-O-no-reg", usage="No register allocation")
-    private static boolean noRegisterAllocation = true;
+    private static boolean noRegisterAllocation = false;
     @Option(name="-O-no-mc", usage="No move coalescing")
-    private static boolean noMoveCoalescing = true;
+    private static boolean noMoveCoalescing = false;
     @Option(name="-O-no-uce", usage="No unreachable code elimination")
-    private static boolean noUnreachableCodeElim = true;
+    private static boolean noUnreachableCodeElim = false;
     @Option(name="-O-no-cse", usage="No common subsexpression elimination")
-    private static boolean noCommonSubexprElim = true;
+    private static boolean noCommonSubexprElim = false;
     @Option(name="-O-no-licm", usage="No loop invariant code motion")
-    private static boolean noLoopInvariantCodeMotion = true;
+    private static boolean noLoopInvariantCodeMotion = false;
     @Option(name="-O-no-pre", usage="No partial redundancy elimination")
-    private static boolean noPartialRedundancyElim = true;
+    private static boolean noPartialRedundancyElim = false;
     @Option(name="-O-no-cp", usage="No constant propagation")
-    private static boolean noConstantPropagation = true;
+    private static boolean noConstantPropagation = false;
+
+    // some equivalences:
+    // reg = mc
+    // cp = uce
+    // pre = cse = licm
+    private static String cf   = "cf";
+    private static String reg  = "reg";
+    private static String mc   = "mc";
+    private static String uce  = "uce";
+    private static String cse  = "cse";
+    private static String licm = "licm";
+    private static String pre  = "pre";
+    private static String cp   = "cp";
+
+    private static String cfFlag   = "--" + cf;
+    private static String regFlag  = "--" + reg;
+    private static String mcFlag   = "--" + reg;
+    private static String uceFlag  = "--" + cp;
+    private static String cseFlag  = "--" + pre;
+    private static String licmFlag = "--" + pre;
+    private static String preFlag  = "--" + pre;
+    private static String cpFlag   = "--" + cp;
 
     @Argument(usage = "Other non-optional arguments.", hidden = true)
     private static List<String> arguments = new ArrayList<String>();
@@ -590,6 +614,82 @@ public class Main {
     }
 
     /**
+     * Given a mix of -O<opt>, -O, and -O-no-<opt>, figure out which
+     * optimizations should actually be set. If both -O and -O-no-opt flags are
+     * set, we die with error.
+     */
+    public List<String> gatherOpts() {
+        List<Boolean> opts = Arrays.asList(
+            constantFolding,
+            registerAllocation,
+            moveCoalescing,
+            unreachableCodeElim,
+            commonSubexprElim,
+            loopInvariantCodeMotion,
+            partialRedundancyElim,
+            constantPropagation
+        );
+        boolean optsSpecified = any(opts, b -> b);
+
+        List<Boolean> noOpts = Arrays.asList(
+            noConstantFolding,
+            noRegisterAllocation,
+            noMoveCoalescing,
+            noUnreachableCodeElim,
+            noCommonSubexprElim,
+            noLoopInvariantCodeMotion,
+            noPartialRedundancyElim,
+            noConstantPropagation
+        );
+        boolean noOptsSpecified = any(noOpts, b -> b);
+
+        if (optsSpecified && noOptsSpecified) {
+            System.out.println("-O<opt> and -O-no-<opt> are mutually exclusive");
+            System.exit(1);
+        }
+
+        // -O is only effective when neither of -O<opt>, -O-no-<opt> specified
+        if (noOptimize && !optsSpecified && !noOptsSpecified) {
+            return new ArrayList<String>();
+        }
+
+        // if nothing is specified, we perform all optimizations
+        List<String> allFlags = new ArrayList<>(Arrays.asList(
+            cfFlag, regFlag, mcFlag, uceFlag, cseFlag, licmFlag, preFlag, cpFlag
+        ));
+        if (!optsSpecified && !noOptsSpecified) {
+            return allFlags;
+        }
+
+        // -O-<opt>
+        if (optsSpecified) {
+            List<String> flags = new ArrayList<>();
+            if (constantFolding)         { flags.add(cfFlag);   }
+            if (registerAllocation)      { flags.add(regFlag);  }
+            if (moveCoalescing)          { flags.add(mcFlag);   }
+            if (unreachableCodeElim)     { flags.add(uceFlag);  }
+            if (commonSubexprElim)       { flags.add(cseFlag);  }
+            if (loopInvariantCodeMotion) { flags.add(licmFlag); }
+            if (partialRedundancyElim)   { flags.add(preFlag);  }
+            if (constantPropagation)     { flags.add(cpFlag);   }
+            return flags;
+        }
+
+        // -O-no-<opt>
+        assert noOptsSpecified;
+        List<String> flags = allFlags;
+        if (noConstantFolding)         { flags.remove(cfFlag);   }
+        if (noRegisterAllocation)      { flags.remove(regFlag);  }
+        if (noMoveCoalescing)          { flags.remove(mcFlag);   }
+        if (noUnreachableCodeElim)     { flags.remove(uceFlag);  }
+        if (noCommonSubexprElim)       { flags.remove(cseFlag);  }
+        if (noLoopInvariantCodeMotion) { flags.remove(licmFlag); }
+        if (noPartialRedundancyElim)   { flags.remove(preFlag);  }
+        if (noConstantPropagation)     { flags.remove(cpFlag);   }
+        return flags;
+    }
+
+    /**
      * Main entry point. Handles actions for the different CLI options.
      * @param args The command line arguments
      */
@@ -602,9 +702,10 @@ public class Main {
                 System.exit(0);
             }
 
+
             if (reportOpts) {
                 List<String> opts = Arrays.asList(
-                    "cf", "reg", "mc", "uce", "cse", "licm", "pre", "cp"
+                    cf, reg, mc, uce, cse, licm, pre, cp
                 );
                 opts.forEach(System.out::println);
                 System.exit(0);
@@ -623,6 +724,9 @@ public class Main {
 
             sourcePath = sourcePath.equals("") ?
                     "" : Files.simplifyPath(sourcePath);
+
+            // TODO: pass opts around
+            List<String> opts = gatherOpts();
 
             if (lexMode) {
                 doLex(arguments);

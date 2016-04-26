@@ -282,7 +282,7 @@ let test_asm_cfg _ =
   let _ = [tru; fls; norm] in
   let _ = node in
 
-  (* *)
+  (* test 1 *********************************************************)
   let asms = [] in
   let v = [start; exit] in
   let e = [(start, norm, exit)] in

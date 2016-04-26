@@ -333,12 +333,12 @@ module AsmCfg = struct
           add_structure (hd2 :: tl)
         end in
 
-    let add_start (nodelist : AsmData.t list) =
+    let add_init (nodelist : AsmData.t list) =
       match nodelist with
-      | [] -> ()
+      | [] -> add_edge cfg (V.create Start) (V.create Exit)
       | hd1 :: _ -> add_edge cfg (V.create Start) (V.create (Node hd1)) in
 
-    add_start nodes;
+    add_init nodes;
     add_structure nodes;
     cfg
 

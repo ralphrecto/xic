@@ -1159,22 +1159,37 @@ let enchilada_test _ =
   let e = temp "e" in
 
   let irs = [
-    cjumpone one "n5";
-    move c two;
-    jump (name "n7");
-    label "n5";
-    move a (b + c);
-    label "n7";
-    move d (b + c);
-    cjumpone one "n11";
-    label "n9";
-    move e (b + c);
-    cjumpone one "n9";
-    label "n11";
+    cjumpone one "n5";  (* B1 *)
+    move c two;         (* B2 *)
+    jump (name "n7");   (* B3 *)
+    label "n5";         (* B5 *)
+    move a (b + c);     (* B5 *)
+    label "n7";         (* B7 *)
+    move d (b + c);     (* B7 *)
+    cjumpone one "n11"; (* B8 *)
+    label "n9";         (* B9 *)
+    move e (b + c);     (* B9 *)
+    cjumpone one "n9";  (* B10 *)
+    label "n11";        (* B11 *)
   ] in
 
+  Ir_generation.FreshTemp.reset();
+  let t = Ir.Temp (Ir_generation.FreshTemp.gen 0) in
   let expected = [
-    (* TODO *)
+    cjumpone one "n5";  (* B1 *)
+    move c two;         (* B2 *)
+    move t (b + c);     (* B3 *)
+    jump (name "n7");   (* B3 *)
+    label "n5";         (* B5 *)
+    move t (b + c);     (* B5 *)
+    move a t;           (* B5 *)
+    label "n7";         (* B7 *)
+    move d t;           (* B7 *)
+    cjumpone one "n11"; (* B8 *)
+    label "n9";         (* B9 *)
+    move e t;           (* B9 *)
+    cjumpone one "n9";  (* B10 *)
+    label "n11";        (* B11 *)
   ] in
   expected === Pre.pre irs;
   ()
@@ -1190,7 +1205,7 @@ let main () =
       "avail_test"       >:: avail_test;
       "post_test"        >:: post_test;
       "used_test"        >:: used_test;
-      (* "enchilada_test"   >:: enchilada_test; *)
+      "enchilada_test"   >:: enchilada_test;
     ] |> run_test_tt_main
 
 let _ = main ()

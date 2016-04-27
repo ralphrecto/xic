@@ -460,9 +460,14 @@ let rec lower_expr e =
   | BinOp (e1, binop, e2) ->
     let (s1, e1') = lower_expr e1 in
     let (s2, e2') = lower_expr e2 in
-    let temp = Temp (fresh_temp ()) in
-    let temp_move = Move (temp, e1') in
-    (s1 @ [temp_move] @ s2, BinOp(temp, binop, e2'))
+    begin
+      match s2 with
+      | [] -> (s1 @ s2, BinOp(e1', binop, e2'))
+      | _ ->
+        let temp = Temp (fresh_temp ()) in
+        let temp_move = Move (temp, e1') in
+        (s1 @ [temp_move] @ s2, BinOp (temp, binop, e2'))
+    end
   | Call (e', es) ->
     let call_fold (acc, temps) elm =
       let (s1, e1) = lower_expr elm in

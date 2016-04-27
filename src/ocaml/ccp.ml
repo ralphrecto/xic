@@ -179,6 +179,16 @@ let eval_stmt (reach, mapping) s l =
   | Seq _
   | CJump _ -> failwith "shouldn't exist!"
 
+let subst_stmt mapping s =
+  match s with
+  | Move (Temp x, e1) ->
+  | CJumpOne (e1, _) ->
+  | Exp e1 ->
+  | Jump _ | Label _ | Return -> s
+  | Seq _
+  | CJump _ -> failwith "shouldn't exist!"
+
+
 module CcpCFG = struct
   module Lattice = CcpLattice
   module CFG = IrCfg
@@ -207,11 +217,21 @@ module CcpCFG = struct
     let src = E.src e in
     let label = C.E.label e in
     match d, src with
-    | (L.Unreach, _), _ -> (fst d, undef_mapping)
+    | (L.Unreach, _), _ -> (L.Unreach, undef_mapping)
     | _, IDSE.Node {ir; _} -> eval_stmt d ir label
-    | _, IDSE.Start -> d
+    | _, IDSE.Start
     | _, IDSE.Exit -> failwith "cannot happen"
 end
+
+(* Given a function from edges to lattice elements, construct a map from
+ * vertices to their in values, assuming we did a forwards analysis. *)
+let make_in_forwards (g: C.t) (f: C.E.t -> 'a) (top: 'a) (bot: 'a): 'a M.t =
+  let h v =
+    match v with
+    | SE.Start -> bot
+    | SE.Exit | SE.Node _ -> C.fold_pred_e (fun e a -> IL.(f e ** a)) g v top
+  in
+  map g ~f:h
 
 module Ccp = Dataflow.GenericAnalysis(CcpCFG)
 
@@ -222,20 +242,17 @@ let ccp irs =
   let g = C.create_cfg irs in
   let undef_mapping = map_temp_undef (get_all_temps g) in
   let ccp_e = Ccp.worklist undef_mapping g in
+  let ccp_v = make_in_fowards g ccp_e (L.Unreach, undef_mapping) (L.Reach, undef_mapping) in
   let f_vertex v acc =
     match v with
     | IDSE.Start
     | IDSE.Exit -> acc
-    | IDSE.Node {ir; num} ->
-      let f_edge e acc' =
-        match acc', fst(ccp_e e) with
-        | L.Unreach, L.Unreach -> L.Unreach
-        | _, L.Reach
-        | L.Reach, _ -> L.Reach
-      in
-      match C.fold_pred_e f_edge g v (L.Unreach) with
-      | L.Unreach -> acc
-      | L.Reach -> Int.Map.add ~key:num ~data:ir acc
+    | IDSE.Node {num; ir} ->
+      begin
+        match ccp_v v with
+        | L.Unreach, _ -> acc
+        | L.Reach, mapping -> Int.Map.add ~key:num ~data:(eval_stmt mapping ir) acc
+      end
   in
   C.fold_vertex f_vertex g Int.Map.empty
   |> Int.Map.to_alist

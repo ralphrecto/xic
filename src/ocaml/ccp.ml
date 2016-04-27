@@ -212,12 +212,7 @@ let rec subst_expr mapping e =
 let subst_stmt mapping s =
   let open CcpLattice in
   match s with
-  | Move (Temp s1, e1) ->
-    begin
-      match String.Map.find_exn mapping s1 with
-      | Def i -> Move (Temp s1, Const i)
-      | _ -> Move (Temp s1, subst_expr mapping e1)
-    end
+  | Move (Temp s1, e1) -> Move (Temp s1, subst_expr mapping e1)
   | Move (Mem (e1, t), e2) -> Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2)
   | CJumpOne (e1, s1) -> CJumpOne (subst_expr mapping e1, s1)
   | Exp e1 -> Exp (subst_expr mapping e1)

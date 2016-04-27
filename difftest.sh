@@ -10,27 +10,12 @@ blue() {
     echo -e "\e[96m$1$NORMAL"
 }
 
-link_and_run_s() {
+link_and_run() {
     filename="$1"
-    binname="$(dirname $filename)/$(basename $filename .s)-s"
+    base="$(basename $filename)"
+    ext="${base##*.}"
+    binname="$(dirname $filename)/$(basename $filename $ext)-$ext"
     runtime/runtime/linkxi.sh "$filename" -o "$binname"
-    "$binname"
-}
-
-link_and_run_chomped() {
-    filename="$1"
-    asm="$(dirname $filename)/$(basename $filename .chomped).s"
-    if [[ -e "$asm" ]]; then
-        mv "$asm" yoloswagtmp
-    fi
-    cp "$filename" "$asm"
-    binname="$(dirname $filename)/$(basename $filename .chomped)-chomped"
-    runtime/runtime/linkxi.sh "$asm" -o "$binname"
-    if [[ -e yoloswagtmp ]]; then
-        mv yoloswagtmp "$asm"
-    else
-        rm "$asm"
-    fi
     "$binname"
 }
 
@@ -38,12 +23,12 @@ run_and_diff() {
     f="$1"
 
     nonce=TEMP
-    dname=$(dirname $f)
-    fname=$(basename $f)
-    noext=$(basename $f .xi)
-    pervasive_file="$dname/pervasives.xi"
-    tempname="$dname/${nonce}_$fname"
-    tempname_noext="$dname/${nonce}_$noext"
+    dname=$(dirname $f)                     # foo/bar
+    fname=$(basename $f)                    # file.xi
+    noext=$(basename $f .xi)                # file
+    pervasive_file="$dname/pervasives.xi"   # foo/bar/pervasives.xi
+    tempname="$dname/${nonce}_$fname"       # foo/bar/TEMP_file.xi
+    tempname_noext="$dname/${nonce}_$noext" # foo/bar/TEMP_file
 
     # don't do anything for temp files or pervasives
     if [[ "$fname" == "$nonce"* || "$fname" == "pervasives.xi" ]] ; then
@@ -54,56 +39,84 @@ run_and_diff() {
 
     cat "$pervasive_file" "$f" > "$tempname"
 
-    flags=(
-        "--tcdebug"
-        "--ast-cfold"
-        "--basicir"
-        "--ir-acfold"
-        "--ir-cfold"
-        "--lower"
-        "--irgen"
-        "--asmdebug"
-    )
-    extensions=(
-        "typeddebug"
-        "astcfold"
-        "basicir"
-        "iracfold"
-        "ircfold"
-        "lower"
-        "ir"
-        "s"
-    )
-    evaluators=(
-        "./xi"
-        "./xi"
-        "./ir"
-        "./ir"
-        "./ir"
-        "./ir"
-        "./ir"
-        "link_and_run_s"
-    )
+    names=()
+    names+=("typed")
+    names+=("typed-acf")
+    names+=("nolower")
+    names+=("lower")
+    names+=("ir")
+    names+=("ir-cp")
+    # names+=("ir-pre")
+    # names+=("ir-opt")
+    # names+=("munch")
+    # names+=("chomp")
+    # names+=("s")
+
+    flags=()
+    flags+=("--tcdebug")
+    flags+=("--tcdebug -Oacf")
+    flags+=("--nolower -Oacf")
+    flags+=("--lower   -Oacf")
+    flags+=("--irgen")
+    flags+=("--optir final -Oacf -Oicf -Ocp")
+    # flags+=("--optir final -Oacf -Oicf -Opre")
+    # flags+=("--optir final")
+    # flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp")
+    # flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp -Ois")
+    # flags+=("--asmdebug")
 
     generated=()
-    for ((i = 0; i < ${#extensions[@]}; ++i)); do
-        generated[i]="$tempname_noext.${extensions[$i]}"
+    generated+=("${tempname_noext}.typeddebug")
+    generated+=("${tempname_noext}.typeddebug")
+    generated+=("${tempname_noext}.nolower")
+    generated+=("${tempname_noext}.lower")
+    generated+=("${tempname_noext}.ir")
+    generated+=("${tempname_noext}_final.ir")
+    # generated+=("${tempname_noext}_final.ir")
+    # generated+=("${tempname_noext}_final.ir")
+    # generated+=("${tempname_noext}.s")
+    # generated+=("${tempname_noext}.s")
+    # generated+=("${tempname_noext}.s")
+
+    evaluators=()
+    evaluators+=("./xi")
+    evaluators+=("./xi")
+    evaluators+=("./ir")
+    evaluators+=("./ir")
+    evaluators+=("./ir")
+    evaluators+=("./ir")
+    # evaluators+=("./ir")
+    # evaluators+=("./ir")
+    # evaluators+=("link_and_run_s")
+    # evaluators+=("link_and_run_s")
+    # evaluators+=("link_and_run_s")
+
+    # generate files and make them have unique names
+    named=()
+    for ((i = 0; i < ${#names[@]}; ++i)); do
+        named[i]="$tempname_noext.${names[$i]}"
     done
 
-    outputfiles=()
-    for ((i = 0; i < ${#generated[@]}; ++i)); do
-        outputfiles[i]="${generated[$i]}-out"
-    done
-
-    for flag in "${flags[@]}"; do
+    for ((i = 0; i < "${#flags[@]}"; ++i));do
+        flag="${flags[$i]}"
+        gen="${generated[$i]}"
+        name="${named[$i]}"
         cmd="./xic -libpath xilib $flag $tempname"
         echo "    $cmd"
         $cmd
+        if [[ $gen != $name ]]; then
+            mv "$gen" "$name"
+        fi
     done
 
-    for ((i = 0; i < "${#generated[@]}"; ++i)); do
-        echo "    ${evaluators[$i]} ${generated[$i]} &> ${outputfiles[$i]}"
-        "${evaluators[$i]}" "${generated[$i]}" &> "${outputfiles[$i]}" || true
+    outputfiles=()
+    for ((i = 0; i < ${#named[@]}; ++i)); do
+        outputfiles[i]="${named[$i]}-out"
+    done
+
+    for ((i = 0; i < "${#named[@]}"; ++i)); do
+        echo "    ${evaluators[$i]} ${named[$i]} &> ${outputfiles[$i]}"
+        "${evaluators[$i]}" "${named[$i]}" &> "${outputfiles[$i]}" || true
     done
 
     for ((i = 0; i < ${#outputfiles[@]}; ++i)); do

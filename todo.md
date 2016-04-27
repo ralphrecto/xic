@@ -8,3 +8,6 @@
 - [ ] copy propagation / dead code elimination
 - [ ] enter/leave fix
 - [ ] concatenate difftest files
+- [x] make difftest script have bool array
+- [ ] pre tests
+- [ ] ccp tests

@@ -39,6 +39,19 @@ run_and_diff() {
 
     cat "$pervasive_file" "$f" > "$tempname"
 
+    should_run=()
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(true)
+    should_run+=(false)
+
     names=()
     names+=("typed")
     names+=("typed-acf")
@@ -50,7 +63,7 @@ run_and_diff() {
     names+=("ir-opt")
     names+=("munch")
     names+=("chomp")
-    # names+=("s")
+    names+=("s")
 
     flags=()
     flags+=("--tcdebug")
@@ -63,7 +76,7 @@ run_and_diff() {
     flags+=("--optir final")
     flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp")
     flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp -Ois")
-    # flags+=("--asmdebug")
+    flags+=("--asmdebug")
 
     generated=()
     generated+=("${tempname_noext}.typeddebug")
@@ -76,7 +89,7 @@ run_and_diff() {
     generated+=("${tempname_noext}_final.ir")
     generated+=("${tempname_noext}.s")
     generated+=("${tempname_noext}.s")
-    # generated+=("${tempname_noext}.s")
+    generated+=("${tempname_noext}.s")
 
     evaluators=()
     evaluators+=("./xi")
@@ -89,7 +102,7 @@ run_and_diff() {
     evaluators+=("./ir")
     evaluators+=("link_and_run")
     evaluators+=("link_and_run")
-    # evaluators+=("link_and_run")
+    evaluators+=("link_and_run")
 
     # generate files and make them have unique names
     named=()
@@ -98,14 +111,16 @@ run_and_diff() {
     done
 
     for ((i = 0; i < "${#flags[@]}"; ++i));do
-        flag="${flags[$i]}"
-        gen="${generated[$i]}"
-        name="${named[$i]}"
-        cmd="./xic -libpath xilib $flag $tempname"
-        echo "    $cmd"
-        $cmd
-        if [[ $gen != $name ]]; then
-            mv "$gen" "$name"
+        if "${should_run[$i]}"; then
+            flag="${flags[$i]}"
+            gen="${generated[$i]}"
+            name="${named[$i]}"
+            cmd="./xic -libpath xilib $flag $tempname"
+            echo "    $cmd"
+            $cmd
+            if [[ $gen != $name ]]; then
+                mv "$gen" "$name"
+            fi
         fi
     done
 
@@ -115,16 +130,20 @@ run_and_diff() {
     done
 
     for ((i = 0; i < "${#named[@]}"; ++i)); do
-        echo "    ${evaluators[$i]} ${named[$i]} &> ${outputfiles[$i]}"
-        "${evaluators[$i]}" "${named[$i]}" &> "${outputfiles[$i]}" || true
+        if "${should_run[$i]}"; then
+            echo "    ${evaluators[$i]} ${named[$i]} &> ${outputfiles[$i]}"
+            "${evaluators[$i]}" "${named[$i]}" &> "${outputfiles[$i]}" || true
+        fi
     done
 
     for ((i = 0; i < ${#outputfiles[@]}; ++i)); do
         for ((j = i + 1; j < ${#outputfiles[@]}; ++j)); do
-            filea="${outputfiles[$i]}"
-            fileb="${outputfiles[$j]}"
-            if ! diff "$filea" "$fileb" > /dev/null; then
-                red "$filea and $fileb" differ
+            if "${should_run[$i]}" && "${should_run[$j]}"; then
+                filea="${outputfiles[$i]}"
+                fileb="${outputfiles[$j]}"
+                if ! diff "$filea" "$fileb" > /dev/null; then
+                    red "$filea and $fileb" differ
+                fi
             fi
         done
     done

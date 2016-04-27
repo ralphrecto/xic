@@ -208,13 +208,13 @@ let subst_stmt mapping s =
   | Move (Temp s1, e1) ->
     begin
       match String.Map.find_exn mapping s1 with
-      | Def _ -> None
-      | _ -> Some (Move (Temp s1, subst_expr mapping e1))
+      | Def i -> Move (Temp s1, Const i)
+      | _ -> Move (Temp s1, subst_expr mapping e1)
     end
-  | Move (Mem (e1, t), e2) -> Some (Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2))
-  | CJumpOne (e1, s1) -> Some (CJumpOne (subst_expr mapping e1, s1))
-  | Exp e1 -> Some (Exp (subst_expr mapping e1))
-  | Jump _ | Label _ | Return -> Some s
+  | Move (Mem (e1, t), e2) -> Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2)
+  | CJumpOne (e1, s1) -> CJumpOne (subst_expr mapping e1, s1)
+  | Exp e1 -> Exp (subst_expr mapping e1)
+  | Jump _ | Label _ | Return -> s
   | Move _
   | Seq _
   | CJump _ -> failwith "shouldn't exist!"
@@ -288,12 +288,7 @@ let ccp irs =
       begin
         match M.find_exn ccp_v_map v with
         | L.Unreach, _ -> acc
-        | L.Reach, mapping ->
-          begin
-            match subst_stmt mapping ir with
-            | Some s -> Int.Map.add ~key:num ~data:s acc
-            | None -> acc
-          end
+        | L.Reach, mapping -> Int.Map.add ~key:num ~data:(subst_stmt mapping ir) acc
       end
   in
   C.fold_vertex f_vertex g Int.Map.empty

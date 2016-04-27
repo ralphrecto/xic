@@ -114,36 +114,40 @@ let eval_binop (i1: Int64.t) (op: Ir.binop_code) (i2: Int64.t) =
   let ( / ) = Long.div in
   let ( % ) = Long.rem in
   match op with
-  | ADD -> i1 + i2
-  | SUB -> i1 - i2
-  | MUL -> i1 * i2
+  | ADD -> Const (i1 + i2)
+  | SUB -> Const (i1 - i2)
+  | MUL -> Const (i1 * i2)
   | HMUL ->
     let i1' = big_int_of_int64 i1 in
     let i2' = big_int_of_int64 i2 in
     let mult = mult_big_int i1' i2' in
     let shifted = shift_right_big_int mult 64 in
     let result = int64_of_big_int shifted in
-    result
-  | DIV -> i1 / i2
-  | MOD -> i1 % i2
-  | AND -> logand i1 i2
-  | OR -> logor i1 i2
-  | XOR -> logxor i1 i2
+    Const result
+  | DIV -> if compare i2 0L = 0
+             then BinOp (Const i1, op, Const i2)
+             else Const (i1 / i2)
+  | MOD -> if compare i2 0L = 0
+             then BinOp (Const i1, op, Const i2)
+             else Const (i1 % i2)
+  | AND -> Const (logand i1 i2)
+  | OR -> Const (logor i1 i2)
+  | XOR -> Const (logxor i1 i2)
   | LSHIFT ->
     let i2' = to_int i2 in
-    shift_left i1 i2'
+    Const (shift_left i1 i2')
   | RSHIFT ->
     let i2' = to_int i2 in
-    shift_right_logical i1 i2'
+    Const (shift_right_logical i1 i2')
   | ARSHIFT ->
     let i2' = to_int i2 in
-    shift_right i1 i2'
-  | EQ -> if (compare i1 i2) = 0 then 1L else 0L
-  | NEQ -> if (compare i1 i2) <> 0 then 1L else 0L
-  | LT -> if (compare i1 i2) < 0 then 1L else 0L
-  | GT -> if (compare i1 i2) > 0 then 1L else 0L
-  | LEQ -> if (compare i1 i2) <= 0 then 1L else 0L
-  | GEQ -> if (compare i1 i2) >= 0 then 1L else 0L
+    Const (shift_right i1 i2')
+  | EQ -> if (compare i1 i2) = 0 then Const 1L else Const 0L
+  | NEQ -> if (compare i1 i2) <> 0 then Const 1L else Const 0L
+  | LT -> if (compare i1 i2) < 0 then Const 1L else Const 0L
+  | GT -> if (compare i1 i2) > 0 then Const 1L else Const 0L
+  | LEQ -> if (compare i1 i2) <= 0 then Const 1L else Const 0L
+  | GEQ -> if (compare i1 i2) >= 0 then Const 1L else Const 0L
 
 let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLattice.defined =
   let open CcpLattice in
@@ -155,7 +159,11 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
       | _, Overdef -> Overdef
       | Undef, _
       | _, Undef -> Undef
-      | Def i1, Def i2 -> Def (eval_binop i1 op i2)
+      | Def i1, Def i2 -> begin
+        match eval_binop i1 op i2 with
+        | Const i -> Def i
+        | _ -> Overdef
+      end
     end
   | Temp s -> String.Map.find_exn mapping s
   | Const i -> Def i
@@ -192,7 +200,7 @@ let rec subst_expr mapping e =
   | BinOp (e1, op, e2) ->
     begin
       match subst_expr mapping e1, subst_expr mapping e2 with
-      | Const i1, Const i2 -> Const (eval_binop i1 op i2)
+      | Const i1, Const i2 -> eval_binop i1 op i2
       | Const i1, _ -> BinOp (Const i1, op, e2)
       | _, Const i2 -> BinOp (e1, op, Const i2)
       | _ -> e

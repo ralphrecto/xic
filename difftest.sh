@@ -87,9 +87,9 @@ run_and_diff() {
     evaluators+=("./ir")
     evaluators+=("./ir")
     evaluators+=("./ir")
-    evaluators+=("link_and_run_s")
-    evaluators+=("link_and_run_s")
-    # evaluators+=("link_and_run_s")
+    evaluators+=("link_and_run")
+    evaluators+=("link_and_run")
+    # evaluators+=("link_and_run")
 
     # generate files and make them have unique names
     named=()

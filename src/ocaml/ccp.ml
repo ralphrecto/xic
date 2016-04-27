@@ -98,7 +98,7 @@ let map_temp_undef temps =
   let f acc e = String.Map.add acc ~key:e ~data:L.Undef in
   String.Set.fold ~f ~init:String.Map.empty temps
 
-let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLattice.defined =
+let eval_binop (i1: Int64.t) (op: Ir.binop_code) (i2: Int64.t) =
   let open Long in
   let open Big_int in
   let ( + ) = Long.add in
@@ -106,6 +106,40 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
   let ( * ) = Long.mul in
   let ( / ) = Long.div in
   let ( % ) = Long.rem in
+  match op with
+  | ADD -> i1 + i2
+  | SUB -> i1 - i2
+  | MUL -> i1 * i2
+  | HMUL ->
+    let i1' = big_int_of_int64 i1 in
+    let i2' = big_int_of_int64 i2 in
+    let mult = mult_big_int i1' i2' in
+    let shifted = shift_right_big_int mult 64 in
+    let result = int64_of_big_int shifted in
+    result
+  | DIV -> i1 / i2
+  | MOD -> i1 % i2
+  | AND -> logand i1 i2
+  | OR -> logor i1 i2
+  | XOR -> logxor i1 i2
+  | LSHIFT ->
+    let i2' = to_int i2 in
+    shift_left i1 i2'
+  | RSHIFT ->
+    let i2' = to_int i2 in
+    shift_right_logical i1 i2'
+  | ARSHIFT ->
+    let i2' = to_int i2 in
+    shift_right i1 i2'
+  | EQ -> if (compare i1 i2) = 0 then 1L else 0L
+  | NEQ -> if (compare i1 i2) <> 0 then 1L else 0L
+  | LT -> if (compare i1 i2) < 0 then 1L else 0L
+  | GT -> if (compare i1 i2) > 0 then 1L else 0L
+  | LEQ -> if (compare i1 i2) <= 0 then 1L else 0L
+  | GEQ -> if (compare i1 i2) >= 0 then 1L else 0L
+
+let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLattice.defined =
+  let open CcpLattice in
   match e with
   | BinOp (e1, op, e2) ->
     begin
@@ -114,40 +148,7 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
       | _, Overdef -> Overdef
       | Undef, _
       | _, Undef -> Undef
-      | Def i1, Def i2 ->
-        begin
-          match op with
-          | ADD -> Def (i1 + i2)
-          | SUB -> Def (i1 - i2)
-          | MUL -> Def (i1 * i2)
-          | HMUL ->
-            let i1' = big_int_of_int64 i1 in
-            let i2' = big_int_of_int64 i2 in
-            let mult = mult_big_int i1' i2' in
-            let shifted = shift_right_big_int mult 64 in
-            let result = int64_of_big_int shifted in
-            Def result
-          | DIV -> Def (i1 / i2)
-          | MOD -> Def (i1 % i2)
-          | AND -> Def (logand i1 i2)
-          | OR -> Def (logor i1 i2)
-          | XOR -> Def (logxor i1 i2)
-          | LSHIFT ->
-            let i2' = to_int i2 in
-            Def (shift_left i1 i2')
-          | RSHIFT ->
-            let i2' = to_int i2 in
-            Def (shift_right_logical i1 i2')
-          | ARSHIFT ->
-            let i2' = to_int i2 in
-            Def (shift_right i1 i2')
-          | EQ -> if (compare i1 i2) = 0 then Def (1L) else Def (0L)
-          | NEQ -> if (compare i1 i2) <> 0 then Def (1L) else Def (0L)
-          | LT -> if (compare i1 i2) < 0 then Def (1L) else Def (0L)
-          | GT -> if (compare i1 i2) > 0 then Def (1L) else Def (0L)
-          | LEQ -> if (compare i1 i2) <= 0 then Def (1L) else Def (0L)
-          | GEQ -> if (compare i1 i2) >= 0 then Def (1L) else Def (0L)
-        end
+      | Def i1, Def i2 -> Def (eval_binop i1 op i2)
     end
   | Temp s -> String.Map.find_exn mapping s
   | Const i -> Def i
@@ -157,10 +158,9 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
   | ESeq _ -> failwith "shouldn't exist!"
 
 let eval_stmt (reach, mapping) s l =
-  let module L = CcpLattice in
-  let open L in
+  let open CcpLattice in
   match s with
-  | Move (Temp x, Call _) -> (reach, String.Map.add mapping ~key:x ~data:L.Overdef)
+  | Move (Temp x, Call _) -> (reach, String.Map.add mapping ~key:x ~data:Overdef)
   | Move (Temp x, e1) -> (reach, String.Map.add mapping ~key:x ~data:(eval_expr mapping e1))
   | Move _ -> (reach, mapping)
   | CJumpOne (e1, _) ->
@@ -176,6 +176,46 @@ let eval_stmt (reach, mapping) s l =
     end
   | Exp _ -> (reach, mapping)
   | Jump _ | Label _ | Return -> (reach, mapping)
+  | Seq _
+  | CJump _ -> failwith "shouldn't exist!"
+
+let rec subst_expr mapping e =
+  let open CcpLattice in
+  match e with
+  | BinOp (e1, op, e2) ->
+    begin
+      match subst_expr mapping e1, subst_expr mapping e2 with
+      | Const i1, Const i2 -> Const (eval_binop i1 op i2)
+      | Const i1, _ -> BinOp (Const i1, op, e2)
+      | _, Const i2 -> BinOp (e1, op, Const i2)
+      | _ -> e
+    end
+  | Call (n, elst) -> Call (n, List.map ~f:(subst_expr mapping) elst)
+  | Mem (e1, t) -> Mem (subst_expr mapping e1, t)
+  | Temp s ->
+    begin
+      match String.Map.find_exn mapping s with
+      | Def i -> Const i
+      | _ -> e
+    end
+  | Const _
+  | Name _ -> e
+  | ESeq _ -> failwith "shouldn't exist!"
+
+let subst_stmt mapping s =
+  let open CcpLattice in
+  match s with
+  | Move (Temp s1, e1) ->
+    begin
+      match String.Map.find_exn mapping s1 with
+      | Def i -> Move (Temp s1, Const i)
+      | _ -> Move (Temp s1, subst_expr mapping e1)
+    end
+  | Move (Mem (e1, t), e2) -> Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2)
+  | CJumpOne (e1, s1) -> CJumpOne (subst_expr mapping e1, s1)
+  | Exp e1 -> Exp (subst_expr mapping e1)
+  | Jump _ | Label _ | Return -> s
+  | Move _
   | Seq _
   | CJump _ -> failwith "shouldn't exist!"
 
@@ -207,11 +247,28 @@ module CcpCFG = struct
     let src = E.src e in
     let label = C.E.label e in
     match d, src with
-    | (L.Unreach, _), _ -> (fst d, undef_mapping)
+    | (L.Unreach, _), _ -> (L.Unreach, undef_mapping)
     | _, IDSE.Node {ir; _} -> eval_stmt d ir label
-    | _, IDSE.Start -> d
+    | _, IDSE.Start
     | _, IDSE.Exit -> failwith "cannot happen"
 end
+
+module M = Cfg.IrStartExitMap
+
+let map (g: IrCfg.t) ~(f:IrCfg.vertex -> 'a) : 'a M.t =
+  IrCfg.fold_vertex (fun v m -> M.add m ~key:v ~data:(f v)) g M.empty
+
+(* Given a function from edges to lattice elements, construct a map from
+ * vertices to their in values, assuming we did a forwards analysis. *)
+let make_in_forwards (g: IrCfg.t) (f: IrCfg.E.t -> 'a) (top: 'a) (bot: 'a): 'a M.t =
+  let module L = CcpLattice in
+  let module SE = Cfg.IrDataStartExit in
+  let h v =
+    match v with
+    | SE.Start -> bot
+    | SE.Exit | SE.Node _ -> IrCfg.fold_pred_e (fun e a -> L.(f e ** a)) g v top
+  in
+  map g ~f:h
 
 module Ccp = Dataflow.GenericAnalysis(CcpCFG)
 
@@ -222,20 +279,17 @@ let ccp irs =
   let g = C.create_cfg irs in
   let undef_mapping = map_temp_undef (get_all_temps g) in
   let ccp_e = Ccp.worklist undef_mapping g in
+  let ccp_v_map = make_in_forwards g ccp_e (L.Unreach, undef_mapping) (L.Reach, undef_mapping) in
   let f_vertex v acc =
     match v with
     | IDSE.Start
     | IDSE.Exit -> acc
-    | IDSE.Node {ir; num} ->
-      let f_edge e acc' =
-        match acc', fst(ccp_e e) with
-        | L.Unreach, L.Unreach -> L.Unreach
-        | _, L.Reach
-        | L.Reach, _ -> L.Reach
-      in
-      match C.fold_pred_e f_edge g v (L.Unreach) with
-      | L.Unreach -> acc
-      | L.Reach -> Int.Map.add ~key:num ~data:ir acc
+    | IDSE.Node {num; ir} ->
+      begin
+        match M.find_exn ccp_v_map v with
+        | L.Unreach, _ -> acc
+        | L.Reach, mapping -> Int.Map.add ~key:num ~data:(subst_stmt mapping ir) acc
+      end
   in
   C.fold_vertex f_vertex g Int.Map.empty
   |> Int.Map.to_alist

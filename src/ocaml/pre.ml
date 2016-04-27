@@ -377,7 +377,7 @@ module SE = Cfg.IrDataStartExit
 
 let subst exp ~uses ~latest ~used ~freshes =
   let rec help exp =
-    if (not (E.mem latest exp)) || E.mem used exp then
+    if (E.mem uses exp) && ((not (E.mem latest exp)) || E.mem used exp) then
       EM.find_exn freshes exp
     else
       match exp with
@@ -387,9 +387,7 @@ let subst exp ~uses ~latest ~used ~freshes =
       | ESeq _ -> failwith "eseq shouldn't even exist; it's lowered"
       | Const _ | Name _ | Temp _ -> exp
   in
-  if E.mem uses exp
-    then help exp
-    else exp
+  help exp
 
 let get_one_pred_e g v =
   match C.EdgeSet.to_list (C.preds_e g v) with

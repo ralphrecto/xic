@@ -12,29 +12,36 @@ module CcpLattice = struct
   type data = (reachable * defined String.Map.t)
 
   let ( ** ) (reach1, defined1) (reach2, defined2) =
+    let reachable_meet r1 r2 =
+      match r1, r2 with
+      | Unreach, r | r, Unreach -> r
+      | _ -> Reach
+    in
+
     let defined_meet def1 def2 =
       match def1, def2 with
-      | Undef, Undef -> Undef
-      | Undef, (_ as def)
-      | (_ as def), Undef -> def
+      | Undef, def
+      | def, Undef -> def
       | Def i1, Def i2 when Int64.equal i1 i2 -> def1
-      | _ -> Overdef
+      | Def _, Def _
+      | Overdef, _
+      | _, Overdef -> Overdef
     in
+
     let f ~key:temp ~data:def1 acc =
       let def2 = String.Map.find_exn defined2 temp in
       let new_def = defined_meet def1 def2 in
       String.Map.add acc ~key:temp ~data:new_def
     in
     let new_defined = String.Map.fold ~f ~init:String.Map.empty defined1 in
-    match reach1, reach2 with
-    | Unreach, Unreach -> (Unreach, new_defined)
-    | _ -> (Reach, new_defined)
+    let new_reach = reachable_meet reach1 reach2 in
+    (new_reach, new_defined )
 
   let ( === ) (reach1, defined1) (reach2, defined2) =
     let def_equal def1 def2 =
       match def1, def2 with
       | Undef, Undef -> true
-      | Def i1, Def i2 -> i1 = i2
+      | Def i1, Def i2 -> Int64.equal i1 i2
       | Overdef, Overdef -> true
       | _ -> false
     in
@@ -157,12 +164,11 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
   | Name _ -> Overdef
   | ESeq _ -> failwith "shouldn't exist!"
 
-let eval_stmt (reach, mapping) s l =
+let eval_stmt mapping s l =
   let open CcpLattice in
   match s with
-  | Move (Temp x, Call _) -> (reach, String.Map.add mapping ~key:x ~data:Overdef)
-  | Move (Temp x, e1) -> (reach, String.Map.add mapping ~key:x ~data:(eval_expr mapping e1))
-  | Move _ -> (reach, mapping)
+  | Move (Temp x, e1) -> (Reach, String.Map.add mapping ~key:x ~data:(eval_expr mapping e1))
+  | Move _ -> (Reach, mapping)
   | CJumpOne (e1, _) ->
     begin
       match eval_expr mapping e1, l with
@@ -174,8 +180,9 @@ let eval_stmt (reach, mapping) s l =
       | Def 0L, Cfg.EdgeData.False -> (Reach, mapping)
       | _ -> failwith "can't happen"
     end
-  | Exp _ -> (reach, mapping)
-  | Jump _ | Label _ | Return -> (reach, mapping)
+  | Exp _ -> (Reach, mapping)
+  | Jump _ | Label _ ->  (Reach, mapping)
+  | Return -> (Unreach, mapping)
   | Seq _
   | CJump _ -> failwith "shouldn't exist!"
 
@@ -208,13 +215,13 @@ let subst_stmt mapping s =
   | Move (Temp s1, e1) ->
     begin
       match String.Map.find_exn mapping s1 with
-      | Def _ -> None
-      | _ -> Some (Move (Temp s1, subst_expr mapping e1))
+      | Def i -> Move (Temp s1, Const i)
+      | _ -> Move (Temp s1, subst_expr mapping e1)
     end
-  | Move (Mem (e1, t), e2) -> Some (Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2))
-  | CJumpOne (e1, s1) -> Some (CJumpOne (subst_expr mapping e1, s1))
-  | Exp e1 -> Some (Exp (subst_expr mapping e1))
-  | Jump _ | Label _ | Return -> Some s
+  | Move (Mem (e1, t), e2) -> Move (Mem (subst_expr mapping e1, t), subst_expr mapping e2)
+  | CJumpOne (e1, s1) -> CJumpOne (subst_expr mapping e1, s1)
+  | Exp e1 -> Exp (subst_expr mapping e1)
+  | Jump _ | Label _ | Return -> s
   | Move _
   | Seq _
   | CJump _ -> failwith "shouldn't exist!"
@@ -248,7 +255,7 @@ module CcpCFG = struct
     let label = C.E.label e in
     match d, src with
     | (L.Unreach, _), _ -> (L.Unreach, undef_mapping)
-    | _, IDSE.Node {ir; _} -> eval_stmt d ir label
+    | _, IDSE.Node {ir; _} -> eval_stmt (snd d) ir label
     | _, IDSE.Start
     | _, IDSE.Exit -> failwith "cannot happen"
 end
@@ -288,12 +295,7 @@ let ccp irs =
       begin
         match M.find_exn ccp_v_map v with
         | L.Unreach, _ -> acc
-        | L.Reach, mapping ->
-          begin
-            match subst_stmt mapping ir with
-            | Some s -> Int.Map.add ~key:num ~data:s acc
-            | None -> acc
-          end
+        | L.Reach, mapping -> Int.Map.add ~key:num ~data:(subst_stmt mapping ir) acc
       end
   in
   C.fold_vertex f_vertex g Int.Map.empty

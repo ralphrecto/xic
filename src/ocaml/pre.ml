@@ -230,15 +230,7 @@ module BusyExprCFG = struct
     let node = E.dst e in
     let use = uses node in
     let kill = kills node in
-    let f acc expr =
-      let mem_temps = get_mem_temp expr in
-      if ExprSet.is_empty (inter mem_temps kill) then
-        add acc expr
-      else
-        acc
-    in
-    let diff_expr_kill = fold ~f ~init: empty d in
-    union use diff_expr_kill
+    union use (diff d kill)
 end
 
 module BusyExpr = Dataflow.GenericAnalysis(BusyExprCFG)
@@ -612,8 +604,21 @@ let pre irs =
   preprocess g;
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
   let uses = map g ~f:get_subexpr_stmt_v in
-  let kills = map g ~f:kill_stmt_v in
+
+  let defs = map g ~f:kill_stmt_v in
   let uses_fun = fun_of_map uses in
+  let defs_fun = fun_of_map defs in
+  let f v =
+    let g acc expr =
+      let mem_temps = get_mem_temp expr in
+      if ExprSet.is_empty (inter mem_temps (defs_fun v)) then
+        add acc expr
+      else
+        acc
+    in
+    fold ~f:g ~init:empty univ
+  in
+  let kills = map g ~f in
   let kills_fun = fun_of_map kills in
 
   let busy_e = BusyExpr.worklist {g; univ; uses=uses_fun; kills=kills_fun} g in

@@ -124,6 +124,8 @@ let live_vars_test _ =
   let fkr i = Asm.Reg (fk i) in
   let rr reg = Asm.Reg (Asm.Real reg) in
 
+  let _lab l = Asm.Label l in
+
   let _ = rr in
 
   (* test 1 *********************************************************)
@@ -156,7 +158,106 @@ let live_vars_test _ =
 
   assert_livevars cfg expecteds livevars;
 
+  (* worklist test *)
+  let livevars = LiveVariableAnalysis.worklist () cfg in
+  assert_livevars cfg expecteds livevars;
+
   (* test 2 *********************************************************)
+  let n0 = movq (const 5) (fkr 0) |> node 0 in
+  let n1 = movq (const 6) (fkr 1) |> node 1 in
+  let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in
+  let v = [start; n0; n1; n2; exit] in
+  let e = [
+    (start, norm, n0);
+    (n0, norm, n1);
+    (n1, norm, n2);
+    (n2, norm, exit);
+  ] in
+  let cfg = make_graph v e in
+
+  let livevars = LiveVariableAnalysis.worklist () cfg in
+
+  let expecteds = [
+    ((start, n0), set_of []);
+    ((n0, n1), set_of [fk 0]);
+    ((n1, n2), set_of [fk 0; fk 1]);
+    ((n2, exit), set_of []);
+  ] in
+  
+  assert_livevars cfg expecteds livevars;
+
+  (* test 3 *********************************************************)
+  let n0 = movq (const 5) (fkr 0) |> node 0 in
+  let n1 = movq (const 6) (fkr 1) |> node 1 in
+  let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in
+  let n3 = movq (const 7) (fkr 1) |> node 3 in
+  let n4 = addq (fkr 1) (fkr 1) |> node 4 in
+  let v = [start; n0; n1; n2; n3; n4; exit] in
+  let e = [
+    (start, norm, n0);
+    (n0, norm, n1);
+    (n1, norm, n2);
+    (n2, norm, n3);
+    (n3, norm, n4);
+    (n4, norm, exit);
+  ] in
+  let cfg = make_graph v e in
+
+  let livevars = LiveVariableAnalysis.worklist () cfg in
+
+  let expecteds = [
+    ((start, n0), set_of []);
+    ((n0, n1), set_of [fk 0]);
+    ((n1, n2), set_of [fk 0; fk 1]);
+    ((n2, n3), set_of []);
+    ((n3, n4), set_of [fk 1]);
+    ((n4, exit), set_of []);
+  ] in
+  
+  assert_livevars cfg expecteds livevars;
+  (*
+  let n0 = movq (const 5) (fkr 0) |> node 0 in
+  let n1 = movq (const 6) (fkr 1) |> node 1 in
+  let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in
+  let n3 = jge (lab "tru") |> node 3 in
+  let n4 = movq (const 7) (fkr 1) |> node 4 in
+  let n5 = node 5 ret in
+  let n6 = label_op "tru" |> node 6 in
+  let n7 = movq (const 10) (fkr 1) |> node 7 in
+  let n8 = node 8 ret in
+
+  let v = [start; n0; n1; n2; n3; n4; n5; n6; n7; n8; exit] in
+  let e = [
+    (start, norm, n0);
+    (n0, norm, n1);
+    (n1, norm, n2);
+    (n2, norm, n3);
+    (n3, norm, n4);
+    (n4, norm, n5);
+    (n5, norm, exit);
+    (n3, norm, n6);
+    (n6, norm, n7);
+    (n7, norm, n8);
+    (n8, norm, exit);
+  ] in
+  let cfg = make_graph v e in
+
+  let livevars = LiveVariableAnalysis.worklist () cfg in
+
+  let expecteds = [
+    ((start, n0), set_of []);
+    ((n0, n1), set_of [fk 0]);
+    ((n1, n2), set_of [fk 0; fk 1]);
+    ((n2, n3), set_of []);
+    ((n3, n4), set_of []);
+    ((n4, n5), set_of []);
+    ((n5, exit), set_of []);
+    ((n3, n6), set_of []);
+    ((n6, n7), set_of []);
+    ((n7, n8), set_of []);
+    ((n8, exit), set_of []);
+  ] in
+*)
 
   ()
 

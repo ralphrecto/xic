@@ -384,7 +384,7 @@ type alloc_context = {
   num_colors         : int;
 }
 
-let string_of_ctx (regctx : alloc_context) : string =
+let _string_of_ctx (regctx : alloc_context) : string =
   let strflat (listname : string) (sl : string list) =
     let f acc s = s ^ ", " ^ acc in
     "[[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" sl) ^ "]]]\n\n" in
@@ -511,11 +511,6 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
   let cfg = AsmCfg.create_cfg asms in
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
-  (*let () =*)
-    (*failwith (Cfg.fold_edges_e (fun edge set -> AbstractRegSet.union (livevars_edge edge) set) cfg AbstractRegSet.empty |> _set_to_string) in*)
-
-  (*let () = AsmCfg.fold_edges_e (fun edge acc -> (AsmCfg.string_of_edge edge) ^ acc) cfg "" |> failwith in*)
-
   let livevars : AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data =
     function
       | Start | Exit -> AbstractRegSet.empty
@@ -539,9 +534,7 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
       let vars =
         let get_vars cfgnode varset =
           AbstractRegSet.union (livevars cfgnode) varset in
-        let y = AsmCfg.fold_vertex get_vars cfg AbstractRegSet.empty in
-        (*failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (_set_to_string y));*)
-        y in
+        AsmCfg.fold_vertex get_vars cfg AbstractRegSet.empty in
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
     else
@@ -995,29 +988,25 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
          empty innerctx.freeze_wl &&
          empty innerctx.spill_wl then innerctx
       else
+        begin
         let innerctx' =
           if not (empty innerctx.simplify_wl) then
-            let x = simplify innerctx in
-            failwith "simplify done";
-            x
+            simplify innerctx
           else if not (empty innerctx.worklist_moves) then
-            let x = coalesce innerctx in
-            failwith "coalesce done";
-            x
+            coalesce innerctx
           else if not (empty innerctx.freeze_wl) then
-            let x = freeze innerctx in
-            x
+            freeze innerctx
           else
-            let x = select_spill innerctx in
-            failwith "spill done";
-            x in
-        loop innerctx' in
-    build ~init regctx asms |>
-    fun ctx -> failwith ((string_of_abstract_asms asms) ^ "\n\n\n" ^ (string_of_ctx ctx)) |> loop |> assign_colors |> fun regctx' ->
-      if not (empty regctx'.spilled_nodes) then
-        let newctx, newasms = rewrite_program regctx' asms in
-        main newctx newasms
-      else regctx', asms in
+            select_spill innerctx in
+        loop innerctx'
+        end in
+      build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->
+        if not (empty regctx'.spilled_nodes) then
+          begin
+            let newctx, newasms = rewrite_program regctx' asms in
+            main newctx newasms
+          end
+        else regctx', asms in
 
   (* lol 100 is an empirically determined number *)
   let finctx, finasms = main ~init:true (empty_ctx 100 100) given_asms in

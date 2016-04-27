@@ -17,16 +17,7 @@ let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
 
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
-  type t = abstract_reg
-
-  let t_of_sexp _ = failwith "implement t_of_sexp for AbstractRegElt"
-  let sexp_of_t _ = failwith "implement sexp_of_t for AbstractRegElt"
-  (* we arbitrarily choose Fakes < Reals *)
-  let compare a b =
-    match a, b with
-    | Fake _, Fake _ | Real _, Real _ -> 0
-    | Fake _, Real _ -> -1
-    | Real _, Fake _ -> 1
+  type t = abstract_reg [@@deriving compare,sexp]
   end
 )
 
@@ -34,38 +25,25 @@ let _set_to_string (set : AbstractRegSet.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
   "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }"
 
+module type UseDefsT = sig
+  type usedefs = AbstractRegSet.t * AbstractRegSet.t
 
-module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t with
-  type data = AbstractRegSet.t = struct
+  type usedef_pattern =
+    | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
+    | Unop of string list * (abstract_reg operand -> usedefs)
+    | Zeroop of string list * usedefs
 
-  type data = AbstractRegSet.t
-  let ( ** ) = AbstractRegSet.union
-  let ( === ) = AbstractRegSet.equal
-  let to_string data =
-    let f acc reg =
-      string_of_abstract_reg reg ^ ", " ^ acc in
-    AbstractRegSet.fold ~f ~init:"" data
+  type usedef_val =
+    | BinopV of string * abstract_reg operand * abstract_reg operand
+    | UnopV of string * abstract_reg operand
+    | ZeroopV of string
+
+  val usedef_match : usedef_pattern list -> usedef_val -> usedefs
+
+  val usedvars : abstract_asm -> usedefs
 end
 
-module AsmWithLiveVar : CFGWithLatticeT
-  with module CFG = AsmCfg
-  and module Lattice = LiveVariableLattice
-  and type extra_info = unit = struct
-  module Lattice = LiveVariableLattice
-  module CFG = AsmCfg
-  module ADSE = AsmDataStartExit
-  open Lattice
-  open CFG
-
-  type graph = CFG.t
-  type node = CFG.V.t
-  type edge = CFG.E.t
-  type data = Lattice.data
-
-  type extra_info = unit
-
-  let direction = `Backward
-
+module UseDefs : UseDefsT = struct
   type usedefs = AbstractRegSet.t * AbstractRegSet.t
 
   type usedef_pattern =
@@ -108,15 +86,28 @@ module AsmWithLiveVar : CFGWithLatticeT
   let binops_use_plus_def =
     let instr = [
       "addq"; "subq"; "andq"; "orq"; "xorq"; "shlq";
-      "shrq"; "sarq"; "leaq"; "movq"
+      "shrq"; "sarq"; "leaq";
     ] in
     let f op1 op2 =
-      let uses = set_of_arg op1 in
+      let set1 = set_of_arg op1 in
+      let set2 = set_of_arg op2 in
       match op2 with
       | Reg _ ->
-        (uses, set_of_arg op2)
+        (AbstractRegSet.union set1 set2, set2)
       | Mem _ ->
-        (AbstractRegSet.union uses (set_of_arg op2), AbstractRegSet.empty)
+        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
+      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+    Binop (instr, f)
+
+  let binops_move =
+    let instr = ["movq"; "mov"] in
+    let f op1 op2 =
+      let set1 = set_of_arg op1 in
+      let set2 = set_of_arg op2 in
+      match op2 with
+      | Reg _ -> (set1, set2)
+      | Mem _ ->
+        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
       | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
     Binop (instr, f)
 
@@ -186,11 +177,12 @@ module AsmWithLiveVar : CFGWithLatticeT
       List.map ~f:(fun reg -> Real reg) |>
       no_rbp_or_rsp |>
       AbstractRegSet.of_list in
-    Zeroop (instr, (AbstractRegSet.empty, useset))
+    Zeroop (instr, (useset, AbstractRegSet.empty))
 
   let asm_match =
     let patterns = [
       binops_use_plus_def;
+      binops_move;
       binops_use;
       unops_use_plus_def;
       unops_def;
@@ -212,10 +204,52 @@ module AsmWithLiveVar : CFGWithLatticeT
           asm_match (BinopV (name, arg1, arg2))
       | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
 
+end
+
+
+module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t with
+  type data = AbstractRegSet.t = struct
+
+  type data = AbstractRegSet.t
+  let ( ** ) = AbstractRegSet.union
+  let ( === ) = AbstractRegSet.equal
+  let to_string data =
+    let f acc reg =
+      string_of_abstract_reg reg ^ ", " ^ acc in
+    AbstractRegSet.fold ~f ~init:"" data
+end
+
+module AsmWithLiveVar : CFGWithLatticeT
+  with module CFG = AsmCfg
+  and module Lattice = LiveVariableLattice
+  and type extra_info = unit = struct
+  module Lattice = LiveVariableLattice
+  module CFG = AsmCfg
+  module ADSE = AsmDataStartExit
+  open Lattice
+  open CFG
+
+  type graph = CFG.t
+  type node = CFG.V.t
+  type edge = CFG.E.t
+  type data = Lattice.data
+
+  type extra_info = unit
+
+  let direction = `Backward
+
+  open UseDefs
+
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
     match n with
     | Start | Exit -> AbstractRegSet.empty
-    | Node n_data -> fst (usedvars n_data.asm)
+    | Node n_data ->
+        let i = fst (usedvars n_data.asm) in
+        print_endline "asm:";
+        print_endline (string_of_abstract_asm n_data.asm);
+        print_endline "init:";
+        print_endline (_set_to_string i);
+        i
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* TODO: We use dest (??) because live variable analysis is backwards *)
@@ -223,7 +257,16 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
         let use_n, def_n = usedvars n_data.asm in
-        AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
+        let r = AbstractRegSet.union use_n (AbstractRegSet.diff d def_n) in
+        print_endline ("node:");
+        print_endline (string_of_abstract_asm n_data.asm);
+        print_endline ("data:");
+        print_endline (_set_to_string d);
+        print_endline ("def_n");
+        print_endline (_set_to_string def_n);
+        print_endline ("use_n");
+        print_endline (_set_to_string use_n);
+        r
 end
 
 module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
@@ -462,23 +505,23 @@ let node_moves (node : IG.nodedata) (regctx : alloc_context) : temp_move list =
 let move_related (node: IG.nodedata) (regctx : alloc_context) : bool =
   List.length (node_moves node regctx) > 0
 
-module Cfg = AsmWithLiveVar.CFG
-
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
-  let cfg = Cfg.create_cfg asms in
+  let cfg = AsmCfg.create_cfg asms in
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
-  let () =
-    failwith (Cfg.fold_edges_e (fun edge set -> AbstractRegSet.union (livevars_edge edge) set) cfg AbstractRegSet.empty |> _set_to_string) in
+  (*let () =*)
+    (*failwith (Cfg.fold_edges_e (fun edge set -> AbstractRegSet.union (livevars_edge edge) set) cfg AbstractRegSet.empty |> _set_to_string) in*)
 
-  let livevars : Cfg.vertex -> LiveVariableAnalysis.CFGL.data =
+  (*let () = AsmCfg.fold_edges_e (fun edge acc -> (AsmCfg.string_of_edge edge) ^ acc) cfg "" |> failwith in*)
+
+  let livevars : AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data =
     function
       | Start | Exit -> AbstractRegSet.empty
       | Node _ as node ->
         begin
-          match Cfg.succ_e cfg node with
+          match AsmCfg.succ_e cfg node with
           | [] -> AbstractRegSet.empty
           | edge :: _ -> livevars_edge edge
         end in
@@ -496,8 +539,8 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
       let vars =
         let get_vars cfgnode varset =
           AbstractRegSet.union (livevars cfgnode) varset in
-        let y = Cfg.fold_vertex get_vars cfg AbstractRegSet.empty in
-        failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (_set_to_string y));
+        let y = AsmCfg.fold_vertex get_vars cfg AbstractRegSet.empty in
+        (*failwith ((string_of_abstract_asms asms) ^ "\n\n\n\n" ^ (_set_to_string y));*)
         y in
       AbstractRegSet.fold ~f ~init:ctxarg vars
       end
@@ -518,7 +561,7 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
     AbstractRegSet.iter ~f:g1 temps in
 
   (* initialize regctx with move_list and worklist_moves *)
-  let init1 (cfg_node : Cfg.vertex) regctx =
+  let init1 (cfg_node : AsmCfg.vertex) regctx =
     match cfg_node with
     (* TODO: should we handle procedure entry/exit differently? *)
     | Start -> regctx

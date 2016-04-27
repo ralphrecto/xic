@@ -4,6 +4,26 @@ open Cfg
 
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg
 
+module type UseDefsT = sig
+  type usedefs = AbstractRegSet.t * AbstractRegSet.t
+
+  type usedef_pattern =
+    | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
+    | Unop of string list * (abstract_reg operand -> usedefs)
+    | Zeroop of string list * usedefs
+
+  type usedef_val =
+    | BinopV of string * abstract_reg operand * abstract_reg operand
+    | UnopV of string * abstract_reg operand
+    | ZeroopV of string
+
+  val usedef_match : usedef_pattern list -> usedef_val -> usedefs
+
+  val usedvars : abstract_asm -> usedefs
+end
+
+module UseDefs : UseDefsT
+
 module LiveVariableLattice : Dataflow.LowerSemilattice with
   type data = AbstractRegSet.t
 

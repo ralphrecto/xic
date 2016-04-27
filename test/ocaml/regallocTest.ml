@@ -160,6 +160,29 @@ let live_vars_test _ =
 
   ()
 
+let reg_alloc_test _ =
+  let open Asm in
+  let open Abbreviations in
+  let open Regalloc in
+  let open Fresh in
+
+  let fk i = Asm.Fake (FreshReg.gen i) in
+  let fkr i = Asm.Reg (fk i) in
+  let rr reg = Asm.Reg (Asm.Real reg) in
+
+  let _ = fk in
+  let _ = fkr in
+  let _ = rr in
+
+  let n0 = movq (const 5) (fkr 0) in
+  let n1 = movq (const 6) (fkr 1) in
+  let n2 = addq (fkr 0) (fkr 1) in
+
+  let res = reg_alloc [n0; n1; n2] in
+  print_endline (string_of_asms res);
+
+  ()
+
 
 
 (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
@@ -169,6 +192,7 @@ let main () =
     "suite" >::: [
       "use_defs_test" >:: use_defs_test;
       "live_vars_test" >:: live_vars_test;
+      "reg_alloc_test" >:: reg_alloc_test;
     ] |> run_test_tt_main
 
 let _ = main ()

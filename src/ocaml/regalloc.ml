@@ -15,6 +15,16 @@ let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
   if List.mem lst x then lst
   else x :: lst
 
+let empty (l: 'a list) = List.length l = 0
+
+let ( >>| ) (x : 'a) (debug : string) : 'a =
+  print_endline debug;
+  x
+
+let ( >>= ) (x : 'a) (debug : 'a -> string) : 'a =
+  print_endline (debug x);
+  x
+
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
   type t = abstract_reg [@@deriving compare,sexp]
@@ -243,13 +253,7 @@ module AsmWithLiveVar : CFGWithLatticeT
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
     match n with
     | Start | Exit -> AbstractRegSet.empty
-    | Node n_data ->
-        let i = fst (usedvars n_data.asm) in
-        print_endline "asm:";
-        print_endline (string_of_abstract_asm n_data.asm);
-        print_endline "init:";
-        print_endline (_set_to_string i);
-        i
+    | Node n_data -> fst (usedvars n_data.asm)
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* TODO: We use dest (??) because live variable analysis is backwards *)
@@ -257,16 +261,8 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
         let use_n, def_n = usedvars n_data.asm in
-        let r = AbstractRegSet.union use_n (AbstractRegSet.diff d def_n) in
-        print_endline ("node:");
-        print_endline (string_of_abstract_asm n_data.asm);
-        print_endline ("data:");
-        print_endline (_set_to_string d);
-        print_endline ("def_n");
-        print_endline (_set_to_string def_n);
-        print_endline ("use_n");
-        print_endline (_set_to_string use_n);
-        r
+        AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
+
 end
 
 module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
@@ -452,7 +448,7 @@ let get_next_color (colors : color list) : color option =
     match acc with
     | Some _ -> acc
     | None ->
-        if List.mem colors x then Some x
+        if not (List.mem colors x) then Some x
         else None in
   List.fold_left ~f ~init:None colorlist
 
@@ -651,6 +647,7 @@ let enable_moves nodes regctx =
 
 let decrement_degree m regctx =
   let d = degree m regctx in
+  print_endline ("whee" ^ (string_of_int d));
   NodeData.Table.set regctx.degree ~key:m ~data:(d-1);
   if d = regctx.num_colors then
     let regctx' = enable_moves (m::(adjacent m regctx)) regctx in
@@ -662,17 +659,22 @@ let decrement_degree m regctx =
   else
     regctx
 
-
 (* Remove non-move-related nodes of low degree *)
 let simplify regctx =
+  print_endline "simplify";
   (* Pick a non-move-related vertex that has <k degree *)
   match regctx.simplify_wl with
   | [] -> regctx
-  | n::t -> let regctx' = { regctx with
-                            simplify_wl = t;
-                            select_stack = n::regctx.select_stack } in
-  List.fold_left ~init:regctx' (adjacent n regctx') ~f:(fun regctx'' m ->
-    decrement_degree m regctx'')
+  | n :: t ->
+    let regctx' = {
+      regctx with
+      simplify_wl = t;
+      select_stack = n :: regctx.select_stack
+    } in
+    List.fold_left
+      ~f:(fun regctx'' m -> decrement_degree m regctx'')
+      ~init:regctx'
+      (adjacent n regctx')
 
 (* return node alias after coalescing; if node has not been coalesced,
  * reduces to identity function *)
@@ -816,6 +818,7 @@ let select_spill (regctx : alloc_context) =
 
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
+  print_endline "assigning colors!";
 
   let select_assign ctxacc select_node =
     let neighbors = IG.succ ctxacc.inter_graph select_node in
@@ -830,10 +833,11 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             | None -> acc
           end
         else acc in
-      List.fold_left ~f ~init:[] neighbors in
+      List.fold_left ~f ~init:[] neighbors >>= fun l -> (string_of_int (List.length l)) in
     begin
     match get_next_color neighbor_colors with
     | None ->
+        print_endline "no color found!";
         { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
     | Some c ->
         NodeData.Table.set ctxacc.color_map ~key:select_node ~data:c;
@@ -851,7 +855,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             NodeData.Table.set regctx'.color_map ~key:coalesced_node ~data:c
       end in
     List.iter ~f regctx'.coalesced_nodes;
-    regctx
+    regctx' >>| "colored!" >>| (_string_of_ctx regctx')
 
 let rewrite_program
   (regctx : alloc_context)
@@ -947,8 +951,6 @@ let rewrite_program
   } in
   (regctx', rewritten)
 
-let empty (l: 'a list) = List.length l > 0
-
 let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg =
   match reg with
   | Real r -> r
@@ -983,21 +985,23 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      if empty innerctx.simplify_wl &&
-         empty innerctx.worklist_moves &&
-         empty innerctx.freeze_wl &&
-         empty innerctx.spill_wl then innerctx
+      print_endline (_string_of_ctx innerctx);
+      if (empty innerctx.simplify_wl &&
+          empty innerctx.worklist_moves &&
+          empty innerctx.freeze_wl &&
+          empty innerctx.spill_wl) then
+         innerctx >>| "empty"
       else
         begin
         let innerctx' =
           if not (empty innerctx.simplify_wl) then
-            simplify innerctx
+            (print_endline "calling simplify"; simplify innerctx)
           else if not (empty innerctx.worklist_moves) then
-            coalesce innerctx
+            (print_endline "coalescing"; coalesce innerctx)
           else if not (empty innerctx.freeze_wl) then
-            freeze innerctx
+            (print_endline "freezing"; freeze innerctx)
           else
-            select_spill innerctx in
+            (print_endline "spilling"; select_spill innerctx) in
         loop innerctx'
         end in
       build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->

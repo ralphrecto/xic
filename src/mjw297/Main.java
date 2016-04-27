@@ -638,17 +638,18 @@ public class Main {
         doMode("--irgen", "ir", filenames, filtered);
     }
 
-    void doOpt(String prefix, String ext, List<String> filenames, List<String> opts) {
-        if (any(optIr, s -> !(s.equals("initial") || s.equals("final")))) {
+    void doOpt(String prefix, String ext, List<String> phases,
+               List<String> filenames, List<String> opts) {
+        if (any(phases, s -> !(s.equals("initial") || s.equals("final")))) {
             System.out.printf("invalid --%s argument\n", prefix);
             System.exit(-1);
         }
 
         List<String> newOpts = new ArrayList<>();
-        if (optIr.contains("initial")) {
+        if (phases.contains("initial")) {
             newOpts.add(String.format("--%s-initial", prefix));
         }
-        if (optIr.contains("final")) {
+        if (phases.contains("final")) {
             newOpts.add(String.format("--%s-final", prefix));
         }
         newOpts.addAll(opts);
@@ -656,11 +657,11 @@ public class Main {
     }
 
     void doOptIr(List<String> filenames, List<String> opts) {
-        doOpt("optir", "ir", filenames, opts);
+        doOpt("optir", "ir", optIr, filenames, opts);
     }
 
     void doOptCfg(List<String> filenames, List<String> opts) {
-        doOpt("optcfg", "dot", filenames, opts);
+        doOpt("optcfg", "dot", optCfg, filenames, opts);
     }
 
     void doAsmGenDebug(List<String> filenames, List<String> opts) {
@@ -706,7 +707,6 @@ public class Main {
             sourcePath = sourcePath.equals("") ?
                     "" : Files.simplifyPath(sourcePath);
             List<String> opts = gatherOpts();
-            System.out.println(opts);
 
                  if (lexMode)            { doLex           (arguments); }
             else if (parseMode)          { doParse         (arguments); }

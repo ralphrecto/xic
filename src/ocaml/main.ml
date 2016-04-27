@@ -106,21 +106,6 @@ let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t =
 (* ************************************************************************** *)
 (* modes                                                                      *)
 (* ************************************************************************** *)
-(*
-| Mode                       | Flags Used                | Extension     |
-| -------------------------- | ------------------------- | ------------- |
-| `--lex`                    | none                      | `.lexed`      |
-| `--parse`                  | none                      | `.parsed`     |
-| `--typecheck`              | `acf`                     | `.typed`      |
-| `--tcdebug`                | `acf`                     | `.typeddebug` |
-| `--nolower`                | `acf`, `icf`              | `.nolower`    |
-| `--lower`                  | `acf`, `icf`, `cp`, `pre` | `.lower`      |
-| `--irgen`                  | `acf`, `icf`              | `.ir`         |
-| `--optir (initial,final)`  | `acf`, `icf`, `cp`, `pre` | `.ir`         |
-| `--optcfg (initial,final)` | `acf`, `icf`, `cp`, `pre` | `.dot`        |
-| ` `                        | all                       | `.s`          |
-| `--asmdebug`               | all                       | `.s`          |
-*)
 type 'a modef = opts -> Pos.full_prog -> 'a Error.result
 
 let typecheck : Typecheck.full_prog modef = fun {acf; _} ast ->
@@ -208,7 +193,53 @@ let main opts flags () : unit Deferred.t =
       initial >>= fun () ->
       final >>= fun () ->
       Deferred.List.iter flags.astfiles ~f:Unix.remove
-  | _ when flags.optcfg_initial || flags.optcfg_final -> failwith "TODO"
+  | _ when flags.optcfg_initial || flags.optcfg_final ->
+      let cfg_phase names (phase: string) (filename: string) ((_, funcs): Ir.comp_unit) =
+          let f (fname, (_, body, _)) =
+            match body with
+            | Seq irs ->
+                let cfg = Cfg.IrCfg.create_cfg irs in
+                let dot = Cfg.IrCfg.to_dot cfg in
+                let ext = sprintf "_%s_%s.dot" (String.Map.find_exn names fname) phase in
+                let dot_file = change_ext ~ext filename in
+                Writer.save dot_file ~contents:dot
+            | _ -> failwith "optcfg: lowered ir should be a seq"
+          in
+          Deferred.List.iter ~f (String.Map.to_alist funcs)
+      in
+
+      let f (filename, (Ast.S.FullProg (name, _, _) as ast)) =
+        match typecheck opts ast with
+        | Ok (Ast.S.FullProg (_, (_, Ast.S.Prog (_, callables)), _)) ->
+            let names = Ir_util.mangled_to_name callables in
+            let ok = function
+              | Ok o -> o
+              | Error _ -> failwith "optcfg: results shouldn't have been Error"
+            in
+            let cfg_initial = cfg_phase names "initial" filename in
+            let cfg_final = cfg_phase names "final" filename in
+
+            let initial =
+              if flags.optcfg_initial
+                then cfg_initial (ok (optir_initial opts ast))
+                else return ()
+            in
+
+            let final =
+              if flags.optcfg_final
+                then cfg_final (ok (optir_final opts ast))
+                else return ()
+            in
+
+            initial >>= fun () ->
+            final >>= fun () ->
+            Unix.remove filename
+        | Error ((row, col), msg) -> begin
+            Print.print_endline (format_err_print name row col msg);
+            Writer.save filename ~contents:(format_err_output row col msg)
+        end
+      in
+      Deferred.List.iter ~f (List.zip_exn flags.astfiles asts)
   | _ when flags.asmdebug -> write (asts_to_strs (asmgen true opts) asm_strf asts)
   | _                     -> write (asts_to_strs (asmgen false opts) asm_strf asts)
 

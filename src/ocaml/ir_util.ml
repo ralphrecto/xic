@@ -5,7 +5,7 @@ open Typecheck
 let rec abi_type_name (is_arg: bool) (e: Typecheck.Expr.t) = match e with
   | IntT -> "i"
   | BoolT -> "b"
-  | UnitT -> if is_arg then "" else "p" 
+  | UnitT -> if is_arg then "" else "p"
   | ArrayT t' -> "a" ^ (abi_type_name is_arg t')
   | TupleT tlist ->
     let open List in
@@ -40,7 +40,7 @@ let abi_callable_name (c: Typecheck.callable) : string =
 
 (* id name -> ABI compliant name *)
 let abi_callable_decl_names (callables: Typecheck.callable_decl list) =
-  let f map (callable: Typecheck.callable_decl) = 
+  let f map (callable: Typecheck.callable_decl) =
     let name = match callable with
       | (_, FuncDecl ((_, idstr), _, _))
       | (_, ProcDecl ((_, idstr), _)) -> idstr in
@@ -48,9 +48,18 @@ let abi_callable_decl_names (callables: Typecheck.callable_decl list) =
   List.fold_left ~f ~init:String.Map.empty callables
 
 let abi_callable_names (callables: Typecheck.callable list) =
-  let f map (callable: Typecheck.callable) = 
+  let f map (callable: Typecheck.callable) =
     let name = match callable with
       | (_, Func ((_, idstr), _, _, _))
       | (_, Proc ((_, idstr), _, _)) -> idstr in
     String.Map.add map ~key:name ~data:(abi_callable_name callable) in
+  List.fold_left ~f ~init:String.Map.empty callables
+
+(* ABI compliant name -> id name *)
+let mangled_to_name(callables: Typecheck.callable list) =
+  let f map (callable: Typecheck.callable) =
+    let name = match callable with
+      | (_, Func ((_, idstr), _, _, _))
+      | (_, Proc ((_, idstr), _, _)) -> idstr in
+    String.Map.add map ~key:(abi_callable_name callable) ~data:name in
   List.fold_left ~f ~init:String.Map.empty callables

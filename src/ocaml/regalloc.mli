@@ -99,10 +99,12 @@ type alloc_context = {
   frozen_moves       : temp_move list;
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
+  (* interference graph related *)
+  degree             : int NodeData.Table.t;
+  adj_list           : IG.nodedata NodeData.Table.t;
   (* other data structures *)
   move_list          : (temp_move list) NodeData.Table.t;
   alias              : IG.nodedata NodeData.Table.t;
-  degree             : int NodeData.Table.t;
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
   color_map          : color NodeData.Table.t;

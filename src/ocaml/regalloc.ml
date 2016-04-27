@@ -31,6 +31,9 @@ module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   end
 )
 
+module AdjacencySet : Set.S with type Elt.t = abstract_reg * abstract_reg =
+  Set.Make (struct type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp] end)
+
 let _set_to_string (set : AbstractRegSet.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
   "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }"
@@ -327,6 +330,14 @@ module NodeData = struct
   include Hashable.Make (NodeDataKey)
 end
 
+module AbstrRegKey = struct
+  type t = abstract_reg [@@deriving compare,sexp]
+end
+
+module AbstractReg = struct
+  include Map.Make (AbstrRegKey)
+end
+
 type color =
   | Reg1
   | Reg2
@@ -366,10 +377,12 @@ type alloc_context = {
   frozen_moves       : temp_move list;
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
+  (* interference graph related *)
+  degree             : int NodeData.Table.t;
+  adj_list           : IG.nodedata NodeData.Table.t;
   (* other data structures *)
   move_list          : (temp_move list) NodeData.Table.t;
   alias              : IG.nodedata NodeData.Table.t;
-  degree             : int NodeData.Table.t;
   nodestate          : IG.nodestate NodeData.Table.t;
   (* TODO: make color type, change int to color type *)
   color_map          : color NodeData.Table.t;
@@ -413,11 +426,13 @@ let empty_ctx num_moves num_nodes = {
   frozen_moves       = [];
   worklist_moves     = [];
   active_moves       = [];
+  (* interference graph related *)
+  degree             = NodeData.Table.create () ~size:num_nodes;
+  adj_list           = NodeData.Table.create () ~size:num_nodes;
   (* other data structures *)
   move_list          = NodeData.Table.create () ~size:num_moves;
   (* initialized to the node's self *)
   alias              = NodeData.Table.create () ~size:num_nodes;
-  degree             = NodeData.Table.create () ~size:num_nodes;
   nodestate          = NodeData.Table.create () ~size:num_nodes;
   color_map          = NodeData.Table.create () ~size:num_nodes;
   node_occurrences   = NodeData.Table.create () ~size:num_nodes;
@@ -615,7 +630,6 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
   let empty_init = { regctx' with initial = [] } in
   List.fold_left ~f:init2 ~init:empty_init regctx'.initial
 
-
 (* TODO: is this function even necessary? IG.add_edge does not seem to check
  * for self-loop. *)
 let add_edge u v regctx =
@@ -661,7 +675,7 @@ let decrement_degree m regctx =
 
 (* Remove non-move-related nodes of low degree *)
 let simplify regctx =
-  print_endline "simplify";
+  print_endline "I'm a dumbassssssssssssssssssss \n also i'm in simplify";
   (* Pick a non-move-related vertex that has <k degree *)
   match regctx.simplify_wl with
   | [] -> regctx
@@ -1015,4 +1029,5 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
   (* lol 100 is an empirically determined number *)
   let finctx, finasms = main ~init:true (empty_ctx 100 100) given_asms in
   (* translate asms with allocated nodes *)
+  print_endline "reg alloc done!";
   List.map ~f:(translate_asm finctx) finasms

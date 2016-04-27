@@ -1,5 +1,0 @@
-- unroll while
-- fix div bug
-- fix binops with no dest
-- change maps to hashtable for pre
-- copy propagation / dead code elimination

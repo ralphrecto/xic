@@ -77,6 +77,9 @@ let format_err_output (row: int) (col: int) (msg: string) : string =
 let format_err_print (filename: string) (line: int) (col: int) (msg: string) : string =
   sprintf "Semantic error at %s:%d:%d: %s" filename line col msg
 
+let change_ext ~(ext: string) (filename: string) =
+  (Filename.chop_extension filename) ^ ext
+
 let asts_to_strs
   (tcf: Pos.full_prog -> 'a Error.result)
   (strf: 'a -> string)
@@ -136,6 +139,19 @@ let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
     )
   )
 
+let optir_initial : Ir.comp_unit modef = fun opts ast ->
+  Result.(
+    typecheck opts ast >>| (block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit)
+  )
+
+let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
+  Result.(
+    typecheck opts ast >>| (
+      cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
+      gen_comp_unit
+    )
+  )
+
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
   Result.(
     typecheck opts ast >>= fun typed_prog ->
@@ -173,7 +189,25 @@ let main opts flags () : unit Deferred.t =
   | _ when flags.nolower   -> write (asts_to_strs (nolower opts) ir_strf asts)
   | _ when flags.lower     -> write (asts_to_strs (lower opts) ir_strf asts)
   | _ when flags.irgen     -> write (asts_to_strs (irgen opts) ir_strf asts)
-  | _ when flags.optir_initial || flags.optir_final -> failwith "TODO"
+  | _ when flags.optir_initial || flags.optir_final ->
+      let initials = List.map flags.astfiles ~f:(change_ext ~ext:"_initial.ir") in
+      let finals = List.map flags.astfiles ~f:(change_ext ~ext:"_final.ir") in
+
+      let initial =
+        if flags.optir_initial
+          then writes initials (asts_to_strs (optir_initial opts) ir_strf asts)
+          else return ()
+      in
+
+      let final =
+        if flags.optir_final
+          then writes finals (asts_to_strs (optir_final opts) ir_strf asts)
+          else return ()
+      in
+
+      initial >>= fun () ->
+      final >>= fun () ->
+      Deferred.List.iter flags.astfiles ~f:Unix.remove
   | _ when flags.optcfg_initial || flags.optcfg_final -> failwith "TODO"
   | _ when flags.asmdebug -> write (asts_to_strs (asmgen true opts) asm_strf asts)
   | _                     -> write (asts_to_strs (asmgen false opts) asm_strf asts)

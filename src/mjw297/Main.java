@@ -639,16 +639,16 @@ public class Main {
     }
 
     void doOpt(String prefix, String ext, List<String> filenames, List<String> opts) {
-        if (any(opts, s -> !(s.equals("initial") || s.equals("final")))) {
+        if (any(optIr, s -> !(s.equals("initial") || s.equals("final")))) {
             System.out.printf("invalid --%s argument\n", prefix);
             System.exit(-1);
         }
 
         List<String> newOpts = new ArrayList<>();
-        if (opts.contains("initial")) {
+        if (optIr.contains("initial")) {
             newOpts.add(String.format("--%s-initial", prefix));
         }
-        if (opts.contains("final")) {
+        if (optIr.contains("final")) {
             newOpts.add(String.format("--%s-final", prefix));
         }
         newOpts.addAll(opts);

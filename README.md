@@ -43,7 +43,10 @@ opam install core async ounit ocamlgraph bisect bisect_ppx
     - `--lower`: same as `--irgen`
     - `--irgen`: `a/b/foo.xi --> a/b/foo.ir`
     - `--optir (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.ir`
+        - lexical and syntactic errors are written to `a/b/foo.ir`
+        - type errors are written to `a/b/foo_<phase>.ir`
     - `--optcfg (initial|final)`: `a/b/foo.xi --> a/b/foo_<f>_<phase>.dot`
+        - errors are written to `a/b/foo_<phase>.dot`
     - ` `: `a/b/foo.xi --> a/b/foo.s`
     - `--asmdebug`: same as ` `
 - Options

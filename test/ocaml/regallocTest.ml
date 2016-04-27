@@ -151,11 +151,6 @@ let live_vars_test _ =
     ((n2, exit), set_of []);
   ] in
 
-  let _ = expecteds in
-  let _ = livevars in
-  let _ = assert_livevars in
-  let _ = cfg in
-
   assert_livevars cfg expecteds livevars;
 
   (* worklist test *)

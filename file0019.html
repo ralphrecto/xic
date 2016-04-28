@@ -28,7 +28,7 @@
             <tr><td>if/then</td><td width="16px">&nbsp;</td><td>5 / 8 (62%)</td></tr>
             <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>70 / 150 (46%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>73 / 150 (48%)</td></tr>
           </table>
         </td>
         <td valign="top">
@@ -68,7 +68,7 @@
       <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| &nbsp;</div>
       <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| let&nbsp;of_bool&nbsp;(b:&nbsp;bool)&nbsp;:&nbsp;value&nbsp;=</div>
       <div id="line000016" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;if&nbsp;b</div>
-      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;then&nbsp;(*[10]*)Int&nbsp;1L</div>
+      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;then&nbsp;(*[11]*)Int&nbsp;1L</div>
       <div id="line000018" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;&nbsp;else&nbsp;(*[4]*)Int&nbsp;0L</div>
       <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| &nbsp;</div>
       <div id="line000020" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000020| let&nbsp;to_bool&nbsp;(i:&nbsp;int64)&nbsp;:&nbsp;bool&nbsp;=</div>
@@ -90,7 +90,7 @@
       <div id="line000032" class="lineNone"><a href="javascript:fold('fold000032');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000032| &nbsp;</div>
       <div id="line000033" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000033| let&nbsp;string_of_values&nbsp;(vs:&nbsp;value&nbsp;list)&nbsp;:&nbsp;string&nbsp;=</div>
       <div id="line000034" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000034| &nbsp;&nbsp;List.map&nbsp;vs&nbsp;~f:(function</div>
-      <div id="line000035" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000035| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1111]*)Int&nbsp;i&nbsp;-&gt;&nbsp;Char.of_int_exn&nbsp;(Int64.to_int_exn&nbsp;i)</div>
+      <div id="line000035" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000035| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1113]*)Int&nbsp;i&nbsp;-&gt;&nbsp;Char.of_int_exn&nbsp;(Int64.to_int_exn&nbsp;i)</div>
       </div>
       <div id="line000036" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000036| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Array&nbsp;_</div>
       <div id="line000037" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000037| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Tuple&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;invalid&nbsp;parseInt&nbsp;argument&quot;</div>
@@ -130,8 +130,8 @@
       <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;|&nbsp;(*[1]*)AUnderscore&nbsp;(_,&nbsp;t)-&gt;&nbsp;(None,&nbsp;Some&nbsp;t)</div>
       <div id="line000069" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;</div>
       <div id="line000070" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000070| let&nbsp;id_of_var&nbsp;((_,&nbsp;v):&nbsp;var)&nbsp;=</div>
-      <div id="line000071" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;(*[36]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000072" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000072| &nbsp;&nbsp;|&nbsp;(*[36]*)AVar&nbsp;av&nbsp;-&gt;&nbsp;id_of_avar&nbsp;av</div>
+      <div id="line000071" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;(*[33]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000072" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000072| &nbsp;&nbsp;|&nbsp;(*[33]*)AVar&nbsp;av&nbsp;-&gt;&nbsp;id_of_avar&nbsp;av</div>
       </div>
       <div id="line000073" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000073| &nbsp;&nbsp;|&nbsp;(*[0]*)Underscore&nbsp;-&gt;&nbsp;(None,&nbsp;None)</div>
       <div id="fold000074">
@@ -141,14 +141,14 @@
       <div id="line000077" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000077| let&nbsp;ids_of_avars&nbsp;avlist&nbsp;=&nbsp;(*[31]*)List.map&nbsp;~f:&nbsp;id_of_avar&nbsp;avlist</div>
       <div id="line000078" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000078| &nbsp;</div>
       <div id="line000079" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000079| let&nbsp;bind_ids_vals&nbsp;store&nbsp;ids_vals&nbsp;=</div>
-      <div id="line000080" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000080| &nbsp;&nbsp;(*[114]*)let&nbsp;helper&nbsp;s&nbsp;(i,&nbsp;v)&nbsp;=</div>
+      <div id="line000080" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000080| &nbsp;&nbsp;(*[111]*)let&nbsp;helper&nbsp;s&nbsp;(i,&nbsp;v)&nbsp;=</div>
       <div id="line000081" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000081| &nbsp;&nbsp;&nbsp;&nbsp;(*[119]*)match&nbsp;i&nbsp;with</div>
       <div id="line000082" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000082| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[119]*)Some&nbsp;i'&nbsp;-&gt;&nbsp;String.Map.add&nbsp;s&nbsp;~key:i'&nbsp;~data:&nbsp;(Some&nbsp;(Value&nbsp;v))</div>
       </div>
       <div id="line000083" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000083| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)None&nbsp;-&gt;&nbsp;s</div>
       <div id="fold000084">
       <div id="line000084" class="lineNone"><a href="javascript:fold('fold000084');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000084| &nbsp;&nbsp;in</div>
-      <div id="line000085" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000085| &nbsp;&nbsp;(*[114]*)List.fold_left&nbsp;~f:helper&nbsp;~init:store&nbsp;ids_vals</div>
+      <div id="line000085" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000085| &nbsp;&nbsp;(*[111]*)List.fold_left&nbsp;~f:helper&nbsp;~init:store&nbsp;ids_vals</div>
       <div id="line000086" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000086| &nbsp;</div>
       <div id="line000087" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000087| let&nbsp;rec&nbsp;bind_ids&nbsp;store&nbsp;ids&nbsp;=</div>
       <div id="line000088" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;&nbsp;(*[3]*)let&nbsp;rec&nbsp;populate_list&nbsp;store&nbsp;t&nbsp;size&nbsp;=</div>
@@ -215,12 +215,12 @@
       <div id="line000127" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;</div>
       <div id="line000128" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000128| and&nbsp;eval_stmts&nbsp;store&nbsp;ss&nbsp;=</div>
       <div id="line000129" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000129| &nbsp;&nbsp;(*[67]*)let&nbsp;rec&nbsp;helper&nbsp;(store1,&nbsp;res)&nbsp;s&nbsp;=</div>
-      <div id="line000130" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000130| &nbsp;&nbsp;&nbsp;&nbsp;(*[219]*)match&nbsp;s&nbsp;with</div>
-      <div id="line000131" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000131| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[191]*)h::tl&nbsp;-&gt;</div>
+      <div id="line000130" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000130| &nbsp;&nbsp;&nbsp;&nbsp;(*[217]*)match&nbsp;s&nbsp;with</div>
+      <div id="line000131" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000131| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[189]*)h::tl&nbsp;-&gt;</div>
       <div id="line000132" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000132| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;begin</div>
       <div id="line000133" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000133| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;eval_stmt&nbsp;store1&nbsp;h&nbsp;with</div>
       <div id="line000134" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000134| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[39]*)store2,&nbsp;Some&nbsp;res&nbsp;-&gt;&nbsp;(store2,&nbsp;Some&nbsp;res)</div>
-      <div id="line000135" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000135| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[152]*)store2,&nbsp;None&nbsp;-&gt;&nbsp;helper&nbsp;(store2,&nbsp;None)&nbsp;tl</div>
+      <div id="line000135" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000135| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[150]*)store2,&nbsp;None&nbsp;-&gt;&nbsp;helper&nbsp;(store2,&nbsp;None)&nbsp;tl</div>
       <div id="line000136" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
       <div id="line000137" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[28]*)[]&nbsp;-&gt;&nbsp;(store1,&nbsp;res)</div>
       <div id="line000138" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;in</div>
@@ -232,7 +232,7 @@
       <div id="line000144" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000144| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;ids&nbsp;=&nbsp;(*[3]*)ids_of_vars&nbsp;vlist&nbsp;in</div>
       <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;&nbsp;&nbsp;(*[3]*)let&nbsp;store'&nbsp;=&nbsp;(*[3]*)bind_ids&nbsp;store&nbsp;ids&nbsp;in</div>
       <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;&nbsp;&nbsp;(*[3]*)(store',&nbsp;None)</div>
-      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;|&nbsp;(*[33]*)DeclAsgn&nbsp;(vlist,&nbsp;e)&nbsp;-&gt;</div>
+      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;|&nbsp;(*[30]*)DeclAsgn&nbsp;(vlist,&nbsp;e)&nbsp;-&gt;</div>
       <div id="line000148" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000148| &nbsp;&nbsp;&nbsp;&nbsp;begin</div>
       <div id="line000149" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000149| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;vlist,&nbsp;(eval_expr&nbsp;store&nbsp;e)&nbsp;with</div>
       </div>
@@ -248,10 +248,10 @@
       <div id="line000157" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000157| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)None&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;declasgn&nbsp;var&nbsp;list&nbsp;and&nbsp;e&nbsp;list&nbsp;do&nbsp;not&nbsp;match&quot;</div>
       <div id="fold000158">
       <div id="line000158" class="lineNone"><a href="javascript:fold('fold000158');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000158| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
-      <div id="line000159" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[33]*)[v],&nbsp;e'&nbsp;-&gt;</div>
-      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;id&nbsp;=&nbsp;(*[33]*)fst&nbsp;(id_of_var&nbsp;v)&nbsp;in</div>
-      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[33]*)let&nbsp;store'&nbsp;=&nbsp;(*[33]*)bind_ids_vals&nbsp;store&nbsp;[(id,&nbsp;e')]&nbsp;in</div>
-      <div id="line000162" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000162| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[33]*)(store',&nbsp;None)</div>
+      <div id="line000159" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)[v],&nbsp;e'&nbsp;-&gt;</div>
+      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;id&nbsp;=&nbsp;(*[30]*)fst&nbsp;(id_of_var&nbsp;v)&nbsp;in</div>
+      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)let&nbsp;store'&nbsp;=&nbsp;(*[30]*)bind_ids_vals&nbsp;store&nbsp;[(id,&nbsp;e')]&nbsp;in</div>
+      <div id="line000162" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000162| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)(store',&nbsp;None)</div>
       </div>
       <div id="line000163" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000163| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;declasgn&nbsp;no&nbsp;var&nbsp;declared&quot;</div>
       <div id="fold000164">
@@ -303,13 +303,11 @@
       <div id="line000202" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000202| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|(*[0]*)[]&nbsp;-&gt;&nbsp;(store,&nbsp;None)</div>
       <div id="fold000203">
       <div id="line000203" class="lineNone"><a href="javascript:fold('fold000203');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000203| &nbsp;&nbsp;&nbsp;&nbsp;end</div>
-      </div>
-      <div id="line000204" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000204| &nbsp;&nbsp;|&nbsp;(*[0]*)If&nbsp;(e1,&nbsp;slist)&nbsp;-&gt;</div>
-      <div id="fold000205">
-      <div id="line000205" class="lineNone"><a href="javascript:fold('fold000205');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000205| &nbsp;&nbsp;&nbsp;&nbsp;begin</div>
+      <div id="line000204" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000204| &nbsp;&nbsp;|&nbsp;(*[1]*)If&nbsp;(e1,&nbsp;slist)&nbsp;-&gt;</div>
+      <div id="line000205" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000205| &nbsp;&nbsp;&nbsp;&nbsp;begin</div>
       <div id="line000206" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000206| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;eval_expr&nbsp;store&nbsp;e1&nbsp;with</div>
+      <div id="line000207" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000207| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1]*)Int&nbsp;1L&nbsp;-&gt;&nbsp;eval_stmt&nbsp;store&nbsp;slist</div>
       </div>
-      <div id="line000207" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000207| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;1L&nbsp;-&gt;&nbsp;eval_stmt&nbsp;store&nbsp;slist</div>
       <div id="line000208" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000208| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;0L&nbsp;-&gt;&nbsp;(store,&nbsp;None)</div>
       <div id="line000209" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000209| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;if&quot;</div>
       <div id="fold000210">
@@ -338,7 +336,7 @@
       <div id="fold000227">
       <div id="line000227" class="lineNone"><a href="javascript:fold('fold000227');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000227| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
       <div id="line000228" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000228| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)helper&nbsp;e1&nbsp;(store,&nbsp;None)</div>
-      <div id="line000229" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000229| &nbsp;&nbsp;|&nbsp;(*[62]*)ProcCall&nbsp;((_,id),&nbsp;elist)&nbsp;-&gt;</div>
+      <div id="line000229" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000229| &nbsp;&nbsp;|&nbsp;(*[63]*)ProcCall&nbsp;((_,id),&nbsp;elist)&nbsp;-&gt;</div>
       <div id="line000230" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000230| &nbsp;&nbsp;&nbsp;&nbsp;begin</div>
       <div id="line000231" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000231| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;(String.Map.find&nbsp;store&nbsp;id)&nbsp;with</div>
       <div id="line000232" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000232| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[9]*)Some&nbsp;(Some&nbsp;(Function&nbsp;(params,&nbsp;body)))&nbsp;-&gt;</div>
@@ -357,13 +355,13 @@
       </div>
       <div id="line000243" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000243| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Some&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;proccall&nbsp;not&nbsp;a&nbsp;function&quot;</div>
       <div id="fold000244">
-      <div id="line000244" class="lineAllVisited"><a href="javascript:fold('fold000244');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000244| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[53]*)None&nbsp;-&gt;</div>
-      <div id="line000245" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000245| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;vals&nbsp;=&nbsp;(*[53]*)List.map&nbsp;~f:(eval_expr&nbsp;store)&nbsp;elist&nbsp;in</div>
-      <div id="line000246" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000246| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[53]*)match&nbsp;id,&nbsp;vals&nbsp;with</div>
+      <div id="line000244" class="lineAllVisited"><a href="javascript:fold('fold000244');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000244| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[54]*)None&nbsp;-&gt;</div>
+      <div id="line000245" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000245| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;vals&nbsp;=&nbsp;(*[54]*)List.map&nbsp;~f:(eval_expr&nbsp;store)&nbsp;elist&nbsp;in</div>
+      <div id="line000246" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000246| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[54]*)match&nbsp;id,&nbsp;vals&nbsp;with</div>
       </div>
       <div id="line000247" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000247| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)&quot;print&quot;,&nbsp;[Array&nbsp;vs]&nbsp;-&gt;&nbsp;print&nbsp;(string_of_values&nbsp;!vs);&nbsp;(*[0]*)(store,&nbsp;None)</div>
       <div id="fold000248">
-      <div id="line000248" class="lineAllVisited"><a href="javascript:fold('fold000248');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000248| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[53]*)&quot;println&quot;,&nbsp;[Array&nbsp;vs]&nbsp;-&gt;&nbsp;println&nbsp;(string_of_values&nbsp;!vs);&nbsp;(*[53]*)(store,&nbsp;None)</div>
+      <div id="line000248" class="lineAllVisited"><a href="javascript:fold('fold000248');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000248| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[54]*)&quot;println&quot;,&nbsp;[Array&nbsp;vs]&nbsp;-&gt;&nbsp;println&nbsp;(string_of_values&nbsp;!vs);&nbsp;(*[54]*)(store,&nbsp;None)</div>
       </div>
       <div id="line000249" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000249| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;proccall&nbsp;function&nbsp;not&nbsp;delcared&quot;</div>
       <div id="fold000250">
@@ -377,23 +375,23 @@
       <div id="line000256" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000256| &nbsp;&nbsp;|&nbsp;(*[0]*)Bool&nbsp;false&nbsp;-&gt;&nbsp;Int&nbsp;0L</div>
       <div id="line000257" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000257| &nbsp;&nbsp;|&nbsp;(*[0]*)Bool&nbsp;true&nbsp;-&gt;&nbsp;Int&nbsp;1L</div>
       <div id="fold000258">
-      <div id="line000258" class="lineAllVisited"><a href="javascript:fold('fold000258');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000258| &nbsp;&nbsp;|&nbsp;(*[67]*)String&nbsp;s&nbsp;-&gt;</div>
-      <div id="line000259" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000259| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;chars&nbsp;=&nbsp;(*[67]*)String.to_list_rev&nbsp;(String.rev&nbsp;s)&nbsp;in</div>
-      <div id="line000260" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000260| &nbsp;&nbsp;&nbsp;&nbsp;(*[67]*)Array&nbsp;(ref&nbsp;(List.map&nbsp;~f:(fun&nbsp;ch&nbsp;-&gt;&nbsp;(*[1111]*)eval_expr&nbsp;c&nbsp;(t,&nbsp;Char&nbsp;ch))&nbsp;chars))</div>
-      <div id="line000261" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000261| &nbsp;&nbsp;|&nbsp;(*[1111]*)Char&nbsp;c&nbsp;-&gt;&nbsp;Int&nbsp;(Int64.of_int&nbsp;(Char.to_int&nbsp;c))</div>
+      <div id="line000258" class="lineAllVisited"><a href="javascript:fold('fold000258');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000258| &nbsp;&nbsp;|&nbsp;(*[68]*)String&nbsp;s&nbsp;-&gt;</div>
+      <div id="line000259" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000259| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;chars&nbsp;=&nbsp;(*[68]*)String.to_list_rev&nbsp;(String.rev&nbsp;s)&nbsp;in</div>
+      <div id="line000260" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000260| &nbsp;&nbsp;&nbsp;&nbsp;(*[68]*)Array&nbsp;(ref&nbsp;(List.map&nbsp;~f:(fun&nbsp;ch&nbsp;-&gt;&nbsp;(*[1113]*)eval_expr&nbsp;c&nbsp;(t,&nbsp;Char&nbsp;ch))&nbsp;chars))</div>
+      <div id="line000261" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000261| &nbsp;&nbsp;|&nbsp;(*[1113]*)Char&nbsp;c&nbsp;-&gt;&nbsp;Int&nbsp;(Int64.of_int&nbsp;(Char.to_int&nbsp;c))</div>
       <div id="line000262" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000262| &nbsp;&nbsp;|&nbsp;(*[2]*)Array&nbsp;l&nbsp;-&gt;</div>
       <div id="line000263" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000263| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;new_l&nbsp;=&nbsp;(*[2]*)ref&nbsp;(List.map&nbsp;~f:(eval_expr&nbsp;c)&nbsp;l)&nbsp;in</div>
       <div id="line000264" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000264| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Array&nbsp;new_l</div>
-      <div id="line000265" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000265| &nbsp;&nbsp;|&nbsp;(*[211]*)Id&nbsp;(_,&nbsp;i)&nbsp;-&gt;</div>
+      <div id="line000265" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000265| &nbsp;&nbsp;|&nbsp;(*[215]*)Id&nbsp;(_,&nbsp;i)&nbsp;-&gt;</div>
       <div id="line000266" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000266| &nbsp;&nbsp;&nbsp;&nbsp;begin</div>
       <div id="line000267" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000267| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;String.Map.find&nbsp;c&nbsp;i&nbsp;with</div>
-      <div id="line000268" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000268| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[211]*)Some&nbsp;(Some&nbsp;(Value&nbsp;v))&nbsp;-&gt;&nbsp;v</div>
+      <div id="line000268" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000268| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[215]*)Some&nbsp;(Some&nbsp;(Value&nbsp;v))&nbsp;-&gt;&nbsp;v</div>
       </div>
       <div id="line000269" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000269| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Some&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;happen&nbsp;--&nbsp;id&quot;</div>
       <div id="line000270" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000270| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)None&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;variable&nbsp;has&nbsp;been&nbsp;declared&nbsp;but&nbsp;not&nbsp;assigned&nbsp;to&nbsp;a&nbsp;value&quot;</div>
       <div id="fold000271">
       <div id="line000271" class="lineNone"><a href="javascript:fold('fold000271');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000271| &nbsp;&nbsp;&nbsp;&nbsp;end</div>
-      <div id="line000272" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000272| &nbsp;&nbsp;|&nbsp;(*[84]*)BinOp&nbsp;(e1,&nbsp;op,&nbsp;e2)&nbsp;-&gt;&nbsp;eval_binop&nbsp;(eval_expr&nbsp;c&nbsp;e1)&nbsp;op&nbsp;(eval_expr&nbsp;c&nbsp;e2)</div>
+      <div id="line000272" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000272| &nbsp;&nbsp;|&nbsp;(*[87]*)BinOp&nbsp;(e1,&nbsp;op,&nbsp;e2)&nbsp;-&gt;&nbsp;eval_binop&nbsp;(eval_expr&nbsp;c&nbsp;e1)&nbsp;op&nbsp;(eval_expr&nbsp;c&nbsp;e2)</div>
       </div>
       <div id="line000273" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000273| &nbsp;&nbsp;|&nbsp;(*[0]*)UnOp&nbsp;(op,&nbsp;e1)&nbsp;-&gt;&nbsp;eval_unop&nbsp;op&nbsp;(eval_expr&nbsp;c&nbsp;e1)</div>
       <div id="fold000274">
@@ -457,7 +455,7 @@
       <div id="fold000318">
       <div id="line000318" class="lineNone"><a href="javascript:fold('fold000318');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000318| &nbsp;</div>
       <div id="line000319" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000319| and&nbsp;eval_binop&nbsp;e1&nbsp;op&nbsp;e2&nbsp;=</div>
-      <div id="line000320" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000320| &nbsp;&nbsp;(*[84]*)let&nbsp;open&nbsp;Long&nbsp;in</div>
+      <div id="line000320" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000320| &nbsp;&nbsp;(*[87]*)let&nbsp;open&nbsp;Long&nbsp;in</div>
       <div id="line000321" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000321| &nbsp;&nbsp;let&nbsp;open&nbsp;Big_int&nbsp;in</div>
       <div id="line000322" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000322| &nbsp;&nbsp;match&nbsp;e1,&nbsp;op,&nbsp;e2&nbsp;with</div>
       </div>
@@ -473,14 +471,16 @@
       <div id="line000332" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000332| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;DIV,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;Int&nbsp;(div&nbsp;i1&nbsp;i2)</div>
       <div id="line000333" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000333| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;MOD,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;Int&nbsp;(rem&nbsp;i1&nbsp;i2)</div>
       <div id="fold000334">
-      <div id="line000334" class="lineAllVisited"><a href="javascript:fold('fold000334');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000334| &nbsp;&nbsp;|&nbsp;(*[56]*)Int&nbsp;i1,&nbsp;PLUS,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;Int&nbsp;(add&nbsp;i1&nbsp;i2)</div>
+      <div id="line000334" class="lineAllVisited"><a href="javascript:fold('fold000334');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000334| &nbsp;&nbsp;|&nbsp;(*[58]*)Int&nbsp;i1,&nbsp;PLUS,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;Int&nbsp;(add&nbsp;i1&nbsp;i2)</div>
       <div id="line000335" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000335| &nbsp;&nbsp;|&nbsp;(*[14]*)Int&nbsp;i1,&nbsp;LT,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&lt;&nbsp;0)</div>
       </div>
       <div id="line000336" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000336| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;LTE,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&lt;=&nbsp;0)</div>
       <div id="line000337" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000337| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;GTE,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&gt;=&nbsp;0)</div>
       <div id="line000338" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000338| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;GT,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&gt;&nbsp;0)</div>
       <div id="line000339" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000339| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;EQEQ,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;=&nbsp;0)</div>
-      <div id="line000340" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000340| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;NEQ,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&lt;&gt;&nbsp;0)</div>
+      <div id="fold000340">
+      <div id="line000340" class="lineAllVisited"><a href="javascript:fold('fold000340');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000340| &nbsp;&nbsp;|&nbsp;(*[1]*)Int&nbsp;i1,&nbsp;NEQ,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((compare&nbsp;i1&nbsp;i2)&nbsp;&lt;&gt;&nbsp;0)</div>
+      </div>
       <div id="line000341" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000341| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;AMP,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((*[0]*)to_bool&nbsp;i1&nbsp;&amp;&amp;&nbsp;(*[0]*)to_bool&nbsp;i2)</div>
       <div id="line000342" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000342| &nbsp;&nbsp;|&nbsp;(*[0]*)Int&nbsp;i1,&nbsp;BAR,&nbsp;Int&nbsp;i2&nbsp;-&gt;&nbsp;of_bool&nbsp;((*[0]*)to_bool&nbsp;i1&nbsp;||&nbsp;(*[0]*)to_bool&nbsp;i2)</div>
       <div id="fold000343">
@@ -736,10 +736,10 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000202');" title="jump to line 202"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000204');" title="jump to line 204"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000207');" title="jump to line 207"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000208');" title="jump to line 208"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000209');" title="jump to line 209"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -872,7 +872,7 @@
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000337');" title="jump to line 337"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000338');" title="jump to line 338"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000339');" title="jump to line 339"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000340');" title="jump to line 340"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000341');" title="jump to line 341"></td></tr>
         <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000342');" title="jump to line 342"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -918,6 +918,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:29:02</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:35:14</p>
   </body>
 </html>

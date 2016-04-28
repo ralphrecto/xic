@@ -15,8 +15,10 @@ texts['fold000048'] = '<a href="javascript:fold(\'fold000048\');"><img border="0
 states['fold000048'] = false;
 texts['fold000052'] = '<a href="javascript:fold(\'fold000052\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 52 to line 59</i>';
 states['fold000052'] = false;
-texts['fold000061'] = '<a href="javascript:fold(\'fold000061\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 61 to line 98</i>';
+texts['fold000061'] = '<a href="javascript:fold(\'fold000061\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 61 to line 70</i>';
 states['fold000061'] = false;
+texts['fold000072'] = '<a href="javascript:fold(\'fold000072\');"><img border="0" height="10" width="10" src="plus.png" title="unfold code"/></a><i>&nbsp;&nbsp;code folded from line 72 to line 98</i>';
+states['fold000072'] = false;
 
 function fold(id) {
   tmp = document.getElementById(id).innerHTML;

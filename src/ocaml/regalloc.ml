@@ -640,8 +640,9 @@ let simplify regctx : alloc_context =
 
 (* return node alias after coalescing; if node has not been coalesced,
  * reduces to identity function *)
-let get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
-  AReg.Map.find regctx.alias node |> function Some a -> a | None -> node
+let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
+  AReg.Map.find regctx.alias node |>
+  function Some a -> get_alias a regctx | None -> node
 
 (* potentially add a new node to simplify_wl; see Appel for details *)
 let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
@@ -819,7 +820,14 @@ let assign_colors (regctx : alloc_context) : alloc_context =
     let f coloracc coalesced_node =
       let alias = get_alias coalesced_node regctx' in
       match AReg.Map.find regctx'.color_map alias with
-      | None -> failwith "assign_colors: coalesced node's alias is not colored"
+      | None ->
+          let nodestr =
+            string_of_abstract_reg coalesced_node in
+          let aliastr =
+            string_of_abstract_reg alias in
+          let failstr =
+           "select_color: no color for alias. node: " ^ nodestr ^ ", alias : " ^ aliastr in
+          failwith failstr
       | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
     let color_map' =
       List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in

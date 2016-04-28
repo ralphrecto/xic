@@ -929,12 +929,9 @@ module BookExample = struct
           else E.empty
 
   let kills = fun v ->
-    match v with
-    | v when C.V.compare v n2 = 0 -> E.singleton (temp "c")
-    | v when C.V.compare v n5 = 0 -> E.singleton (temp "a")
-    | v when C.V.compare v n7 = 0 -> E.singleton (temp "d")
-    | v when C.V.compare v n9 = 0 -> E.singleton (temp "e")
-    | SE.Start | SE.Exit | SE.Node _ -> E.empty
+    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n2; n5; n7; n9] v
+      then E.singleton (temp "b" + temp "c")
+      else E.empty
 
   let busy = fun v ->
     if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n5; n6; n3; n4; n7; n9] v

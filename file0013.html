@@ -62,8 +62,8 @@
       <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| &nbsp;</div>
       <div id="line000009" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000009| (*&nbsp;remove&nbsp;x&nbsp;from&nbsp;lst,&nbsp;if&nbsp;it&nbsp;exists&nbsp;*)</div>
       <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| let&nbsp;remove&nbsp;(lst&nbsp;:&nbsp;'a&nbsp;list)&nbsp;(x&nbsp;:&nbsp;'a)&nbsp;:&nbsp;'a&nbsp;list&nbsp;=</div>
-      <div id="line000011" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000011| &nbsp;&nbsp;let&nbsp;f&nbsp;y&nbsp;=&nbsp;(*[22]*)x&nbsp;&lt;&gt;&nbsp;y&nbsp;in</div>
-      <div id="line000012" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;(*[4]*)List.filter&nbsp;~f&nbsp;lst</div>
+      <div id="line000011" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000011| &nbsp;&nbsp;let&nbsp;f&nbsp;y&nbsp;=&nbsp;(*[44]*)x&nbsp;&lt;&gt;&nbsp;y&nbsp;in</div>
+      <div id="line000012" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;(*[8]*)List.filter&nbsp;~f&nbsp;lst</div>
       <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;</div>
       <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| (*&nbsp;conses&nbsp;x&nbsp;onto&nbsp;list&nbsp;unless&nbsp;x&nbsp;is&nbsp;already&nbsp;in&nbsp;list&nbsp;*)</div>
       <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| let&nbsp;unduped_cons&nbsp;(lst&nbsp;:&nbsp;'a&nbsp;list)&nbsp;(x&nbsp;:&nbsp;'a)&nbsp;:&nbsp;'a&nbsp;list&nbsp;=</div>
@@ -79,7 +79,7 @@
       <div id="line000021" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000021| module&nbsp;AbstractRegSet&nbsp;:&nbsp;Set.S&nbsp;with&nbsp;type&nbsp;Elt.t&nbsp;=&nbsp;abstract_reg&nbsp;=&nbsp;Set.Make&nbsp;(</div>
       <div id="line000022" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000022| &nbsp;&nbsp;struct</div>
       </div>
-      <div id="line000023" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000023| &nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[18]*)abstract_reg&nbsp;[@@deriving&nbsp;compare,sexp]</div>
+      <div id="line000023" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000023| &nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[36]*)abstract_reg&nbsp;[@@deriving&nbsp;compare,sexp]</div>
       <div id="fold000024">
       <div id="line000024" class="lineNone"><a href="javascript:fold('fold000024');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000024| &nbsp;&nbsp;end</div>
       <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| )</div>
@@ -128,8 +128,8 @@
       <div id="line000064" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000064| &nbsp;</div>
       <div id="line000065" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000065| &nbsp;&nbsp;(*&nbsp;we&nbsp;do&nbsp;not&nbsp;include&nbsp;Rbp&nbsp;and&nbsp;Rsp&nbsp;at&nbsp;all&nbsp;in&nbsp;our&nbsp;regalloc&nbsp;algo&nbsp;*)</div>
       <div id="line000066" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000066| &nbsp;&nbsp;let&nbsp;no_rbp_or_rsp&nbsp;(regs&nbsp;:&nbsp;abstract_reg&nbsp;list)&nbsp;=</div>
-      <div id="line000067" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)remove&nbsp;regs&nbsp;(Real&nbsp;Rbp)&nbsp;|&gt;&nbsp;fun&nbsp;regs'&nbsp;-&gt;</div>
-      <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)remove&nbsp;regs'&nbsp;(Real&nbsp;Rsp)</div>
+      <div id="line000067" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)remove&nbsp;regs&nbsp;(Real&nbsp;Rbp)&nbsp;|&gt;&nbsp;fun&nbsp;regs'&nbsp;-&gt;</div>
+      <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)remove&nbsp;regs'&nbsp;(Real&nbsp;Rsp)</div>
       <div id="line000069" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;</div>
       <div id="line000070" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000070| &nbsp;&nbsp;(*&nbsp;grabs&nbsp;all&nbsp;temps&nbsp;that&nbsp;appear&nbsp;in&nbsp;an&nbsp;operand&nbsp;*)</div>
       <div id="line000071" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;let&nbsp;set_of_arg&nbsp;(arg:&nbsp;abstract_reg&nbsp;operand)&nbsp;:&nbsp;AbstractRegSet.t&nbsp;=</div>
@@ -162,11 +162,11 @@
       <div id="fold000091">
       <div id="line000091" class="lineNone"><a href="javascript:fold('fold000091');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000091| &nbsp;</div>
       <div id="line000092" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000092| &nbsp;&nbsp;let&nbsp;binops_use_plus_def&nbsp;=</div>
-      <div id="line000093" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000093| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[</div>
+      <div id="line000093" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000093| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[</div>
       <div id="line000094" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000094| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;addq&quot;;&nbsp;&quot;subq&quot;;&nbsp;&quot;andq&quot;;&nbsp;&quot;orq&quot;;&nbsp;&quot;xorq&quot;;&nbsp;&quot;shlq&quot;;</div>
       <div id="line000095" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000095| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;shrq&quot;;&nbsp;&quot;sarq&quot;;&nbsp;&quot;leaq&quot;;</div>
       <div id="line000096" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000096| &nbsp;&nbsp;&nbsp;&nbsp;]&nbsp;in</div>
-      <div id="line000097" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000097| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
+      <div id="line000097" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000097| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
       </div>
       <div id="line000098" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000098| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;set1&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op1&nbsp;in</div>
       <div id="line000099" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000099| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;set2&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op2&nbsp;in</div>
@@ -181,11 +181,11 @@
       </div>
       <div id="line000105" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000105| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;AbstractRegSet.empty,&nbsp;AbstractRegSet.empty&nbsp;in</div>
       <div id="fold000106">
-      <div id="line000106" class="lineAllVisited"><a href="javascript:fold('fold000106');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000106| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Binop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000106" class="lineAllVisited"><a href="javascript:fold('fold000106');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000106| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Binop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000107" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000107| &nbsp;</div>
       <div id="line000108" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000108| &nbsp;&nbsp;let&nbsp;binops_move&nbsp;=</div>
-      <div id="line000109" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000109| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&quot;movq&quot;;&nbsp;&quot;mov&quot;]&nbsp;in</div>
-      <div id="line000110" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000110| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
+      <div id="line000109" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000109| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&quot;movq&quot;;&nbsp;&quot;mov&quot;]&nbsp;in</div>
+      <div id="line000110" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000110| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
       </div>
       <div id="line000111" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000111| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;set1&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op1&nbsp;in</div>
       <div id="line000112" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000112| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;set2&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op2&nbsp;in</div>
@@ -197,20 +197,20 @@
       </div>
       <div id="line000117" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000117| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;AbstractRegSet.empty,&nbsp;AbstractRegSet.empty&nbsp;in</div>
       <div id="fold000118">
-      <div id="line000118" class="lineAllVisited"><a href="javascript:fold('fold000118');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000118| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Binop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000118" class="lineAllVisited"><a href="javascript:fold('fold000118');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000118| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Binop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000119" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000119| &nbsp;</div>
       <div id="line000120" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000120| &nbsp;&nbsp;let&nbsp;binops_use&nbsp;=</div>
-      <div id="line000121" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000121| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&nbsp;&quot;bt&quot;;&nbsp;&quot;cmpq&quot;;&nbsp;&quot;test&quot;&nbsp;]&nbsp;in</div>
-      <div id="line000122" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000122| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
+      <div id="line000121" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000121| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&nbsp;&quot;bt&quot;;&nbsp;&quot;cmpq&quot;;&nbsp;&quot;test&quot;&nbsp;]&nbsp;in</div>
+      <div id="line000122" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000122| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op1&nbsp;op2&nbsp;=</div>
       </div>
       <div id="line000123" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000123| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;uses&nbsp;=&nbsp;(*[0]*)AbstractRegSet.union&nbsp;(set_of_arg&nbsp;op1)&nbsp;(set_of_arg&nbsp;op2)&nbsp;in</div>
       <div id="line000124" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000124| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)(uses,&nbsp;AbstractRegSet.empty)&nbsp;in</div>
       <div id="fold000125">
-      <div id="line000125" class="lineAllVisited"><a href="javascript:fold('fold000125');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000125| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Binop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000125" class="lineAllVisited"><a href="javascript:fold('fold000125');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000125| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Binop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000126" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000126| &nbsp;</div>
       <div id="line000127" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;&nbsp;let&nbsp;unops_use_plus_def&nbsp;=</div>
-      <div id="line000128" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000128| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&nbsp;&quot;incq&quot;;&nbsp;&quot;decq&quot;;&nbsp;&quot;negq&quot;;&nbsp;]&nbsp;in</div>
-      <div id="line000129" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000129| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op&nbsp;=</div>
+      <div id="line000128" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000128| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&nbsp;&quot;incq&quot;;&nbsp;&quot;decq&quot;;&nbsp;&quot;negq&quot;;&nbsp;]&nbsp;in</div>
+      <div id="line000129" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000129| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op&nbsp;=</div>
       </div>
       <div id="line000130" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000130| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;opregs&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op&nbsp;in</div>
       <div id="line000131" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000131| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)match&nbsp;op&nbsp;with</div>
@@ -218,18 +218,18 @@
       <div id="line000133" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000133| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Mem&nbsp;_&nbsp;-&gt;&nbsp;(opregs,&nbsp;AbstractRegSet.empty)</div>
       <div id="line000134" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000134| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;(AbstractRegSet.empty,&nbsp;AbstractRegSet.empty)&nbsp;in</div>
       <div id="fold000135">
-      <div id="line000135" class="lineAllVisited"><a href="javascript:fold('fold000135');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000135| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Unop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000135" class="lineAllVisited"><a href="javascript:fold('fold000135');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000135| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Unop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000136" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;</div>
       <div id="line000137" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;(*&nbsp;TODO:&nbsp;these&nbsp;should&nbsp;go&nbsp;in&nbsp;as&nbsp;a&nbsp;special&nbsp;case&nbsp;since&nbsp;we&nbsp;se&nbsp;CL&nbsp;for&nbsp;the</div>
       <div id="line000138" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;&nbsp;*&nbsp;instructions&nbsp;right&nbsp;now.</div>
       <div id="line000139" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000139| &nbsp;&nbsp;&nbsp;*&nbsp;Although&nbsp;for&nbsp;register&nbsp;allocation&nbsp;we&nbsp;probably&nbsp;want&nbsp;to&nbsp;do&nbsp;something&nbsp;smarter</div>
       <div id="line000140" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000140| &nbsp;&nbsp;&nbsp;*&nbsp;and&nbsp;not&nbsp;default&nbsp;to&nbsp;CL&nbsp;but&nbsp;any&nbsp;other&nbsp;8&nbsp;bit&nbsp;register&nbsp;*)</div>
       <div id="line000141" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000141| &nbsp;&nbsp;let&nbsp;unops_def&nbsp;=</div>
-      <div id="line000142" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000142| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[</div>
+      <div id="line000142" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000142| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[</div>
       <div id="line000143" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;asete&quot;;&nbsp;&quot;asetne&quot;;&nbsp;&quot;asetl&quot;;&nbsp;&quot;asetg&quot;;&nbsp;&quot;asetle&quot;;&nbsp;&quot;asetge&quot;;&nbsp;&quot;asetz&quot;;</div>
       <div id="line000144" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000144| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;asetnz&quot;;&nbsp;&quot;asets&quot;;&nbsp;&quot;asetns&quot;;&nbsp;&quot;asetc&quot;;&nbsp;&quot;asetnc&quot;;&nbsp;&quot;pop&quot;</div>
       <div id="line000145" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;&nbsp;&nbsp;]&nbsp;in</div>
-      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op&nbsp;=</div>
+      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op&nbsp;=</div>
       </div>
       <div id="line000147" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000147| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;opregs&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op&nbsp;in</div>
       <div id="line000148" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000148| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)match&nbsp;op&nbsp;with</div>
@@ -237,28 +237,28 @@
       <div id="line000150" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000150| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Mem&nbsp;_&nbsp;-&gt;&nbsp;(opregs,&nbsp;AbstractRegSet.empty)</div>
       <div id="line000151" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000151| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;(AbstractRegSet.empty,&nbsp;AbstractRegSet.empty)&nbsp;in</div>
       <div id="fold000152">
-      <div id="line000152" class="lineAllVisited"><a href="javascript:fold('fold000152');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000152| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Unop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000152" class="lineAllVisited"><a href="javascript:fold('fold000152');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000152| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Unop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000153" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;</div>
       <div id="line000154" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000154| &nbsp;&nbsp;let&nbsp;unops_use&nbsp;=</div>
-      <div id="line000155" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&nbsp;&quot;push&quot;&nbsp;;&nbsp;&quot;pushq&quot;&nbsp;]&nbsp;in</div>
+      <div id="line000155" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&nbsp;&quot;push&quot;&nbsp;;&nbsp;&quot;pushq&quot;&nbsp;]&nbsp;in</div>
       </div>
-      <div id="line000156" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000156| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op&nbsp;=&nbsp;(*[0]*)(set_of_arg&nbsp;op,&nbsp;AbstractRegSet.empty)&nbsp;in</div>
+      <div id="line000156" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000156| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op&nbsp;=&nbsp;(*[0]*)(set_of_arg&nbsp;op,&nbsp;AbstractRegSet.empty)&nbsp;in</div>
       <div id="fold000157">
-      <div id="line000157" class="lineAllVisited"><a href="javascript:fold('fold000157');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000157| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Unop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000157" class="lineAllVisited"><a href="javascript:fold('fold000157');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000157| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Unop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000158" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000158| &nbsp;</div>
       <div id="line000159" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;let&nbsp;unops_mul_div&nbsp;=</div>
-      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&nbsp;&quot;imulq&quot;;&nbsp;&quot;idivq&quot;;&nbsp;]&nbsp;in</div>
-      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op&nbsp;=</div>
+      <div id="line000160" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&nbsp;&quot;imulq&quot;;&nbsp;&quot;idivq&quot;;&nbsp;]&nbsp;in</div>
+      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op&nbsp;=</div>
       </div>
       <div id="line000162" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000162| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;useset&nbsp;=&nbsp;(*[0]*)AbstractRegSet.add&nbsp;(set_of_arg&nbsp;op)&nbsp;(Real&nbsp;Rax)&nbsp;in</div>
       <div id="line000163" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000163| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;defset&nbsp;=&nbsp;(*[0]*)AbstractRegSet.of_list&nbsp;[Real&nbsp;Rax;&nbsp;Real&nbsp;Rdx;]&nbsp;in</div>
       <div id="line000164" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000164| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)(useset,&nbsp;defset)&nbsp;in</div>
       <div id="fold000165">
-      <div id="line000165" class="lineAllVisited"><a href="javascript:fold('fold000165');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000165| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Unop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000165" class="lineAllVisited"><a href="javascript:fold('fold000165');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000165| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Unop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000166" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000166| &nbsp;</div>
       <div id="line000167" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000167| &nbsp;&nbsp;let&nbsp;unops_call&nbsp;=</div>
-      <div id="line000168" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000168| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&nbsp;&quot;call&quot;;&nbsp;]&nbsp;in</div>
-      <div id="line000169" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;f&nbsp;op&nbsp;=</div>
+      <div id="line000168" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000168| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&nbsp;&quot;call&quot;;&nbsp;]&nbsp;in</div>
+      <div id="line000169" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;f&nbsp;op&nbsp;=</div>
       </div>
       <div id="line000170" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000170| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;useset&nbsp;=&nbsp;(*[0]*)set_of_arg&nbsp;op&nbsp;in</div>
       <div id="line000171" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000171| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;defset&nbsp;=</div>
@@ -270,19 +270,19 @@
       </div>
       <div id="line000176" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000176| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)(useset,&nbsp;defset)&nbsp;in</div>
       <div id="fold000177">
-      <div id="line000177" class="lineAllVisited"><a href="javascript:fold('fold000177');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000177| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Unop&nbsp;(instr,&nbsp;f)</div>
+      <div id="line000177" class="lineAllVisited"><a href="javascript:fold('fold000177');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000177| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Unop&nbsp;(instr,&nbsp;f)</div>
       <div id="line000178" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000178| &nbsp;</div>
       <div id="line000179" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000179| &nbsp;&nbsp;let&nbsp;zeroop_ret&nbsp;=</div>
-      <div id="line000180" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000180| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;instr&nbsp;=&nbsp;(*[2]*)[&quot;retq&quot;]&nbsp;in</div>
-      <div id="line000181" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000181| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;useset&nbsp;=</div>
-      <div id="line000182" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000182| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)callee_saved_regs&nbsp;|&gt;</div>
-      <div id="line000183" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000183| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List.map&nbsp;~f:(fun&nbsp;reg&nbsp;-&gt;&nbsp;(*[12]*)Real&nbsp;reg)&nbsp;|&gt;</div>
+      <div id="line000180" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000180| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;instr&nbsp;=&nbsp;(*[4]*)[&quot;retq&quot;]&nbsp;in</div>
+      <div id="line000181" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000181| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;useset&nbsp;=</div>
+      <div id="line000182" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000182| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)callee_saved_regs&nbsp;|&gt;</div>
+      <div id="line000183" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000183| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List.map&nbsp;~f:(fun&nbsp;reg&nbsp;-&gt;&nbsp;(*[24]*)Real&nbsp;reg)&nbsp;|&gt;</div>
       <div id="line000184" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000184| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no_rbp_or_rsp&nbsp;|&gt;</div>
       <div id="line000185" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000185| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AbstractRegSet.of_list&nbsp;in</div>
-      <div id="line000186" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000186| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)Zeroop&nbsp;(instr,&nbsp;(useset,&nbsp;AbstractRegSet.empty))</div>
+      <div id="line000186" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000186| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)Zeroop&nbsp;(instr,&nbsp;(useset,&nbsp;AbstractRegSet.empty))</div>
       <div id="line000187" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000187| &nbsp;</div>
       <div id="line000188" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000188| &nbsp;&nbsp;let&nbsp;asm_match&nbsp;=</div>
-      <div id="line000189" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000189| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)let&nbsp;patterns&nbsp;=&nbsp;(*[2]*)[</div>
+      <div id="line000189" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000189| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)let&nbsp;patterns&nbsp;=&nbsp;(*[4]*)[</div>
       <div id="line000190" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000190| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binops_use_plus_def;</div>
       <div id="line000191" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000191| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binops_move;</div>
       <div id="line000192" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000192| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binops_use;</div>
@@ -293,7 +293,7 @@
       <div id="line000197" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000197| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unops_call;</div>
       <div id="line000198" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000198| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;zeroop_ret;</div>
       <div id="line000199" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000199| &nbsp;&nbsp;&nbsp;&nbsp;]&nbsp;in</div>
-      <div id="line000200" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000200| &nbsp;&nbsp;&nbsp;&nbsp;(*[2]*)usedef_match&nbsp;patterns</div>
+      <div id="line000200" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000200| &nbsp;&nbsp;&nbsp;&nbsp;(*[4]*)usedef_match&nbsp;patterns</div>
       <div id="line000201" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000201| &nbsp;</div>
       <div id="line000202" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000202| &nbsp;&nbsp;(*&nbsp;returns&nbsp;a&nbsp;sets&nbsp;of&nbsp;vars&nbsp;used&nbsp;and&nbsp;defd,&nbsp;respectively&nbsp;*)</div>
       <div id="line000203" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000203| &nbsp;&nbsp;let&nbsp;usedvars&nbsp;:&nbsp;abstract_asm&nbsp;-&gt;&nbsp;AbstractRegSet.t&nbsp;*&nbsp;AbstractRegSet.t&nbsp;=</div>
@@ -321,8 +321,8 @@
       <div id="line000217" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000217| &nbsp;&nbsp;type&nbsp;data&nbsp;=&nbsp;AbstractRegSet.t&nbsp;=&nbsp;struct</div>
       <div id="line000218" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000218| &nbsp;</div>
       <div id="line000219" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000219| &nbsp;&nbsp;type&nbsp;data&nbsp;=&nbsp;AbstractRegSet.t</div>
-      <div id="line000220" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000220| &nbsp;&nbsp;let&nbsp;(&nbsp;**&nbsp;)&nbsp;=&nbsp;(*[2]*)AbstractRegSet.union</div>
-      <div id="line000221" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000221| &nbsp;&nbsp;let&nbsp;(&nbsp;===&nbsp;)&nbsp;=&nbsp;(*[2]*)AbstractRegSet.equal</div>
+      <div id="line000220" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000220| &nbsp;&nbsp;let&nbsp;(&nbsp;**&nbsp;)&nbsp;=&nbsp;(*[4]*)AbstractRegSet.union</div>
+      <div id="line000221" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000221| &nbsp;&nbsp;let&nbsp;(&nbsp;===&nbsp;)&nbsp;=&nbsp;(*[4]*)AbstractRegSet.equal</div>
       <div id="line000222" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000222| &nbsp;&nbsp;let&nbsp;to_string&nbsp;data&nbsp;=</div>
       </div>
       <div id="line000223" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000223| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;f&nbsp;acc&nbsp;reg&nbsp;=</div>
@@ -348,7 +348,7 @@
       <div id="line000242" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000242| &nbsp;</div>
       <div id="line000243" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000243| &nbsp;&nbsp;type&nbsp;extra_info&nbsp;=&nbsp;unit</div>
       <div id="line000244" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000244| &nbsp;</div>
-      <div id="line000245" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000245| &nbsp;&nbsp;let&nbsp;direction&nbsp;=&nbsp;(*[2]*)`Backward</div>
+      <div id="line000245" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000245| &nbsp;&nbsp;let&nbsp;direction&nbsp;=&nbsp;(*[4]*)`Backward</div>
       <div id="line000246" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000246| &nbsp;</div>
       <div id="line000247" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000247| &nbsp;&nbsp;open&nbsp;UseDefs</div>
       <div id="line000248" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000248| &nbsp;</div>
@@ -410,7 +410,7 @@
       <div id="line000296" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000296| &nbsp;&nbsp;|&nbsp;Reg13</div>
       <div id="line000297" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000297| &nbsp;&nbsp;|&nbsp;Reg14</div>
       <div id="line000298" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000298| &nbsp;</div>
-      <div id="line000299" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000299| let&nbsp;string_of_color&nbsp;=&nbsp;(*[2]*)function</div>
+      <div id="line000299" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000299| let&nbsp;string_of_color&nbsp;=&nbsp;(*[4]*)function</div>
       </div>
       <div id="line000300" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000300| &nbsp;&nbsp;|&nbsp;(*[0]*)Reg1&nbsp;-&gt;&nbsp;&quot;Reg1&quot;</div>
       <div id="line000301" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000301| &nbsp;&nbsp;|&nbsp;(*[0]*)Reg2&nbsp;-&gt;&nbsp;&quot;Reg2&quot;</div>
@@ -565,7 +565,7 @@
       <div id="line000425" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000425| &nbsp;&nbsp;areg_map_to_str&nbsp;adjlist_to_str&nbsp;regctx.adj_list&nbsp;&quot;adj_list&quot;&nbsp;&gt;&gt;</div>
       <div id="line000426" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000426| &nbsp;&nbsp;&quot;END&nbsp;CONTEXT&quot;</div>
       <div id="line000427" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000427| &nbsp;</div>
-      <div id="line000428" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000428| let&nbsp;empty_ctx&nbsp;=&nbsp;(*[2]*){</div>
+      <div id="line000428" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000428| let&nbsp;empty_ctx&nbsp;=&nbsp;(*[4]*){</div>
       <div id="line000429" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000429| &nbsp;&nbsp;(*&nbsp;IG&nbsp;node&nbsp;lists&nbsp;*)</div>
       <div id="line000430" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000430| &nbsp;&nbsp;precolored&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;[];</div>
       <div id="line000431" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000431| &nbsp;&nbsp;initial&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;[];</div>
@@ -2456,6 +2456,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:19:57</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:24:50</p>
   </body>
 </html>

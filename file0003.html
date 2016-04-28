@@ -60,15 +60,15 @@
       <div id="line000006" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000006| open&nbsp;Regalloc</div>
       <div id="line000007" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000007| open&nbsp;Fresh</div>
       <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| &nbsp;</div>
-      <div id="line000009" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000009| let&nbsp;ret_ptr_reg&nbsp;&nbsp;&nbsp;=&nbsp;(*[2]*)Fake&nbsp;&quot;_asmretptr&quot;</div>
+      <div id="line000009" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000009| let&nbsp;ret_ptr_reg&nbsp;&nbsp;&nbsp;=&nbsp;(*[4]*)Fake&nbsp;&quot;_asmretptr&quot;</div>
       <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;</div>
       <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| type&nbsp;('input,&nbsp;'output)&nbsp;with_fcontext&nbsp;=</div>
       <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;?debug:bool&nbsp;-&gt;&nbsp;func_context&nbsp;-&gt;&nbsp;func_contexts&nbsp;-&gt;&nbsp;'input&nbsp;-&gt;&nbsp;'output</div>
       <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| type&nbsp;('input,&nbsp;'output)&nbsp;without_fcontext&nbsp;=</div>
       <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| &nbsp;&nbsp;?debug:bool&nbsp;-&gt;&nbsp;func_contexts&nbsp;-&gt;&nbsp;'input&nbsp;-&gt;&nbsp;'output</div>
       <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;</div>
-      <div id="line000016" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000016| let&nbsp;max_int32&nbsp;=&nbsp;(*[2]*)Int64.of_int32_exn&nbsp;(Int32.max_value)</div>
-      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| let&nbsp;min_int32&nbsp;=&nbsp;(*[2]*)Int64.of_int32_exn&nbsp;(Int32.min_value)</div>
+      <div id="line000016" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000016| let&nbsp;max_int32&nbsp;=&nbsp;(*[4]*)Int64.of_int32_exn&nbsp;(Int32.max_value)</div>
+      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| let&nbsp;min_int32&nbsp;=&nbsp;(*[4]*)Int64.of_int32_exn&nbsp;(Int32.min_value)</div>
       <div id="line000018" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;</div>
       </div>
       <div id="line000019" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000019| let&nbsp;register_allocate&nbsp;?(debug=(*[0]*)false)&nbsp;asms&nbsp;=</div>
@@ -356,7 +356,7 @@
       <div id="fold000223">
       <div id="line000223" class="lineNone"><a href="javascript:fold('fold000223');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000223| &nbsp;</div>
       <div id="line000224" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000224| (*&nbsp;register&nbsp;saving&nbsp;*)</div>
-      <div id="line000225" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000225| let&nbsp;caller_saved_no_sp&nbsp;=&nbsp;(*[2]*)[</div>
+      <div id="line000225" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000225| let&nbsp;caller_saved_no_sp&nbsp;=&nbsp;(*[4]*)[</div>
       <div id="line000226" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000226| &nbsp;&nbsp;Rax;</div>
       <div id="line000227" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000227| &nbsp;&nbsp;Rcx;</div>
       <div id="line000228" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000228| &nbsp;&nbsp;Rdx;</div>
@@ -368,7 +368,7 @@
       <div id="line000234" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000234| &nbsp;&nbsp;R11;</div>
       <div id="line000235" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000235| ]</div>
       <div id="line000236" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000236| &nbsp;</div>
-      <div id="line000237" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000237| let&nbsp;callee_saved_no_bp&nbsp;=&nbsp;(*[2]*)[</div>
+      <div id="line000237" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000237| let&nbsp;callee_saved_no_bp&nbsp;=&nbsp;(*[4]*)[</div>
       <div id="line000238" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000238| &nbsp;&nbsp;Rbx;</div>
       <div id="line000239" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000239| &nbsp;&nbsp;R12;</div>
       <div id="line000240" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000240| &nbsp;&nbsp;R13;</div>
@@ -2962,6 +2962,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:19:57</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:24:50</p>
   </body>
 </html>

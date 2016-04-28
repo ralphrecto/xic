@@ -927,7 +927,7 @@ module BookExample = struct
     | SE.Node _ -> E.empty
 
   let kills = fun v ->
-    if List.mem ~equal:C.V.equal [n2; n5; n7; n9] v
+    if List.mem ~equal:C.V.equal [n2] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
 

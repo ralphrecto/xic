@@ -9,5 +9,5 @@
 - [ ] enter/leave fix
 - [ ] concatenate difftest files
 - [x] make difftest script have bool array
-- [ ] pre tests
+- [x] pre tests
 - [ ] ccp tests

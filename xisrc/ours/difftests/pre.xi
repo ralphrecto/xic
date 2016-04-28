@@ -60,6 +60,34 @@ test4() {
     println(string_of_int(x))
     println(string_of_int(y))
     println(string_of_int(z))
+
+    test4v2(10, 20, 30)
+    test4v3(10, 20, 30)
+}
+
+test4v2(x:int, y:int, z:int) {
+    if (y != z) {
+        x = (y + z) + (y + z)
+        println("hi")
+    }
+    x = y + z
+
+    println(string_of_int(x))
+    println(string_of_int(y))
+    println(string_of_int(z))
+}
+
+test4v3(x:int, y:int, z:int) {
+    if (y != z) {
+        x = (y + z) + (y + z)
+        x = (y + z) + (y + z)
+        println("hi")
+    }
+    x = y + z
+
+    println(string_of_int(x))
+    println(string_of_int(y))
+    println(string_of_int(z))
 }
 
 // complicated

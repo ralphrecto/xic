@@ -162,6 +162,21 @@ test8() {
     println(string_of_1array(z))
 }
 
+test9() {
+  a:int = 3;
+  if (a < 10) {
+    a = a + 1;
+  }
+  while (a < 10) {
+    a = a + 1;
+  }
+}
+
+test10() {
+  a:int = 1;
+  b:int = 2;
+  x:int = (a+b) + (a+b);
+}
 
 main(_: int[][]) {
     test1();
@@ -172,4 +187,6 @@ main(_: int[][]) {
     test6();
     test7();
     test8();
+    test9();
+    test10();
 }

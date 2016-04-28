@@ -260,6 +260,7 @@ module AvailExprCFG = struct
   }
 
   let (+) = ExprSet.union
+  let (-) = ExprSet.diff
 
   let init ({univ; _}: extra_info) (_: graph) =
     fun n ->
@@ -273,14 +274,7 @@ module AvailExprCFG = struct
     let anticipated = busy source in
     let kill = kills source in
     let union' = anticipated + d in
-    let f acc expr =
-      let mem_temps = get_mem_temp expr in
-      if ExprSet.is_empty (inter mem_temps kill) then
-        add acc expr
-      else
-        acc
-    in
-    fold ~f ~init: empty union'
+    union' - kill
 end
 
 module AvailExpr = Dataflow.GenericAnalysis(AvailExprCFG)

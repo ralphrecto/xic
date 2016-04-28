@@ -290,21 +290,37 @@ let ccp irs =
   let undef_mapping = map_temp_undef (get_all_temps g) in
   let ccp_e = Ccp.worklist undef_mapping g in
   let ccp_v_map = make_in_forwards g ccp_e (L.Unreach, undef_mapping) (L.Reach, undef_mapping) in
-  let f_vertex v acc =
+  let f_vertex v (stmt_acc, del_labels) =
     match v with
     | IDSE.Start
-    | IDSE.Exit -> acc
+    | IDSE.Exit -> (stmt_acc, del_labels)
     | IDSE.Node {num; ir} ->
       begin
         match M.find_exn ccp_v_map v with
-        | L.Unreach, _ -> acc
-        | L.Reach, mapping -> Int.Map.add ~key:num ~data:(subst_stmt mapping ir) acc
+        | L.Unreach, _ ->
+          begin
+            match ir with
+            | Label l ->  (stmt_acc, String.Set.add del_labels l)
+            | _ -> (stmt_acc, del_labels)
+          end
+        | L.Reach, mapping ->
+          (Int.Map.add ~key:num ~data:(subst_stmt mapping ir) stmt_acc, del_labels)
       end
   in
-  C.fold_vertex f_vertex g Int.Map.empty
+  let (stmts, del_labels) = C.fold_vertex f_vertex g (Int.Map.empty, String.Set.empty) in
+  let del_jumps acc s =
+    match s with
+    | CJumpOne (_, l)
+    | Jump (Name l) ->
+      if String.Set.mem del_labels l then acc else s::acc
+    | _ -> s::acc
+  in
+  stmts
   |> Int.Map.to_alist
   |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
   |> List.map ~f:snd
+  |> List.fold_left ~f:del_jumps ~init:[]
+  |> List.rev
 
 let ccp_comp_unit (id, funcs) =
   let f ((fname, stmt, typ): Ir.func_decl) =

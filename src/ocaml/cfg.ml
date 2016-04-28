@@ -190,9 +190,12 @@ module IrCfg = struct
               add_edge g (V.create (Node x)) (V.create z);
           end
           | Ir.CJumpOne (_, l) -> begin
+            try
               let z = String.Map.find_exn label_map l in
               add_edge_e g (E.create (V.create (Node x)) False (V.create (Node y)));
               add_edge_e g (E.create (V.create (Node x)) True  (V.create z))
+            with _ ->
+              failwith l
           end
           | Ir.Return -> ()
           | Ir.Jump _ -> failwith "IR shouldn't jump to something other than a name"
@@ -340,7 +343,7 @@ module AsmCfg = struct
                 if conditional then [labelnode; hd2]
                 else [hd2] end
             (* asm1 not a jump *)
-            | None -> 
+            | None ->
                 if is_ret asm1 then
                   (add_edge cfg (V.create (Node hd1)) (V.create Exit);
                   [])

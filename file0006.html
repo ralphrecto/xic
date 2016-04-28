@@ -65,12 +65,12 @@
       <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| module&nbsp;ExprSet&nbsp;=&nbsp;struct</div>
       <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;include&nbsp;Set.Make&nbsp;(struct</div>
       </div>
-      <div id="line000013" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000013| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[8820448]*)expr&nbsp;[@@deriving&nbsp;sexp,&nbsp;compare]</div>
+      <div id="line000013" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000013| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[8784789]*)expr&nbsp;[@@deriving&nbsp;sexp,&nbsp;compare]</div>
       <div id="fold000014">
       <div id="line000014" class="lineNone"><a href="javascript:fold('fold000014');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000014| &nbsp;&nbsp;end)</div>
       <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;</div>
       <div id="line000016" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;let&nbsp;concat_map&nbsp;xs&nbsp;~f&nbsp;=</div>
-      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)union_list&nbsp;(List.map&nbsp;xs&nbsp;~f)</div>
+      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)union_list&nbsp;(List.map&nbsp;xs&nbsp;~f)</div>
       <div id="line000018" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;</div>
       <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| &nbsp;&nbsp;let&nbsp;to_string&nbsp;irs&nbsp;=</div>
       </div>
@@ -99,7 +99,7 @@
       <div id="line000033" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000033| &nbsp;</div>
       <div id="line000034" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000034| module&nbsp;ExprMap&nbsp;=&nbsp;Map.Make(struct</div>
       </div>
-      <div id="line000035" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000035| &nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[23971]*)expr&nbsp;[@@deriving&nbsp;sexp,&nbsp;compare]</div>
+      <div id="line000035" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000035| &nbsp;&nbsp;(*[0]*)type&nbsp;t&nbsp;=&nbsp;(*[23974]*)expr&nbsp;[@@deriving&nbsp;sexp,&nbsp;compare]</div>
       <div id="fold000036">
       <div id="line000036" class="lineNone"><a href="javascript:fold('fold000036');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000036| end)</div>
       <div id="line000037" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000037| &nbsp;</div>
@@ -132,13 +132,13 @@
       <div id="line000064" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000064| let&nbsp;rec&nbsp;get_subexpr&nbsp;(e:&nbsp;expr)&nbsp;:&nbsp;ExprSet.t&nbsp;=</div>
       <div id="line000065" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000065| &nbsp;&nbsp;match&nbsp;e&nbsp;with</div>
       <div id="line000066" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000066| &nbsp;&nbsp;|&nbsp;(*[12]*)BinOp&nbsp;(e1,&nbsp;((*[6]*)DIV|(*[6]*)MOD),&nbsp;e2)&nbsp;-&gt;&nbsp;union&nbsp;(get_subexpr&nbsp;e1)&nbsp;(get_subexpr&nbsp;e2)</div>
-      <div id="line000067" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;&nbsp;|&nbsp;(*[2508]*)BinOp&nbsp;(e1,&nbsp;_,&nbsp;e2)&nbsp;-&gt;&nbsp;add&nbsp;(union&nbsp;(get_subexpr&nbsp;e1)&nbsp;(get_subexpr&nbsp;e2))&nbsp;e</div>
-      <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;|&nbsp;(*[374]*)Call&nbsp;(_,&nbsp;elst)&nbsp;-&gt;</div>
-      <div id="line000069" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;f&nbsp;acc&nbsp;e&nbsp;=&nbsp;(*[340]*)union&nbsp;acc&nbsp;(get_subexpr&nbsp;e)&nbsp;in</div>
-      <div id="line000070" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000070| &nbsp;&nbsp;&nbsp;&nbsp;(*[374]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;elst</div>
+      <div id="line000067" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;&nbsp;|&nbsp;(*[2512]*)BinOp&nbsp;(e1,&nbsp;_,&nbsp;e2)&nbsp;-&gt;&nbsp;add&nbsp;(union&nbsp;(get_subexpr&nbsp;e1)&nbsp;(get_subexpr&nbsp;e2))&nbsp;e</div>
+      <div id="line000068" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;|&nbsp;(*[388]*)Call&nbsp;(_,&nbsp;elst)&nbsp;-&gt;</div>
+      <div id="line000069" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;f&nbsp;acc&nbsp;e&nbsp;=&nbsp;(*[352]*)union&nbsp;acc&nbsp;(get_subexpr&nbsp;e)&nbsp;in</div>
+      <div id="line000070" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000070| &nbsp;&nbsp;&nbsp;&nbsp;(*[388]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;elst</div>
       <div id="line000071" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;|&nbsp;(*[1030]*)Mem&nbsp;(e1,&nbsp;_)&nbsp;-&gt;&nbsp;add&nbsp;(get_subexpr&nbsp;e1)&nbsp;e</div>
       </div>
-      <div id="line000072" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000072| &nbsp;&nbsp;|&nbsp;(*[5442]*)Temp&nbsp;_&nbsp;|&nbsp;(*[2364]*)Const&nbsp;_&nbsp;|&nbsp;(*[0]*)Name&nbsp;_&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000072" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000072| &nbsp;&nbsp;|&nbsp;(*[5510]*)Temp&nbsp;_&nbsp;|&nbsp;(*[2370]*)Const&nbsp;_&nbsp;|&nbsp;(*[0]*)Name&nbsp;_&nbsp;-&gt;&nbsp;empty</div>
       <div id="line000073" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000073| &nbsp;&nbsp;|&nbsp;(*[0]*)ESeq&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;exist!&quot;</div>
       <div id="fold000074">
       <div id="line000074" class="lineNone"><a href="javascript:fold('fold000074');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000074| &nbsp;</div>
@@ -148,48 +148,48 @@
       </div>
       <div id="line000078" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000078| &nbsp;&nbsp;|&nbsp;(*[0]*)Exp&nbsp;e1&nbsp;-&gt;&nbsp;get_subexpr&nbsp;e1</div>
       <div id="fold000079">
-      <div id="line000079" class="lineAllVisited"><a href="javascript:fold('fold000079');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000079| &nbsp;&nbsp;|&nbsp;(*[2552]*)Move&nbsp;(e1,&nbsp;e2)&nbsp;-&gt;&nbsp;union&nbsp;(get_subexpr&nbsp;e1)&nbsp;(get_subexpr&nbsp;e2)</div>
+      <div id="line000079" class="lineAllVisited"><a href="javascript:fold('fold000079');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000079| &nbsp;&nbsp;|&nbsp;(*[2588]*)Move&nbsp;(e1,&nbsp;e2)&nbsp;-&gt;&nbsp;union&nbsp;(get_subexpr&nbsp;e1)&nbsp;(get_subexpr&nbsp;e2)</div>
       </div>
       <div id="line000080" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000080| &nbsp;&nbsp;|&nbsp;(*[0]*)Seq&nbsp;slst&nbsp;-&gt;</div>
       <div id="line000081" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000081| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;f&nbsp;acc&nbsp;s&nbsp;=&nbsp;(*[0]*)union&nbsp;acc&nbsp;(get_subexpr_stmt&nbsp;s)&nbsp;in</div>
       <div id="line000082" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000082| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;slst</div>
       <div id="fold000083">
-      <div id="line000083" class="lineAllVisited"><a href="javascript:fold('fold000083');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000083| &nbsp;&nbsp;|&nbsp;(*[178]*)Jump&nbsp;_&nbsp;|&nbsp;(*[930]*)Label&nbsp;_&nbsp;|&nbsp;(*[68]*)Return&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000083" class="lineAllVisited"><a href="javascript:fold('fold000083');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000083| &nbsp;&nbsp;|&nbsp;(*[178]*)Jump&nbsp;_&nbsp;|&nbsp;(*[936]*)Label&nbsp;_&nbsp;|&nbsp;(*[70]*)Return&nbsp;-&gt;&nbsp;empty</div>
       </div>
       <div id="line000084" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000084| &nbsp;&nbsp;|&nbsp;(*[0]*)CJump&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;exist!&quot;</div>
       <div id="fold000085">
       <div id="line000085" class="lineNone"><a href="javascript:fold('fold000085');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000085| &nbsp;</div>
       <div id="line000086" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000086| let&nbsp;rec&nbsp;get_mem_temp&nbsp;(e:&nbsp;expr)&nbsp;:&nbsp;ExprSet.t&nbsp;=</div>
       <div id="line000087" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000087| &nbsp;&nbsp;match&nbsp;e&nbsp;with</div>
-      <div id="line000088" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;&nbsp;|&nbsp;(*[290592]*)BinOp&nbsp;(e1,&nbsp;_,&nbsp;e2)&nbsp;-&gt;&nbsp;union&nbsp;(get_mem_temp&nbsp;e1)&nbsp;(get_mem_temp&nbsp;e2)</div>
+      <div id="line000088" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;&nbsp;|&nbsp;(*[290615]*)BinOp&nbsp;(e1,&nbsp;_,&nbsp;e2)&nbsp;-&gt;&nbsp;union&nbsp;(get_mem_temp&nbsp;e1)&nbsp;(get_mem_temp&nbsp;e2)</div>
       </div>
       <div id="line000089" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000089| &nbsp;&nbsp;|&nbsp;(*[0]*)Call&nbsp;(_,&nbsp;elst)&nbsp;-&gt;</div>
       <div id="line000090" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000090| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;f&nbsp;acc&nbsp;e&nbsp;=&nbsp;(*[0]*)union&nbsp;acc&nbsp;(get_mem_temp&nbsp;e)&nbsp;in</div>
       <div id="line000091" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000091| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;elst</div>
       <div id="fold000092">
       <div id="line000092" class="lineAllVisited"><a href="javascript:fold('fold000092');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000092| &nbsp;&nbsp;|&nbsp;(*[80619]*)Mem&nbsp;(e1,&nbsp;_)&nbsp;-&gt;&nbsp;add&nbsp;(get_mem_temp&nbsp;e1)&nbsp;e</div>
-      <div id="line000093" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000093| &nbsp;&nbsp;|&nbsp;(*[305750]*)Temp&nbsp;_&nbsp;-&gt;&nbsp;add&nbsp;empty&nbsp;e</div>
+      <div id="line000093" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000093| &nbsp;&nbsp;|&nbsp;(*[305796]*)Temp&nbsp;_&nbsp;-&gt;&nbsp;add&nbsp;empty&nbsp;e</div>
       </div>
       <div id="line000094" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000094| &nbsp;&nbsp;|&nbsp;(*[202847]*)Const&nbsp;_&nbsp;|&nbsp;(*[0]*)Name&nbsp;_&nbsp;-&gt;&nbsp;empty</div>
       <div id="line000095" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000095| &nbsp;&nbsp;|&nbsp;(*[0]*)ESeq&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;exist!&quot;</div>
       <div id="fold000096">
       <div id="line000096" class="lineNone"><a href="javascript:fold('fold000096');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000096| &nbsp;</div>
       <div id="line000097" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000097| let&nbsp;get_subexpr_stmt_v&nbsp;n&nbsp;=</div>
-      <div id="line000098" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000098| &nbsp;&nbsp;(*[2147]*)let&nbsp;module&nbsp;I&nbsp;=&nbsp;IrDataStartExit&nbsp;in</div>
+      <div id="line000098" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000098| &nbsp;&nbsp;(*[2171]*)let&nbsp;module&nbsp;I&nbsp;=&nbsp;IrDataStartExit&nbsp;in</div>
       <div id="line000099" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000099| &nbsp;&nbsp;match&nbsp;n&nbsp;with</div>
-      <div id="line000100" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000100| &nbsp;&nbsp;|&nbsp;(*[2087]*)I.Node&nbsp;{ir;&nbsp;_}&nbsp;-&gt;&nbsp;get_subexpr_stmt&nbsp;ir</div>
-      <div id="line000101" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000101| &nbsp;&nbsp;|&nbsp;(*[30]*)I.Start&nbsp;|&nbsp;(*[30]*)I.Exit&nbsp;-&gt;&nbsp;ExprSet.empty</div>
+      <div id="line000100" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000100| &nbsp;&nbsp;|&nbsp;(*[2109]*)I.Node&nbsp;{ir;&nbsp;_}&nbsp;-&gt;&nbsp;get_subexpr_stmt&nbsp;ir</div>
+      <div id="line000101" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000101| &nbsp;&nbsp;|&nbsp;(*[31]*)I.Start&nbsp;|&nbsp;(*[31]*)I.Exit&nbsp;-&gt;&nbsp;ExprSet.empty</div>
       <div id="line000102" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000102| &nbsp;</div>
       <div id="line000103" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000103| let&nbsp;rec&nbsp;kill_func_args&nbsp;(elst:&nbsp;expr&nbsp;list)&nbsp;:&nbsp;ExprSet.t&nbsp;=</div>
       <div id="line000104" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000104| &nbsp;&nbsp;let&nbsp;f&nbsp;acc&nbsp;e&nbsp;=</div>
-      <div id="line000105" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000105| &nbsp;&nbsp;&nbsp;&nbsp;(*[170]*)match&nbsp;e&nbsp;with</div>
+      <div id="line000105" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000105| &nbsp;&nbsp;&nbsp;&nbsp;(*[176]*)match&nbsp;e&nbsp;with</div>
       </div>
       <div id="line000106" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000106| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Mem&nbsp;_&nbsp;-&gt;&nbsp;add&nbsp;acc&nbsp;e</div>
       <div id="line000107" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000107| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Call&nbsp;(_,&nbsp;elst')&nbsp;-&gt;&nbsp;kill_func_args&nbsp;elst'</div>
       <div id="fold000108">
-      <div id="line000108" class="lineAllVisited"><a href="javascript:fold('fold000108');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000108| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[170]*)_&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000108" class="lineAllVisited"><a href="javascript:fold('fold000108');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000108| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[176]*)_&nbsp;-&gt;&nbsp;empty</div>
       <div id="line000109" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000109| &nbsp;&nbsp;in</div>
-      <div id="line000110" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000110| &nbsp;&nbsp;(*[187]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;elst</div>
+      <div id="line000110" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000110| &nbsp;&nbsp;(*[194]*)List.fold_left&nbsp;~f&nbsp;~init:&nbsp;empty&nbsp;elst</div>
       <div id="line000111" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000111| &nbsp;</div>
       <div id="line000112" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000112| and&nbsp;kill_expr&nbsp;(e:&nbsp;expr)&nbsp;:&nbsp;ExprSet.t&nbsp;=</div>
       <div id="line000113" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000113| &nbsp;&nbsp;match&nbsp;e&nbsp;with</div>
@@ -206,11 +206,11 @@
       <div id="line000122" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000122| and&nbsp;kill_stmt&nbsp;(s:&nbsp;stmt)&nbsp;:&nbsp;ExprSet.t&nbsp;=</div>
       <div id="line000123" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000123| &nbsp;&nbsp;match&nbsp;s&nbsp;with</div>
       </div>
-      <div id="line000124" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000124| &nbsp;&nbsp;|&nbsp;(*[187]*)Move&nbsp;(((*[187]*)Temp&nbsp;_&nbsp;|&nbsp;(*[0]*)Mem&nbsp;_)&nbsp;as&nbsp;e1,&nbsp;Call&nbsp;(_,&nbsp;elst))&nbsp;-&gt;</div>
+      <div id="line000124" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000124| &nbsp;&nbsp;|&nbsp;(*[194]*)Move&nbsp;(((*[194]*)Temp&nbsp;_&nbsp;|&nbsp;(*[0]*)Mem&nbsp;_)&nbsp;as&nbsp;e1,&nbsp;Call&nbsp;(_,&nbsp;elst))&nbsp;-&gt;</div>
       <div id="fold000125">
-      <div id="line000125" class="lineAllVisited"><a href="javascript:fold('fold000125');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000125| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;set&nbsp;=&nbsp;(*[187]*)add&nbsp;empty&nbsp;e1&nbsp;in</div>
-      <div id="line000126" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000126| &nbsp;&nbsp;&nbsp;&nbsp;(*[187]*)union&nbsp;set&nbsp;(kill_func_args&nbsp;elst)</div>
-      <div id="line000127" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;&nbsp;|&nbsp;(*[1089]*)Move&nbsp;(((*[760]*)Temp&nbsp;_&nbsp;|&nbsp;(*[329]*)Mem&nbsp;_)&nbsp;as&nbsp;e1,&nbsp;_)&nbsp;-&gt;&nbsp;add&nbsp;empty&nbsp;e1</div>
+      <div id="line000125" class="lineAllVisited"><a href="javascript:fold('fold000125');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000125| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;set&nbsp;=&nbsp;(*[194]*)add&nbsp;empty&nbsp;e1&nbsp;in</div>
+      <div id="line000126" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000126| &nbsp;&nbsp;&nbsp;&nbsp;(*[194]*)union&nbsp;set&nbsp;(kill_func_args&nbsp;elst)</div>
+      <div id="line000127" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;&nbsp;|&nbsp;(*[1100]*)Move&nbsp;(((*[771]*)Temp&nbsp;_&nbsp;|&nbsp;(*[329]*)Mem&nbsp;_)&nbsp;as&nbsp;e1,&nbsp;_)&nbsp;-&gt;&nbsp;add&nbsp;empty&nbsp;e1</div>
       </div>
       <div id="line000128" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000128| &nbsp;&nbsp;|&nbsp;(*[0]*)Seq&nbsp;slst&nbsp;-&gt;</div>
       <div id="fold000129">
@@ -226,25 +226,25 @@
       <div id="fold000135">
       <div id="line000135" class="lineAllVisited"><a href="javascript:fold('fold000135');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000135| &nbsp;&nbsp;|&nbsp;(*[108]*)CJumpOne&nbsp;_</div>
       <div id="line000136" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;&nbsp;|&nbsp;(*[89]*)Jump&nbsp;_</div>
-      <div id="line000137" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;|&nbsp;(*[580]*)Label&nbsp;_</div>
-      <div id="line000138" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;|&nbsp;(*[34]*)Return&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000137" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;|&nbsp;(*[583]*)Label&nbsp;_</div>
+      <div id="line000138" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;|&nbsp;(*[35]*)Return&nbsp;-&gt;&nbsp;empty</div>
       </div>
       <div id="line000139" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000139| &nbsp;&nbsp;|&nbsp;(*[0]*)Move&nbsp;_</div>
       <div id="line000140" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000140| &nbsp;&nbsp;|&nbsp;(*[0]*)CJump&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;exist!&quot;</div>
       <div id="fold000141">
       <div id="line000141" class="lineNone"><a href="javascript:fold('fold000141');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000141| &nbsp;</div>
       <div id="line000142" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000142| let&nbsp;kill_stmt_v&nbsp;n&nbsp;=</div>
-      <div id="line000143" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;&nbsp;(*[2147]*)let&nbsp;module&nbsp;I&nbsp;=&nbsp;IrDataStartExit&nbsp;in</div>
+      <div id="line000143" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;&nbsp;(*[2171]*)let&nbsp;module&nbsp;I&nbsp;=&nbsp;IrDataStartExit&nbsp;in</div>
       <div id="line000144" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000144| &nbsp;&nbsp;match&nbsp;n&nbsp;with</div>
-      <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;|&nbsp;(*[2087]*)I.Node&nbsp;{ir;&nbsp;_}&nbsp;-&gt;&nbsp;kill_stmt&nbsp;ir</div>
-      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;|&nbsp;(*[30]*)I.Start&nbsp;|&nbsp;(*[30]*)I.Exit&nbsp;-&gt;&nbsp;ExprSet.empty</div>
+      <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;|&nbsp;(*[2109]*)I.Node&nbsp;{ir;&nbsp;_}&nbsp;-&gt;&nbsp;kill_stmt&nbsp;ir</div>
+      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;|&nbsp;(*[31]*)I.Start&nbsp;|&nbsp;(*[31]*)I.Exit&nbsp;-&gt;&nbsp;ExprSet.empty</div>
       <div id="line000147" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;</div>
       <div id="line000148" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000148| (*&nbsp;**************************************************************************&nbsp;*)</div>
       <div id="line000149" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000149| (*&nbsp;Preprocessing&nbsp;Step&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*)</div>
       <div id="line000150" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000150| (*&nbsp;**************************************************************************&nbsp;*)</div>
       <div id="line000151" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000151| let&nbsp;dummy_ir&nbsp;=&nbsp;(*[2]*)Label&nbsp;&quot;__dummy&quot;</div>
       <div id="line000152" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000152| let&nbsp;preprocess&nbsp;g&nbsp;=</div>
-      <div id="line000153" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;&nbsp;(*[30]*)let&nbsp;open&nbsp;Cfg&nbsp;in</div>
+      <div id="line000153" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;&nbsp;(*[31]*)let&nbsp;open&nbsp;Cfg&nbsp;in</div>
       <div id="line000154" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000154| &nbsp;&nbsp;let&nbsp;open&nbsp;IrCfg&nbsp;in</div>
       <div id="line000155" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;let&nbsp;open&nbsp;IrData&nbsp;in</div>
       <div id="line000156" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000156| &nbsp;&nbsp;let&nbsp;open&nbsp;IrDataStartExit&nbsp;in</div>
@@ -255,24 +255,24 @@
       <div id="line000161" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;in</div>
       <div id="line000162" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000162| &nbsp;</div>
       <div id="line000163" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000163| &nbsp;&nbsp;(*&nbsp;compare&nbsp;two&nbsp;IR&nbsp;CFG&nbsp;edges&nbsp;*)</div>
-      <div id="line000164" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000164| &nbsp;&nbsp;(*[30]*)let&nbsp;e_compare&nbsp;a&nbsp;b&nbsp;=</div>
+      <div id="line000164" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000164| &nbsp;&nbsp;(*[31]*)let&nbsp;e_compare&nbsp;a&nbsp;b&nbsp;=</div>
       <div id="line000165" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000165| &nbsp;&nbsp;&nbsp;&nbsp;(*[116]*)v_compare&nbsp;(V.label&nbsp;(E.src&nbsp;a))&nbsp;(V.label&nbsp;(E.src&nbsp;b))</div>
       <div id="line000166" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000166| &nbsp;&nbsp;in</div>
       <div id="line000167" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000167| &nbsp;</div>
       <div id="line000168" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000168| &nbsp;&nbsp;(*&nbsp;dummy&nbsp;node&nbsp;helpers&nbsp;*)</div>
-      <div id="line000169" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;&nbsp;(*[30]*)let&nbsp;fresh_num&nbsp;=&nbsp;(*[30]*)nb_vertex&nbsp;g&nbsp;in</div>
-      <div id="line000170" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000170| &nbsp;&nbsp;(*[30]*)let&nbsp;dummy&nbsp;i&nbsp;=&nbsp;(*[230]*)V.create&nbsp;(Node&nbsp;{num=i;&nbsp;ir=dummy_ir})&nbsp;in</div>
+      <div id="line000169" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000169| &nbsp;&nbsp;(*[31]*)let&nbsp;fresh_num&nbsp;=&nbsp;(*[31]*)nb_vertex&nbsp;g&nbsp;in</div>
+      <div id="line000170" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000170| &nbsp;&nbsp;(*[31]*)let&nbsp;dummy&nbsp;i&nbsp;=&nbsp;(*[230]*)V.create&nbsp;(Node&nbsp;{num=i;&nbsp;ir=dummy_ir})&nbsp;in</div>
       <div id="line000171" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000171| &nbsp;</div>
       <div id="line000172" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000172| &nbsp;&nbsp;(*&nbsp;gather&nbsp;all&nbsp;the&nbsp;vertices&nbsp;with&nbsp;more&nbsp;than&nbsp;on&nbsp;predecessor&nbsp;*)</div>
-      <div id="line000173" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000173| &nbsp;&nbsp;(*[30]*)let&nbsp;vs&nbsp;=&nbsp;(*[30]*)vertex_set&nbsp;g&nbsp;in</div>
-      <div id="line000174" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000174| &nbsp;&nbsp;(*[30]*)let&nbsp;multiple_preds&nbsp;=</div>
-      <div id="line000175" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000175| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)VertexSet.filter&nbsp;~f:(fun&nbsp;v&nbsp;-&gt;&nbsp;(*[1917]*)in_degree&nbsp;g&nbsp;v&nbsp;&gt;&nbsp;1)&nbsp;vs</div>
+      <div id="line000173" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000173| &nbsp;&nbsp;(*[31]*)let&nbsp;vs&nbsp;=&nbsp;(*[31]*)vertex_set&nbsp;g&nbsp;in</div>
+      <div id="line000174" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000174| &nbsp;&nbsp;(*[31]*)let&nbsp;multiple_preds&nbsp;=</div>
+      <div id="line000175" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000175| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)VertexSet.filter&nbsp;~f:(fun&nbsp;v&nbsp;-&gt;&nbsp;(*[1941]*)in_degree&nbsp;g&nbsp;v&nbsp;&gt;&nbsp;1)&nbsp;vs</div>
       <div id="line000176" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000176| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;VertexSet.to_list</div>
       <div id="line000177" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000177| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;List.sort&nbsp;~cmp:v_compare</div>
       <div id="line000178" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000178| &nbsp;&nbsp;in</div>
       <div id="line000179" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000179| &nbsp;</div>
       <div id="line000180" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000180| &nbsp;&nbsp;(*&nbsp;add&nbsp;dummy&nbsp;nodes&nbsp;on&nbsp;all&nbsp;the&nbsp;incoming&nbsp;edges&nbsp;*)</div>
-      <div id="line000181" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000181| &nbsp;&nbsp;(*[30]*)List.fold_left&nbsp;multiple_preds&nbsp;~init:fresh_num&nbsp;~f:(fun&nbsp;a&nbsp;v&nbsp;-&gt;</div>
+      <div id="line000181" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000181| &nbsp;&nbsp;(*[31]*)List.fold_left&nbsp;multiple_preds&nbsp;~init:fresh_num&nbsp;~f:(fun&nbsp;a&nbsp;v&nbsp;-&gt;</div>
       <div id="line000182" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000182| &nbsp;&nbsp;&nbsp;&nbsp;(*[114]*)let&nbsp;preds&nbsp;=</div>
       <div id="line000183" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000183| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[114]*)preds_e&nbsp;g&nbsp;v</div>
       <div id="line000184" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000184| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;EdgeSet.to_list</div>
@@ -314,19 +314,19 @@
       <div id="line000220" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000220| &nbsp;&nbsp;}</div>
       <div id="line000221" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000221| &nbsp;</div>
       <div id="line000222" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000222| &nbsp;&nbsp;let&nbsp;init&nbsp;({univ;&nbsp;_}&nbsp;:&nbsp;extra_info)&nbsp;(_:&nbsp;graph)&nbsp;=</div>
-      <div id="line000223" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000223| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)fun&nbsp;n&nbsp;-&gt;</div>
-      <div id="line000224" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000224| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2225]*)match&nbsp;n&nbsp;with</div>
-      <div id="line000225" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000225| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[34]*)IDSE.Exit&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000223" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000223| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)fun&nbsp;n&nbsp;-&gt;</div>
+      <div id="line000224" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000224| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2248]*)match&nbsp;n&nbsp;with</div>
+      <div id="line000225" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000225| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[35]*)IDSE.Exit&nbsp;-&gt;&nbsp;empty</div>
       </div>
       <div id="line000226" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000226| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)IDSE.Start</div>
       <div id="fold000227">
-      <div id="line000227" class="lineAllVisited"><a href="javascript:fold('fold000227');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000227| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2191]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
+      <div id="line000227" class="lineAllVisited"><a href="javascript:fold('fold000227');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000227| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2213]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
       <div id="line000228" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000228| &nbsp;</div>
       <div id="line000229" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000229| &nbsp;&nbsp;let&nbsp;transfer&nbsp;({uses;&nbsp;kills;&nbsp;_}:&nbsp;extra_info)&nbsp;(e:&nbsp;edge)&nbsp;(d:&nbsp;data)&nbsp;=</div>
-      <div id="line000230" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000230| &nbsp;&nbsp;&nbsp;&nbsp;(*[23418]*)let&nbsp;node&nbsp;=&nbsp;(*[23418]*)E.dst&nbsp;e&nbsp;in</div>
-      <div id="line000231" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000231| &nbsp;&nbsp;&nbsp;&nbsp;(*[23418]*)let&nbsp;use&nbsp;=&nbsp;(*[23418]*)uses&nbsp;node&nbsp;in</div>
-      <div id="line000232" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000232| &nbsp;&nbsp;&nbsp;&nbsp;(*[23418]*)let&nbsp;kill&nbsp;=&nbsp;(*[23418]*)kills&nbsp;node&nbsp;in</div>
-      <div id="line000233" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000233| &nbsp;&nbsp;&nbsp;&nbsp;(*[23418]*)union&nbsp;use&nbsp;(diff&nbsp;d&nbsp;kill)</div>
+      <div id="line000230" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000230| &nbsp;&nbsp;&nbsp;&nbsp;(*[23225]*)let&nbsp;node&nbsp;=&nbsp;(*[23225]*)E.dst&nbsp;e&nbsp;in</div>
+      <div id="line000231" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000231| &nbsp;&nbsp;&nbsp;&nbsp;(*[23225]*)let&nbsp;use&nbsp;=&nbsp;(*[23225]*)uses&nbsp;node&nbsp;in</div>
+      <div id="line000232" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000232| &nbsp;&nbsp;&nbsp;&nbsp;(*[23225]*)let&nbsp;kill&nbsp;=&nbsp;(*[23225]*)kills&nbsp;node&nbsp;in</div>
+      <div id="line000233" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000233| &nbsp;&nbsp;&nbsp;&nbsp;(*[23225]*)union&nbsp;use&nbsp;(diff&nbsp;d&nbsp;kill)</div>
       <div id="line000234" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000234| end</div>
       <div id="line000235" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000235| &nbsp;</div>
       <div id="line000236" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000236| module&nbsp;BusyExpr&nbsp;=&nbsp;Dataflow.GenericAnalysis(BusyExprCFG)</div>
@@ -359,20 +359,20 @@
       <div id="line000263" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000263| &nbsp;&nbsp;let&nbsp;(-)&nbsp;=&nbsp;(*[2]*)ExprSet.diff</div>
       <div id="line000264" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000264| &nbsp;</div>
       <div id="line000265" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000265| &nbsp;&nbsp;let&nbsp;init&nbsp;({univ;&nbsp;_}:&nbsp;extra_info)&nbsp;(_:&nbsp;graph)&nbsp;=</div>
-      <div id="line000266" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000266| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)fun&nbsp;n&nbsp;-&gt;</div>
-      <div id="line000267" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000267| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2225]*)match&nbsp;n&nbsp;with</div>
-      <div id="line000268" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000268| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)IDSE.Start&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000266" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000266| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)fun&nbsp;n&nbsp;-&gt;</div>
+      <div id="line000267" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000267| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2248]*)match&nbsp;n&nbsp;with</div>
+      <div id="line000268" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000268| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)IDSE.Start&nbsp;-&gt;&nbsp;empty</div>
       </div>
       <div id="line000269" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000269| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)IDSE.Exit</div>
       <div id="fold000270">
-      <div id="line000270" class="lineAllVisited"><a href="javascript:fold('fold000270');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000270| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2195]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
+      <div id="line000270" class="lineAllVisited"><a href="javascript:fold('fold000270');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000270| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2217]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
       <div id="line000271" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000271| &nbsp;</div>
       <div id="line000272" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000272| &nbsp;&nbsp;let&nbsp;transfer&nbsp;({busy;&nbsp;kills;&nbsp;_}:&nbsp;extra_info)&nbsp;(e:edge)&nbsp;(d:&nbsp;data)&nbsp;=</div>
-      <div id="line000273" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000273| &nbsp;&nbsp;&nbsp;&nbsp;(*[21851]*)let&nbsp;source&nbsp;=&nbsp;(*[21851]*)E.src&nbsp;e&nbsp;in</div>
-      <div id="line000274" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000274| &nbsp;&nbsp;&nbsp;&nbsp;(*[21851]*)let&nbsp;anticipated&nbsp;=&nbsp;(*[21851]*)busy&nbsp;source&nbsp;in</div>
-      <div id="line000275" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000275| &nbsp;&nbsp;&nbsp;&nbsp;(*[21851]*)let&nbsp;kill&nbsp;=&nbsp;(*[21851]*)kills&nbsp;source&nbsp;in</div>
-      <div id="line000276" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000276| &nbsp;&nbsp;&nbsp;&nbsp;(*[21851]*)let&nbsp;union'&nbsp;=&nbsp;(*[21851]*)anticipated&nbsp;+&nbsp;d&nbsp;in</div>
-      <div id="line000277" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000277| &nbsp;&nbsp;&nbsp;&nbsp;(*[21851]*)union'&nbsp;-&nbsp;kill</div>
+      <div id="line000273" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000273| &nbsp;&nbsp;&nbsp;&nbsp;(*[21798]*)let&nbsp;source&nbsp;=&nbsp;(*[21798]*)E.src&nbsp;e&nbsp;in</div>
+      <div id="line000274" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000274| &nbsp;&nbsp;&nbsp;&nbsp;(*[21798]*)let&nbsp;anticipated&nbsp;=&nbsp;(*[21798]*)busy&nbsp;source&nbsp;in</div>
+      <div id="line000275" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000275| &nbsp;&nbsp;&nbsp;&nbsp;(*[21798]*)let&nbsp;kill&nbsp;=&nbsp;(*[21798]*)kills&nbsp;source&nbsp;in</div>
+      <div id="line000276" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000276| &nbsp;&nbsp;&nbsp;&nbsp;(*[21798]*)let&nbsp;union'&nbsp;=&nbsp;(*[21798]*)anticipated&nbsp;+&nbsp;d&nbsp;in</div>
+      <div id="line000277" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000277| &nbsp;&nbsp;&nbsp;&nbsp;(*[21798]*)union'&nbsp;-&nbsp;kill</div>
       <div id="line000278" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000278| end</div>
       <div id="line000279" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000279| &nbsp;</div>
       <div id="line000280" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000280| module&nbsp;AvailExpr&nbsp;=&nbsp;Dataflow.GenericAnalysis(AvailExprCFG)</div>
@@ -405,17 +405,17 @@
       <div id="line000307" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000307| &nbsp;&nbsp;let&nbsp;(-)&nbsp;=&nbsp;(*[2]*)ExprSet.diff</div>
       <div id="line000308" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000308| &nbsp;</div>
       <div id="line000309" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000309| &nbsp;&nbsp;let&nbsp;init&nbsp;({univ;&nbsp;_}:&nbsp;extra_info)&nbsp;(_:&nbsp;graph)&nbsp;=</div>
-      <div id="line000310" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000310| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)fun&nbsp;n&nbsp;-&gt;</div>
-      <div id="line000311" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000311| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2225]*)match&nbsp;n&nbsp;with</div>
-      <div id="line000312" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000312| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)IDSE.Start&nbsp;-&gt;&nbsp;empty</div>
+      <div id="line000310" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000310| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)fun&nbsp;n&nbsp;-&gt;</div>
+      <div id="line000311" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000311| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2248]*)match&nbsp;n&nbsp;with</div>
+      <div id="line000312" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000312| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)IDSE.Start&nbsp;-&gt;&nbsp;empty</div>
       </div>
       <div id="line000313" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000313| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)IDSE.Exit</div>
       <div id="fold000314">
-      <div id="line000314" class="lineAllVisited"><a href="javascript:fold('fold000314');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000314| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2195]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
+      <div id="line000314" class="lineAllVisited"><a href="javascript:fold('fold000314');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000314| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2217]*)IDSE.Node&nbsp;_&nbsp;-&gt;&nbsp;univ</div>
       <div id="line000315" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000315| &nbsp;</div>
       <div id="line000316" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000316| &nbsp;&nbsp;let&nbsp;transfer&nbsp;({earliest;&nbsp;uses;&nbsp;_}:&nbsp;extra_info)&nbsp;(e:&nbsp;edge)&nbsp;(d:&nbsp;data)&nbsp;=</div>
-      <div id="line000317" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000317| &nbsp;&nbsp;&nbsp;&nbsp;(*[30895]*)let&nbsp;source&nbsp;=&nbsp;(*[30895]*)E.src&nbsp;e&nbsp;in</div>
-      <div id="line000318" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000318| &nbsp;&nbsp;&nbsp;&nbsp;(*[30895]*)((earliest&nbsp;source)&nbsp;+&nbsp;d)&nbsp;-&nbsp;(uses&nbsp;source)</div>
+      <div id="line000317" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000317| &nbsp;&nbsp;&nbsp;&nbsp;(*[30705]*)let&nbsp;source&nbsp;=&nbsp;(*[30705]*)E.src&nbsp;e&nbsp;in</div>
+      <div id="line000318" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000318| &nbsp;&nbsp;&nbsp;&nbsp;(*[30705]*)((earliest&nbsp;source)&nbsp;+&nbsp;d)&nbsp;-&nbsp;(uses&nbsp;source)</div>
       <div id="line000319" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000319| end</div>
       <div id="line000320" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000320| &nbsp;</div>
       <div id="line000321" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000321| module&nbsp;PostponeExpr&nbsp;=&nbsp;Dataflow.GenericAnalysis(PostponeExprCFG)</div>
@@ -439,14 +439,14 @@
       <div id="line000339" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000339| &nbsp;&nbsp;&nbsp;&nbsp;latest&nbsp;:&nbsp;node&nbsp;-&gt;&nbsp;data;</div>
       <div id="line000340" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000340| &nbsp;&nbsp;}</div>
       <div id="line000341" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000341| &nbsp;</div>
-      <div id="line000342" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000342| &nbsp;&nbsp;let&nbsp;init&nbsp;_&nbsp;_&nbsp;_&nbsp;=&nbsp;(*[2225]*)ExprSet.empty</div>
+      <div id="line000342" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000342| &nbsp;&nbsp;let&nbsp;init&nbsp;_&nbsp;_&nbsp;_&nbsp;=&nbsp;(*[2248]*)ExprSet.empty</div>
       <div id="line000343" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000343| &nbsp;</div>
       <div id="line000344" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000344| &nbsp;&nbsp;let&nbsp;(+)&nbsp;=&nbsp;(*[2]*)ExprSet.union</div>
       <div id="line000345" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000345| &nbsp;&nbsp;let&nbsp;(-)&nbsp;=&nbsp;(*[2]*)ExprSet.diff</div>
       <div id="line000346" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000346| &nbsp;</div>
       <div id="line000347" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000347| &nbsp;&nbsp;let&nbsp;transfer&nbsp;{uses;&nbsp;latest}&nbsp;e&nbsp;x&nbsp;=</div>
-      <div id="line000348" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000348| &nbsp;&nbsp;&nbsp;&nbsp;(*[3885]*)let&nbsp;n&nbsp;=&nbsp;(*[3885]*)CFG.E.dst&nbsp;e&nbsp;in</div>
-      <div id="line000349" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000349| &nbsp;&nbsp;&nbsp;&nbsp;(*[3885]*)(uses&nbsp;n&nbsp;+&nbsp;x)&nbsp;-&nbsp;latest&nbsp;n</div>
+      <div id="line000348" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000348| &nbsp;&nbsp;&nbsp;&nbsp;(*[3904]*)let&nbsp;n&nbsp;=&nbsp;(*[3904]*)CFG.E.dst&nbsp;e&nbsp;in</div>
+      <div id="line000349" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000349| &nbsp;&nbsp;&nbsp;&nbsp;(*[3904]*)(uses&nbsp;n&nbsp;+&nbsp;x)&nbsp;-&nbsp;latest&nbsp;n</div>
       <div id="line000350" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000350| end</div>
       <div id="line000351" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000351| &nbsp;</div>
       <div id="line000352" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000352| module&nbsp;UsedExpr&nbsp;=&nbsp;Dataflow.GenericAnalysis(UsedExprCFG)</div>
@@ -462,20 +462,20 @@
       <div id="line000362" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000362| module&nbsp;SE&nbsp;=&nbsp;Cfg.IrDataStartExit</div>
       <div id="line000363" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000363| &nbsp;</div>
       <div id="line000364" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000364| let&nbsp;subst&nbsp;exp&nbsp;~uses&nbsp;~latest&nbsp;~used&nbsp;~freshes&nbsp;=</div>
-      <div id="line000365" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000365| &nbsp;&nbsp;(*[2749]*)let&nbsp;rec&nbsp;help&nbsp;exp&nbsp;=</div>
-      <div id="line000366" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000366| &nbsp;&nbsp;&nbsp;&nbsp;(*[5430]*)if&nbsp;(*[5430]*)(E.mem&nbsp;uses&nbsp;exp)&nbsp;&amp;&amp;&nbsp;(*[1749]*)((*[1749]*)(not&nbsp;(E.mem&nbsp;latest&nbsp;exp))&nbsp;||&nbsp;(*[1580]*)E.mem&nbsp;used&nbsp;exp)&nbsp;then</div>
-      <div id="line000367" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000367| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[250]*)EM.find_exn&nbsp;freshes&nbsp;exp</div>
+      <div id="line000365" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000365| &nbsp;&nbsp;(*[2785]*)let&nbsp;rec&nbsp;help&nbsp;exp&nbsp;=</div>
+      <div id="line000366" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000366| &nbsp;&nbsp;&nbsp;&nbsp;(*[5472]*)if&nbsp;(*[5472]*)(E.mem&nbsp;uses&nbsp;exp)&nbsp;&amp;&amp;&nbsp;(*[1751]*)((*[1751]*)(not&nbsp;(E.mem&nbsp;latest&nbsp;exp))&nbsp;||&nbsp;(*[1581]*)E.mem&nbsp;used&nbsp;exp)&nbsp;then</div>
+      <div id="line000367" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000367| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[252]*)EM.find_exn&nbsp;freshes&nbsp;exp</div>
       <div id="line000368" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000368| &nbsp;&nbsp;&nbsp;&nbsp;else</div>
-      <div id="line000369" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000369| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[5180]*)match&nbsp;exp&nbsp;with</div>
+      <div id="line000369" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000369| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[5220]*)match&nbsp;exp&nbsp;with</div>
       <div id="line000370" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000370| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1006]*)BinOp&nbsp;(lhs,&nbsp;o,&nbsp;rhs)&nbsp;-&gt;&nbsp;BinOp&nbsp;(help&nbsp;lhs,&nbsp;o,&nbsp;help&nbsp;rhs)</div>
-      <div id="line000371" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000371| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[187]*)Call&nbsp;(f,&nbsp;args)&nbsp;-&gt;&nbsp;Call&nbsp;(f,&nbsp;List.map&nbsp;~f:help&nbsp;args)</div>
+      <div id="line000371" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000371| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[194]*)Call&nbsp;(f,&nbsp;args)&nbsp;-&gt;&nbsp;Call&nbsp;(f,&nbsp;List.map&nbsp;~f:help&nbsp;args)</div>
       <div id="line000372" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000372| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[499]*)Mem&nbsp;(e,&nbsp;t)&nbsp;-&gt;&nbsp;Mem&nbsp;(help&nbsp;e,&nbsp;t)</div>
       </div>
       <div id="line000373" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000373| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)ESeq&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;eseq&nbsp;shouldn't&nbsp;even&nbsp;exist;&nbsp;it's&nbsp;lowered&quot;</div>
       <div id="fold000374">
-      <div id="line000374" class="lineAllVisited"><a href="javascript:fold('fold000374');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000374| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[994]*)Const&nbsp;_&nbsp;|&nbsp;(*[89]*)Name&nbsp;_&nbsp;|&nbsp;(*[2405]*)Temp&nbsp;_&nbsp;-&gt;&nbsp;exp</div>
+      <div id="line000374" class="lineAllVisited"><a href="javascript:fold('fold000374');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000374| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[997]*)Const&nbsp;_&nbsp;|&nbsp;(*[89]*)Name&nbsp;_&nbsp;|&nbsp;(*[2435]*)Temp&nbsp;_&nbsp;-&gt;&nbsp;exp</div>
       <div id="line000375" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000375| &nbsp;&nbsp;in</div>
-      <div id="line000376" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000376| &nbsp;&nbsp;(*[2749]*)help&nbsp;exp</div>
+      <div id="line000376" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000376| &nbsp;&nbsp;(*[2785]*)help&nbsp;exp</div>
       <div id="line000377" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000377| &nbsp;</div>
       <div id="line000378" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000378| let&nbsp;get_one_pred_e&nbsp;g&nbsp;v&nbsp;=</div>
       </div>
@@ -501,46 +501,46 @@
       <div id="line000393" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000393| let&nbsp;get_one_pred_succ&nbsp;g&nbsp;v&nbsp;=&nbsp;(*[80]*)(get_one_pred&nbsp;g&nbsp;v,&nbsp;get_one_succ&nbsp;g&nbsp;v)</div>
       <div id="line000394" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000394| &nbsp;</div>
       <div id="line000395" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000395| let&nbsp;get_non_dummy&nbsp;g&nbsp;=</div>
-      <div id="line000396" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000396| &nbsp;&nbsp;(*[30]*)let&nbsp;vertices&nbsp;=&nbsp;(*[30]*)C.vertex_set&nbsp;g&nbsp;in</div>
-      <div id="line000397" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000397| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;n&nbsp;=</div>
-      <div id="line000398" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000398| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;n&nbsp;with</div>
-      <div id="line000399" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000399| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2117]*)SE.Node&nbsp;{ir=Seq&nbsp;ir';&nbsp;_}&nbsp;-&gt;&nbsp;(Ir.compare_stmt&nbsp;(List.last_exn&nbsp;ir')&nbsp;dummy_ir)&nbsp;&lt;&gt;&nbsp;0</div>
-      <div id="line000400" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000400| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;-&gt;&nbsp;false</div>
+      <div id="line000396" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000396| &nbsp;&nbsp;(*[31]*)let&nbsp;vertices&nbsp;=&nbsp;(*[31]*)C.vertex_set&nbsp;g&nbsp;in</div>
+      <div id="line000397" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000397| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;n&nbsp;=</div>
+      <div id="line000398" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000398| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;n&nbsp;with</div>
+      <div id="line000399" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000399| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2140]*)SE.Node&nbsp;{ir=Seq&nbsp;ir';&nbsp;_}&nbsp;-&gt;&nbsp;(Ir.compare_stmt&nbsp;(List.last_exn&nbsp;ir')&nbsp;dummy_ir)&nbsp;&lt;&gt;&nbsp;0</div>
+      <div id="line000400" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000400| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;-&gt;&nbsp;false</div>
       </div>
       <div id="line000401" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000401| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;(&quot;get_non_dummy:&nbsp;&quot;&nbsp;^&nbsp;(SE.to_string&nbsp;n))</div>
       <div id="fold000402">
       <div id="line000402" class="lineNone"><a href="javascript:fold('fold000402');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000402| &nbsp;&nbsp;in</div>
-      <div id="line000403" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000403| &nbsp;&nbsp;(*[30]*)C.VertexSet.filter&nbsp;~f&nbsp;vertices</div>
+      <div id="line000403" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000403| &nbsp;&nbsp;(*[31]*)C.VertexSet.filter&nbsp;~f&nbsp;vertices</div>
       <div id="line000404" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000404| &nbsp;</div>
       <div id="line000405" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000405| let&nbsp;get_dummy&nbsp;g&nbsp;=</div>
-      <div id="line000406" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000406| &nbsp;&nbsp;(*[30]*)let&nbsp;vertices&nbsp;=&nbsp;(*[30]*)C.vertex_set&nbsp;g&nbsp;in</div>
-      <div id="line000407" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000407| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;n&nbsp;=</div>
-      <div id="line000408" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000408| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;n&nbsp;with</div>
-      <div id="line000409" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000409| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2117]*)SE.Node&nbsp;{ir=Seq&nbsp;ir';&nbsp;_}&nbsp;-&gt;&nbsp;(Ir.compare_stmt&nbsp;(List.last_exn&nbsp;ir')&nbsp;dummy_ir)&nbsp;=&nbsp;0</div>
-      <div id="line000410" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000410| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;-&gt;&nbsp;false</div>
+      <div id="line000406" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000406| &nbsp;&nbsp;(*[31]*)let&nbsp;vertices&nbsp;=&nbsp;(*[31]*)C.vertex_set&nbsp;g&nbsp;in</div>
+      <div id="line000407" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000407| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;n&nbsp;=</div>
+      <div id="line000408" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000408| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;n&nbsp;with</div>
+      <div id="line000409" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000409| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2140]*)SE.Node&nbsp;{ir=Seq&nbsp;ir';&nbsp;_}&nbsp;-&gt;&nbsp;(Ir.compare_stmt&nbsp;(List.last_exn&nbsp;ir')&nbsp;dummy_ir)&nbsp;=&nbsp;0</div>
+      <div id="line000410" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000410| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;-&gt;&nbsp;false</div>
       </div>
       <div id="line000411" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000411| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;(&quot;get_dummy:&nbsp;&quot;&nbsp;^&nbsp;(SE.to_string&nbsp;n))</div>
       <div id="fold000412">
       <div id="line000412" class="lineNone"><a href="javascript:fold('fold000412');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000412| &nbsp;&nbsp;in</div>
-      <div id="line000413" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000413| &nbsp;&nbsp;(*[30]*)C.VertexSet.filter&nbsp;~f&nbsp;vertices</div>
+      <div id="line000413" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000413| &nbsp;&nbsp;(*[31]*)C.VertexSet.filter&nbsp;~f&nbsp;vertices</div>
       <div id="line000414" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000414| &nbsp;</div>
       <div id="line000415" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000415| type&nbsp;mapping&nbsp;=&nbsp;(Ir.stmt&nbsp;list&nbsp;*&nbsp;Ir.stmt)&nbsp;Int.Map.t</div>
       <div id="line000416" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000416| &nbsp;</div>
       <div id="line000417" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000417| let&nbsp;non_dummy_pass&nbsp;g&nbsp;:&nbsp;mapping&nbsp;=</div>
-      <div id="line000418" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000418| &nbsp;&nbsp;let&nbsp;vertices&nbsp;=&nbsp;(*[30]*)get_non_dummy&nbsp;g&nbsp;in</div>
-      <div id="line000419" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000419| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;acc&nbsp;v&nbsp;=</div>
-      <div id="line000420" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000420| &nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000421" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000421| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1887]*)SE.Node&nbsp;{ir&nbsp;=&nbsp;Seq&nbsp;ir';&nbsp;num}&nbsp;-&gt;</div>
+      <div id="line000418" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000418| &nbsp;&nbsp;let&nbsp;vertices&nbsp;=&nbsp;(*[31]*)get_non_dummy&nbsp;g&nbsp;in</div>
+      <div id="line000419" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000419| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;acc&nbsp;v&nbsp;=</div>
+      <div id="line000420" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000420| &nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000421" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000421| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1910]*)SE.Node&nbsp;{ir&nbsp;=&nbsp;Seq&nbsp;ir';&nbsp;num}&nbsp;-&gt;</div>
       <div id="line000422" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000422| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Int.Map.add&nbsp;~key:num&nbsp;~data:(Util.init&nbsp;ir',&nbsp;List.last_exn&nbsp;ir')&nbsp;acc</div>
       </div>
       <div id="line000423" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000423| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;(&quot;non_dummy_pass:&nbsp;&quot;&nbsp;^&nbsp;(SE.to_string&nbsp;v))</div>
       <div id="fold000424">
       <div id="line000424" class="lineNone"><a href="javascript:fold('fold000424');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000424| &nbsp;&nbsp;in</div>
-      <div id="line000425" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000425| &nbsp;&nbsp;(*[30]*)C.VertexSet.fold&nbsp;~init:Int.Map.empty&nbsp;~f&nbsp;vertices</div>
+      <div id="line000425" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000425| &nbsp;&nbsp;(*[31]*)C.VertexSet.fold&nbsp;~init:Int.Map.empty&nbsp;~f&nbsp;vertices</div>
       <div id="line000426" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000426| &nbsp;</div>
       <div id="line000427" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000427| let&nbsp;dummy_pass&nbsp;g&nbsp;(m:&nbsp;mapping)&nbsp;:&nbsp;mapping&nbsp;=</div>
-      <div id="line000428" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000428| &nbsp;&nbsp;let&nbsp;vertices&nbsp;=&nbsp;(*[30]*)get_dummy&nbsp;g&nbsp;in</div>
-      <div id="line000429" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000429| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;m&nbsp;v&nbsp;=</div>
+      <div id="line000428" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000428| &nbsp;&nbsp;let&nbsp;vertices&nbsp;=&nbsp;(*[31]*)get_dummy&nbsp;g&nbsp;in</div>
+      <div id="line000429" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000429| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;m&nbsp;v&nbsp;=</div>
       <div id="line000430" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000430| &nbsp;&nbsp;&nbsp;&nbsp;(*[230]*)match&nbsp;v&nbsp;with</div>
       <div id="line000431" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000431| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[150]*)SE.Node&nbsp;{ir&nbsp;=&nbsp;Seq&nbsp;[_];&nbsp;_}&nbsp;-&gt;&nbsp;m</div>
       <div id="line000432" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000432| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[80]*)SE.Node&nbsp;{ir&nbsp;=&nbsp;Seq&nbsp;ir';&nbsp;num}&nbsp;-&gt;</div>
@@ -589,83 +589,83 @@
       <div id="line000466" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000466| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;dummy_pass&nbsp;two&quot;</div>
       <div id="fold000467">
       <div id="line000467" class="lineNone"><a href="javascript:fold('fold000467');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000467| &nbsp;&nbsp;in</div>
-      <div id="line000468" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000468| &nbsp;&nbsp;(*[30]*)C.VertexSet.fold&nbsp;~init:m&nbsp;~f&nbsp;vertices</div>
+      <div id="line000468" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000468| &nbsp;&nbsp;(*[31]*)C.VertexSet.fold&nbsp;~init:m&nbsp;~f&nbsp;vertices</div>
       <div id="line000469" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000469| &nbsp;</div>
       <div id="line000470" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000470| let&nbsp;flatten&nbsp;g&nbsp;=</div>
-      <div id="line000471" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000471| &nbsp;&nbsp;(*[30]*)non_dummy_pass&nbsp;g</div>
+      <div id="line000471" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000471| &nbsp;&nbsp;(*[31]*)non_dummy_pass&nbsp;g</div>
       <div id="line000472" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000472| &nbsp;&nbsp;|&gt;&nbsp;dummy_pass&nbsp;g</div>
       <div id="line000473" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000473| &nbsp;&nbsp;|&gt;&nbsp;Int.Map.to_alist</div>
-      <div id="line000474" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000474| &nbsp;&nbsp;|&gt;&nbsp;List.sort&nbsp;~cmp:(fun&nbsp;(i1,&nbsp;_)&nbsp;(i2,&nbsp;_)&nbsp;-&gt;&nbsp;(*[6197]*)Pervasives.compare&nbsp;i1&nbsp;i2)</div>
-      <div id="line000475" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000475| &nbsp;&nbsp;|&gt;&nbsp;List.map&nbsp;~f:&nbsp;(fun&nbsp;(_,&nbsp;(prepends,&nbsp;last))&nbsp;-&gt;&nbsp;(*[1887]*)prepends@[last])</div>
+      <div id="line000474" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000474| &nbsp;&nbsp;|&gt;&nbsp;List.sort&nbsp;~cmp:(fun&nbsp;(i1,&nbsp;_)&nbsp;(i2,&nbsp;_)&nbsp;-&gt;&nbsp;(*[6252]*)Pervasives.compare&nbsp;i1&nbsp;i2)</div>
+      <div id="line000475" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000475| &nbsp;&nbsp;|&gt;&nbsp;List.map&nbsp;~f:&nbsp;(fun&nbsp;(_,&nbsp;(prepends,&nbsp;last))&nbsp;-&gt;&nbsp;(*[1910]*)prepends@[last])</div>
       <div id="line000476" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000476| &nbsp;&nbsp;|&gt;&nbsp;List.concat</div>
       <div id="line000477" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000477| &nbsp;</div>
       <div id="line000478" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000478| let&nbsp;red_elim&nbsp;g&nbsp;~univ&nbsp;~uses&nbsp;~latest&nbsp;~used&nbsp;=</div>
       <div id="line000479" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000479| &nbsp;&nbsp;(*&nbsp;step&nbsp;(a)&nbsp;*)</div>
-      <div id="line000480" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000480| &nbsp;&nbsp;(*[30]*)let&nbsp;freshes&nbsp;=</div>
-      <div id="line000481" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000481| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)E.to_list&nbsp;univ</div>
+      <div id="line000480" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000480| &nbsp;&nbsp;(*[31]*)let&nbsp;freshes&nbsp;=</div>
+      <div id="line000481" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000481| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)E.to_list&nbsp;univ</div>
       <div id="line000482" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000482| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;List.sort&nbsp;~cmp:Ir.compare_expr</div>
       <div id="line000483" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000483| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;List.remove_consecutive_duplicates&nbsp;~equal:(fun&nbsp;e&nbsp;e'&nbsp;-&gt;&nbsp;(*[1583]*)Ir.compare_expr&nbsp;e&nbsp;e'&nbsp;=&nbsp;0)</div>
-      <div id="line000484" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000484| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;List.map&nbsp;~f:(fun&nbsp;e&nbsp;-&gt;&nbsp;(*[1609]*)(e,&nbsp;Ir.Temp&nbsp;(Ir_generation.FreshTemp.fresh&nbsp;())))</div>
+      <div id="line000484" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000484| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;List.map&nbsp;~f:(fun&nbsp;e&nbsp;-&gt;&nbsp;(*[1610]*)(e,&nbsp;Ir.Temp&nbsp;(Ir_generation.FreshTemp.fresh&nbsp;())))</div>
       <div id="line000485" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000485| &nbsp;&nbsp;&nbsp;&nbsp;|&gt;&nbsp;EM.of_alist_exn</div>
       <div id="line000486" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000486| &nbsp;&nbsp;in</div>
       <div id="line000487" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000487| &nbsp;</div>
       <div id="line000488" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000488| &nbsp;&nbsp;(*&nbsp;step&nbsp;(b)&nbsp;*)</div>
-      <div id="line000489" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000489| &nbsp;&nbsp;(*[30]*)let&nbsp;new_g&nbsp;=&nbsp;(*[30]*)C.copy&nbsp;g&nbsp;in</div>
-      <div id="line000490" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000490| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;v&nbsp;=</div>
-      <div id="line000491" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000491| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)let&nbsp;new_irs&nbsp;=&nbsp;(*[2147]*)E.fold&nbsp;univ&nbsp;~init:[]&nbsp;~f:(fun&nbsp;acc&nbsp;exp&nbsp;-&gt;</div>
-      <div id="line000492" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000492| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218005]*)if&nbsp;(*[218005]*)E.mem&nbsp;(latest&nbsp;v)&nbsp;exp&nbsp;&amp;&amp;&nbsp;(*[1674]*)E.mem&nbsp;(used&nbsp;v)&nbsp;exp</div>
-      <div id="line000493" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000493| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;(*[178]*)(Ir.Move&nbsp;(EM.find_exn&nbsp;freshes&nbsp;exp,&nbsp;exp))::acc</div>
-      <div id="line000494" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000494| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;(*[217827]*)acc</div>
+      <div id="line000489" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000489| &nbsp;&nbsp;(*[31]*)let&nbsp;new_g&nbsp;=&nbsp;(*[31]*)C.copy&nbsp;g&nbsp;in</div>
+      <div id="line000490" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000490| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;v&nbsp;=</div>
+      <div id="line000491" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000491| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)let&nbsp;new_irs&nbsp;=&nbsp;(*[2171]*)E.fold&nbsp;univ&nbsp;~init:[]&nbsp;~f:(fun&nbsp;acc&nbsp;exp&nbsp;-&gt;</div>
+      <div id="line000492" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000492| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218028]*)if&nbsp;(*[218028]*)E.mem&nbsp;(latest&nbsp;v)&nbsp;exp&nbsp;&amp;&amp;&nbsp;(*[1675]*)E.mem&nbsp;(used&nbsp;v)&nbsp;exp</div>
+      <div id="line000493" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000493| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;(*[179]*)(Ir.Move&nbsp;(EM.find_exn&nbsp;freshes&nbsp;exp,&nbsp;exp))::acc</div>
+      <div id="line000494" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000494| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;(*[217849]*)acc</div>
       <div id="line000495" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000495| &nbsp;&nbsp;&nbsp;&nbsp;)</div>
       <div id="line000496" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000496| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000497" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000497| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000498" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000498| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Start&nbsp;-&gt;</div>
-      <div id="line000499" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000499| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;new_label&nbsp;=&nbsp;(*[30]*)Ir.Label&nbsp;(Fresh.FreshLabel.fresh&nbsp;())&nbsp;in</div>
-      <div id="line000500" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000500| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)let&nbsp;newv&nbsp;=&nbsp;(*[30]*)C.V.create&nbsp;(Node&nbsp;{num=(-1);&nbsp;ir=Ir.Seq&nbsp;(new_irs@[new_label])})&nbsp;in</div>
-      <div id="line000501" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000501| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
-      <div id="line000502" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000502| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2087]*)SE.Node&nbsp;{num;&nbsp;ir}&nbsp;-&gt;</div>
-      <div id="line000503" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000503| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;newv&nbsp;=&nbsp;(*[2087]*)C.V.create&nbsp;(Node&nbsp;{num;&nbsp;ir=Ir.Seq&nbsp;(new_irs@[ir])})&nbsp;in</div>
-      <div id="line000504" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000504| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2087]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
-      <div id="line000505" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000505| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;-&gt;&nbsp;()</div>
+      <div id="line000497" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000497| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000498" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000498| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Start&nbsp;-&gt;</div>
+      <div id="line000499" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000499| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;new_label&nbsp;=&nbsp;(*[31]*)Ir.Label&nbsp;(Fresh.FreshLabel.fresh&nbsp;())&nbsp;in</div>
+      <div id="line000500" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000500| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)let&nbsp;newv&nbsp;=&nbsp;(*[31]*)C.V.create&nbsp;(Node&nbsp;{num=(-1);&nbsp;ir=Ir.Seq&nbsp;(new_irs@[new_label])})&nbsp;in</div>
+      <div id="line000501" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000501| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
+      <div id="line000502" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000502| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2109]*)SE.Node&nbsp;{num;&nbsp;ir}&nbsp;-&gt;</div>
+      <div id="line000503" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000503| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;newv&nbsp;=&nbsp;(*[2109]*)C.V.create&nbsp;(Node&nbsp;{num;&nbsp;ir=Ir.Seq&nbsp;(new_irs@[ir])})&nbsp;in</div>
+      <div id="line000504" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000504| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2109]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
+      <div id="line000505" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000505| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;-&gt;&nbsp;()</div>
       <div id="line000506" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000506| &nbsp;&nbsp;in</div>
-      <div id="line000507" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000507| &nbsp;&nbsp;(*[30]*)C.iter_vertex&nbsp;f&nbsp;g;</div>
+      <div id="line000507" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000507| &nbsp;&nbsp;(*[31]*)C.iter_vertex&nbsp;f&nbsp;g;</div>
       <div id="line000508" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000508| &nbsp;</div>
       <div id="line000509" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000509| &nbsp;&nbsp;(*&nbsp;step&nbsp;(c)&nbsp;*)</div>
-      <div id="line000510" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000510| &nbsp;&nbsp;(*[30]*)let&nbsp;g&nbsp;=&nbsp;(*[30]*)new_g&nbsp;in</div>
-      <div id="line000511" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000511| &nbsp;&nbsp;(*[30]*)let&nbsp;new_g&nbsp;=&nbsp;(*[30]*)C.copy&nbsp;g&nbsp;in</div>
-      <div id="line000512" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000512| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;v&nbsp;=</div>
-      <div id="line000513" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000513| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000510" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000510| &nbsp;&nbsp;(*[31]*)let&nbsp;g&nbsp;=&nbsp;(*[31]*)new_g&nbsp;in</div>
+      <div id="line000511" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000511| &nbsp;&nbsp;(*[31]*)let&nbsp;new_g&nbsp;=&nbsp;(*[31]*)C.copy&nbsp;g&nbsp;in</div>
+      <div id="line000512" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000512| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;v&nbsp;=</div>
+      <div id="line000513" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000513| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;v&nbsp;with</div>
       </div>
-      <div id="line000514" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000514| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)SE.Start&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;-&gt;&nbsp;()</div>
+      <div id="line000514" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000514| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)SE.Start&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;-&gt;&nbsp;()</div>
       <div id="fold000515">
-      <div id="line000515" class="lineAllVisited"><a href="javascript:fold('fold000515');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000515| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2117]*)SE.Node&nbsp;{num;&nbsp;ir=Seq&nbsp;irs}&nbsp;as&nbsp;v&nbsp;-&gt;&nbsp;begin</div>
+      <div id="line000515" class="lineAllVisited"><a href="javascript:fold('fold000515');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000515| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2140]*)SE.Node&nbsp;{num;&nbsp;ir=Seq&nbsp;irs}&nbsp;as&nbsp;v&nbsp;-&gt;&nbsp;begin</div>
       <div id="line000516" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000516| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;match&nbsp;List.rev&nbsp;irs&nbsp;with</div>
-      <div id="line000517" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000517| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2117]*)last::tl&nbsp;-&gt;&nbsp;begin</div>
+      <div id="line000517" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000517| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[2140]*)last::tl&nbsp;-&gt;&nbsp;begin</div>
       <div id="line000518" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000518| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;last&nbsp;=&nbsp;dummy_ir&nbsp;then</div>
       <div id="line000519" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000519| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[230]*)()</div>
       <div id="line000520" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000520| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else</div>
-      <div id="line000521" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000521| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)let&nbsp;n&nbsp;=&nbsp;(*[1887]*)SE.Node&nbsp;{num;&nbsp;ir=last}&nbsp;in</div>
-      <div id="line000522" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000522| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)let&nbsp;sub&nbsp;e&nbsp;=&nbsp;(*[2749]*)subst&nbsp;e&nbsp;~uses:(uses&nbsp;n)</div>
+      <div id="line000521" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000521| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)let&nbsp;n&nbsp;=&nbsp;(*[1910]*)SE.Node&nbsp;{num;&nbsp;ir=last}&nbsp;in</div>
+      <div id="line000522" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000522| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)let&nbsp;sub&nbsp;e&nbsp;=&nbsp;(*[2785]*)subst&nbsp;e&nbsp;~uses:(uses&nbsp;n)</div>
       <div id="line000523" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000523| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~latest:(latest&nbsp;n)</div>
       <div id="line000524" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000524| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~used:(used&nbsp;n)</div>
       <div id="line000525" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000525| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;~freshes&nbsp;in</div>
-      <div id="line000526" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000526| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)let&nbsp;new_last&nbsp;=</div>
-      <div id="line000527" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000527| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)match&nbsp;last&nbsp;with</div>
+      <div id="line000526" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000526| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)let&nbsp;new_last&nbsp;=</div>
+      <div id="line000527" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000527| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)match&nbsp;last&nbsp;with</div>
       <div id="line000528" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000528| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[108]*)CJumpOne&nbsp;(e,&nbsp;l)&nbsp;-&gt;&nbsp;CJumpOne&nbsp;(sub&nbsp;e,&nbsp;l)</div>
       <div id="line000529" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000529| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[89]*)Jump&nbsp;e&nbsp;-&gt;&nbsp;Jump&nbsp;(sub&nbsp;e)</div>
       </div>
       <div id="line000530" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000530| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Exp&nbsp;e&nbsp;-&gt;&nbsp;Exp&nbsp;(sub&nbsp;e)</div>
       <div id="fold000531">
-      <div id="line000531" class="lineAllVisited"><a href="javascript:fold('fold000531');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000531| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1276]*)Move&nbsp;(dst,&nbsp;src)&nbsp;-&gt;&nbsp;Move&nbsp;(sub&nbsp;dst,&nbsp;sub&nbsp;src)</div>
-      <div id="line000532" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000532| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[380]*)Label&nbsp;_</div>
-      <div id="line000533" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000533| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[34]*)Return&nbsp;-&gt;&nbsp;last</div>
+      <div id="line000531" class="lineAllVisited"><a href="javascript:fold('fold000531');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000531| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[1294]*)Move&nbsp;(dst,&nbsp;src)&nbsp;-&gt;&nbsp;Move&nbsp;(sub&nbsp;dst,&nbsp;sub&nbsp;src)</div>
+      <div id="line000532" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000532| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[384]*)Label&nbsp;_</div>
+      <div id="line000533" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000533| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[35]*)Return&nbsp;-&gt;&nbsp;last</div>
       </div>
       <div id="line000534" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000534| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)CJump&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;be&nbsp;any&nbsp;cjumps&quot;</div>
       <div id="line000535" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000535| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Seq&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;shouldn't&nbsp;be&nbsp;any&nbsp;seqs&quot;</div>
       <div id="fold000536">
       <div id="line000536" class="lineNone"><a href="javascript:fold('fold000536');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000536| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000537" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000537| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)let&nbsp;newv&nbsp;=&nbsp;(*[1887]*)SE.Node&nbsp;{num;&nbsp;ir=Seq&nbsp;(List.rev&nbsp;(new_last::tl))}&nbsp;in</div>
-      <div id="line000538" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000538| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1887]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
+      <div id="line000537" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000537| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)let&nbsp;newv&nbsp;=&nbsp;(*[1910]*)SE.Node&nbsp;{num;&nbsp;ir=Seq&nbsp;(List.rev&nbsp;(new_last::tl))}&nbsp;in</div>
+      <div id="line000538" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000538| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[1910]*)C.swap&nbsp;new_g&nbsp;~oldv:v&nbsp;~newv</div>
       <div id="line000539" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000539| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
       </div>
       <div id="line000540" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000540| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)[]&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;all&nbsp;seqs&nbsp;should&nbsp;have&nbsp;at&nbsp;least&nbsp;one&nbsp;thing&quot;</div>
@@ -675,22 +675,22 @@
       <div id="line000542" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000542| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;red_elim:&nbsp;all&nbsp;irs&nbsp;should&nbsp;be&nbsp;Seqs&quot;</div>
       <div id="fold000543">
       <div id="line000543" class="lineNone"><a href="javascript:fold('fold000543');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000543| &nbsp;&nbsp;in</div>
-      <div id="line000544" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000544| &nbsp;&nbsp;(*[30]*)C.iter_vertex&nbsp;f&nbsp;g;</div>
+      <div id="line000544" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000544| &nbsp;&nbsp;(*[31]*)C.iter_vertex&nbsp;f&nbsp;g;</div>
       <div id="line000545" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000545| &nbsp;</div>
-      <div id="line000546" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000546| &nbsp;&nbsp;(*[30]*)new_g</div>
+      <div id="line000546" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000546| &nbsp;&nbsp;(*[31]*)new_g</div>
       <div id="line000547" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000547| &nbsp;</div>
       <div id="line000548" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000548| let&nbsp;pre&nbsp;irs&nbsp;=</div>
-      <div id="line000549" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000549| &nbsp;&nbsp;(*[30]*)let&nbsp;debug&nbsp;=&nbsp;(*[30]*)false&nbsp;in</div>
+      <div id="line000549" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000549| &nbsp;&nbsp;(*[31]*)let&nbsp;debug&nbsp;=&nbsp;(*[31]*)false&nbsp;in</div>
       <div id="line000550" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000550| &nbsp;</div>
       <div id="line000551" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000551| &nbsp;&nbsp;(*&nbsp;map&nbsp;a&nbsp;function&nbsp;into&nbsp;a&nbsp;map!&nbsp;*)</div>
-      <div id="line000552" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000552| &nbsp;&nbsp;(*[30]*)let&nbsp;map&nbsp;(g:&nbsp;C.t)&nbsp;~(f:C.vertex&nbsp;-&gt;&nbsp;'a)&nbsp;:&nbsp;'a&nbsp;M.t&nbsp;=</div>
-      <div id="line000553" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000553| &nbsp;&nbsp;&nbsp;&nbsp;C.fold_vertex&nbsp;(fun&nbsp;v&nbsp;m&nbsp;-&gt;&nbsp;(*[19323]*)M.add&nbsp;m&nbsp;~key:v&nbsp;~data:(f&nbsp;v))&nbsp;g&nbsp;M.empty</div>
+      <div id="line000552" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000552| &nbsp;&nbsp;(*[31]*)let&nbsp;map&nbsp;(g:&nbsp;C.t)&nbsp;~(f:C.vertex&nbsp;-&gt;&nbsp;'a)&nbsp;:&nbsp;'a&nbsp;M.t&nbsp;=</div>
+      <div id="line000553" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000553| &nbsp;&nbsp;&nbsp;&nbsp;C.fold_vertex&nbsp;(fun&nbsp;v&nbsp;m&nbsp;-&gt;&nbsp;(*[19539]*)M.add&nbsp;m&nbsp;~key:v&nbsp;~data:(f&nbsp;v))&nbsp;g&nbsp;M.empty</div>
       <div id="line000554" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000554| &nbsp;&nbsp;in</div>
       <div id="line000555" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000555| &nbsp;</div>
       <div id="line000556" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000556| &nbsp;&nbsp;(*&nbsp;turn&nbsp;a&nbsp;map&nbsp;into&nbsp;a&nbsp;function&nbsp;*)</div>
-      <div id="line000557" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000557| &nbsp;&nbsp;(*[30]*)let&nbsp;fun_of_map&nbsp;m&nbsp;v&nbsp;=</div>
-      <div id="line000558" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000558| &nbsp;&nbsp;&nbsp;&nbsp;(*[651556]*)match&nbsp;M.find&nbsp;m&nbsp;v&nbsp;with</div>
-      <div id="line000559" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000559| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[651556]*)Some&nbsp;es&nbsp;-&gt;&nbsp;es</div>
+      <div id="line000557" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000557| &nbsp;&nbsp;(*[31]*)let&nbsp;fun_of_map&nbsp;m&nbsp;v&nbsp;=</div>
+      <div id="line000558" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000558| &nbsp;&nbsp;&nbsp;&nbsp;(*[650929]*)match&nbsp;M.find&nbsp;m&nbsp;v&nbsp;with</div>
+      <div id="line000559" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000559| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[650929]*)Some&nbsp;es&nbsp;-&gt;&nbsp;es</div>
       </div>
       <div id="line000560" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000560| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)None&nbsp;-&gt;</div>
       <div id="line000561" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000561| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;key&nbsp;=&nbsp;(*[0]*)C.string_of_vertex&nbsp;v&nbsp;in</div>
@@ -701,103 +701,103 @@
       <div id="line000565" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000565| &nbsp;</div>
       <div id="line000566" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000566| &nbsp;&nbsp;(*&nbsp;Given&nbsp;a&nbsp;function&nbsp;from&nbsp;edges&nbsp;to&nbsp;lattice&nbsp;elements,&nbsp;construct&nbsp;a&nbsp;map&nbsp;from</div>
       <div id="line000567" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000567| &nbsp;&nbsp;&nbsp;*&nbsp;vertices&nbsp;to&nbsp;their&nbsp;in&nbsp;values,&nbsp;assuming&nbsp;we&nbsp;did&nbsp;a&nbsp;backwards&nbsp;analysis.&nbsp;*)</div>
-      <div id="line000568" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000568| &nbsp;&nbsp;(*[30]*)let&nbsp;make_in_backwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
+      <div id="line000568" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000568| &nbsp;&nbsp;(*[31]*)let&nbsp;make_in_backwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
       <div id="line000569" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000569| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;h&nbsp;v&nbsp;=</div>
-      <div id="line000570" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000570| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000571" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000571| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Start&nbsp;-&gt;&nbsp;C.fold_succ_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[30]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
-      <div id="line000572" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000572| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;|&nbsp;(*[2087]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;_&nbsp;-&gt;&nbsp;(*[2225]*)f&nbsp;e)&nbsp;g&nbsp;v&nbsp;top</div>
+      <div id="line000570" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000570| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000571" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000571| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Start&nbsp;-&gt;&nbsp;C.fold_succ_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[31]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
+      <div id="line000572" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000572| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;|&nbsp;(*[2109]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;_&nbsp;-&gt;&nbsp;(*[2248]*)f&nbsp;e)&nbsp;g&nbsp;v&nbsp;top</div>
       <div id="line000573" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000573| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000574" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000574| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)map&nbsp;g&nbsp;~f:h</div>
+      <div id="line000574" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000574| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)map&nbsp;g&nbsp;~f:h</div>
       <div id="line000575" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000575| &nbsp;&nbsp;in</div>
       <div id="line000576" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000576| &nbsp;</div>
       <div id="line000577" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000577| &nbsp;&nbsp;(*&nbsp;Given&nbsp;a&nbsp;function&nbsp;from&nbsp;edges&nbsp;to&nbsp;lattice&nbsp;elements,&nbsp;construct&nbsp;a&nbsp;map&nbsp;from</div>
       <div id="line000578" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000578| &nbsp;&nbsp;&nbsp;*&nbsp;vertices&nbsp;to&nbsp;their&nbsp;in&nbsp;values,&nbsp;assuming&nbsp;we&nbsp;did&nbsp;a&nbsp;forwards&nbsp;analysis.&nbsp;*)</div>
-      <div id="line000579" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000579| &nbsp;&nbsp;(*[30]*)let&nbsp;make_in_forwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a)&nbsp;(bot:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
+      <div id="line000579" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000579| &nbsp;&nbsp;(*[31]*)let&nbsp;make_in_forwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a)&nbsp;(bot:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
       <div id="line000580" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000580| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;h&nbsp;v&nbsp;=</div>
-      <div id="line000581" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000581| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[4294]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000582" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000582| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[60]*)SE.Start&nbsp;-&gt;&nbsp;bot</div>
-      <div id="line000583" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000583| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[60]*)SE.Exit&nbsp;|&nbsp;(*[4174]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[4450]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
+      <div id="line000581" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000581| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[4342]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000582" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000582| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[62]*)SE.Start&nbsp;-&gt;&nbsp;bot</div>
+      <div id="line000583" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000583| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[62]*)SE.Exit&nbsp;|&nbsp;(*[4218]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[4496]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
       <div id="line000584" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000584| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000585" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000585| &nbsp;&nbsp;&nbsp;&nbsp;(*[60]*)map&nbsp;g&nbsp;~f:h</div>
+      <div id="line000585" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000585| &nbsp;&nbsp;&nbsp;&nbsp;(*[62]*)map&nbsp;g&nbsp;~f:h</div>
       <div id="line000586" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000586| &nbsp;&nbsp;in</div>
       <div id="line000587" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000587| &nbsp;</div>
       <div id="line000588" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000588| &nbsp;&nbsp;(*&nbsp;Given&nbsp;a&nbsp;function&nbsp;from&nbsp;edges&nbsp;to&nbsp;lattice&nbsp;elements,&nbsp;construct&nbsp;a&nbsp;map&nbsp;from</div>
       <div id="line000589" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000589| &nbsp;&nbsp;&nbsp;*&nbsp;vertices&nbsp;to&nbsp;their&nbsp;in&nbsp;values,&nbsp;assuming&nbsp;we&nbsp;did&nbsp;a&nbsp;backwards&nbsp;analysis.&nbsp;*)</div>
-      <div id="line000590" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000590| &nbsp;&nbsp;(*[30]*)let&nbsp;make_out_backwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
+      <div id="line000590" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000590| &nbsp;&nbsp;(*[31]*)let&nbsp;make_out_backwards&nbsp;(g:&nbsp;C.t)&nbsp;(f:&nbsp;C.E.t&nbsp;-&gt;&nbsp;'a)&nbsp;(top:&nbsp;'a):&nbsp;'a&nbsp;M.t&nbsp;=</div>
       <div id="line000591" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000591| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;h&nbsp;v&nbsp;=</div>
-      <div id="line000592" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000592| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)match&nbsp;v&nbsp;with</div>
-      <div id="line000593" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000593| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Exit&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[34]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
-      <div id="line000594" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000594| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)SE.Start&nbsp;|&nbsp;(*[2087]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_succ_e&nbsp;(fun&nbsp;e&nbsp;_&nbsp;-&gt;&nbsp;(*[2225]*)f&nbsp;e)&nbsp;g&nbsp;v&nbsp;top</div>
+      <div id="line000592" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000592| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)match&nbsp;v&nbsp;with</div>
+      <div id="line000593" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000593| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Exit&nbsp;-&gt;&nbsp;C.fold_pred_e&nbsp;(fun&nbsp;e&nbsp;a&nbsp;-&gt;&nbsp;(*[35]*)IL.(f&nbsp;e&nbsp;**&nbsp;a))&nbsp;g&nbsp;v&nbsp;top</div>
+      <div id="line000594" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000594| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)SE.Start&nbsp;|&nbsp;(*[2109]*)SE.Node&nbsp;_&nbsp;-&gt;&nbsp;C.fold_succ_e&nbsp;(fun&nbsp;e&nbsp;_&nbsp;-&gt;&nbsp;(*[2248]*)f&nbsp;e)&nbsp;g&nbsp;v&nbsp;top</div>
       <div id="line000595" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000595| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000596" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000596| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)map&nbsp;g&nbsp;~f:h</div>
+      <div id="line000596" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000596| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)map&nbsp;g&nbsp;~f:h</div>
       <div id="line000597" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000597| &nbsp;&nbsp;in</div>
       <div id="line000598" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000598| &nbsp;</div>
-      <div id="line000599" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000599| &nbsp;&nbsp;(*[30]*)let&nbsp;g&nbsp;=&nbsp;(*[30]*)C.create_cfg&nbsp;irs&nbsp;in</div>
+      <div id="line000599" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000599| &nbsp;&nbsp;(*[31]*)let&nbsp;g&nbsp;=&nbsp;(*[31]*)C.create_cfg&nbsp;irs&nbsp;in</div>
       </div>
-      <div id="line000600" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000600| &nbsp;&nbsp;(*[30]*)let&nbsp;g_string&nbsp;=&nbsp;(*[30]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[30]*)&quot;&quot;&nbsp;in</div>
+      <div id="line000600" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000600| &nbsp;&nbsp;(*[31]*)let&nbsp;g_string&nbsp;=&nbsp;(*[31]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[31]*)&quot;&quot;&nbsp;in</div>
       <div id="fold000601">
-      <div id="line000601" class="lineAllVisited"><a href="javascript:fold('fold000601');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000601| &nbsp;&nbsp;(*[30]*)preprocess&nbsp;g;</div>
+      <div id="line000601" class="lineAllVisited"><a href="javascript:fold('fold000601');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000601| &nbsp;&nbsp;(*[31]*)preprocess&nbsp;g;</div>
       </div>
-      <div id="line000602" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000602| &nbsp;&nbsp;(*[30]*)let&nbsp;preprocessed_string&nbsp;=&nbsp;(*[30]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[30]*)&quot;&quot;&nbsp;in</div>
+      <div id="line000602" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000602| &nbsp;&nbsp;(*[31]*)let&nbsp;preprocessed_string&nbsp;=&nbsp;(*[31]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[31]*)&quot;&quot;&nbsp;in</div>
       <div id="fold000603">
-      <div id="line000603" class="lineAllVisited"><a href="javascript:fold('fold000603');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000603| &nbsp;&nbsp;(*[30]*)let&nbsp;univ&nbsp;=&nbsp;(*[30]*)ExprSet.concat_map&nbsp;irs&nbsp;~f:get_subexpr_stmt&nbsp;in</div>
-      <div id="line000604" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000604| &nbsp;&nbsp;(*[30]*)let&nbsp;uses&nbsp;=&nbsp;(*[30]*)map&nbsp;g&nbsp;~f:get_subexpr_stmt_v&nbsp;in</div>
+      <div id="line000603" class="lineAllVisited"><a href="javascript:fold('fold000603');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000603| &nbsp;&nbsp;(*[31]*)let&nbsp;univ&nbsp;=&nbsp;(*[31]*)ExprSet.concat_map&nbsp;irs&nbsp;~f:get_subexpr_stmt&nbsp;in</div>
+      <div id="line000604" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000604| &nbsp;&nbsp;(*[31]*)let&nbsp;uses&nbsp;=&nbsp;(*[31]*)map&nbsp;g&nbsp;~f:get_subexpr_stmt_v&nbsp;in</div>
       <div id="line000605" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000605| &nbsp;</div>
-      <div id="line000606" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000606| &nbsp;&nbsp;(*[30]*)let&nbsp;defs&nbsp;=&nbsp;(*[30]*)map&nbsp;g&nbsp;~f:kill_stmt_v&nbsp;in</div>
-      <div id="line000607" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000607| &nbsp;&nbsp;(*[30]*)let&nbsp;uses_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;uses&nbsp;in</div>
-      <div id="line000608" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000608| &nbsp;&nbsp;(*[30]*)let&nbsp;defs_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;defs&nbsp;in</div>
-      <div id="line000609" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000609| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;v&nbsp;=</div>
-      <div id="line000610" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000610| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)let&nbsp;g&nbsp;acc&nbsp;expr&nbsp;=</div>
-      <div id="line000611" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000611| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218005]*)let&nbsp;mem_temps&nbsp;=&nbsp;(*[218005]*)get_mem_temp&nbsp;expr&nbsp;in</div>
-      <div id="line000612" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000612| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218005]*)if&nbsp;ExprSet.is_empty&nbsp;(inter&nbsp;mem_temps&nbsp;(defs_fun&nbsp;v))&nbsp;then</div>
-      <div id="line000613" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000613| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[214739]*)acc</div>
+      <div id="line000606" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000606| &nbsp;&nbsp;(*[31]*)let&nbsp;defs&nbsp;=&nbsp;(*[31]*)map&nbsp;g&nbsp;~f:kill_stmt_v&nbsp;in</div>
+      <div id="line000607" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000607| &nbsp;&nbsp;(*[31]*)let&nbsp;uses_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;uses&nbsp;in</div>
+      <div id="line000608" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000608| &nbsp;&nbsp;(*[31]*)let&nbsp;defs_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;defs&nbsp;in</div>
+      <div id="line000609" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000609| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;v&nbsp;=</div>
+      <div id="line000610" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000610| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)let&nbsp;g&nbsp;acc&nbsp;expr&nbsp;=</div>
+      <div id="line000611" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000611| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218028]*)let&nbsp;mem_temps&nbsp;=&nbsp;(*[218028]*)get_mem_temp&nbsp;expr&nbsp;in</div>
+      <div id="line000612" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000612| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[218028]*)if&nbsp;ExprSet.is_empty&nbsp;(inter&nbsp;mem_temps&nbsp;(defs_fun&nbsp;v))&nbsp;then</div>
+      <div id="line000613" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000613| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[214760]*)acc</div>
       <div id="line000614" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000614| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else</div>
-      <div id="line000615" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000615| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[3266]*)add&nbsp;acc&nbsp;expr</div>
+      <div id="line000615" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000615| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[3268]*)add&nbsp;acc&nbsp;expr</div>
       <div id="line000616" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000616| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
-      <div id="line000617" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000617| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)fold&nbsp;~f:g&nbsp;~init:empty&nbsp;univ</div>
+      <div id="line000617" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000617| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)fold&nbsp;~f:g&nbsp;~init:empty&nbsp;univ</div>
       <div id="line000618" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000618| &nbsp;&nbsp;in</div>
-      <div id="line000619" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000619| &nbsp;&nbsp;(*[30]*)let&nbsp;kills&nbsp;=&nbsp;(*[30]*)map&nbsp;g&nbsp;~f&nbsp;in</div>
-      <div id="line000620" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000620| &nbsp;&nbsp;(*[30]*)let&nbsp;kills_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;kills&nbsp;in</div>
+      <div id="line000619" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000619| &nbsp;&nbsp;(*[31]*)let&nbsp;kills&nbsp;=&nbsp;(*[31]*)map&nbsp;g&nbsp;~f&nbsp;in</div>
+      <div id="line000620" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000620| &nbsp;&nbsp;(*[31]*)let&nbsp;kills_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;kills&nbsp;in</div>
       <div id="line000621" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000621| &nbsp;</div>
-      <div id="line000622" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000622| &nbsp;&nbsp;(*[30]*)let&nbsp;busy_e&nbsp;=&nbsp;(*[30]*)BusyExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;uses=uses_fun;&nbsp;kills=kills_fun}&nbsp;g&nbsp;in</div>
-      <div id="line000623" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000623| &nbsp;&nbsp;(*[30]*)let&nbsp;busy_v&nbsp;=&nbsp;(*[30]*)make_in_backwards&nbsp;g&nbsp;busy_e&nbsp;univ&nbsp;in</div>
-      <div id="line000624" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000624| &nbsp;&nbsp;(*[30]*)let&nbsp;busy_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;busy_v&nbsp;in</div>
+      <div id="line000622" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000622| &nbsp;&nbsp;(*[31]*)let&nbsp;busy_e&nbsp;=&nbsp;(*[31]*)BusyExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;uses=uses_fun;&nbsp;kills=kills_fun}&nbsp;g&nbsp;in</div>
+      <div id="line000623" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000623| &nbsp;&nbsp;(*[31]*)let&nbsp;busy_v&nbsp;=&nbsp;(*[31]*)make_in_backwards&nbsp;g&nbsp;busy_e&nbsp;univ&nbsp;in</div>
+      <div id="line000624" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000624| &nbsp;&nbsp;(*[31]*)let&nbsp;busy_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;busy_v&nbsp;in</div>
       <div id="line000625" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000625| &nbsp;</div>
-      <div id="line000626" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000626| &nbsp;&nbsp;(*[30]*)let&nbsp;avail_e&nbsp;=&nbsp;(*[30]*)AvailExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;busy=busy_fun;&nbsp;kills=kills_fun}&nbsp;g&nbsp;in</div>
-      <div id="line000627" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000627| &nbsp;&nbsp;(*[30]*)let&nbsp;avail_v&nbsp;=&nbsp;(*[30]*)make_in_forwards&nbsp;g&nbsp;avail_e&nbsp;univ&nbsp;E.empty&nbsp;in</div>
+      <div id="line000626" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000626| &nbsp;&nbsp;(*[31]*)let&nbsp;avail_e&nbsp;=&nbsp;(*[31]*)AvailExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;busy=busy_fun;&nbsp;kills=kills_fun}&nbsp;g&nbsp;in</div>
+      <div id="line000627" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000627| &nbsp;&nbsp;(*[31]*)let&nbsp;avail_v&nbsp;=&nbsp;(*[31]*)make_in_forwards&nbsp;g&nbsp;avail_e&nbsp;univ&nbsp;E.empty&nbsp;in</div>
       <div id="line000628" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000628| &nbsp;</div>
-      <div id="line000629" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000629| &nbsp;&nbsp;(*[30]*)let&nbsp;earliest_v&nbsp;=&nbsp;(*[30]*)map&nbsp;g&nbsp;~f:(fun&nbsp;v&nbsp;-&gt;</div>
-      <div id="line000630" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000630| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)M.(E.diff&nbsp;(find_exn&nbsp;busy_v&nbsp;v)&nbsp;(find_exn&nbsp;avail_v&nbsp;v))</div>
+      <div id="line000629" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000629| &nbsp;&nbsp;(*[31]*)let&nbsp;earliest_v&nbsp;=&nbsp;(*[31]*)map&nbsp;g&nbsp;~f:(fun&nbsp;v&nbsp;-&gt;</div>
+      <div id="line000630" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000630| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)M.(E.diff&nbsp;(find_exn&nbsp;busy_v&nbsp;v)&nbsp;(find_exn&nbsp;avail_v&nbsp;v))</div>
       <div id="line000631" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000631| &nbsp;&nbsp;)&nbsp;in</div>
-      <div id="line000632" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000632| &nbsp;&nbsp;(*[30]*)let&nbsp;earliest_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;earliest_v&nbsp;in</div>
+      <div id="line000632" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000632| &nbsp;&nbsp;(*[31]*)let&nbsp;earliest_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;earliest_v&nbsp;in</div>
       <div id="line000633" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000633| &nbsp;</div>
-      <div id="line000634" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000634| &nbsp;&nbsp;(*[30]*)let&nbsp;post_e&nbsp;=&nbsp;(*[30]*)PostponeExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;uses=uses_fun;&nbsp;earliest=earliest_fun}&nbsp;g&nbsp;in</div>
-      <div id="line000635" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000635| &nbsp;&nbsp;(*[30]*)let&nbsp;post_v&nbsp;=&nbsp;(*[30]*)make_in_forwards&nbsp;g&nbsp;post_e&nbsp;univ&nbsp;E.empty&nbsp;in</div>
-      <div id="line000636" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000636| &nbsp;&nbsp;(*[30]*)let&nbsp;post_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;post_v&nbsp;in</div>
+      <div id="line000634" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000634| &nbsp;&nbsp;(*[31]*)let&nbsp;post_e&nbsp;=&nbsp;(*[31]*)PostponeExpr.worklist&nbsp;{g;&nbsp;univ;&nbsp;uses=uses_fun;&nbsp;earliest=earliest_fun}&nbsp;g&nbsp;in</div>
+      <div id="line000635" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000635| &nbsp;&nbsp;(*[31]*)let&nbsp;post_v&nbsp;=&nbsp;(*[31]*)make_in_forwards&nbsp;g&nbsp;post_e&nbsp;univ&nbsp;E.empty&nbsp;in</div>
+      <div id="line000636" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000636| &nbsp;&nbsp;(*[31]*)let&nbsp;post_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;post_v&nbsp;in</div>
       <div id="line000637" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000637| &nbsp;</div>
-      <div id="line000638" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000638| &nbsp;&nbsp;(*[30]*)let&nbsp;f&nbsp;v&nbsp;=</div>
+      <div id="line000638" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000638| &nbsp;&nbsp;(*[31]*)let&nbsp;f&nbsp;v&nbsp;=</div>
       <div id="line000639" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000639| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;g&nbsp;uses&nbsp;post&nbsp;earliest&nbsp;(n:&nbsp;node)&nbsp;=&nbsp;*)</div>
-      <div id="line000640" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000640| &nbsp;&nbsp;&nbsp;&nbsp;(*[2147]*)ExprSet.(filter&nbsp;(union&nbsp;(earliest_fun&nbsp;v)&nbsp;(post_fun&nbsp;v))&nbsp;~f:(fun&nbsp;exp&nbsp;-&gt;</div>
-      <div id="line000641" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000641| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[14592]*)mem&nbsp;(uses_fun&nbsp;v)&nbsp;exp&nbsp;||&nbsp;(*[13072]*)C.VertexSet.exists&nbsp;(C.succs&nbsp;g&nbsp;v)&nbsp;~f:(fun&nbsp;v'&nbsp;-&gt;</div>
-      <div id="line000642" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000642| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[13324]*)not&nbsp;((*[13324]*)mem&nbsp;(earliest_fun&nbsp;v')&nbsp;exp&nbsp;||&nbsp;(*[13317]*)mem&nbsp;(post_fun&nbsp;v')&nbsp;exp)</div>
+      <div id="line000640" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000640| &nbsp;&nbsp;&nbsp;&nbsp;(*[2171]*)ExprSet.(filter&nbsp;(union&nbsp;(earliest_fun&nbsp;v)&nbsp;(post_fun&nbsp;v))&nbsp;~f:(fun&nbsp;exp&nbsp;-&gt;</div>
+      <div id="line000641" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000641| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[14594]*)mem&nbsp;(uses_fun&nbsp;v)&nbsp;exp&nbsp;||&nbsp;(*[13073]*)C.VertexSet.exists&nbsp;(C.succs&nbsp;g&nbsp;v)&nbsp;~f:(fun&nbsp;v'&nbsp;-&gt;</div>
+      <div id="line000642" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000642| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[13325]*)not&nbsp;((*[13325]*)mem&nbsp;(earliest_fun&nbsp;v')&nbsp;exp&nbsp;||&nbsp;(*[13318]*)mem&nbsp;(post_fun&nbsp;v')&nbsp;exp)</div>
       <div id="line000643" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000643| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
       <div id="line000644" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000644| &nbsp;&nbsp;&nbsp;&nbsp;))</div>
       <div id="line000645" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000645| &nbsp;&nbsp;in</div>
-      <div id="line000646" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000646| &nbsp;&nbsp;(*[30]*)let&nbsp;latest_v&nbsp;=&nbsp;(*[30]*)map&nbsp;g&nbsp;~f&nbsp;in</div>
-      <div id="line000647" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000647| &nbsp;&nbsp;(*[30]*)let&nbsp;latest_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;latest_v&nbsp;in</div>
+      <div id="line000646" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000646| &nbsp;&nbsp;(*[31]*)let&nbsp;latest_v&nbsp;=&nbsp;(*[31]*)map&nbsp;g&nbsp;~f&nbsp;in</div>
+      <div id="line000647" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000647| &nbsp;&nbsp;(*[31]*)let&nbsp;latest_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;latest_v&nbsp;in</div>
       <div id="line000648" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000648| &nbsp;</div>
-      <div id="line000649" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000649| &nbsp;&nbsp;(*[30]*)let&nbsp;used_e&nbsp;=&nbsp;(*[30]*)UsedExpr.worklist&nbsp;{uses=uses_fun;&nbsp;latest=latest_fun}&nbsp;g&nbsp;in</div>
-      <div id="line000650" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000650| &nbsp;&nbsp;(*[30]*)let&nbsp;used_v&nbsp;=&nbsp;(*[30]*)make_out_backwards&nbsp;g&nbsp;used_e&nbsp;univ&nbsp;in</div>
-      <div id="line000651" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000651| &nbsp;&nbsp;(*[30]*)let&nbsp;used_fun&nbsp;=&nbsp;(*[30]*)fun_of_map&nbsp;used_v&nbsp;in</div>
+      <div id="line000649" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000649| &nbsp;&nbsp;(*[31]*)let&nbsp;used_e&nbsp;=&nbsp;(*[31]*)UsedExpr.worklist&nbsp;{uses=uses_fun;&nbsp;latest=latest_fun}&nbsp;g&nbsp;in</div>
+      <div id="line000650" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000650| &nbsp;&nbsp;(*[31]*)let&nbsp;used_v&nbsp;=&nbsp;(*[31]*)make_out_backwards&nbsp;g&nbsp;used_e&nbsp;univ&nbsp;in</div>
+      <div id="line000651" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000651| &nbsp;&nbsp;(*[31]*)let&nbsp;used_fun&nbsp;=&nbsp;(*[31]*)fun_of_map&nbsp;used_v&nbsp;in</div>
       <div id="line000652" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000652| &nbsp;</div>
-      <div id="line000653" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000653| &nbsp;&nbsp;(*[30]*)let&nbsp;g&nbsp;=&nbsp;(*[30]*)red_elim&nbsp;g&nbsp;~univ&nbsp;~uses:uses_fun&nbsp;~latest:latest_fun&nbsp;~used:used_fun&nbsp;in</div>
+      <div id="line000653" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000653| &nbsp;&nbsp;(*[31]*)let&nbsp;g&nbsp;=&nbsp;(*[31]*)red_elim&nbsp;g&nbsp;~univ&nbsp;~uses:uses_fun&nbsp;~latest:latest_fun&nbsp;~used:used_fun&nbsp;in</div>
       </div>
-      <div id="line000654" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000654| &nbsp;&nbsp;(*[30]*)let&nbsp;final_g_string&nbsp;=&nbsp;(*[30]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[30]*)&quot;&quot;&nbsp;in</div>
+      <div id="line000654" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000654| &nbsp;&nbsp;(*[31]*)let&nbsp;final_g_string&nbsp;=&nbsp;(*[31]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)C.to_dot&nbsp;g&nbsp;else&nbsp;(*[31]*)&quot;&quot;&nbsp;in</div>
       <div id="fold000655">
-      <div id="line000655" class="lineAllVisited"><a href="javascript:fold('fold000655');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000655| &nbsp;&nbsp;(*[30]*)let&nbsp;flattened&nbsp;=&nbsp;(*[30]*)flatten&nbsp;g&nbsp;in</div>
+      <div id="line000655" class="lineAllVisited"><a href="javascript:fold('fold000655');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000655| &nbsp;&nbsp;(*[31]*)let&nbsp;flattened&nbsp;=&nbsp;(*[31]*)flatten&nbsp;g&nbsp;in</div>
       <div id="line000656" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000656| &nbsp;</div>
       </div>
-      <div id="line000657" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000657| &nbsp;&nbsp;(*[30]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)begin</div>
+      <div id="line000657" class="lineMixed"><img border="0" height="10" width="10"src="blank.png"/>000657| &nbsp;&nbsp;(*[31]*)if&nbsp;debug&nbsp;then&nbsp;(*[0]*)begin</div>
       <div id="fold000658">
       <div id="line000658" class="lineNone"><a href="javascript:fold('fold000658');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000658| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;print&nbsp;out&nbsp;the&nbsp;IRs&nbsp;*)</div>
       <div id="line000659" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000659| &nbsp;&nbsp;&nbsp;&nbsp;print_endline&nbsp;&quot;input&nbsp;ir:&quot;;</div>
@@ -837,12 +837,12 @@
       <div id="fold000686">
       <div id="line000686" class="lineNone"><a href="javascript:fold('fold000686');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000686| &nbsp;&nbsp;end;</div>
       <div id="line000687" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000687| &nbsp;</div>
-      <div id="line000688" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000688| &nbsp;&nbsp;(*[30]*)flattened</div>
+      <div id="line000688" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000688| &nbsp;&nbsp;(*[31]*)flattened</div>
       <div id="line000689" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000689| &nbsp;</div>
       <div id="line000690" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000690| let&nbsp;pre_comp_unit&nbsp;(id,&nbsp;funcs)&nbsp;=</div>
       <div id="line000691" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000691| &nbsp;&nbsp;(*[1]*)let&nbsp;f&nbsp;((fname,&nbsp;stmt,&nbsp;typ):&nbsp;Ir.func_decl)&nbsp;=</div>
-      <div id="line000692" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000692| &nbsp;&nbsp;&nbsp;&nbsp;(*[30]*)match&nbsp;stmt&nbsp;with</div>
-      <div id="line000693" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000693| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[30]*)Seq&nbsp;irs&nbsp;-&gt;&nbsp;(fname,&nbsp;Seq&nbsp;(pre&nbsp;irs),&nbsp;typ)</div>
+      <div id="line000692" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000692| &nbsp;&nbsp;&nbsp;&nbsp;(*[31]*)match&nbsp;stmt&nbsp;with</div>
+      <div id="line000693" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000693| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[31]*)Seq&nbsp;irs&nbsp;-&gt;&nbsp;(fname,&nbsp;Seq&nbsp;(pre&nbsp;irs),&nbsp;typ)</div>
       </div>
       <div id="line000694" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000694| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)_&nbsp;-&gt;&nbsp;failwith&nbsp;&quot;pre_comp_unit:&nbsp;lowered&nbsp;func_decls&nbsp;should&nbsp;only&nbsp;have&nbsp;seqs&quot;</div>
       <div id="fold000695">
@@ -1558,6 +1558,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:12:21</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:19:57</p>
   </body>
 </html>

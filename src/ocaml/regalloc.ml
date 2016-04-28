@@ -315,6 +315,33 @@ let string_of_color = function
 let string_of_colors (l : color list) =
   l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
 
+let get_next_color (colors : color list) : color option =
+  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
+    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
+  let f acc x =
+    match acc with
+    | Some _ -> acc
+    | None -> if not (List.mem colors x) then Some x
+        else None in
+  List.fold_left ~f ~init:None colorlist
+
+let color_to_reg (c : color) : reg =
+  match c with
+  | Reg1 -> Rax
+  | Reg2 -> Rbx
+  | Reg3 -> Rcx
+  | Reg4 -> Rdx
+  | Reg5 -> Rsi
+  | Reg6 -> Rdi
+  | Reg7 -> R8
+  | Reg8 -> R9
+  | Reg9 -> R10
+  | Reg10 -> R11
+  | Reg11 -> R12
+  | Reg12 -> R13
+  | Reg13 -> R14
+  | Reg14 -> R15
+
 type temp_move = {
   src: abstract_reg;
   dest: abstract_reg;
@@ -433,35 +460,6 @@ let empty_ctx = {
 }
 
 (* generic helper methods *)
-let get_next_color (colors : color list) : color option =
-  print_endline "getting colors!!!";
-  print_endline (string_of_colors colors);
-  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
-    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
-  let f acc x =
-    match acc with
-    | Some _ -> acc
-    | None -> if not (List.mem colors x) then Some x
-        else None in
-  List.fold_left ~f ~init:None colorlist
-
-let color_to_reg (c : color) : reg =
-  match c with
-  | Reg1 -> Rax
-  | Reg2 -> Rbx
-  | Reg3 -> Rcx
-  | Reg4 -> Rdx
-  | Reg5 -> Rsi
-  | Reg6 -> Rdi
-  | Reg7 -> R8
-  | Reg8 -> R9
-  | Reg9 -> R10
-  | Reg10 -> R11
-  | Reg11 -> R12
-  | Reg12 -> R13
-  | Reg13 -> R14
-  | Reg14 -> R15
-
 (* data structure helpers *)
 let adj_list_add
   (key: abstract_reg)
@@ -572,14 +570,14 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
 
-      let nodestr = AsmCfg.string_of_vertex cfg_node in
-      let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in
+      (*let nodestr = AsmCfg.string_of_vertex cfg_node in*)
+      (*let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in*)
 
-      print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);
+      (*print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);*)
 
-      print_endline (_string_of_ctx regctx);
-      let regctx' = create_inter_edges liveset regctx in
-      print_endline (_string_of_ctx regctx');
+      (*print_endline (_string_of_ctx regctx);*)
+      (*let regctx' = create_inter_edges liveset regctx in*)
+      (*print_endline (_string_of_ctx regctx');*)
 
       (* update node occurrences *)
       let node_occurrences' =
@@ -1004,8 +1002,6 @@ let spill_allocate ?(debug=false) asms =
 
 
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
-  (* TODO use debug *)
-  ignore debug;
 
   let main
     (regctx : alloc_context)
@@ -1013,7 +1009,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      print_endline (_string_of_ctx innerctx);
+      (*print_endline (_string_of_ctx innerctx);*)
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&

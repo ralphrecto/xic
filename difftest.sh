@@ -40,17 +40,17 @@ run_and_diff() {
     cat "$pervasive_file" "$f" > "$tempname"
 
     should_run=()
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(true)
-    should_run+=(false)
+    should_run+=(true)  # typed
+    should_run+=(true)  # typed-acf
+    should_run+=(true)  # nolower
+    should_run+=(true)  # lower
+    should_run+=(true)  # ir
+    should_run+=(true)  # ir-cp
+    should_run+=(true)  # ir-pre
+    should_run+=(true)  # ir-opt
+    should_run+=(true)  # munch
+    should_run+=(false) # chomp
+    should_run+=(false) # s
 
     names=()
     names+=("typed")
@@ -71,11 +71,11 @@ run_and_diff() {
     flags+=("--nolower -Oacf")
     flags+=("--lower   -Oacf")
     flags+=("--irgen")
-    flags+=("--optir final -Oacf -Oicf -Ocp")
-    flags+=("--optir final -Oacf -Oicf -Opre")
+    flags+=("--optir final -Ocp")
+    flags+=("--optir final -Opre")
     flags+=("--optir final")
-    flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp")
-    flags+=("--asmdebug -Oacf -Oicf -Opre -Ocp -Ois")
+    flags+=("--asmdebug -O")
+    flags+=("--asmdebug -Ois")
     flags+=("--asmdebug")
 
     generated=()

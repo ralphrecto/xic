@@ -546,6 +546,8 @@ let red_elim g ~univ ~uses ~latest ~used =
   new_g
 
 let pre irs =
+  let debug = false in
+
   (* map a function into a map! *)
   let map (g: C.t) ~(f:C.vertex -> 'a) : 'a M.t =
     C.fold_vertex (fun v m -> M.add m ~key:v ~data:(f v)) g M.empty
@@ -595,9 +597,9 @@ let pre irs =
   in
 
   let g = C.create_cfg irs in
-  let g_string = C.to_dot g in
+  let g_string = if debug then C.to_dot g else "" in
   preprocess g;
-  let preprocessed_string = C.to_dot g in
+  let preprocessed_string = if debug then C.to_dot g else "" in
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
   let uses = map g ~f:get_subexpr_stmt_v in
 
@@ -649,10 +651,10 @@ let pre irs =
   let used_fun = fun_of_map used_v in
 
   let g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
-  let final_g_string = C.to_dot g in
+  let final_g_string = if debug then C.to_dot g else "" in
   let flattened = flatten g in
 
-  if false then
+  if debug then begin
     (* print out the IRs *)
     print_endline "input ir:";
     print_endline "=========";
@@ -681,7 +683,7 @@ let pre irs =
     dataflow_to_string "avail" avail_v;
     dataflow_to_string "post"  post_v;
     dataflow_to_string "used"  used_v;
-  ;
+  end;
 
   flattened
 

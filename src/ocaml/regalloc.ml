@@ -296,6 +296,25 @@ type color =
   | Reg13
   | Reg14
 
+let string_of_color = function
+  | Reg1 -> "Reg1"
+  | Reg2 -> "Reg2"
+  | Reg3 -> "Reg3"
+  | Reg4 -> "Reg4"
+  | Reg5 -> "Reg5"
+  | Reg6 -> "Reg6"
+  | Reg7 -> "Reg7"
+  | Reg8 -> "Reg8"
+  | Reg9 -> "Reg9"
+  | Reg10 -> "Reg10"
+  | Reg11 -> "Reg11"
+  | Reg12 -> "Reg12"
+  | Reg13 -> "Reg13"
+  | Reg14 -> "Reg14"
+
+let string_of_colors (l : color list) =
+  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
+
 type temp_move = {
   src: abstract_reg;
   dest: abstract_reg;
@@ -337,20 +356,38 @@ type alloc_context = {
 }
 
 let _string_of_ctx (regctx : alloc_context) : string =
-  let strflat (listname : string) (sl : string list) =
-    let f acc s = s ^ ", " ^ acc in
-    "[[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" sl) ^ "]]]\n\n" in
+  let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
+    let f acc s = (strf s) ^ ", " ^ acc in
+    "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]\n\n" in
 
-  "{" ^
-  strflat "precolored" (List.map ~f:string_of_abstract_reg regctx.precolored) ^
-  strflat "initial" (List.map ~f:string_of_abstract_reg regctx.initial) ^
-  strflat "simplify_wl" (List.map ~f:string_of_abstract_reg regctx.simplify_wl) ^
-  strflat "freeze_wl" (List.map ~f:string_of_abstract_reg regctx.freeze_wl) ^
-  strflat "spill_wl" (List.map ~f:string_of_abstract_reg regctx.spill_wl) ^
-  strflat "spilled_nodes" (List.map ~f:string_of_abstract_reg regctx.spilled_nodes) ^
-  strflat "coalesced_node" (List.map ~f:string_of_abstract_reg regctx.coalesced_nodes) ^
-  strflat "colored_nodes" (List.map ~f:string_of_abstract_reg regctx.colored_nodes) ^
-  strflat "select_stack" (List.map ~f:string_of_abstract_reg regctx.select_stack) ^ "}"
+  let reglist_to_str (l: abstract_reg list) (name : string) : string =
+    list_to_str string_of_abstract_reg l name in
+
+  let str_reglists (l : ((abstract_reg list) * string) list) =
+    let f acc (lst, name) = (reglist_to_str lst name) ^ acc in
+    List.fold_left ~f ~init:"" l in
+
+  let colormap_to_string (map : color AReg.Map.t) (mapname : string) =
+    let f ~key ~data acc =
+      (string_of_abstract_reg key) ^ " -> " ^ (string_of_color data) ^ "; " ^ acc in
+    "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n" in
+
+  let ( >> ) x y = (x ^ "\n -------------------------- \n") ^ y in
+
+  "BEGIN CONTEXT" >>
+  str_reglists [
+    (regctx.precolored, "precolored");
+    (regctx.initial, "initial");
+    (regctx.simplify_wl, "simplify_wl");
+    (regctx.freeze_wl, "freeze_wl");
+    (regctx.spill_wl, "spill_wl");
+    (regctx.spilled_nodes, "spilled_nodes");
+    (regctx.coalesced_nodes, "coalesced_nodes");
+    (regctx.colored_nodes, "colored_nodes");
+    (regctx.select_stack, "select_stack");
+  ] >>
+  colormap_to_string regctx.color_map "color_map" >>
+  "END CONTEXT"
 
 let empty_ctx = {
   (* IG node lists *)
@@ -388,6 +425,7 @@ let empty_ctx = {
 
 (* generic helper methods *)
 let get_next_color (colors : color list) : color option =
+  colors |> string_of_colors |> print_endline;
   let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
     Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
   let f acc x =
@@ -978,6 +1016,8 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
 
   (* lol 100 is an empirically determined number *)
   let finctx, finasms = main empty_ctx given_asms in
+  print_endline "final context!!!";
+  print_endline (_string_of_ctx finctx);
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> spill_allocate

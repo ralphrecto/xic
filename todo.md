@@ -11,3 +11,9 @@
 - [x] make difftest script have bool array
 - [x] pre tests
 - [ ] ccp tests
+
+# regalloc
+- [ ] double check use/defs definition in transfer
+- [ ] look into segfault on calls
+- [ ] handle spilling properly
+- [ ] create interferences between defs and everything live out per node

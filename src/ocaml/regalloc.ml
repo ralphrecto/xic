@@ -576,7 +576,7 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       (*print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);*)
 
       (*print_endline (_string_of_ctx regctx);*)
-      (*let regctx' = create_inter_edges liveset regctx in*)
+      let regctx' = create_inter_edges liveset regctx in
       (*print_endline (_string_of_ctx regctx');*)
 
       (* update node occurrences *)
@@ -1002,6 +1002,7 @@ let spill_allocate ?(debug=false) asms =
 
 
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
+  ignore debug;
 
   let main
     (regctx : alloc_context)

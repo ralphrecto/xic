@@ -1,0 +1,419 @@
+<html>
+  <head>
+    <title>Bisect report</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript">
+      <!--
+        function jump(id) {
+          document.body.scrollTop = document.getElementById(id).offsetTop;
+        }
+      -->
+    </script>
+    <script language="javascript" src="file0011.js"></script>
+  </head>
+  <body>
+    <div class="section">File: src/ocaml/dataflow.ml (<a href="index.html">return to index</a>)</div>
+    <br/>
+    <hr class="codeSep"/>
+    <br/>
+    <table>
+      <tr>
+        <td valign="top" class="section">Statistics:&nbsp;&nbsp;</td>
+        <td valign="top">
+          <table class="simple">
+            <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
+            <tr><td>binding</td><td width="16px">&nbsp;</td><td>2 / 2 (100%)</td></tr>
+            <tr><td>sequence</td><td width="16px">&nbsp;</td><td>19 / 34 (55%)</td></tr>
+            <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>3 / 7 (42%)</td></tr>
+            <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>14 / 21 (66%)</td></tr>
+          </table>
+        </td>
+        <td valign="top">
+          <table class="simple">
+            <tr><th>kind</th><th width="16px">&nbsp;</th><th>coverage</th></tr>
+            <tr><td>class expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class initializer</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class method</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>class value</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>toplevel expression</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+            <tr><td>lazy operator</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <br/>
+    <hr class="codeSep"/>
+    <br/>
+    <div class="section">Source:</div>
+    <br/>
+<div style="font-size: smaller;"><a href="javascript:foldAll();">fold all</a> <a href="javascript:unfoldAll();">unfold all</a></div>
+    <code>
+      <div id="fold000001">
+      <div id="line000001" class="lineNone"><a href="javascript:fold('fold000001');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000001| open&nbsp;Cfg</div>
+      <div id="line000002" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000002| (*&nbsp;we're&nbsp;using&nbsp;ocaml's&nbsp;hashtable&nbsp;instead&nbsp;of&nbsp;jane&nbsp;street's&nbsp;*)</div>
+      <div id="line000003" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000003| module&nbsp;Hash&nbsp;=&nbsp;Hashtbl</div>
+      <div id="line000004" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000004| open&nbsp;Core.Std</div>
+      <div id="line000005" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000005| &nbsp;</div>
+      <div id="line000006" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000006| type&nbsp;direction&nbsp;=&nbsp;[`Forward&nbsp;|&nbsp;`Backward]</div>
+      <div id="line000007" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000007| &nbsp;</div>
+      <div id="line000008" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000008| module&nbsp;type&nbsp;LowerSemilattice&nbsp;=&nbsp;sig</div>
+      <div id="line000009" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000009| &nbsp;&nbsp;(*&nbsp;data&nbsp;associated&nbsp;with&nbsp;each&nbsp;control&nbsp;flow&nbsp;node&nbsp;*)</div>
+      <div id="line000010" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000010| &nbsp;&nbsp;type&nbsp;data</div>
+      <div id="line000011" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000011| &nbsp;</div>
+      <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| &nbsp;&nbsp;(*&nbsp;meet&nbsp;operation&nbsp;in&nbsp;the&nbsp;semilattice&nbsp;*)</div>
+      <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;&nbsp;val&nbsp;(&nbsp;**&nbsp;)&nbsp;:&nbsp;data&nbsp;-&gt;&nbsp;data&nbsp;-&gt;&nbsp;data</div>
+      <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| &nbsp;</div>
+      <div id="line000015" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;&nbsp;(*&nbsp;equality&nbsp;over&nbsp;data&nbsp;values&nbsp;*)</div>
+      <div id="line000016" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;val&nbsp;(&nbsp;===&nbsp;)&nbsp;:&nbsp;data&nbsp;-&gt;&nbsp;data&nbsp;-&gt;&nbsp;bool</div>
+      <div id="line000017" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;</div>
+      <div id="line000018" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;&nbsp;val&nbsp;to_string&nbsp;:&nbsp;data&nbsp;-&gt;&nbsp;string</div>
+      <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| end</div>
+      <div id="line000020" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000020| &nbsp;</div>
+      <div id="line000021" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000021| module&nbsp;type&nbsp;CFGWithLatticeT&nbsp;=&nbsp;sig</div>
+      <div id="line000022" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000022| &nbsp;&nbsp;module&nbsp;Lattice&nbsp;:&nbsp;LowerSemilattice</div>
+      <div id="line000023" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000023| &nbsp;&nbsp;module&nbsp;CFG&nbsp;:&nbsp;ControlFlowGraph</div>
+      <div id="line000024" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000024| &nbsp;&nbsp;type&nbsp;graph&nbsp;=&nbsp;CFG.t</div>
+      <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| &nbsp;&nbsp;type&nbsp;node&nbsp;=&nbsp;CFG.V.t</div>
+      <div id="line000026" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000026| &nbsp;&nbsp;type&nbsp;edge&nbsp;=&nbsp;CFG.E.t</div>
+      <div id="line000027" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000027| &nbsp;&nbsp;type&nbsp;data&nbsp;=&nbsp;Lattice.data</div>
+      <div id="line000028" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000028| &nbsp;</div>
+      <div id="line000029" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000029| &nbsp;&nbsp;type&nbsp;extra_info</div>
+      <div id="line000030" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000030| &nbsp;</div>
+      <div id="line000031" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000031| &nbsp;&nbsp;val&nbsp;direction&nbsp;:&nbsp;direction</div>
+      <div id="line000032" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000032| &nbsp;&nbsp;val&nbsp;init:&nbsp;extra_info&nbsp;-&gt;&nbsp;graph&nbsp;-&gt;&nbsp;node&nbsp;-&gt;&nbsp;data</div>
+      <div id="line000033" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000033| &nbsp;&nbsp;val&nbsp;transfer&nbsp;:&nbsp;extra_info&nbsp;-&gt;&nbsp;edge&nbsp;-&gt;&nbsp;data&nbsp;-&gt;&nbsp;data</div>
+      <div id="line000034" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000034| end</div>
+      <div id="line000035" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000035| &nbsp;</div>
+      <div id="line000036" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000036| module&nbsp;type&nbsp;Analysis&nbsp;=&nbsp;sig</div>
+      <div id="line000037" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000037| &nbsp;&nbsp;module&nbsp;CFGL&nbsp;:&nbsp;CFGWithLatticeT</div>
+      <div id="line000038" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000038| &nbsp;&nbsp;open&nbsp;CFGL</div>
+      <div id="line000039" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000039| &nbsp;</div>
+      <div id="line000040" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000040| &nbsp;&nbsp;val&nbsp;direction&nbsp;:&nbsp;direction</div>
+      <div id="line000041" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000041| &nbsp;&nbsp;val&nbsp;iterative&nbsp;:&nbsp;extra_info&nbsp;-&gt;&nbsp;graph&nbsp;-&gt;&nbsp;edge&nbsp;-&gt;&nbsp;data</div>
+      <div id="line000042" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000042| &nbsp;&nbsp;val&nbsp;worklist&nbsp;:&nbsp;extra_info&nbsp;-&gt;&nbsp;graph&nbsp;-&gt;&nbsp;edge&nbsp;-&gt;&nbsp;data</div>
+      <div id="line000043" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000043| end</div>
+      <div id="line000044" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000044| &nbsp;</div>
+      <div id="line000045" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000045| module&nbsp;GenericAnalysis</div>
+      <div id="line000046" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000046| &nbsp;&nbsp;(CFGLArg:&nbsp;CFGWithLatticeT)&nbsp;=&nbsp;struct</div>
+      <div id="line000047" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000047| &nbsp;</div>
+      <div id="line000048" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000048| &nbsp;&nbsp;module&nbsp;CFGL&nbsp;=&nbsp;CFGLArg</div>
+      <div id="line000049" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000049| &nbsp;&nbsp;open&nbsp;CFGL</div>
+      <div id="line000050" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000050| &nbsp;&nbsp;open&nbsp;Lattice</div>
+      <div id="line000051" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000051| &nbsp;&nbsp;open&nbsp;CFG</div>
+      <div id="line000052" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000052| &nbsp;</div>
+      <div id="line000053" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000053| &nbsp;&nbsp;(*&nbsp;meet_fold&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;used&nbsp;to&nbsp;fold&nbsp;over&nbsp;edges&nbsp;when&nbsp;computing&nbsp;the&nbsp;meet</div>
+      <div id="line000054" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000054| &nbsp;&nbsp;&nbsp;*&nbsp;transfer_fold&nbsp;is&nbsp;used&nbsp;to&nbsp;fold&nbsp;over&nbsp;edges&nbsp;when&nbsp;computing&nbsp;the&nbsp;transfer</div>
+      <div id="line000055" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000055| &nbsp;&nbsp;&nbsp;*&nbsp;transfer_iter&nbsp;is&nbsp;used&nbsp;when&nbsp;initializing&nbsp;the&nbsp;data&nbsp;table&nbsp;and&nbsp;iter&nbsp;over&nbsp;edges</div>
+      <div id="line000056" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000056| &nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;when&nbsp;computing&nbsp;the&nbsp;tranfer</div>
+      <div id="line000057" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000057| &nbsp;&nbsp;&nbsp;*&nbsp;update_node&nbsp;&nbsp;&nbsp;is&nbsp;used&nbsp;to&nbsp;determine&nbsp;if&nbsp;the&nbsp;src&nbsp;or&nbsp;the&nbsp;dest&nbsp;of&nbsp;the&nbsp;edge&nbsp;should&nbsp;be&nbsp;added&nbsp;to</div>
+      <div id="line000058" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000058| &nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;worklist&nbsp;queue&nbsp;after&nbsp;the&nbsp;data&nbsp;has&nbsp;changed</div>
+      <div id="line000059" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000059| &nbsp;&nbsp;&nbsp;*)</div>
+      <div id="line000060" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000060| &nbsp;</div>
+      <div id="line000061" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000061| &nbsp;&nbsp;let&nbsp;direction&nbsp;=&nbsp;(*[12]*)CFGL.direction</div>
+      <div id="line000062" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000062| &nbsp;</div>
+      <div id="line000063" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000063| &nbsp;&nbsp;let&nbsp;meet_fold,&nbsp;transfer_fold,&nbsp;transfer_iter,&nbsp;update_node&nbsp;&nbsp;=</div>
+      <div id="line000064" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000064| &nbsp;&nbsp;&nbsp;&nbsp;(*[12]*)match&nbsp;direction&nbsp;with</div>
+      <div id="line000065" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000065| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[6]*)`Forward&nbsp;-&gt;&nbsp;fold_pred_e,&nbsp;fold_succ_e,&nbsp;iter_succ_e,&nbsp;E.dst</div>
+      <div id="line000066" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000066| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[6]*)`Backward&nbsp;-&gt;&nbsp;fold_succ_e,&nbsp;fold_pred_e,&nbsp;iter_pred_e,&nbsp;E.src</div>
+      <div id="line000067" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000067| &nbsp;</div>
+      <div id="line000068" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000068| &nbsp;&nbsp;(*&nbsp;helper&nbsp;function&nbsp;when&nbsp;iterating&nbsp;over&nbsp;edges&nbsp;to&nbsp;calculate&nbsp;the&nbsp;meet&nbsp;*)</div>
+      <div id="line000069" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000069| &nbsp;&nbsp;let&nbsp;calc_meet&nbsp;(table:&nbsp;(edge,&nbsp;data)&nbsp;Hash.t)&nbsp;(e:&nbsp;edge)&nbsp;(acc:&nbsp;data&nbsp;option)&nbsp;=</div>
+      <div id="line000070" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000070| &nbsp;&nbsp;&nbsp;&nbsp;(*[83064]*)let&nbsp;edge_datum&nbsp;=&nbsp;(*[83064]*)Hash.find&nbsp;table&nbsp;e&nbsp;in</div>
+      <div id="line000071" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000071| &nbsp;&nbsp;&nbsp;&nbsp;(*[83064]*)match&nbsp;acc&nbsp;with</div>
+      <div id="line000072" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000072| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[77027]*)None&nbsp;-&gt;&nbsp;Some&nbsp;edge_datum</div>
+      <div id="line000073" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000073| &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[6037]*)Some&nbsp;d'&nbsp;-&gt;&nbsp;Some&nbsp;(d'&nbsp;**&nbsp;edge_datum)</div>
+      <div id="line000074" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000074| &nbsp;</div>
+      <div id="line000075" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000075| &nbsp;&nbsp;let&nbsp;iterative&nbsp;(ei:&nbsp;extra_info)&nbsp;(cfg:&nbsp;graph)&nbsp;:&nbsp;edge&nbsp;-&gt;&nbsp;data&nbsp;=</div>
+      <div id="line000076" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000076| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;initializations&nbsp;*)</div>
+      <div id="line000077" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000077| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;data&nbsp;table&nbsp;*)</div>
+      <div id="line000078" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000078| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;table&nbsp;:&nbsp;(edge,&nbsp;data)&nbsp;Hash.t&nbsp;=&nbsp;Hash.create&nbsp;(nb_edges&nbsp;cfg)&nbsp;in</div>
+      </div>
+      <div id="line000079" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000079| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;init&nbsp;=&nbsp;(*[0]*)CFGL.init&nbsp;ei&nbsp;cfg&nbsp;in</div>
+      <div id="line000080" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000080| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)iter_vertex&nbsp;(fun&nbsp;node&nbsp;-&gt;&nbsp;(*[0]*)transfer_iter&nbsp;(fun&nbsp;e&nbsp;-&gt;&nbsp;(*[0]*)Hash.add&nbsp;table&nbsp;e&nbsp;(init&nbsp;node))&nbsp;cfg&nbsp;node)&nbsp;cfg;</div>
+      <div id="fold000081">
+      <div id="line000081" class="lineNone"><a href="javascript:fold('fold000081');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000081| &nbsp;</div>
+      <div id="line000082" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000082| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;helper&nbsp;function&nbsp;when&nbsp;folding&nbsp;over&nbsp;all&nbsp;nodes&nbsp;of&nbsp;graph&nbsp;to&nbsp;calculate&nbsp;fixpoint&nbsp;*)</div>
+      </div>
+      <div id="line000083" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000083| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;vertex_foldf&nbsp;(n:&nbsp;node)&nbsp;(changed&nbsp;:&nbsp;bool)&nbsp;=</div>
+      <div id="fold000084">
+      <div id="line000084" class="lineNone"><a href="javascript:fold('fold000084');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000084| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;calculate&nbsp;meet&nbsp;*)</div>
+      </div>
+      <div id="line000085" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000085| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;meet&nbsp;=&nbsp;(*[0]*)meet_fold&nbsp;(calc_meet&nbsp;table)&nbsp;cfg&nbsp;n&nbsp;None&nbsp;in</div>
+      <div id="fold000086">
+      <div id="line000086" class="lineNone"><a href="javascript:fold('fold000086');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000086| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;if&nbsp;no&nbsp;predecessors/successors&nbsp;then&nbsp;data&nbsp;does&nbsp;not&nbsp;change</div>
+      <div id="line000087" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000087| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;otherwise&nbsp;calculate&nbsp;new&nbsp;datum&nbsp;for&nbsp;edges&nbsp;accordingly</div>
+      <div id="line000088" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000088| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;if&nbsp;the&nbsp;new&nbsp;datum&nbsp;is&nbsp;different,&nbsp;then&nbsp;update&nbsp;data&nbsp;table&nbsp;then&nbsp;mark&nbsp;that</div>
+      <div id="line000089" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000089| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;the&nbsp;data&nbsp;has&nbsp;changed&nbsp;*)</div>
+      </div>
+      <div id="line000090" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000090| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)match&nbsp;meet&nbsp;with</div>
+      <div id="line000091" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000091| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)None&nbsp;-&gt;&nbsp;changed</div>
+      <div id="line000092" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000092| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[0]*)Some&nbsp;meet'&nbsp;-&gt;&nbsp;begin</div>
+      <div id="fold000093">
+      <div id="line000093" class="lineNone"><a href="javascript:fold('fold000093');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000093| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;update&nbsp;(e:edge)&nbsp;(updated:&nbsp;bool)&nbsp;=</div>
+      </div>
+      <div id="line000094" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000094| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;edge_datum&nbsp;=&nbsp;(*[0]*)Hash.find&nbsp;table&nbsp;e&nbsp;in</div>
+      <div id="line000095" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000095| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;new_datum&nbsp;=&nbsp;(*[0]*)transfer&nbsp;ei&nbsp;e&nbsp;meet'&nbsp;in</div>
+      <div id="line000096" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000096| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)if&nbsp;edge_datum&nbsp;===&nbsp;new_datum&nbsp;then</div>
+      <div id="line000097" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000097| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)updated</div>
+      <div id="fold000098">
+      <div id="line000098" class="lineNone"><a href="javascript:fold('fold000098');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000098| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else</div>
+      </div>
+      <div id="line000099" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000099| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;_&nbsp;=&nbsp;(*[0]*)Hash.replace&nbsp;table&nbsp;e&nbsp;new_datum&nbsp;in</div>
+      <div id="line000100" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000100| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)true</div>
+      <div id="fold000101">
+      <div id="line000101" class="lineNone"><a href="javascript:fold('fold000101');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000101| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in</div>
+      </div>
+      <div id="line000102" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000102| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)transfer_fold&nbsp;update&nbsp;cfg&nbsp;n&nbsp;changed</div>
+      <div id="fold000103">
+      <div id="line000103" class="lineNone"><a href="javascript:fold('fold000103');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000103| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
+      <div id="line000104" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000104| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
+      <div id="line000105" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000105| &nbsp;</div>
+      <div id="line000106" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000106| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;iterate&nbsp;through&nbsp;nodes&nbsp;until&nbsp;data&nbsp;does&nbsp;not&nbsp;change&nbsp;*)</div>
+      </div>
+      <div id="line000107" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000107| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)let&nbsp;rec&nbsp;iterate&nbsp;()&nbsp;:&nbsp;edge&nbsp;-&gt;&nbsp;data&nbsp;=</div>
+      <div id="fold000108">
+      <div id="line000108" class="lineNone"><a href="javascript:fold('fold000108');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000108| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;has&nbsp;the&nbsp;data&nbsp;for&nbsp;the&nbsp;CFG&nbsp;nodes&nbsp;changed?&nbsp;*)</div>
+      <div id="line000109" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000109| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;fold_vertex&nbsp;vertex_foldf&nbsp;cfg&nbsp;false&nbsp;then</div>
+      </div>
+      <div id="line000110" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000110| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)iterate&nbsp;()</div>
+      <div id="fold000111">
+      <div id="line000111" class="lineNone"><a href="javascript:fold('fold000111');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000111| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else</div>
+      </div>
+      <div id="line000112" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000112| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)fun&nbsp;e'&nbsp;-&gt;&nbsp;(*[0]*)Hash.find&nbsp;table&nbsp;e'</div>
+      <div id="fold000113">
+      <div id="line000113" class="lineNone"><a href="javascript:fold('fold000113');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000113| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
+      <div id="line000114" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000114| &nbsp;</div>
+      </div>
+      <div id="line000115" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000115| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)iterate&nbsp;()</div>
+      <div id="fold000116">
+      <div id="line000116" class="lineNone"><a href="javascript:fold('fold000116');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000116| &nbsp;</div>
+      <div id="line000117" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000117| &nbsp;&nbsp;let&nbsp;worklist&nbsp;(ei:&nbsp;extra_info)&nbsp;(cfg:&nbsp;graph)&nbsp;:&nbsp;edge&nbsp;-&gt;&nbsp;data&nbsp;=</div>
+      <div id="line000118" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000118| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;initializations&nbsp;*)</div>
+      <div id="line000119" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000119| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;data&nbsp;table&nbsp;*)</div>
+      <div id="line000120" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000120| &nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;data_table&nbsp;:&nbsp;(edge,&nbsp;data)&nbsp;Hash.t&nbsp;=&nbsp;Hash.create&nbsp;(nb_edges&nbsp;cfg)&nbsp;in</div>
+      <div id="line000121" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000121| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;worklist&nbsp;queue&nbsp;for&nbsp;nodes&nbsp;*)</div>
+      <div id="line000122" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000122| &nbsp;&nbsp;&nbsp;&nbsp;(*[120]*)let&nbsp;node_set&nbsp;:&nbsp;node&nbsp;Queue.t&nbsp;=&nbsp;Queue.create&nbsp;()&nbsp;in</div>
+      <div id="line000123" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000123| &nbsp;&nbsp;&nbsp;&nbsp;(*[120]*)let&nbsp;init&nbsp;=&nbsp;(*[120]*)CFGL.init&nbsp;ei&nbsp;cfg&nbsp;in</div>
+      <div id="line000124" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000124| &nbsp;&nbsp;&nbsp;&nbsp;(*[120]*)iter_vertex</div>
+      <div id="line000125" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000125| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fun&nbsp;node&nbsp;-&gt;</div>
+      <div id="line000126" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000126| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[8576]*)transfer_iter&nbsp;(fun&nbsp;e&nbsp;-&gt;&nbsp;(*[8888]*)Hash.add&nbsp;data_table&nbsp;e&nbsp;(init&nbsp;node))&nbsp;cfg&nbsp;node;</div>
+      <div id="line000127" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000127| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[8576]*)Queue.enqueue&nbsp;node_set&nbsp;node)</div>
+      <div id="line000128" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000128| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cfg;</div>
+      <div id="line000129" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000129| &nbsp;</div>
+      <div id="line000130" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000130| &nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;calculate&nbsp;data&nbsp;until&nbsp;queue&nbsp;is&nbsp;empty&nbsp;*)</div>
+      <div id="line000131" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000131| &nbsp;&nbsp;&nbsp;&nbsp;(*[120]*)let&nbsp;rec&nbsp;work&nbsp;()&nbsp;=</div>
+      <div id="line000132" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000132| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[77283]*)match&nbsp;Queue.dequeue&nbsp;node_set&nbsp;with</div>
+      <div id="line000133" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000133| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[77163]*)Some&nbsp;n&nbsp;-&gt;</div>
+      <div id="line000134" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000134| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;begin</div>
+      <div id="line000135" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000135| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;calculate&nbsp;meet&nbsp;*)</div>
+      <div id="line000136" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000136| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;meet&nbsp;=&nbsp;(*[77163]*)meet_fold&nbsp;(calc_meet&nbsp;data_table)&nbsp;cfg&nbsp;n&nbsp;None&nbsp;in</div>
+      <div id="line000137" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000137| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;if&nbsp;no&nbsp;predecessors/successors&nbsp;then&nbsp;data&nbsp;does&nbsp;not&nbsp;change</div>
+      <div id="line000138" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000138| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;otherwise&nbsp;calculate&nbsp;new&nbsp;datum&nbsp;for&nbsp;edges&nbsp;accordingly</div>
+      <div id="line000139" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000139| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;if&nbsp;new&nbsp;datum&nbsp;is&nbsp;different,&nbsp;then&nbsp;update&nbsp;data&nbsp;table&nbsp;and&nbsp;add&nbsp;src/dest</div>
+      <div id="line000140" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000140| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;to&nbsp;queue&nbsp;*)</div>
+      <div id="line000141" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000141| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[77163]*)match&nbsp;meet&nbsp;with</div>
+      <div id="line000142" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000142| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[136]*)None&nbsp;-&gt;&nbsp;work&nbsp;()</div>
+      <div id="line000143" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000143| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[77027]*)Some&nbsp;meet'&nbsp;-&gt;&nbsp;begin</div>
+      <div id="line000144" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000144| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;update&nbsp;(e:&nbsp;edge)&nbsp;=</div>
+      <div id="line000145" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000145| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[80079]*)let&nbsp;edge_datum&nbsp;=&nbsp;(*[80079]*)Hash.find&nbsp;data_table&nbsp;e&nbsp;in</div>
+      <div id="line000146" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000146| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[80079]*)let&nbsp;new_datum&nbsp;=&nbsp;(*[80079]*)transfer&nbsp;ei&nbsp;e&nbsp;meet'&nbsp;in</div>
+      <div id="line000147" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000147| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[80079]*)if&nbsp;edge_datum&nbsp;===&nbsp;new_datum&nbsp;then</div>
+      <div id="line000148" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000148| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[8240]*)()</div>
+      <div id="line000149" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000149| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else</div>
+      <div id="line000150" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000150| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[71839]*)let&nbsp;_&nbsp;=&nbsp;(*[71839]*)Hash.replace&nbsp;data_table&nbsp;e&nbsp;new_datum&nbsp;in</div>
+      <div id="line000151" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000151| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[71839]*)if&nbsp;not&nbsp;(Queue.mem&nbsp;node_set&nbsp;(update_node&nbsp;e))&nbsp;then</div>
+      <div id="line000152" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000152| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[68587]*)Queue.enqueue&nbsp;node_set&nbsp;(update_node&nbsp;e)</div>
+      <div id="line000153" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000153| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in</div>
+      <div id="line000154" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000154| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[77027]*)transfer_iter&nbsp;update&nbsp;cfg&nbsp;n;</div>
+      <div id="line000155" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000155| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*[77027]*)work&nbsp;()</div>
+      <div id="line000156" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000156| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
+      <div id="line000157" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000157| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end</div>
+      <div id="line000158" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000158| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;(*[120]*)None&nbsp;-&gt;</div>
+      <div id="line000159" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000159| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fun&nbsp;e'&nbsp;-&gt;&nbsp;(*[8952]*)Hash.find&nbsp;data_table&nbsp;e'</div>
+      <div id="line000160" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000160| &nbsp;&nbsp;&nbsp;&nbsp;in</div>
+      <div id="line000161" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000161| &nbsp;&nbsp;&nbsp;&nbsp;(*[120]*)work&nbsp;()</div>
+      <div id="line000162" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000162| end</div>
+      <div id="line000163" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000163| &nbsp;</div>
+      </div>
+    </code>
+    <br/>
+    <div id="navigator" style="border: solid black 1px; position: fixed; z-index:100; right: 10px; top: 10px; bottom: 10px; width: 16px;">
+      <table width="100%" height="100%" border="0" cellspacing="0">
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000079');" title="jump to line 79"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000080');" title="jump to line 80"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000083');" title="jump to line 83"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000085');" title="jump to line 85"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000090');" title="jump to line 90"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000091');" title="jump to line 91"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000092');" title="jump to line 92"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000094');" title="jump to line 94"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000095');" title="jump to line 95"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000096');" title="jump to line 96"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000097');" title="jump to line 97"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000099');" title="jump to line 99"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000100');" title="jump to line 100"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000102');" title="jump to line 102"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000107');" title="jump to line 107"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000110');" title="jump to line 110"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000112');" title="jump to line 112"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000115');" title="jump to line 115"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+      </table>
+    </div>
+    <div class="section">Legend:</div>
+    &nbsp;&nbsp;&nbsp;<span class="lineNone">some code</span>&nbsp;-&nbsp;line containing no point<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineAllVisited">some code</span>&nbsp;-&nbsp;line containing only visited points<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineAllUnvisited">some code</span>&nbsp;-&nbsp;line containing only unvisited points<br/>
+    &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
+    <br/>
+    <hr class="codeSep"/>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:07:09</p>
+  </body>
+</html>

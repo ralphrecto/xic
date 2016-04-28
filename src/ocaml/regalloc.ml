@@ -4,6 +4,7 @@ open Cfg
 open Dataflow
 open Asm
 open Fresh
+open Util
 
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
@@ -504,7 +505,7 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
     | Real _ -> { regctx with precolored = reg :: regctx.precolored } in
 
   (* make edges for nodes interfering with each other in one statement *)
-  let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) : alloc_context =
+  let create_inter_edges (temps : AbstractRegSet.t) (regctx: alloc_context) : alloc_context =
     let g1 ctxacc1 reg1 =
       let g2 ctxacc2 reg2 =
         if reg1 <> reg2 then add_edge reg1 reg2 ctxacc2
@@ -521,7 +522,7 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
-      let regctx' = create_inter_edges regctx liveset in
+      let regctx' = create_inter_edges liveset regctx in
 
       (* update node occurrences *)
       let node_occurrences' =
@@ -571,9 +572,18 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       AbstractRegSet.union (livevars cfg_node) liveset in
     AsmCfg.fold_vertex f cfg AbstractRegSet.empty in
 
-  AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |> fun regctx' ->
-  AsmCfg.fold_vertex init1 cfg regctx' |> fun regctx'' ->
-  List.fold_left ~f:init2 ~init:{ regctx'' with initial = []} regctx''.initial
+  (* set of all precolored nodes. we use this to create a precolored
+   * clique in the interference graph. *)
+  let precolored_set =
+    let f r = Real r in
+    List.map ~f [
+      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8; R9; R10; R11; R12; R13; R14; R15;
+    ] |> AbstractRegSet.of_list in
+
+  AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |>
+  create_inter_edges precolored_set |>
+  AsmCfg.fold_vertex init1 cfg |> fun regctx' ->
+  List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
@@ -935,6 +945,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
+      print_endline (_string_of_ctx innerctx);
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&

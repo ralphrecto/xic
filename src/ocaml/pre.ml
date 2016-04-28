@@ -260,6 +260,7 @@ module AvailExprCFG = struct
   }
 
   let (+) = ExprSet.union
+  let (-) = ExprSet.diff
 
   let init ({univ; _}: extra_info) (_: graph) =
     fun n ->
@@ -273,14 +274,7 @@ module AvailExprCFG = struct
     let anticipated = busy source in
     let kill = kills source in
     let union' = anticipated + d in
-    let f acc expr =
-      let mem_temps = get_mem_temp expr in
-      if ExprSet.is_empty (inter mem_temps kill) then
-        add acc expr
-      else
-        acc
-    in
-    fold ~f ~init: empty union'
+    union' - kill
 end
 
 module AvailExpr = Dataflow.GenericAnalysis(AvailExprCFG)
@@ -552,6 +546,8 @@ let red_elim g ~univ ~uses ~latest ~used =
   new_g
 
 let pre irs =
+  let debug = false in
+
   (* map a function into a map! *)
   let map (g: C.t) ~(f:C.vertex -> 'a) : 'a M.t =
     C.fold_vertex (fun v m -> M.add m ~key:v ~data:(f v)) g M.empty
@@ -601,7 +597,9 @@ let pre irs =
   in
 
   let g = C.create_cfg irs in
+  let g_string = if debug then C.to_dot g else "" in
   preprocess g;
+  let preprocessed_string = if debug then C.to_dot g else "" in
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
   let uses = map g ~f:get_subexpr_stmt_v in
 
@@ -612,9 +610,9 @@ let pre irs =
     let g acc expr =
       let mem_temps = get_mem_temp expr in
       if ExprSet.is_empty (inter mem_temps (defs_fun v)) then
-        add acc expr
-      else
         acc
+      else
+        add acc expr
     in
     fold ~f:g ~init:empty univ
   in
@@ -653,8 +651,41 @@ let pre irs =
   let used_fun = fun_of_map used_v in
 
   let g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
+  let final_g_string = if debug then C.to_dot g else "" in
+  let flattened = flatten g in
 
-  flatten g
+  if debug then begin
+    (* print out the IRs *)
+    print_endline "input ir:";
+    print_endline "=========";
+    List.iter irs ~f:(fun ir -> print_endline (Ir.string_of_stmt ir));
+    print_endline "";
+
+    (* print out all the cfgs *)
+    print_endline "CFGs:";
+    print_endline "====";
+    print_endline "input CFG";
+    print_endline g_string;
+    print_endline "preprocessed CFG";
+    print_endline preprocessed_string;
+    print_endline "final CFG";
+    print_endline final_g_string;
+    print_endline "";
+
+    (* print out each dataflow result *)
+    print_endline "dataflow results:";
+    print_endline "=================";
+    let dataflow_to_string phase_name result =
+      printf "%s:\n" phase_name;
+      print_endline (M.to_string E.to_small_string result)
+    in
+    dataflow_to_string "busy"  busy_v;
+    dataflow_to_string "avail" avail_v;
+    dataflow_to_string "post"  post_v;
+    dataflow_to_string "used"  used_v;
+  end;
+
+  flattened
 
 let pre_comp_unit (id, funcs) =
   let f ((fname, stmt, typ): Ir.func_decl) =

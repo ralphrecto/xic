@@ -9,5 +9,11 @@
 - [ ] enter/leave fix
 - [ ] concatenate difftest files
 - [x] make difftest script have bool array
-- [ ] pre tests
+- [x] pre tests
 - [ ] ccp tests
+
+# regalloc
+- [ ] double check use/defs definition in transfer
+- [ ] look into segfault on calls
+- [ ] handle spilling properly
+- [ ] create interferences between defs and everything live out per node

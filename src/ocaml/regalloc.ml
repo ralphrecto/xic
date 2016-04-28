@@ -4,6 +4,7 @@ open Cfg
 open Dataflow
 open Asm
 open Fresh
+open Util
 
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
@@ -17,19 +18,14 @@ let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
 
 let empty (l: 'a list) = List.length l = 0
 
-let ( >>| ) (x : 'a) (debug : string) : 'a =
-  print_endline debug;
-  x
-
-let ( >>= ) (x : 'a) (debug : 'a -> string) : 'a =
-  print_endline (debug x);
-  x
-
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
   type t = abstract_reg [@@deriving compare,sexp]
   end
 )
+
+module AdjacencySet : Set.S with type Elt.t = abstract_reg * abstract_reg =
+  Set.Make (struct type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp] end)
 
 let _set_to_string (set : AbstractRegSet.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
@@ -256,7 +252,7 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Node n_data -> fst (usedvars n_data.asm)
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
-    (* TODO: We use dest (??) because live variable analysis is backwards *)
+    (* We use dest because live variable analysis is backwards *)
     match E.dst e with
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
@@ -267,64 +263,21 @@ end
 
 module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
 
-module type InterferenceGraphT = sig
-  (* TODO: add the rest of node states *)
-  type nodestate =
-    | Precolored
-    | Initial
-    | Spilled
-
-  type nodedata = abstract_reg
-
-  include Graph.Sig.I
-    with type V.t = nodedata
-    and type V.label = nodedata
-    and type E.t = nodedata * nodedata
-    and type E.label = unit
-
-  val string_of_nodedata : nodedata -> string
+module ARegKey = struct
+  type t = abstract_reg [@@deriving compare,sexp]
 end
 
-module InterferenceGraph : InterferenceGraphT = struct
-  type nodestate =
-    | Precolored
-    | Initial
-    | Spilled
-
-  type nodedata = abstract_reg
-
-  include Imperative.Graph.Concrete (struct
-    type t = nodedata
-    let compare = Pervasives.compare
-    let hash    = Hashtbl.hash
-    let equal   = (=)
-  end)
-
-  (* TODO: Remove or figure out how to integrate sets *)
-  module Extended_T = struct
-    include Tuple.Make (String) (String)
-    include Tuple.Sexpable (String) (String)
-    include Tuple.Comparable (String) (String)
-  end
-  module TS = Set.Make (Extended_T)
-
-  let string_of_nodedata n =
-    "( " ^ (string_of_abstract_reg n) ^ " )"
+module ARegPairKey = struct
+  type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp]
 end
 
-module IG = InterferenceGraph
-
-module NodeDataKey = struct
-  type t = IG.nodedata
-  let compare = compare
-  let hash = Hashtbl.hash
-  let t_of_sexp _ = failwith "NodeData: implement t_of_sexp"
-  let sexp_of_t _ = failwith "NodeData: implement sexp_of_t"
+module AReg = struct
+  module Map = Map.Make (ARegKey)
+  module Set = Set.Make (ARegKey)
 end
 
-module NodeData = struct
-  include NodeDataKey
-  include Hashable.Make (NodeDataKey)
+module ARegPair = struct
+  module Set = Set.Make (ARegPairKey)
 end
 
 type color =
@@ -343,112 +296,32 @@ type color =
   | Reg13
   | Reg14
 
-type temp_move = {
-  src: IG.nodedata;
-  dest: IG.nodedata;
-  move: AsmData.t; (* { num; abstract_asm } *)
-}
+let string_of_color = function
+  | Reg1 -> "Reg1"
+  | Reg2 -> "Reg2"
+  | Reg3 -> "Reg3"
+  | Reg4 -> "Reg4"
+  | Reg5 -> "Reg5"
+  | Reg6 -> "Reg6"
+  | Reg7 -> "Reg7"
+  | Reg8 -> "Reg8"
+  | Reg9 -> "Reg9"
+  | Reg10 -> "Reg10"
+  | Reg11 -> "Reg11"
+  | Reg12 -> "Reg12"
+  | Reg13 -> "Reg13"
+  | Reg14 -> "Reg14"
 
-type alloc_context = {
-  (* IG node lists *)
-  precolored         : IG.nodedata list;
-  initial            : IG.nodedata list;
-  simplify_wl        : IG.nodedata list;
-  freeze_wl          : IG.nodedata list;
-  spill_wl           : IG.nodedata list;
-  spilled_nodes      : IG.nodedata list;
-  coalesced_nodes    : IG.nodedata list;
-  colored_nodes      : IG.nodedata list;
-  select_stack       : IG.nodedata list;
-  (* move lists *)
-  coalesced_moves    : temp_move list;
-  constrained_moves  : temp_move list;
-  frozen_moves       : temp_move list;
-  worklist_moves     : temp_move list;
-  active_moves       : temp_move list;
-  (* other data structures *)
-  move_list          : (temp_move list) NodeData.Table.t;
-  alias              : IG.nodedata NodeData.Table.t;
-  degree             : int NodeData.Table.t;
-  nodestate          : IG.nodestate NodeData.Table.t;
-  (* TODO: make color type, change int to color type *)
-  color_map          : color NodeData.Table.t;
-  (* number of times a temp appears; used for spill heuristic *)
-  node_occurrences   : int NodeData.Table.t;
-  inter_graph        : IG.t;
-  (* number of available machine registers for allocation *)
-  num_colors         : int;
-}
+let string_of_colors (l : color list) =
+  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
 
-let _string_of_ctx (regctx : alloc_context) : string =
-  let strflat (listname : string) (sl : string list) =
-    let f acc s = s ^ ", " ^ acc in
-    "[[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" sl) ^ "]]]\n\n" in
-
-  "{" ^
-  strflat "precolored" (List.map ~f:IG.string_of_nodedata regctx.precolored) ^
-  strflat "initial" (List.map ~f:IG.string_of_nodedata regctx.initial) ^
-  strflat "simplify_wl" (List.map ~f:IG.string_of_nodedata regctx.simplify_wl) ^
-  strflat "freeze_wl" (List.map ~f:IG.string_of_nodedata regctx.freeze_wl) ^
-  strflat "spill_wl" (List.map ~f:IG.string_of_nodedata regctx.spill_wl) ^
-  strflat "spilled_nodes" (List.map ~f:IG.string_of_nodedata regctx.spilled_nodes) ^
-  strflat "coalesced_node" (List.map ~f:IG.string_of_nodedata regctx.coalesced_nodes) ^
-  strflat "colored_nodes" (List.map ~f:IG.string_of_nodedata regctx.colored_nodes) ^
-  strflat "select_stack" (List.map ~f:IG.string_of_nodedata regctx.select_stack)
-
-let empty_ctx num_moves num_nodes = {
-  (* IG node lists *)
-  precolored         = [];
-  initial            = [];
-  simplify_wl        = [];
-  freeze_wl          = [];
-  spill_wl           = [];
-  spilled_nodes      = [];
-  coalesced_nodes    = [];
-  colored_nodes      = [];
-  select_stack       = [];
-  (* move lists *)
-  coalesced_moves    = [];
-  constrained_moves  = [];
-  frozen_moves       = [];
-  worklist_moves     = [];
-  active_moves       = [];
-  (* other data structures *)
-  move_list          = NodeData.Table.create () ~size:num_moves;
-  (* initialized to the node's self *)
-  alias              = NodeData.Table.create () ~size:num_nodes;
-  degree             = NodeData.Table.create () ~size:num_nodes;
-  nodestate          = NodeData.Table.create () ~size:num_nodes;
-  color_map          = NodeData.Table.create () ~size:num_nodes;
-  node_occurrences   = NodeData.Table.create () ~size:num_nodes;
-  (* the interference graph *)
-  inter_graph        = IG.create ();
-  num_colors         = 14;
-}
-
-(* generic helper methods *)
 let get_next_color (colors : color list) : color option =
-  let colorlist = [
-    Reg1;
-    Reg2;
-    Reg3;
-    Reg4;
-    Reg5;
-    Reg6;
-    Reg7;
-    Reg8;
-    Reg9;
-    Reg10;
-    Reg11;
-    Reg12;
-    Reg13;
-    Reg14;
-  ] in
+  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
+    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
   let f acc x =
     match acc with
     | Some _ -> acc
-    | None ->
-        if not (List.mem colors x) then Some x
+    | None -> if not (List.mem colors x) then Some x
         else None in
   List.fold_left ~f ~init:None colorlist
 
@@ -469,15 +342,146 @@ let color_to_reg (c : color) : reg =
   | Reg13 -> R14
   | Reg14 -> R15
 
-(* regalloc helper predicates *)
-(* moves between two temps can be coalesced
- * TODO: is this a correct criterion? *)
+type temp_move = {
+  src: abstract_reg;
+  dest: abstract_reg;
+  move: AsmData.t; (* { num; abstract_asm } *)
+}
+
+type alloc_context = {
+  (* IG node lists *)
+  precolored         : abstract_reg list;
+  initial            : abstract_reg list;
+  simplify_wl        : abstract_reg list;
+  freeze_wl          : abstract_reg list;
+  spill_wl           : abstract_reg list;
+  spilled_nodes      : abstract_reg list;
+  coalesced_nodes    : abstract_reg list;
+  colored_nodes      : abstract_reg list;
+  select_stack       : abstract_reg list;
+
+  (* move lists *)
+  coalesced_moves    : temp_move list;
+  constrained_moves  : temp_move list;
+  frozen_moves       : temp_move list;
+  worklist_moves     : temp_move list;
+  active_moves       : temp_move list;
+
+  (* interference graph / node related *)
+  degree             : int AReg.Map.t;
+  adj_list           : AReg.Set.t AReg.Map.t;
+  adj_set            : ARegPair.Set.t;
+  move_list          : (temp_move list) AReg.Map.t;
+  alias              : abstract_reg AReg.Map.t;
+  color_map          : color AReg.Map.t;
+
+  (* other data structures *)
+  (* number of times a temp appears; used for spill heuristic *)
+  node_occurrences   : int AReg.Map.t;
+  (* number of available machine registers for allocation *)
+  num_colors         : int;
+}
+
+let _string_of_abstract_regs (regs : abstract_reg list) : string =
+  let f acc reg =
+    (string_of_abstract_reg reg) ^ ", " ^ acc in
+  List.fold_left ~f ~init:"" regs
+
+let areg_map_to_str (val_strf : 'a -> string) (map : 'a AReg.Map.t) (mapname : string) =
+  let f ~key ~data acc =
+    (string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ "; " ^ acc in
+  "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n"
+
+let _string_of_ctx (regctx : alloc_context) : string =
+  let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
+    let f acc s = (strf s) ^ ", " ^ acc in
+    "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]\n\n" in
+
+  let reglist_to_str (l: abstract_reg list) (name : string) : string =
+    list_to_str string_of_abstract_reg l name in
+
+  let str_reglists (l : ((abstract_reg list) * string) list) =
+    let f acc (lst, name) = (reglist_to_str lst name) ^ acc in
+    List.fold_left ~f ~init:"" l in
+
+  let adjlist_to_str aregset =
+    reglist_to_str (AReg.Set.to_list aregset) "neighbors" in
+
+  let ( >> ) x y = (x ^ "\n -------------------------- \n") ^ y in
+
+  "BEGIN CONTEXT" >>
+  str_reglists [
+    (regctx.precolored, "precolored");
+    (regctx.initial, "initial");
+    (regctx.simplify_wl, "simplify_wl");
+    (regctx.freeze_wl, "freeze_wl");
+    (regctx.spill_wl, "spill_wl");
+    (regctx.spilled_nodes, "spilled_nodes");
+    (regctx.coalesced_nodes, "coalesced_nodes");
+    (regctx.colored_nodes, "colored_nodes");
+    (regctx.select_stack, "select_stack");
+  ] >>
+  areg_map_to_str string_of_color regctx.color_map "color_map" >>
+  areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" >>
+  "END CONTEXT"
+
+let empty_ctx = {
+  (* IG node lists *)
+  precolored         = [];
+  initial            = [];
+  simplify_wl        = [];
+  freeze_wl          = [];
+  spill_wl           = [];
+  spilled_nodes      = [];
+  coalesced_nodes    = [];
+  colored_nodes      = [];
+  select_stack       = [];
+
+  (* move lists *)
+  coalesced_moves    = [];
+  constrained_moves  = [];
+  frozen_moves       = [];
+  worklist_moves     = [];
+  active_moves       = [];
+
+  (* interference graph / node related *)
+  degree             = AReg.Map.empty;
+  adj_list           = AReg.Map.empty;
+  adj_set            = ARegPair.Set.empty;
+  move_list          = AReg.Map.empty;
+  alias              = AReg.Map.empty;
+  color_map          = AReg.Map.empty;
+
+  (* other data structures *)
+  (* number of times a temp appears; used for spill heuristic *)
+  node_occurrences   = AReg.Map.empty;
+  (* number of available machine registers for allocation *)
+  num_colors         = 14;
+}
+
+(* generic helper methods *)
+(* data structure helpers *)
+let adj_list_add
+  (key: abstract_reg)
+  (dest : abstract_reg)
+  (adj_list : AReg.Set.t AReg.Map.t) : AReg.Set.t AReg.Map.t =
+    AReg.Map.update adj_list key
+      ~f:(function Some s -> AReg.Set.add s dest | None -> AReg.Set.singleton dest)
+
+(* assumes map starts from 0 on all keys *)
+let diff_int_map
+  (key : abstract_reg)
+  (diff : int -> int)
+  (map : int AReg.Map.t) : int AReg.Map.t =
+  AReg.Map.update map key ~f:(function Some i -> diff i | None -> diff 0)
+
+(* moves between two temps can be coalesced *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   match stmt with
   | Start | Exit -> None
   | Node { num; asm; } -> begin
     match asm with
-    | Op (instr, op1 :: op2 :: []) when instr = "movq"  ->
+    | Op (instr, op1 :: op2 :: []) when instr = "movq" || instr = "mov" ->
       begin
       match fakes_of_operand op1, fakes_of_operand op2 with
       | fake1 :: [], fake2 :: [] ->
@@ -488,8 +492,8 @@ let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   end
 
 (* possibly coalescable moves involving the node *)
-let node_moves (node : IG.nodedata) (regctx : alloc_context) : temp_move list =
-  match NodeData.Table.find regctx.move_list node with
+let node_moves (node : abstract_reg) (regctx : alloc_context) : temp_move list =
+  match AReg.Map.find regctx.move_list node with
   | Some nodemoves ->
       let f move =
         List.mem regctx.active_moves move ||
@@ -498,111 +502,117 @@ let node_moves (node : IG.nodedata) (regctx : alloc_context) : temp_move list =
   | None -> []
 
 (* is a interference graph node still move related? *)
-let move_related (node: IG.nodedata) (regctx : alloc_context) : bool =
+let move_related (node: abstract_reg) (regctx : alloc_context) : bool =
   List.length (node_moves node regctx) > 0
+
+let add_edge (u : abstract_reg) (v : abstract_reg) regctx : alloc_context =
+  if (not (ARegPair.Set.mem regctx.adj_set (u, v)) && (u <> v)) then
+    begin
+    let adj_set' =
+      ARegPair.Set.union regctx.adj_set (ARegPair.Set.of_list [(u,v); (v,u)]) in
+
+    let adj_list', degree' =
+      if not (List.mem regctx.precolored u) then
+        adj_list_add u v regctx.adj_list, diff_int_map u succ regctx.degree
+      else
+        regctx.adj_list, regctx.degree in
+
+    let adj_list'', degree'' =
+      if not (List.mem regctx.precolored v) then
+        adj_list_add v u adj_list', diff_int_map u succ degree'
+      else
+        adj_list', degree' in
+    { regctx with
+      adj_set = adj_set';
+      adj_list = adj_list'';
+      degree = degree''; }
+    end
+  else regctx
 
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
-let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : alloc_context =
+let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = AsmCfg.create_cfg asms in
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
-  let livevars : AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data =
-    function
-      | Start | Exit -> AbstractRegSet.empty
-      | Node _ as node ->
-        begin
-          match AsmCfg.succ_e cfg node with
-          | [] -> AbstractRegSet.empty
-          | edge :: _ -> livevars_edge edge
-        end in
-
-  let initctx =
-    (* initialize initctx when first called from reg_alloc:
-      * the algo assumes that on the first invocation, the context
-      * will have initial and precolored nonempty *)
-    if init then
+  let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
+    match v with
+    | Start | Exit -> AbstractRegSet.empty
+    | Node _ as node ->
       begin
-      let f ctxacc reg =
-        match reg with
-        | Fake _ -> { ctxacc with initial = reg :: ctxacc.initial }
-        | Real _ -> { ctxacc with precolored = reg :: ctxacc.precolored } in
-      let vars =
-        let get_vars cfgnode varset =
-          AbstractRegSet.union (livevars cfgnode) varset in
-        AsmCfg.fold_vertex get_vars cfg AbstractRegSet.empty in
-      AbstractRegSet.fold ~f ~init:ctxarg vars
-      end
-    else
-      (* TODO: check other things that need to be freshened on recursive calls *)
-      { ctxarg with
-        inter_graph = IG.create (); } in
-
-  (* make edges for nodes interfering with each other in one statement *)
-  let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) =
-    let g1 regnode1 =
-      let g2 regnode2 =
-        (* don't add self loops in inter_graph *)
-        if regnode1 <> regnode2 then
-          IG.add_edge regctx.inter_graph regnode1 regnode2
-        else () in
-      AbstractRegSet.iter ~f:g2 temps in
-    AbstractRegSet.iter ~f:g1 temps in
-
-  (* initialize regctx with move_list and worklist_moves *)
-  let init1 (cfg_node : AsmCfg.vertex) regctx =
-    match cfg_node with
-    (* TODO: should we handle procedure entry/exit differently? *)
-    | Start -> regctx
-    | Exit -> regctx
-    | Node _ -> begin
-        (* create interference graph edges *)
-        let liveset = livevars cfg_node in
-        create_inter_edges regctx liveset;
-        (* update node occurrences *)
-        let occurrence_update reg =
-          let occur_num =
-            NodeData.Table.find_or_add
-            ~default:(fun () -> 0)
-            regctx.node_occurrences reg in
-          NodeData.Table.set
-            regctx.node_occurrences
-            ~key:reg
-            ~data:(occur_num + 1) in
-        AbstractRegSet.iter ~f:occurrence_update liveset;
-        (* populate worklist_moves and move_list *)
-        match coalescable_move cfg_node with
-        | None -> regctx
-        | Some tempmove ->
-            let srcmoves =
-              NodeData.Table.find_or_add
-                ~default:(fun () -> [])
-                regctx.move_list tempmove.src in
-            let destmoves =
-              NodeData.Table.find_or_add
-                ~default:(fun () -> [])
-                regctx.move_list tempmove.dest in
-            NodeData.Table.add
-              regctx.move_list
-              ~key:tempmove.src
-              ~data:(tempmove :: srcmoves) |> ignore;
-            NodeData.Table.add
-              regctx.move_list
-              ~key:tempmove.dest
-              ~data:(tempmove :: destmoves) |> ignore;
-            { regctx with worklist_moves = (tempmove :: regctx.worklist_moves) }
+        match AsmCfg.succ_e cfg node with
+        | [] -> AbstractRegSet.empty
+        | edge :: _ -> livevars_edge edge
       end in
 
-  (* initialize other data structures,
-   * add all initial (i.e. non-precolored) temps into appropriate worklists *)
-  let init2 (regctx : alloc_context) (reg : IG.nodedata) =
-    (* do other initializations here, e.g. of degree table, etc. *)
-    let regdeg = IG.in_degree regctx.inter_graph reg in
-    NodeData.Table.set regctx.degree ~key:reg ~data:regdeg;
+  (* populate precolored, initial work lists *)
+  let init0 (regctx : alloc_context) (reg : abstract_reg) =
+    match reg with
+    | Fake _ -> { regctx with initial = reg :: regctx.initial }
+    | Real _ -> { regctx with precolored = reg :: regctx.precolored } in
+
+  (* make edges for nodes interfering with each other in one statement *)
+  let create_inter_edges (temps : AbstractRegSet.t) (regctx: alloc_context) : alloc_context =
+    let g1 ctxacc1 reg1 =
+      let g2 ctxacc2 reg2 =
+        if reg1 <> reg2 then add_edge reg1 reg2 ctxacc2
+        else ctxacc2 in
+      AbstractRegSet.fold ~f:g2 ~init:ctxacc1 temps in
+    AbstractRegSet.fold ~f:g1 ~init:regctx temps in
+
+  (* initialize regctx with move_list and worklist_moves *)
+  let init1 (cfg_node : AsmCfg.vertex) regctx : alloc_context =
+    match cfg_node with
+    (* TODO: should we handle procedure entry/exit differently? *)
+    | Start | Exit -> regctx
+    | Node _ ->
+      begin
+      (* create interference graph edges *)
+      let liveset = livevars cfg_node in
+
+      (*let nodestr = AsmCfg.string_of_vertex cfg_node in*)
+      (*let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in*)
+
+      (*print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);*)
+
+      (*print_endline (_string_of_ctx regctx);*)
+      let regctx' = create_inter_edges liveset regctx in
+      (*print_endline (_string_of_ctx regctx');*)
+
+      (* update node occurrences *)
+      let node_occurrences' =
+        let f acc livevar =
+          diff_int_map livevar succ acc in
+        AbstractRegSet.fold ~f ~init:regctx'.node_occurrences liveset in
+
+      (* populate worklist_moves and move_list *)
+      let worklist_moves', move_list' =
+        match coalescable_move cfg_node with
+        | None -> regctx'.worklist_moves, regctx'.move_list
+        | Some tempmove ->
+            begin
+              let ml =
+                AReg.Map.update regctx'.move_list tempmove.src
+                ~f:(function Some l -> tempmove :: l | None -> [tempmove]) in
+              let ml' =
+                AReg.Map.update ml tempmove.dest
+                ~f:(function Some l -> tempmove :: l | None -> [tempmove]) in
+              (tempmove :: regctx.worklist_moves, ml')
+            end in
+
+      { regctx' with
+        node_occurrences = node_occurrences';
+        worklist_moves = worklist_moves';
+        move_list = move_list'; }
+      end in
+
+  (* add all initial (i.e. non-precolored) temps into appropriate worklists *)
+  let init2 (regctx : alloc_context) (reg : abstract_reg) : alloc_context =
+    let regdeg = AReg.Map.find regctx.degree reg |>
+      function Some i -> i | None -> 0 in
     match reg with
     | Fake _ ->
-        (* assumption: our graph is actually directed and outdeg = indeg!!! *)
-        if IG.in_degree regctx.inter_graph reg >= regctx.num_colors then
+        if regdeg >= regctx.num_colors then
           { regctx with spill_wl = reg :: regctx.spill_wl }
         else if move_related reg regctx then
           { regctx with freeze_wl = reg :: regctx.freeze_wl }
@@ -611,31 +621,38 @@ let build ?(init=false) (ctxarg : alloc_context) (asms : abstract_asm list) : al
     (* precolored registers should not appear in initial! *)
     | Real _ -> regctx in
 
-  AsmCfg.fold_vertex init1 cfg initctx |> fun regctx' ->
-  let empty_init = { regctx' with initial = [] } in
-  List.fold_left ~f:init2 ~init:empty_init regctx'.initial
+  (* all live variables in the program *)
+  let all_livevars =
+    let f cfg_node liveset =
+      AbstractRegSet.union (livevars cfg_node) liveset in
+    AsmCfg.fold_vertex f cfg AbstractRegSet.empty in
 
+  (* set of all precolored nodes. we use this to create a precolored
+   * clique in the interference graph. *)
+  let precolored_set =
+    let f r = Real r in
+    List.map ~f [
+      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8; R9; R10; R11; R12; R13; R14; R15;
+    ] |> AbstractRegSet.of_list in
 
-(* TODO: is this function even necessary? IG.add_edge does not seem to check
- * for self-loop. *)
-let add_edge u v regctx =
-  (* TODO: can i compare nodes with <>? *)
-  if (not (IG.mem_edge regctx.inter_graph u v)) && (u <> v) then
-    (* TODO: should I copy the graph?
-     * The graph is undirected right? But it seems like direction matters
-     * in the Appel algorithm?! *)
-    IG.add_edge regctx.inter_graph u v
+  AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |>
+  create_inter_edges precolored_set |>
+  AsmCfg.fold_vertex init1 cfg |> fun regctx' ->
+  List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
-let adjacent n regctx =
+let adjacent (reg : abstract_reg) regctx : abstract_reg list =
   let used = regctx.select_stack @ regctx.coalesced_nodes in
-  List.filter (IG.succ regctx.inter_graph n) ~f:(fun m -> not (List.mem used m))
+  AReg.Map.find regctx.adj_list reg |>
+    function Some s ->
+      List.filter ~f:(fun m -> not (List.mem used m)) (AReg.Set.to_list s)
+    | None -> []
 
-let degree node regctx =
-  NodeData.Table.find_exn regctx.degree node
+let degree (reg : abstract_reg) regctx : int =
+  AReg.Map.find regctx.degree reg |> function Some n -> n | None -> 0
 
-let enable_moves nodes regctx =
+let enable_moves (nodes : abstract_reg list) regctx : alloc_context =
   List.fold_left ~init:regctx nodes ~f:(fun regctx' n ->
     List.fold_left ~init:regctx' (node_moves n regctx') ~f:(fun regctx'' m ->
       if List.mem regctx''.active_moves m then
@@ -645,23 +662,23 @@ let enable_moves nodes regctx =
       else
         regctx''))
 
-let decrement_degree m regctx =
-  let d = degree m regctx in
-  print_endline ("whee" ^ (string_of_int d));
-  NodeData.Table.set regctx.degree ~key:m ~data:(d-1);
-  if d = regctx.num_colors then
-    let regctx' = enable_moves (m::(adjacent m regctx)) regctx in
-    let regctx' = { regctx' with spill_wl = remove regctx'.spill_wl m } in
+let decrement_degree (m : abstract_reg) regctx : alloc_context =
+  let d' = (degree m regctx) - 1 in
+  let regctx' = { regctx with degree = diff_int_map m pred regctx.degree } in
+  if d' = regctx'.num_colors - 1 then
+    begin
+    enable_moves (m :: (adjacent m regctx')) regctx' |> fun regctx' ->
+    { regctx' with spill_wl = remove regctx'.spill_wl m } |> fun regctx' ->
     if move_related m regctx' then
       { regctx' with freeze_wl = m::regctx'.freeze_wl }
     else
       { regctx' with simplify_wl = m::regctx'.simplify_wl }
+    end
   else
-    regctx
+    regctx'
 
 (* Remove non-move-related nodes of low degree *)
-let simplify regctx =
-  print_endline "simplify";
+let simplify regctx : alloc_context =
   (* Pick a non-move-related vertex that has <k degree *)
   match regctx.simplify_wl with
   | [] -> regctx
@@ -678,16 +695,15 @@ let simplify regctx =
 
 (* return node alias after coalescing; if node has not been coalesced,
  * reduces to identity function *)
-let get_alias (node : IG.nodedata) (regctx : alloc_context) : IG.nodedata =
-  match NodeData.Table.find regctx.alias node with
-  | Some alias -> alias
-  | None -> node
+let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
+  AReg.Map.find regctx.alias node |>
+  function Some a -> get_alias a regctx | None -> node
 
 (* potentially add a new node to simplify_wl; see Appel for details *)
-let add_wl (node : IG.nodedata) (regctx : alloc_context) : alloc_context =
+let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
   if (not (List.mem regctx.precolored node) &&
       not (move_related node regctx) &&
-      IG.in_degree regctx.inter_graph node >= regctx.num_colors) then
+      degree node regctx >= regctx.num_colors) then
       begin
         { regctx with
           freeze_wl = remove regctx.freeze_wl node;
@@ -695,34 +711,46 @@ let add_wl (node : IG.nodedata) (regctx : alloc_context) : alloc_context =
       end
   else regctx
 
-let ok t r regctx =
+let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
   (degree t regctx) < regctx.num_colors ||
   List.mem regctx.precolored t ||
-  IG.mem_edge regctx.inter_graph t r
+  ARegPair.Set.mem regctx.adj_set (t, r)
 
-let conservative nodes regctx =
+let conservative (nodes : abstract_reg list) regctx : bool =
   let k' = 0 in
   let result = List.fold_left ~init:k' nodes ~f:(fun acc n ->
     if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc) in
   result < (regctx.num_colors)
 
 let combine u v regctx =
-  let set t k d = NodeData.Table.set t ~key:k ~data:d in
-  let find_exn t k = NodeData.Table.find_exn t k in
+  let find map k = AReg.Map.find map k |> function Some l -> l | None -> [] in
 
   let regctx' =
     if List.mem regctx.freeze_wl v then
       { regctx with freeze_wl = remove regctx.freeze_wl v }
     else
-      { regctx with spill_wl = remove regctx.spill_wl v }
-  in
-  let regctx' = { regctx' with coalesced_nodes = v::regctx'.coalesced_nodes } in
-  set regctx'.alias v u;
-  let move_list = (find_exn regctx'.move_list u) @ (find_exn regctx'.move_list v) in
-  set regctx'.move_list u move_list;
-  let regctx' = enable_moves [v] regctx' in
-  let regctx' = List.fold_left ~init:regctx' (adjacent v regctx')
-    ~f:(fun regctx'' t -> add_edge t u regctx''; decrement_degree t regctx'') in
+      { regctx with spill_wl = remove regctx.spill_wl v } in
+
+  let coalesced_nodes' =
+    v :: regctx'.coalesced_nodes in
+  let alias' =
+    AReg.Map.add regctx'.alias ~key:v ~data:u in
+  let move_list' =
+    let new_lst = (find regctx'.move_list u) @ (find regctx'.move_list v) in
+    AReg.Map.add regctx'.move_list ~key:u ~data:new_lst in
+
+  let regctx' = {
+    regctx' with
+    coalesced_nodes = coalesced_nodes';
+    alias = alias';
+    move_list = move_list';
+  } in
+  let regctx' =
+    enable_moves [v] regctx' in
+  let regctx' =
+    let f ctxacc t =
+      add_edge t u ctxacc |> decrement_degree t in
+    List.fold_left ~f ~init:regctx' (adjacent v regctx') in
   if (degree u regctx') >= (regctx.num_colors) && List.mem regctx'.freeze_wl u then
     { regctx' with
       freeze_wl = remove regctx'.freeze_wl u;
@@ -744,7 +772,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
                        coalesced_moves = m::regctx'.coalesced_moves } in
       add_wl u regctx''
     else if List.mem regctx'.precolored v ||
-            IG.mem_edge regctx'.inter_graph u v then
+            ARegPair.Set.mem regctx'.adj_set (u, v) then
       let regctx'' = { regctx' with
                        constrained_moves = m::regctx'.constrained_moves } in
       regctx'' |> add_wl u |> add_wl v
@@ -760,7 +788,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
       { regctx' with active_moves = m::regctx'.active_moves }
 
 (* freeze: remove a move-related node of low degree *)
-let freeze_moves (regctx : alloc_context) (node: IG.nodedata) : alloc_context =
+let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
   let f ctxacc tempmove =
     let { src; dest; _; } = tempmove in
     let v =
@@ -793,16 +821,13 @@ let freeze (regctx : alloc_context) : alloc_context =
     } in
     freeze_moves regctx' fnode
 
-(* spill: spill a >=k degree node onto stack *)
-
 (* select a node to be spilled; heuristic used is
  * number of program points on which the temp is live on *)
-let select_spill (regctx : alloc_context) =
+let select_spill (regctx : alloc_context) : alloc_context =
   let f reg =
     let occur_num =
-      NodeData.Table.find_or_add
-      ~default:(fun () -> 0)
-      regctx.node_occurrences reg in
+      AReg.Map.find regctx.node_occurrences reg |>
+      function Some n -> n | None -> 0 in
     (reg, occur_num) in
   let cmp (_, num1) (_, num2) =
     Pervasives.compare num1 num2 in
@@ -818,75 +843,100 @@ let select_spill (regctx : alloc_context) =
 
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
-  print_endline "assigning colors!";
 
   let select_assign ctxacc select_node =
-    let neighbors = IG.succ ctxacc.inter_graph select_node in
+    let neighbors =
+      AReg.Map.find ctxacc.adj_list select_node |>
+      function Some s -> AReg.Set.to_list s | None -> [] in
     let neighbor_colors =
       let f acc neighbor =
         let alias = get_alias neighbor ctxacc in
         if (List.mem ctxacc.colored_nodes alias ||
             List.mem ctxacc.precolored alias) then
           begin
-            match NodeData.Table.find ctxacc.color_map alias with
-            | Some c -> c :: acc
-            | None -> acc
+            AReg.Map.find ctxacc.color_map alias |>
+            function Some c -> c :: acc | None -> acc
           end
         else acc in
-      List.fold_left ~f ~init:[] neighbors >>= fun l -> (string_of_int (List.length l)) in
+      List.fold_left ~f ~init:[] neighbors in
     begin
+      let s =
+       "calling get next color with neighbor colors " ^ (string_of_colors neighbor_colors) in
+    print_endline s;
     match get_next_color neighbor_colors with
     | None ->
-        print_endline "no color found!";
         { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
     | Some c ->
-        NodeData.Table.set ctxacc.color_map ~key:select_node ~data:c;
-        { ctxacc with colored_nodes = select_node :: ctxacc.colored_nodes; }
+        let color_map' =
+           AReg.Map.add ctxacc.color_map ~key:select_node ~data:c in
+        { ctxacc with
+          color_map = color_map';
+          colored_nodes = select_node :: ctxacc.colored_nodes; }
     end in
 
   List.fold_left ~f:select_assign ~init:regctx regctx.select_stack |> fun regctx' ->
-    let f coalesced_node =
-      match NodeData.Table.find regctx'.alias coalesced_node with
-      | None -> failwith "assign_colors: coalesced node has no alias"
-      | Some alias -> begin
-        match NodeData.Table.find regctx'.color_map alias with
-        | None -> failwith "assign_colors: coalesced node's alias is not colored"
-        | Some c ->
-            NodeData.Table.set regctx'.color_map ~key:coalesced_node ~data:c
-      end in
-    List.iter ~f regctx'.coalesced_nodes;
-    regctx' >>| "colored!" >>| (_string_of_ctx regctx')
+    let f coloracc coalesced_node =
+      let alias = get_alias coalesced_node regctx' in
+      match AReg.Map.find regctx'.color_map alias with
+      | None ->
+          let nodestr =
+            string_of_abstract_reg coalesced_node in
+          let aliastr =
+            string_of_abstract_reg alias in
+          let failstr =
+           "select_color: no color for alias. node: " ^ nodestr ^ ", alias : " ^ aliastr in
+          failwith failstr
+      | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
+    let color_map' =
+      List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in
+    { regctx' with color_map = color_map' }
 
-let rewrite_program
-  (regctx : alloc_context)
-  (asms : abstract_asm list)
-  : alloc_context * abstract_asm list =
+let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : abstract_reg =
+  AReg.Map.find regctx.color_map reg |>
+  function
+    | Some color -> Real (color_to_reg color)
+    | None -> reg
 
-  (* a lot of this logic is already in tiling.ml; see comments
-   * there for design decisions e.g. why 15, etc. *)
+let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : abstract_reg operand =
+  match op with
+  | Reg reg -> Reg (get_real_reg regctx reg)
+  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
+  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg regctx reg, s))
+  | Mem (BaseOff (c, reg1, reg2, s)) ->
+      Mem (BaseOff (c, get_real_reg regctx reg1, get_real_reg regctx reg2, s))
+  | Label l -> Label l
+  | Const c -> Const c
 
-  let spilled_names =
-    let f reg =
-      match reg with
-      | Real _ -> failwith "rewrite_program: Real register in spilled_nodes!"
-      | Fake str -> str in
-    List.map ~f regctx.spilled_nodes in
+let translate_asm (regctx : alloc_context) (asm : abstract_asm) : abstract_asm =
+  match asm with
+  | Op (instr, operands) ->
+      Op (instr, List.map ~f:(translate_operand regctx) operands)
+  | Lab l -> Lab l
+  | Directive (s, l) -> Directive (s, l)
+  | Comment s -> Comment s
 
-  (* a mapping between abstract reg -> offset index *)
-  let spill_env : int String.Table.t =
-    let f i spill_name = (spill_name, i + 15) in
-    spilled_names
-    |> List.mapi ~f
-    |> String.Table.of_alist_exn in
+(* allocate spilled nodes to the stack *)
+let spill_allocate ?(debug=false) asms =
+  (* spill_env maps each fake name to an index, starting at 15, into the stack.
+   * We start at 15 since the first 14 is reserved for callee save registers.
+   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
+   * (Fake "foo") will be spilled to -8n(%rbp). *)
+  let spill_env =
+    fakes_of_asms asms
+    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
+    |> String.Map.of_alist_exn
+  in
 
-  (* returns memory address on stack of a given abstract reg *)
-  let spill_address (spillname : string) : abstract_reg operand =
-    let i = String.Table.find_exn spill_env spillname in
+  (* Given an environment and name, return the memory address that fake is
+   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
+  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
+    let i = String.Map.find_exn spill_env fake in
     let offset = Int64.of_int (-8 * i) in
-    Mem (Base (Some offset, Real Rbp)) in
+    Mem (Base (Some offset, Rbp))
+  in
 
   (* Recursively applies f to all the abstract_registers in asm. *)
-  let abstract_reg_map (f: abstract_reg -> abstract_reg) (asm: abstract_asm) =
+  let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
     match asm with
     | Op (s, operands) ->
         Op (s, List.map operands ~f:(fun operand ->
@@ -903,116 +953,90 @@ let rewrite_program
     | Comment s -> Comment s
   in
 
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
+
   (* Translate fake registers using the register environment and leave real
    * registers alone. *)
-  let translate_reg (reg_env: abstract_reg String.Map.t) (r: abstract_reg) : abstract_reg =
+  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
     match r with
     | Fake s -> String.Map.find_exn reg_env s
-    | Real _ -> r
+    | Real r -> r
   in
 
-  (* returns rewritten asms, list of new temps *)
-  let allocate
-    (asm: abstract_asm)
-    : (abstract_asm list * abstract_reg list) =
+  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
+    let spill = spill_address env in
     match asm with
-    | Lab _ | Directive _ | Comment _ -> ([asm], [])
     | Op (_, operands) ->
-      let spilled_fakes =
-        let op_fakes = fakes_of_operands operands in
-        let f fake = List.mem op_fakes fake in
-        List.filter ~f spilled_names in
-      let spilled_to_fresh =
-        let f acc spilled =
-          (spilled, Fake (FreshReg.fresh ())) :: acc in
-        List.fold_left ~f ~init:[] spilled_fakes in
-      let spill_env = String.Map.of_alist_exn spilled_to_fresh in
-      let spill_to_op spill =
-        Reg (String.Map.find_exn spill_env spill) in
+      let fakes = fakes_of_operands operands in
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
+      let reg_env = String.Map.of_alist_exn fake_to_real in
+      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
 
-      let pre =
-        let f spill = movq (spill_address spill) (spill_to_op spill) in
-        List.map ~f spilled_fakes in
-      let translation =
-        [abstract_reg_map (translate_reg spill_env) asm] in
-      let post =
-        let f spill = movq (spill_to_op spill) (spill_address spill) in
-        List.map ~f spilled_fakes in
-      (pre @ translation @ post, List.map ~f:snd spilled_to_fresh) in
+      let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
+      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
+      let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
+      pre @ translation @ post
+    | Lab l -> [Lab l]
+    | Directive (d, args) -> [Directive (d, args)]
+    | Comment s -> [Comment s]
+  in
 
-  let rewritten, new_temps = List.unzip (List.map ~f:allocate asms) in
-  let rewritten, new_temps = List.concat rewritten, List.concat new_temps in
-  let regctx' = {
-    regctx with
-    spilled_nodes = [];
-    initial = regctx.colored_nodes @ regctx.coalesced_nodes @ new_temps;
-    colored_nodes = [];
-    coalesced_nodes = [];
-  } in
-  (regctx', rewritten)
+  let allocated = List.concat_map ~f:(allocate spill_env) asms in
+  if debug then
+    let mapping = [] in
+    let mapping = mapping @ [Comment "----- begin register mapping"] in
+    let mapping = mapping @ (
+      String.Map.to_alist spill_env
+      |> List.sort ~cmp:(fun (_, i1) (_, i2) -> compare i1 i2)
+      |> List.map ~f:(fun (s, i) -> Comment (sprintf "-%d(%%rbp): %s" (i * 8) s))
+    ) in
+    let mapping = mapping @ [Comment "----- end register mapping"] in
+    mapping @ allocated
+  else
+    allocated
 
-let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg =
-  match reg with
-  | Real r -> r
-  | Fake _ -> NodeData.Table.find_exn regctx.color_map reg |> color_to_reg
 
-let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : reg operand =
-  match op with
-  | Reg reg -> Reg (get_real_reg regctx reg)
-  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
-  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg regctx reg, s))
-  | Mem (BaseOff (c, reg1, reg2, s)) ->
-      Mem (BaseOff (c, get_real_reg regctx reg1, get_real_reg regctx reg2, s))
-  | Label l -> Label l
-  | Const c -> Const c
 
-let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
-  match asm with
-  | Op (instr, operands) ->
-      Op (instr, List.map ~f:(translate_operand regctx) operands)
-  | Lab l -> Lab l
-  | Directive (s, l) -> Directive (s, l)
-  | Comment s -> Comment s
-
-let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
-  (* TODO use debug *)
+let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   ignore debug;
 
-  let rec main
-    ?(init = false)
+  let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      print_endline (_string_of_ctx innerctx);
+      (*print_endline (_string_of_ctx innerctx);*)
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&
           empty innerctx.spill_wl) then
-         innerctx >>| "empty"
+         innerctx
       else
-        begin
         let innerctx' =
           if not (empty innerctx.simplify_wl) then
-            (print_endline "calling simplify"; simplify innerctx)
+            simplify innerctx
           else if not (empty innerctx.worklist_moves) then
-            (print_endline "coalescing"; coalesce innerctx)
+            coalesce innerctx
           else if not (empty innerctx.freeze_wl) then
-            (print_endline "freezing"; freeze innerctx)
+            freeze innerctx
           else
-            (print_endline "spilling"; select_spill innerctx) in
-        loop innerctx'
-        end in
-      build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->
-        if not (empty regctx'.spilled_nodes) then
-          begin
-            let newctx, newasms = rewrite_program regctx' asms in
-            main newctx newasms
-          end
-        else regctx', asms in
+            select_spill innerctx in
+        loop innerctx' in
+
+      build regctx asms |> loop |> assign_colors |> fun regctx' ->
+        if not (empty regctx'.spilled_nodes) then (regctx', asms)
+            (* TODO: add spill coalescing, shuttling, etc. *)
+        else (regctx', asms) in
 
   (* lol 100 is an empirically determined number *)
-  let finctx, finasms = main ~init:true (empty_ctx 100 100) given_asms in
-  (* translate asms with allocated nodes *)
-  List.map ~f:(translate_asm finctx) finasms
+  let finctx, finasms = main empty_ctx given_asms in
+  print_endline "final context!!!";
+  print_endline (_string_of_ctx finctx);
+  (* translate abstract_asms with allocated nodes, leaving spills.
+   * stack allocate spill nodes with Tiling.register_allocate *)
+  List.map ~f:(translate_asm finctx) finasms |> spill_allocate

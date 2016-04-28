@@ -37,12 +37,7 @@ let use_defs_test _ =
 
   let fk i = Asm.Fake (FreshReg.gen i) in
   let fkr i = Asm.Reg (fk i) in
-  let rr reg = Asm.Reg (Asm.Real reg) in
-
-  let _ = set_to_string in
-  let _ = fk in
-  let _ = fkr in
-  let _ = rr in
+  let _rr reg = Asm.Reg (Asm.Real reg) in
 
   (* remove x from lst, if it exists *)
   let remove (lst : 'a list) (x : 'a) : 'a list =
@@ -55,11 +50,9 @@ let use_defs_test _ =
     remove regs' (Asm.Real Asm.Rsp) in
 
   (* grabs all temps that appear in an operand *)
-  let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
+  let _set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
     let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
     AbstractRegSet.of_list regs_list in
-
-  let _ = set_of_arg in
 
   let n0 = movq (const 5) (fkr 0) in
   let uses0, defs0 = UseDefs.usedvars n0 in
@@ -122,11 +115,29 @@ let live_vars_test _ =
 
   let fk i = Asm.Fake (FreshReg.gen i) in
   let fkr i = Asm.Reg (fk i) in
-  let rr reg = Asm.Reg (Asm.Real reg) in
+  let r reg = Asm.Real reg in
+  let rr reg = Asm.Reg (r reg) in
 
-  let _lab l = Asm.Label l in
+  let lab l = Asm.Label l in
+  let dummy = const 1 in
+  let m0 x = movq dummy (rr Asm.R15) |> node x in
+  let m1 x = movq dummy (rr Asm.R14) |> node x in
+  let m2 x = movq dummy (rr Asm.R13) |> node x in
+  let m3 x = movq dummy (rr Asm.R12) |> node x in
+  let m4 x = movq dummy (rr Asm.Rbx) |> node x in
+  (* Return nodes for 2 branches *)
+  let r00 = m0 6 in
+  let r01 = m1 7 in
+  let r02 = m2 8 in
+  let r03 = m3 9 in
+  let r04 = m4 10 in
+  let r10 = m0 6 in
+  let r11 = m1 7 in
+  let r12 = m2 8 in
+  let r13 = m3 9 in
+  let r14 = m4 10 in
 
-  let _ = rr in
+
 
   (* test 1 *********************************************************)
   let n0 = movq (const 5) (fkr 0) |> node 0 in
@@ -210,7 +221,68 @@ let live_vars_test _ =
   ] in
   
   assert_livevars cfg expecteds livevars;
-  (*
+
+  (* test 4 *********************************************************)
+  let n0 = movq (const 5) (fkr 0) |> node 0 in
+  let n1 = movq (const 6) (fkr 1) |> node 1 in
+  let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in
+  let n3 = jge (lab "tru") |> node 3 in
+  let n4 = ret |> node 4 in
+  let n5 = (label_op "tru") |> node 5 in
+  let n6 = ret |> node 6 in
+
+  let v = [start; n0; n1; n2; n3; n4; r00; r01; r02; r03; r04;
+           r10; r11; r12; r13; r14; n5; n6; exit] in
+  let e = [
+    (start, norm, n0);
+    (n0, norm, n1);
+    (n1, norm, n2);
+    (n2, norm, n3);
+    (n3, norm, r00);
+    (r00, norm, r01);
+    (r01, norm, r02);
+    (r02, norm, r03);
+    (r03, norm, r04);
+    (r04, norm, n4);
+    (n4, norm, exit);
+    (n3, norm, n5);
+    (n5, norm, r10);
+    (r10, norm, r11);
+    (r11, norm, r12);
+    (r12, norm, r13);
+    (r13, norm, r14);
+    (r14, norm, n6);
+    (n6, norm, exit);
+  ] in
+  let cfg = make_graph v e in
+
+  let livevars = LiveVariableAnalysis.worklist () cfg in
+
+  let expecteds = [
+    ((start, n0), set_of []);
+    ((n0, n1), set_of [fk 0]);
+    ((n1, n2), set_of [fk 0; fk 1]);
+    ((n2, n3), set_of []);
+    ((n3, r00), set_of []);
+    ((r00, r01), set_of [r Asm.R15]);
+    ((r01, r02), set_of [r Asm.R14; r Asm.R15]);
+    ((r02, r03), set_of [r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r03, r04), set_of [r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r04, n4), set_of [r Asm.Rbx; r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((n4, exit), set_of []);
+    ((n3, n5), set_of []);
+    ((n5, r10), set_of []);
+    ((r10, r11), set_of [r Asm.R15]);
+    ((r11, r12), set_of [r Asm.R14; r Asm.R15]);
+    ((r12, r13), set_of [r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r13, r14), set_of [r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r14, n6), set_of [r Asm.Rbx; r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((n6, exit), set_of []);
+  ] in
+  
+  assert_livevars cfg expecteds livevars;
+
+  (* test 6 *********************************************************)
   let n0 = movq (const 5) (fkr 0) |> node 0 in
   let n1 = movq (const 6) (fkr 1) |> node 1 in
   let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in
@@ -221,18 +293,29 @@ let live_vars_test _ =
   let n7 = movq (const 10) (fkr 1) |> node 7 in
   let n8 = node 8 ret in
 
-  let v = [start; n0; n1; n2; n3; n4; n5; n6; n7; n8; exit] in
+  let v = [start; n0; n1; n2; n3; n4; n5; r00; r01; r02; r03; r04;
+           r10; r11; r12; r13; r14; n6; n7; n8; exit] in
   let e = [
     (start, norm, n0);
     (n0, norm, n1);
     (n1, norm, n2);
     (n2, norm, n3);
     (n3, norm, n4);
-    (n4, norm, n5);
+    (n4, norm, r00);
+    (r00, norm, r01);
+    (r01, norm, r02);
+    (r02, norm, r03);
+    (r03, norm, r04);
+    (r04, norm, n5);
     (n5, norm, exit);
     (n3, norm, n6);
     (n6, norm, n7);
-    (n7, norm, n8);
+    (n7, norm, r10);
+    (r10, norm, r11);
+    (r11, norm, r12);
+    (r12, norm, r13);
+    (r13, norm, r14);
+    (r14, norm, n8);
     (n8, norm, exit);
   ] in
   let cfg = make_graph v e in
@@ -245,14 +328,25 @@ let live_vars_test _ =
     ((n1, n2), set_of [fk 0; fk 1]);
     ((n2, n3), set_of []);
     ((n3, n4), set_of []);
-    ((n4, n5), set_of []);
+    ((n4, r00), set_of []);
+    ((r00, r01), set_of [r Asm.R15]);
+    ((r01, r02), set_of [r Asm.R14; r Asm.R15]);
+    ((r02, r03), set_of [r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r03, r04), set_of [r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r04, n5), set_of [r Asm.Rbx; r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
     ((n5, exit), set_of []);
     ((n3, n6), set_of []);
     ((n6, n7), set_of []);
-    ((n7, n8), set_of []);
+    ((n7, r10), set_of []);
+    ((r10, r11), set_of [r Asm.R15]);
+    ((r11, r12), set_of [r Asm.R14; r Asm.R15]);
+    ((r12, r13), set_of [r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r13, r14), set_of [r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
+    ((r14, n8), set_of [r Asm.Rbx; r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
     ((n8, exit), set_of []);
   ] in
-*)
+
+  assert_livevars cfg expecteds livevars;
 
   ()
 

@@ -922,32 +922,27 @@ module BookExample = struct
     match v with
     | SE.Start
     | SE.Exit -> E.empty
-    | SE.Node _ ->
-        let eq v v' = C.V.compare v v' = 0 in
-        if Pervasives.(eq v n5 || eq v n7 || eq v n9)
-          then E.of_list [temp "b" + temp "c"]
-          else E.empty
+    | SE.Node _ when List.mem ~equal:C.V.equal [n5; n7; n9] v ->
+      E.of_list [temp "b" + temp "c"]
+    | SE.Node _ -> E.empty
 
   let kills = fun v ->
-    match v with
-    | v when C.V.compare v n2 = 0 -> E.singleton (temp "c")
-    | v when C.V.compare v n5 = 0 -> E.singleton (temp "a")
-    | v when C.V.compare v n7 = 0 -> E.singleton (temp "d")
-    | v when C.V.compare v n9 = 0 -> E.singleton (temp "e")
-    | SE.Start | SE.Exit | SE.Node _ -> E.empty
+    if List.mem ~equal:C.V.equal [n2] v
+      then E.singleton (temp "b" + temp "c")
+      else E.empty
 
   let busy = fun v ->
-    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n5; n6; n3; n4; n7; n9] v
+    if List.mem ~equal:C.V.equal [n5; n6; n3; n4; n7; n9] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
 
   let earliest = fun v ->
-    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n3; n5] v
+    if List.mem ~equal:C.V.equal [n3; n5] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
 
   let latest = fun v ->
-    if List.mem ~equal:(fun v v' -> C.V.compare v v' = 0) [n4; n5] v
+    if List.mem ~equal:C.V.equal [n4; n5] v
       then E.singleton (temp "b" + temp "c")
       else E.empty
 end
@@ -1017,7 +1012,7 @@ let busy_test _ =
     (e8_11,  E.empty);
     (e10_9,  bc);
   ] in
-  test expected es g univ busy kills;
+  test expected es g univ uses kills;
 
   ()
 
@@ -1158,6 +1153,7 @@ let enchilada_test _ =
   let d = temp "d" in
   let e = temp "e" in
 
+  (* book example *)
   let irs = [
     cjumpone one "n5";  (* B1 *)
     move c two;         (* B2 *)

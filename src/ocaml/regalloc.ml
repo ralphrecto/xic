@@ -815,12 +815,13 @@ let assign_colors (regctx : alloc_context) : alloc_context =
       List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in
     { regctx' with color_map = color_map' }
 
-let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : reg =
-  match reg with
-  | Real r -> r
-  | Fake _ -> AReg.Map.find_exn regctx.color_map reg |> color_to_reg
+let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : abstract_reg =
+  AReg.Map.find regctx.color_map reg |>
+  function
+    | Some color -> Real (color_to_reg color)
+    | None -> reg
 
-let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : reg operand =
+let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : abstract_reg operand =
   match op with
   | Reg reg -> Reg (get_real_reg regctx reg)
   | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
@@ -830,7 +831,7 @@ let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : reg
   | Label l -> Label l
   | Const c -> Const c
 
-let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
+let translate_asm (regctx : alloc_context) (asm : abstract_asm) : abstract_asm =
   match asm with
   | Op (instr, operands) ->
       Op (instr, List.map ~f:(translate_operand regctx) operands)
@@ -838,7 +839,93 @@ let translate_asm (regctx : alloc_context) (asm : abstract_asm) : asm =
   | Directive (s, l) -> Directive (s, l)
   | Comment s -> Comment s
 
-let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
+(* allocate spilled nodes to the stack *)
+let spill_allocate ?(debug=false) asms =
+  (* spill_env maps each fake name to an index, starting at 15, into the stack.
+   * We start at 15 since the first 14 is reserved for callee save registers.
+   * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
+   * (Fake "foo") will be spilled to -8n(%rbp). *)
+  let spill_env =
+    fakes_of_asms asms
+    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
+    |> String.Map.of_alist_exn
+  in
+
+  (* Given an environment and name, return the memory address that fake is
+   * spilled into. For example, `spill_address {"foo": 4}` "foo" = -32(%rbp)` *)
+  let spill_address (spill_env: int String.Map.t) (fake: string) : reg operand =
+    let i = String.Map.find_exn spill_env fake in
+    let offset = Int64.of_int (-8 * i) in
+    Mem (Base (Some offset, Rbp))
+  in
+
+  (* Recursively applies f to all the abstract_registers in asm. *)
+  let abstract_reg_map (f: abstract_reg -> reg)  (asm: abstract_asm) =
+    match asm with
+    | Op (s, operands) ->
+        Op (s, List.map operands ~f:(fun operand ->
+          match operand with
+          | Reg r -> Reg (f r)
+          | Mem (Base (n, base)) -> Mem (Base (n, f base))
+          | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
+          | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
+          | Label l -> Label l
+          | Const c -> Const c
+        ))
+    | Lab l -> Lab l
+    | Directive (d, args) -> Directive (d, args)
+    | Comment s -> Comment s
+  in
+
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
+
+  (* Translate fake registers using the register environment and leave real
+   * registers alone. *)
+  let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
+    match r with
+    | Fake s -> String.Map.find_exn reg_env s
+    | Real r -> r
+  in
+
+  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
+    let spill = spill_address env in
+    match asm with
+    | Op (_, operands) ->
+      let fakes = fakes_of_operands operands in
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
+      let reg_env = String.Map.of_alist_exn fake_to_real in
+      let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
+
+      let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
+      let translation = [abstract_reg_map (translate_reg reg_env) asm] in
+      let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
+      pre @ translation @ post
+    | Lab l -> [Lab l]
+    | Directive (d, args) -> [Directive (d, args)]
+    | Comment s -> [Comment s]
+  in
+
+  let allocated = List.concat_map ~f:(allocate spill_env) asms in
+  if debug then
+    let mapping = [] in
+    let mapping = mapping @ [Comment "----- begin register mapping"] in
+    let mapping = mapping @ (
+      String.Map.to_alist spill_env
+      |> List.sort ~cmp:(fun (_, i1) (_, i2) -> compare i1 i2)
+      |> List.map ~f:(fun (s, i) -> Comment (sprintf "-%d(%%rbp): %s" (i * 8) s))
+    ) in
+    let mapping = mapping @ [Comment "----- end register mapping"] in
+    mapping @ allocated
+  else
+    allocated
+
+
+
+let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   (* TODO use debug *)
   ignore debug;
 
@@ -872,5 +959,6 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
 
   (* lol 100 is an empirically determined number *)
   let finctx, finasms = main empty_ctx given_asms in
-  (* translate asms with allocated nodes *)
-  List.map ~f:(translate_asm finctx) finasms
+  (* translate abstract_asms with allocated nodes, leaving spills.
+   * stack allocate spill nodes with Tiling.register_allocate *)
+  List.map ~f:(translate_asm finctx) finasms |> spill_allocate

@@ -612,9 +612,9 @@ let pre irs =
     let g acc expr =
       let mem_temps = get_mem_temp expr in
       if ExprSet.is_empty (inter mem_temps (defs_fun v)) then
-        add acc expr
-      else
         acc
+      else
+        add acc expr
     in
     fold ~f:g ~init:empty univ
   in

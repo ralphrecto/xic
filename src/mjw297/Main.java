@@ -426,14 +426,18 @@ public class Main {
         args.addAll(binArgs);
 
         ProcessBuilder pb = new ProcessBuilder(args)
-            .directory(Paths.get(compilerPath).toFile());
+            .directory(Paths.get(compilerPath).toFile())
+            .redirectOutput(ProcessBuilder.Redirect.INHERIT);
         Process proc = null;
 
         try {
             proc = pb.start();
+            proc.waitFor();
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         BufferedReader stdErr = new BufferedReader(

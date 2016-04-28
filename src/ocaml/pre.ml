@@ -595,7 +595,9 @@ let pre irs =
   in
 
   let g = C.create_cfg irs in
+  let g_string = C.to_dot g in
   preprocess g;
+  let preprocessed_string = C.to_dot g in
   let univ = ExprSet.concat_map irs ~f:get_subexpr_stmt in
   let uses = map g ~f:get_subexpr_stmt_v in
 
@@ -647,8 +649,41 @@ let pre irs =
   let used_fun = fun_of_map used_v in
 
   let g = red_elim g ~univ ~uses:uses_fun ~latest:latest_fun ~used:used_fun in
+  let final_g_string = C.to_dot g in
+  let flattened = flatten g in
 
-  flatten g
+  if false then
+    (* print out the IRs *)
+    print_endline "input ir:";
+    print_endline "=========";
+    List.iter irs ~f:(fun ir -> print_endline (Ir.string_of_stmt ir));
+    print_endline "";
+
+    (* print out all the cfgs *)
+    print_endline "CFGs:";
+    print_endline "====";
+    print_endline "input CFG";
+    print_endline g_string;
+    print_endline "preprocessed CFG";
+    print_endline preprocessed_string;
+    print_endline "final CFG";
+    print_endline final_g_string;
+    print_endline "";
+
+    (* print out each dataflow result *)
+    print_endline "dataflow results:";
+    print_endline "=================";
+    let dataflow_to_string phase_name result =
+      printf "%s:\n" phase_name;
+      print_endline (M.to_string E.to_small_string result)
+    in
+    dataflow_to_string "busy"  busy_v;
+    dataflow_to_string "avail" avail_v;
+    dataflow_to_string "post"  post_v;
+    dataflow_to_string "used"  used_v;
+  ;
+
+  flattened
 
 let pre_comp_unit (id, funcs) =
   let f ((fname, stmt, typ): Ir.func_decl) =

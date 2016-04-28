@@ -949,6 +949,72 @@ module BookExample = struct
       else E.empty
 end
 
+module LoopExample = struct
+  open Ir.Abbreviations
+  open Ir.Infix
+  module C = Cfg.IrCfg
+  module D = Cfg.IrData
+  module SE = Cfg.IrDataStartExit
+  module E = Pre.ExprSet
+
+  let tru = Cfg.EdgeData.True
+  let fls = Cfg.EdgeData.False
+  let start = C.V.create SE.Start
+  let exit = C.V.create SE.Exit
+  let norm = Cfg.EdgeData.Normal
+  let node num ir = C.V.create (SE.Node D.{num; ir})
+
+  let a = temp "a"
+  let n0 = node 0 (move a one)
+  let n1 = node 1 (label "head")
+  let n2 = node 2 (cjumpone (a < nine) "done")
+  let n3 = node 3 (move a (a + a))
+  let n4 = node 4 (jump (name "head"))
+  let n5 = node 5 (label "done")
+  let vs = [start; n0; n1; n2; n3; n4; n5; exit]
+
+  let es_0 = (start, norm, n0)
+  let e0_1 = (n0,    norm, n1)
+  let e1_2 = (n1,    norm, n2)
+  let e2_3 = (n2,    tru,  n3)
+  let e3_4 = (n3,    norm, n4)
+  let e4_1 = (n4,    norm, n1)
+  let e2_5 = (n2,    fls,  n5)
+  let e5_e = (n5,    norm, exit)
+  let es = [es_0; e0_1; e1_2; e2_3; e3_4; e4_1; e2_5; e5_e]
+
+  let g = make_graph vs es
+  let univ = E.of_list [a < nine; a + a]
+
+  let uses = function
+    | v when C.V.equal v n2 -> E.singleton (a < nine)
+    | v when C.V.equal v n3 -> E.singleton (a + a)
+    | _ -> E.empty
+
+  let kills = function
+    | v when C.V.equal v n0 -> E.of_list [a < nine; a + a]
+    | v when C.V.equal v n3 -> E.of_list [a < nine; a + a]
+    | _ -> E.empty
+
+  let busy = fun v ->
+    if List.mem ~equal:C.V.equal [n0; n1; n2; n4] v
+      then E.singleton (a < nine)
+    else if List.mem ~equal:C.V.equal [n3] v
+      then E.singleton (a + a)
+    else
+      E.empty
+
+  let earliest = fun v ->
+         if C.V.equal n0 v then E.singleton (a < nine)
+    else if C.V.equal n3 v then E.singleton (a + a)
+    else                        E.empty
+
+  let latest = fun v ->
+         if C.V.equal v n1 then E.singleton (a < nine)
+    else if C.V.equal v n3 then E.singleton (a + a)
+    else                        E.empty
+end
+
 let busy_test _ =
   let open Ir.Abbreviations in
   let open Ir.Infix in
@@ -994,6 +1060,20 @@ let busy_test _ =
   ] in
   test expected es g univ uses kills;
 
+  (* small example *)
+  let open LoopExample in
+  let expected = [
+    (es_0, E.empty);
+    (e0_1, E.singleton (a < nine));
+    (e1_2, E.singleton (a < nine));
+    (e2_3, E.singleton (a + a));
+    (e3_4, E.singleton (a < nine));
+    (e4_1, E.singleton (a < nine));
+    (e2_5, E.empty);
+    (e5_e, E.empty);
+  ] in
+  test expected es g univ uses kills;
+
   (* book example *)
   let open BookExample in
   let bc = E.singleton (temp "b" + temp "c") in
@@ -1014,7 +1094,7 @@ let busy_test _ =
     (e8_11,  E.empty);
     (e10_9,  bc);
   ] in
-  test expected es g univ busy kills;
+  test expected es g univ uses kills;
 
   ()
 
@@ -1035,6 +1115,20 @@ let avail_test _ =
     let actual = Pre.AvailExpr.worklist AvailExprCFG.{g; univ; busy; kills} g in
     expected === List.map edges ~f:(fun edge -> (edge, actual edge))
   in
+
+  (* small example *)
+  let open LoopExample in
+  let expected = [
+    (es_0, E.empty);
+    (e0_1, E.singleton (a < nine));
+    (e1_2, E.singleton (a < nine));
+    (e2_3, E.singleton (a < nine));
+    (e3_4, E.of_list [a < nine; a + a]);
+    (e4_1, E.of_list [a < nine; a + a]);
+    (e2_5, E.singleton (a < nine));
+    (e5_e, E.singleton (a < nine));
+  ] in
+  test expected es g univ busy kills;
 
   (* book example *)
   let open BookExample in
@@ -1077,6 +1171,20 @@ let post_test _ =
     let actual = Pre.PostponeExpr.worklist PostponeExprCFG.{g; univ; uses; earliest} g in
     expected === List.map edges ~f:(fun edge -> (edge, actual edge))
   in
+
+  (* small example *)
+  let open LoopExample in
+  let expected = [
+    (es_0, E.empty);
+    (e0_1, E.singleton (a < nine));
+    (e1_2, E.empty);
+    (e2_3, E.empty);
+    (e3_4, E.empty);
+    (e4_1, E.empty);
+    (e2_5, E.empty);
+    (e5_e, E.empty);
+  ] in
+  test expected es g univ uses earliest;
 
   (* book example *)
   let open BookExample in
@@ -1155,6 +1263,7 @@ let enchilada_test _ =
   let d = temp "d" in
   let e = temp "e" in
 
+  (* book example *)
   let irs = [
     cjumpone one "n5";  (* B1 *)
     move c two;         (* B2 *)

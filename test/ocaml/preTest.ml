@@ -922,7 +922,7 @@ module BookExample = struct
     match v with
     | SE.Start
     | SE.Exit -> E.empty
-    | SE.Node v when List.mem ~equal:C.V.equal [n5; n7; n9] v ->
+    | SE.Node _ when List.mem ~equal:C.V.equal [n5; n7; n9] v ->
       E.of_list [temp "b" + temp "c"]
     | SE.Node _ -> E.empty
 

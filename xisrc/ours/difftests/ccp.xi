@@ -24,7 +24,7 @@ test2() {
 
 test3() {
   x:int = 1
-  y:int = 2
+  y:int = 0
   z:int[] = {1,2}
   a:int = z[x+y]
 }
@@ -120,10 +120,10 @@ test6() {
 }
 
 main(_: int[][]) {
-    test1();
-    test2();
+    //test1();
+    //test2();
     test3();
-    test4();
-    test5();
-    test6();
+    //test4();
+    //test5();
+    //test6();
 }

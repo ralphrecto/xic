@@ -14,7 +14,7 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
     | BinOp ((_, Int _), MOD, (_, Int 0L)) -> (t, e)
     | BinOp ((_, Int i1), MINUS, (_, Int i2)) -> (t, Int (sub i1 i2))
     | BinOp ((_, Int i1), STAR, (_, Int i2)) -> (t, Int (mul i1 i2))
-    | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) -> 
+    | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) ->
       let i1' = big_int_of_int64 i1 in
       let i2' = big_int_of_int64 i2 in
       let mult = mult_big_int i1' i2' in
@@ -66,25 +66,25 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
     | Block stmtlist -> (ts, Block (List.map ~f:fold_stmt stmtlist))
     | Return exprlist -> (ts, Return (List.map ~f:fold_expr exprlist))
     | If (pred, branch) ->
-			begin
-				match (fold_expr pred) with
-				| (_, Bool true) -> fold_stmt branch
-				| (_, Bool false) -> (ts, Block [])
-				| b -> (ts, If (b, fold_stmt branch))
-			end
+      begin
+        match (fold_expr pred) with
+        | (_, Bool true) -> fold_stmt branch
+        | (_, Bool false) -> (ts, Block [])
+        | b -> (ts, If (b, fold_stmt branch))
+      end
     | IfElse (pred, tbr, fbr) ->
-			begin
-				match (fold_expr pred) with
-				| (_, Bool true) -> fold_stmt tbr
-				| (_, Bool false) -> fold_stmt fbr
-				| b -> (ts, IfElse (b, fold_stmt tbr, fold_stmt fbr))
-			end
+      begin
+        match (fold_expr pred) with
+        | (_, Bool true) -> fold_stmt tbr
+        | (_, Bool false) -> fold_stmt fbr
+        | b -> (ts, IfElse (b, fold_stmt tbr, fold_stmt fbr))
+      end
     | While (pred, stmt) ->
-			begin
-				match (fold_expr pred) with
-				| (_, Bool false) -> (ts, Block [])
-				| b -> (ts, While (b, fold_stmt stmt))
-			end
+      begin
+        match (fold_expr pred) with
+        | (_, Bool false) -> (ts, Block [])
+        | b -> (ts, While (b, fold_stmt stmt))
+      end
     | ProcCall (id, args) -> (ts, ProcCall (id, List.map ~f:fold_expr args))
     | _ -> (ts, s) in
   let fold_callable ((tc, c): Typecheck.callable) =

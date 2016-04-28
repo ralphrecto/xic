@@ -355,6 +355,16 @@ type alloc_context = {
   num_colors         : int;
 }
 
+let _string_of_abstract_regs (regs : abstract_reg list) : string =
+  let f acc reg =
+    (string_of_abstract_reg reg) ^ ", " ^ acc in
+  List.fold_left ~f ~init:"" regs
+
+let areg_map_to_str (val_strf : 'a -> string) (map : 'a AReg.Map.t) (mapname : string) =
+  let f ~key ~data acc =
+    (string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ "; " ^ acc in
+  "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n"
+
 let _string_of_ctx (regctx : alloc_context) : string =
   let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
     let f acc s = (strf s) ^ ", " ^ acc in
@@ -367,10 +377,8 @@ let _string_of_ctx (regctx : alloc_context) : string =
     let f acc (lst, name) = (reglist_to_str lst name) ^ acc in
     List.fold_left ~f ~init:"" l in
 
-  let colormap_to_string (map : color AReg.Map.t) (mapname : string) =
-    let f ~key ~data acc =
-      (string_of_abstract_reg key) ^ " -> " ^ (string_of_color data) ^ "; " ^ acc in
-    "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n" in
+  let adjlist_to_str aregset =
+    reglist_to_str (AReg.Set.to_list aregset) "neighbors" in
 
   let ( >> ) x y = (x ^ "\n -------------------------- \n") ^ y in
 
@@ -386,7 +394,8 @@ let _string_of_ctx (regctx : alloc_context) : string =
     (regctx.colored_nodes, "colored_nodes");
     (regctx.select_stack, "select_stack");
   ] >>
-  colormap_to_string regctx.color_map "color_map" >>
+  areg_map_to_str string_of_color regctx.color_map "color_map" >>
+  areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" >>
   "END CONTEXT"
 
 let empty_ctx = {
@@ -425,14 +434,14 @@ let empty_ctx = {
 
 (* generic helper methods *)
 let get_next_color (colors : color list) : color option =
-  colors |> string_of_colors |> print_endline;
+  print_endline "getting colors!!!";
+  print_endline (string_of_colors colors);
   let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
     Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
   let f acc x =
     match acc with
     | Some _ -> acc
-    | None ->
-        if not (List.mem colors x) then Some x
+    | None -> if not (List.mem colors x) then Some x
         else None in
   List.fold_left ~f ~init:None colorlist
 
@@ -503,13 +512,15 @@ let add_edge (u : abstract_reg) (v : abstract_reg) regctx : alloc_context =
     begin
     let adj_set' =
       ARegPair.Set.union regctx.adj_set (ARegPair.Set.of_list [(u,v); (v,u)]) in
+
     let adj_list', degree' =
-      if List.mem regctx.precolored u then
+      if not (List.mem regctx.precolored u) then
         adj_list_add u v regctx.adj_list, diff_int_map u succ regctx.degree
       else
         regctx.adj_list, regctx.degree in
+
     let adj_list'', degree'' =
-      if List.mem regctx.precolored v then
+      if not (List.mem regctx.precolored v) then
         adj_list_add v u adj_list', diff_int_map u succ degree'
       else
         adj_list', degree' in
@@ -560,7 +571,15 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
+
+      let nodestr = AsmCfg.string_of_vertex cfg_node in
+      let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in
+
+      print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);
+
+      print_endline (_string_of_ctx regctx);
       let regctx' = create_inter_edges liveset regctx in
+      print_endline (_string_of_ctx regctx');
 
       (* update node occurrences *)
       let node_occurrences' =
@@ -843,6 +862,9 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc in
       List.fold_left ~f ~init:[] neighbors in
     begin
+      let s =
+       "calling get next color with neighbor colors " ^ (string_of_colors neighbor_colors) in
+    print_endline s;
     match get_next_color neighbor_colors with
     | None ->
         { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
@@ -991,7 +1013,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      print_endline (_string_of_ctx innerctx);
+      (*print_endline (_string_of_ctx innerctx);*)
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&

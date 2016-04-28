@@ -34,31 +34,20 @@ module AsmWithLiveVar : Dataflow.CFGWithLatticeT
 
 module LiveVariableAnalysis : (module type of Dataflow.GenericAnalysis(AsmWithLiveVar))
 
-module type InterferenceGraphT = sig
-  type nodestate =
-    | Precolored
-    | Initial
-    | Spilled
+module ARegKey : Map.Key with
+  type t = abstract_reg
 
-  type nodedata = abstract_reg
+module ARegPairKey : Set.Elt with
+  type t = abstract_reg * abstract_reg
 
-  include Graph.Sig.I
-    with type V.t = nodedata
-    and type V.label = nodedata
-    and type E.t = nodedata * nodedata
-    and type E.label = unit
-
-  val string_of_nodedata : nodedata -> string
+module AReg : sig
+  module Map : module type of Map.Make (ARegKey)
+  module Set : module type of Set.Make (ARegKey)
 end
 
-module InterferenceGraph : InterferenceGraphT
-
-module IG = InterferenceGraph
-
-module NodeDataKey : Hashtbl.Key with
-  type t = IG.nodedata
-
-module NodeData : (module type of (Hashable.Make (NodeDataKey)))
+module ARegPair : sig
+  module Set : module type of Set.Make (ARegPairKey)
+end
 
 type color =
   | Reg1
@@ -77,47 +66,48 @@ type color =
   | Reg14
 
 type temp_move = {
-  src: IG.nodedata;
-  dest: IG.nodedata;
+  src: abstract_reg;
+  dest: abstract_reg;
   move: AsmData.t; (* { num; abstract_asm } *)
 }
 
 type alloc_context = {
   (* IG node lists *)
-  precolored         : IG.nodedata list;
-  initial            : IG.nodedata list;
-  simplify_wl        : IG.nodedata list;
-  freeze_wl          : IG.nodedata list;
-  spill_wl           : IG.nodedata list;
-  spilled_nodes      : IG.nodedata list;
-  coalesced_nodes    : IG.nodedata list;
-  colored_nodes      : IG.nodedata list;
-  select_stack       : IG.nodedata list;
+  precolored         : abstract_reg list;
+  initial            : abstract_reg list;
+  simplify_wl        : abstract_reg list;
+  freeze_wl          : abstract_reg list;
+  spill_wl           : abstract_reg list;
+  spilled_nodes      : abstract_reg list;
+  coalesced_nodes    : abstract_reg list;
+  colored_nodes      : abstract_reg list;
+  select_stack       : abstract_reg list;
+
   (* move lists *)
   coalesced_moves    : temp_move list;
   constrained_moves  : temp_move list;
   frozen_moves       : temp_move list;
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
-  (* interference graph related *)
-  degree             : int NodeData.Table.t;
-  adj_list           : IG.nodedata NodeData.Table.t;
+
+  (* interference graph / node related *)
+  degree             : int AReg.Map.t;
+  adj_list           : AReg.Set.t AReg.Map.t;
+  adj_set            : ARegPair.Set.t;
+  move_list          : (temp_move list) AReg.Map.t;
+  alias              : abstract_reg AReg.Map.t;
+  color_map          : color AReg.Map.t;
+
   (* other data structures *)
-  move_list          : (temp_move list) NodeData.Table.t;
-  alias              : IG.nodedata NodeData.Table.t;
-  nodestate          : IG.nodestate NodeData.Table.t;
-  (* TODO: make color type, change int to color type *)
-  color_map          : color NodeData.Table.t;
   (* number of times a temp appears; used for spill heuristic *)
-  node_occurrences   : int NodeData.Table.t;
-  inter_graph        : IG.t;
+  node_occurrences   : int AReg.Map.t;
   (* number of available machine registers for allocation *)
   num_colors         : int;
 }
 
 
 (* build stage of register allocation *)
-val build : ?init:bool -> alloc_context -> abstract_asm list -> alloc_context
+val build : alloc_context -> abstract_asm list -> alloc_context
 
 (* performs register allocation with move coalescing *)
 val reg_alloc : ?debug:bool -> abstract_asm list -> asm list

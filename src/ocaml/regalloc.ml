@@ -17,14 +17,6 @@ let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
 
 let empty (l: 'a list) = List.length l = 0
 
-let ( >>| ) (x : 'a) (debug : string) : 'a =
-  print_endline debug;
-  x
-
-let ( >>= ) (x : 'a) (debug : 'a -> string) : 'a =
-  print_endline (debug x);
-  x
-
 module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
   struct
   type t = abstract_reg [@@deriving compare,sexp]
@@ -279,12 +271,12 @@ module ARegPairKey = struct
 end
 
 module AReg = struct
-  include Map.Make (ARegKey)
-  include Set.Make (ARegKey)
+  module Map = Map.Make (ARegKey)
+  module Set = Set.Make (ARegKey)
 end
 
 module ARegPair = struct
-  include Set.Make (ARegPairKey)
+  module Set = Set.Make (ARegPairKey)
 end
 
 type color =
@@ -334,7 +326,6 @@ type alloc_context = {
   adj_set            : ARegPair.Set.t;
   move_list          : (temp_move list) AReg.Map.t;
   alias              : abstract_reg AReg.Map.t;
-  nodestate          : nodestate AReg.Map.t;
   color_map          : color AReg.Map.t;
 
   (* other data structures *)
@@ -350,17 +341,17 @@ let _string_of_ctx (regctx : alloc_context) : string =
     "[[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" sl) ^ "]]]\n\n" in
 
   "{" ^
-  strflat "precolored" (List.map ~f:IG.string_of_nodedata regctx.precolored) ^
-  strflat "initial" (List.map ~f:IG.string_of_nodedata regctx.initial) ^
-  strflat "simplify_wl" (List.map ~f:IG.string_of_nodedata regctx.simplify_wl) ^
-  strflat "freeze_wl" (List.map ~f:IG.string_of_nodedata regctx.freeze_wl) ^
-  strflat "spill_wl" (List.map ~f:IG.string_of_nodedata regctx.spill_wl) ^
-  strflat "spilled_nodes" (List.map ~f:IG.string_of_nodedata regctx.spilled_nodes) ^
-  strflat "coalesced_node" (List.map ~f:IG.string_of_nodedata regctx.coalesced_nodes) ^
-  strflat "colored_nodes" (List.map ~f:IG.string_of_nodedata regctx.colored_nodes) ^
-  strflat "select_stack" (List.map ~f:IG.string_of_nodedata regctx.select_stack) ^ "}"
+  strflat "precolored" (List.map ~f:string_of_abstract_reg regctx.precolored) ^
+  strflat "initial" (List.map ~f:string_of_abstract_reg regctx.initial) ^
+  strflat "simplify_wl" (List.map ~f:string_of_abstract_reg regctx.simplify_wl) ^
+  strflat "freeze_wl" (List.map ~f:string_of_abstract_reg regctx.freeze_wl) ^
+  strflat "spill_wl" (List.map ~f:string_of_abstract_reg regctx.spill_wl) ^
+  strflat "spilled_nodes" (List.map ~f:string_of_abstract_reg regctx.spilled_nodes) ^
+  strflat "coalesced_node" (List.map ~f:string_of_abstract_reg regctx.coalesced_nodes) ^
+  strflat "colored_nodes" (List.map ~f:string_of_abstract_reg regctx.colored_nodes) ^
+  strflat "select_stack" (List.map ~f:string_of_abstract_reg regctx.select_stack) ^ "}"
 
-let empty_ctx num_moves num_nodes = {
+let empty_ctx = {
   (* IG node lists *)
   precolored         = [];
   initial            = [];
@@ -385,7 +376,6 @@ let empty_ctx num_moves num_nodes = {
   adj_set            = ARegPair.Set.empty;
   move_list          = AReg.Map.empty;
   alias              = AReg.Map.empty;
-  nodestate          = AReg.Map.empty;
   color_map          = AReg.Map.empty;
 
   (* other data structures *)
@@ -439,7 +429,6 @@ let diff_int_map
   (map : int AReg.Map.t) : int AReg.Map.t =
   AReg.Map.update map key ~f:(function Some i -> diff i | None -> diff 0)
 
-
 (* moves between two temps can be coalesced *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   match stmt with
@@ -470,11 +459,11 @@ let node_moves (node : abstract_reg) (regctx : alloc_context) : temp_move list =
 let move_related (node: abstract_reg) (regctx : alloc_context) : bool =
   List.length (node_moves node regctx) > 0
 
-let add_edge (u : abstract_reg) (v : abstract_reg) regctx : regctx =
-  if (not (ARegPair.mem regctx.adj_set (u, v)) && (u <> v)) then
+let add_edge (u : abstract_reg) (v : abstract_reg) regctx : alloc_context =
+  if (not (ARegPair.Set.mem regctx.adj_set (u, v)) && (u <> v)) then
     begin
     let adj_set' =
-      ARegPair.union regctx.adj_set (ARegPair.of_list [(u,v); (v,u)]) in
+      ARegPair.Set.union regctx.adj_set (ARegPair.Set.of_list [(u,v); (v,u)]) in
     let adj_list', degree' =
       if List.mem regctx.precolored u then
         adj_list_add u v regctx.adj_list, diff_int_map u succ regctx.degree
@@ -488,31 +477,31 @@ let add_edge (u : abstract_reg) (v : abstract_reg) regctx : regctx =
     { regctx with
       adj_set = adj_set';
       adj_list = adj_list'';
-      adj_degree = degree''}
+      degree = degree''; }
     end
   else regctx
 
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
-let build ?(init=false) (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
+let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = AsmCfg.create_cfg asms in
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
-  let livevars : AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data =
-    function
-      | Start | Exit -> AbstractRegSet.empty
-      | Node _ as node ->
-        begin
-          match AsmCfg.succ_e cfg node with
-          | [] -> AbstractRegSet.empty
-          | edge :: _ -> livevars_edge edge
-        end in
+  let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
+    match v with
+    | Start | Exit -> AbstractRegSet.empty
+    | Node _ as node ->
+      begin
+        match AsmCfg.succ_e cfg node with
+        | [] -> AbstractRegSet.empty
+        | edge :: _ -> livevars_edge edge
+      end in
 
   (* populate precolored, initial work lists *)
-  let init0 (regctx : alloc_context) (reg : abstract_reg) : alloc_context =
+  let init0 (regctx : alloc_context) (reg : abstract_reg) =
     match reg with
-    | Fake _ -> { regctx with reg :: regctx.initial }
-    | Real _ -> { regctx with reg :: regctx.precolored }
+    | Fake _ -> { regctx with initial = reg :: regctx.initial }
+    | Real _ -> { regctx with precolored = reg :: regctx.precolored } in
 
   (* make edges for nodes interfering with each other in one statement *)
   let create_inter_edges (regctx: alloc_context) (temps : AbstractRegSet.t) : alloc_context =
@@ -535,10 +524,10 @@ let build ?(init=false) (initctx : alloc_context) (asms : abstract_asm list) : a
       let regctx' = create_inter_edges regctx liveset in
 
       (* update node occurrences *)
-      let num_occurrences' =
+      let node_occurrences' =
         let f acc livevar =
-          diff_int_map livevar incr acc in
-        AbstractRegSet.fold ~f ~init:regctx'.num_occurrences liveset in
+          diff_int_map livevar succ acc in
+        AbstractRegSet.fold ~f ~init:regctx'.node_occurrences liveset in
 
       (* populate worklist_moves and move_list *)
       let worklist_moves', move_list' =
@@ -552,13 +541,13 @@ let build ?(init=false) (initctx : alloc_context) (asms : abstract_asm list) : a
               let ml' =
                 AReg.Map.update ml tempmove.dest
                 ~f:(function Some l -> tempmove :: l | None -> [tempmove]) in
-              (ml', tempmove :: regctx.worklist_moves)
+              (tempmove :: regctx.worklist_moves, ml')
             end in
 
       { regctx' with
-        num_occurrences = num_occurrences';
-        worklist_moves = worklist_moves'
-        move_list = move_list' }
+        node_occurrences = node_occurrences';
+        worklist_moves = worklist_moves';
+        move_list = move_list'; }
       end in
 
   (* add all initial (i.e. non-precolored) temps into appropriate worklists *)
@@ -580,7 +569,7 @@ let build ?(init=false) (initctx : alloc_context) (asms : abstract_asm list) : a
   let all_livevars =
     let f cfg_node liveset =
       AbstractRegSet.union (livevars cfg_node) liveset in
-    AsmCfg.fold_vertex init0 cfg AbstractRegSet.empty in
+    AsmCfg.fold_vertex f cfg AbstractRegSet.empty in
 
   AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |> fun regctx' ->
   AsmCfg.fold_vertex init1 cfg regctx' |> fun regctx'' ->
@@ -648,7 +637,7 @@ let get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
 let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
   if (not (List.mem regctx.precolored node) &&
       not (move_related node regctx) &&
-      degree node >= regctx.num_colors) then
+      degree node regctx >= regctx.num_colors) then
       begin
         { regctx with
           freeze_wl = remove regctx.freeze_wl node;
@@ -659,7 +648,7 @@ let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
 let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
   (degree t regctx) < regctx.num_colors ||
   List.mem regctx.precolored t ||
-  ARegPair.mem regctx.adj_set t r
+  ARegPair.Set.mem regctx.adj_set (t, r)
 
 let conservative (nodes : abstract_reg list) regctx : bool =
   let k' = 0 in
@@ -668,7 +657,6 @@ let conservative (nodes : abstract_reg list) regctx : bool =
   result < (regctx.num_colors)
 
 let combine u v regctx =
-  let set t k d = AReg.Map.set t ~key:k ~data:d in
   let find map k = AReg.Map.find map k |> function Some l -> l | None -> [] in
 
   let regctx' =
@@ -682,7 +670,8 @@ let combine u v regctx =
   let alias' =
     AReg.Map.add regctx'.alias ~key:v ~data:u in
   let move_list' =
-    (find regctx'.move_list u) @ (find regctx'.move_list v) in
+    let new_lst = (find regctx'.move_list u) @ (find regctx'.move_list v) in
+    AReg.Map.add regctx'.move_list ~key:u ~data:new_lst in
 
   let regctx' = {
     regctx' with
@@ -717,7 +706,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
                        coalesced_moves = m::regctx'.coalesced_moves } in
       add_wl u regctx''
     else if List.mem regctx'.precolored v ||
-            ARegPair.mem regctx'.adj_set (u, v) then
+            ARegPair.Set.mem regctx'.adj_set (u, v) then
       let regctx'' = { regctx' with
                        constrained_moves = m::regctx'.constrained_moves } in
       regctx'' |> add_wl u |> add_wl v
@@ -791,7 +780,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
 
   let select_assign ctxacc select_node =
     let neighbors =
-      AReg.Set.find ctxacc.adj_list select_node |>
+      AReg.Map.find ctxacc.adj_list select_node |>
       function Some s -> AReg.Set.to_list s | None -> [] in
     let neighbor_colors =
       let f acc neighbor =
@@ -799,8 +788,8 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         if (List.mem ctxacc.colored_nodes alias ||
             List.mem ctxacc.precolored alias) then
           begin
-            AReg.Map.update ctxacc.color_map alias
-            ~f:(function Some c -> c :: acc | None -> acc)
+            AReg.Map.find ctxacc.color_map alias |>
+            function Some c -> c :: acc | None -> acc
           end
         else acc in
       List.fold_left ~f ~init:[] neighbors in
@@ -818,7 +807,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
 
   List.fold_left ~f:select_assign ~init:regctx regctx.select_stack |> fun regctx' ->
     let f coloracc coalesced_node =
-      let alias = get_alias coalesced_nodes in
+      let alias = get_alias coalesced_node regctx' in
       match AReg.Map.find regctx'.color_map alias with
       | None -> failwith "assign_colors: coalesced node's alias is not colored"
       | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
@@ -853,34 +842,35 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) =
   (* TODO use debug *)
   ignore debug;
 
-  let rec main
-    ?(init = false)
+  let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      print_endline (_string_of_ctx innerctx);
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&
           empty innerctx.spill_wl) then
          innerctx
       else
-        begin
         let innerctx' =
           if not (empty innerctx.simplify_wl) then
+            simplify innerctx
           else if not (empty innerctx.worklist_moves) then
+            coalesce innerctx
           else if not (empty innerctx.freeze_wl) then
-          else loop innerctx'
-        end in
-      build ~init regctx asms |> loop |> assign_colors |> fun regctx' ->
+            freeze innerctx
+          else
+            select_spill innerctx in
+        loop innerctx' in
+
+      build regctx asms |> loop |> assign_colors |> fun regctx' ->
         if not (empty regctx'.spilled_nodes) then (regctx', asms)
             (* TODO: add spill coalescing, shuttling, etc. *)
         else (regctx', asms) in
 
   (* lol 100 is an empirically determined number *)
-  let finctx, finasms = main ~init:true (empty_ctx 100 100) given_asms in
+  let finctx, finasms = main empty_ctx given_asms in
   (* translate asms with allocated nodes *)
-  print_endline "reg alloc done!";
   List.map ~f:(translate_asm finctx) finasms

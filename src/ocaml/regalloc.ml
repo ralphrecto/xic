@@ -1013,7 +1013,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     : alloc_context * abstract_asm list =
 
     let rec loop (innerctx : alloc_context) =
-      (*print_endline (_string_of_ctx innerctx);*)
+      print_endline (_string_of_ctx innerctx);
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&

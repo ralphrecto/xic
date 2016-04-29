@@ -1103,7 +1103,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
-    : alloc_context * abstract_asm list =
+    : alloc_context =
 
     let rec loop (innerctx : alloc_context) =
       (*print_endline (_string_of_ctx innerctx);*)
@@ -1125,14 +1125,25 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         loop innerctx' in
 
       build regctx asms |> loop |> assign_colors |> fun regctx' ->
-        if not (empty regctx'.spilled_nodes) then (regctx', asms)
+        if not (empty regctx'.spilled_nodes) then regctx'
             (* TODO: add spill coalescing, shuttling, etc. *)
-        else (regctx', asms) in
+        else regctx' in
 
-  (* lol 100 is an empirically determined number *)
-  let finctx, finasms = main empty_ctx given_asms in
+  let finctx = main empty_ctx given_asms in
   print_endline "final context!!!";
   print_endline (_string_of_ctx finctx);
+
+  (* remove coalesced moves *)
+  let finasms =
+    let numbered = List.mapi ~f:(fun i x -> (i, x)) given_asms in
+    let coalesced_index =
+      let f { move; _ } = move.num in
+      List.map ~f finctx.coalesced_moves in
+    let f (i, asm) acc =
+      if List.mem coalesced_index i then acc
+      else asm :: acc in
+    List.fold_right ~f ~init:[] numbered in
+
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> spill_allocate

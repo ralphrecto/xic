@@ -264,12 +264,21 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data -> fst (usedvars n_data.asm)
 
+  (* handle reg aliases *)
+  let reg_alias (reg : abstract_reg) =
+    match reg with
+    | Real Cl -> Real Rcx
+    | _ -> reg
+
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
-        let use_n, def_n = usedvars n_data.asm in
+        let use_n, def_n =
+          let f = AbstractRegSet.map ~f:reg_alias in
+          let l, r = usedvars n_data.asm in
+          f l, f r in
         AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 
 end
@@ -391,6 +400,8 @@ type alloc_context = {
   coalesced_nodes    : abstract_reg list;
   colored_nodes      : abstract_reg list;
   select_stack       : abstract_reg list;
+  (* coalesced nodes whose aliases were spilled *)
+  coalesced_spills   : abstract_reg list;
 
   (* move lists *)
   coalesced_moves    : temp_move list;
@@ -489,6 +500,7 @@ let empty_ctx = {
   coalesced_nodes    = [];
   colored_nodes      = [];
   select_stack       = [];
+  coalesced_spills   = [];
 
   (* move lists *)
   coalesced_moves    = [];
@@ -867,11 +879,11 @@ let coalesce (regctx : alloc_context) : alloc_context =
       let regctx'' = { regctx' with
                        constrained_moves = m::regctx'.constrained_moves } in
       regctx'' |> add_wl u |> add_wl v
-    else if List.mem regctx'.precolored u &&
+    else if (List.mem regctx'.precolored u &&
             List.fold_left ~init:true (adjacent v regctx')
-              ~f:(fun acc t -> acc && (ok t u regctx')) ||
-            not (List.mem regctx'.precolored u) &&
-            conservative ((adjacent u regctx') @ (adjacent v regctx')) regctx' then
+              ~f:(fun acc t -> acc && (ok t u regctx'))) ||
+            (not (List.mem regctx'.precolored u) &&
+            conservative ((adjacent u regctx') @ (adjacent v regctx')) regctx') then
       let regctx'' = { regctx' with
                        coalesced_moves = m::regctx'.coalesced_moves } in
       regctx'' |> combine u v |> add_wl u
@@ -972,55 +984,86 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         ~init:{regctx with select_stack = []}
         regctx.select_stack in
 
-    let f coloracc coalesced_node =
+    let f ctxacc coalesced_node =
       let alias = get_alias coalesced_node regctx' in
       match AReg.Map.find regctx'.color_map alias with
-      | None ->
-          let nodestr =
-            string_of_abstract_reg coalesced_node in
-          let aliastr =
-            string_of_abstract_reg alias in
-          let failstr =
-           "select_color: no color for alias. node: " ^ nodestr ^ ", alias : " ^ aliastr in
-          failwith failstr
-      | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
-    let color_map' =
-      List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in
-    { regctx' with color_map = color_map' }
+      (* Note: if a coalesced node's alias has been spilled, the color map
+       * has no binding for the alias. In this case, we do not assign a color
+       * to the coalesced node. Before translating colors to actual registers,
+       * we take uncolored coalesced nodes and assign them to the same memory
+       * location as their spilled alias. *)
+      | None -> {
+          ctxacc with
+          coalesced_spills = coalesced_node :: ctxacc.coalesced_spills
+        }
+      | Some c -> {
+          ctxacc with
+          color_map = AReg.Map.add ctxacc.color_map ~key:coalesced_node ~data:c
+      } in
+    List.fold_left ~f ~init:{ regctx' with coalesced_nodes = [] } regctx'.coalesced_nodes
 
-let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : abstract_reg =
-  AReg.Map.find regctx.color_map reg |>
-  function
-    | Some color -> Real (reg_of_color color)
-    | None -> reg
+type trans_context =
+  | None
+  (* set instructions always use cl instead of rcx *)
+  | Set
 
-let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : abstract_reg operand =
+let get_real_reg
+  (tctx : trans_context)
+  (regctx : alloc_context)
+  (reg : abstract_reg) : abstract_reg =
+  match AReg.Map.find regctx.color_map reg, tctx with
+    | Some color, Set ->
+        let r = reg_of_color color in
+        let r' = if r = Rcx then Cl else r in
+        Real r'
+    | Some color, None ->
+        Real (reg_of_color color)
+    | None, _ ->
+        (* see note above in assign color regarding coalesced_spills *)
+        if List.mem regctx.coalesced_spills reg then
+          get_alias reg regctx
+        else reg
+
+let translate_operand
+  (tctx : trans_context)
+  (regctx : alloc_context)
+  (op : abstract_reg operand) : abstract_reg operand =
   match op with
-  | Reg reg -> Reg (get_real_reg regctx reg)
-  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
-  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg regctx reg, s))
+  | Reg reg -> Reg (get_real_reg tctx regctx reg)
+  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg tctx regctx reg))
+  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg tctx regctx reg, s))
   | Mem (BaseOff (c, reg1, reg2, s)) ->
-      Mem (BaseOff (c, get_real_reg regctx reg1, get_real_reg regctx reg2, s))
+      Mem (BaseOff (c, get_real_reg tctx regctx reg1, get_real_reg tctx regctx reg2, s))
   | Label l -> Label l
   | Const c -> Const c
+
+let get_trans_context (instr : string) : trans_context =
+  let set_instr = [
+    "sete"; "setne"; "setl"; "setg"; "setle"; "setge"; "setz";
+    "setnz"; "sets"; "setns"; "setc"; "setnc";
+  ] in
+  if List.mem set_instr instr then Set
+  else None
 
 let translate_asm (regctx : alloc_context) (asm : abstract_asm) : abstract_asm =
   match asm with
   | Op (instr, operands) ->
-      Op (instr, List.map ~f:(translate_operand regctx) operands)
+      let ctx = get_trans_context instr in
+      Op (instr, List.map ~f:(translate_operand ctx regctx) operands)
   | Lab l -> Lab l
   | Directive (s, l) -> Directive (s, l)
   | Comment s -> Comment s
 
 (* allocate spilled nodes to the stack *)
 let spill_allocate ?(debug=false) asms =
-  (* spill_env maps each fake name to an index, starting at 15, into the stack.
-   * We start at 15 since the first 14 is reserved for callee save registers.
+  (* spill_env maps each fake name to an index, starting at 18, into the stack.
+   * We start at 18 since the first 14 is reserved for callee save registers
+   * plus 3 for spill space for shuttle registers.
    * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
    * (Fake "foo") will be spilled to -8n(%rbp). *)
   let spill_env =
     fakes_of_asms asms
-    |> List.mapi ~f:(fun i asm -> (asm, i + 15))
+    |> List.mapi ~f:(fun i asm -> (asm, i + 18))
     |> String.Map.of_alist_exn
   in
 
@@ -1055,6 +1098,16 @@ let spill_allocate ?(debug=false) asms =
    * present in abstract assembly. *)
   let unused_regs = [R13; R14; R15] in
 
+  let shuttle_address (r : reg) =
+    let offset_index =
+      match r with
+      | R13 -> 15
+      | R14 -> 16
+      | R15 -> 17
+      | _ -> failwith "spill_allocate: impossible" in
+    let offset = Int64.of_int (-8 * offset_index) in
+    Mem (Base (Some offset, Rbp)) in
+
   (* Translate fake registers using the register environment and leave real
    * registers alone. *)
   let translate_reg (reg_env: reg String.Map.t) (r: abstract_reg) : reg =
@@ -1067,16 +1120,28 @@ let spill_allocate ?(debug=false) asms =
     let spill = spill_address env in
     match asm with
     | Op (_, operands) ->
+      begin
       let fakes = fakes_of_operands operands in
       let unused_regs = List.take unused_regs (List.length fakes) in
       let fake_to_real = List.zip_exn fakes unused_regs in
       let reg_env = String.Map.of_alist_exn fake_to_real in
       let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
 
+      let prepre =
+        let f fake =
+          let real = String.Map.find_exn reg_env fake in
+          movq (fake_to_op fake) (shuttle_address real) in
+        List.map ~f fakes in
       let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
       let translation = [abstract_reg_map (translate_reg reg_env) asm] in
       let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
-      pre @ translation @ post
+      let postpost =
+        let f fake =
+          let real = String.Map.find_exn reg_env fake in
+          movq (shuttle_address real) (fake_to_op fake) in
+        List.map ~f fakes in
+      prepre @ pre @ translation @ post @ postpost
+      end
     | Lab l -> [Lab l]
     | Directive (d, args) -> [Directive (d, args)]
     | Comment s -> [Comment s]
@@ -1103,7 +1168,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
-    : alloc_context * abstract_asm list =
+    : alloc_context =
 
     let rec loop (innerctx : alloc_context) =
       (*print_endline (_string_of_ctx innerctx);*)
@@ -1125,14 +1190,25 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         loop innerctx' in
 
       build regctx asms |> loop |> assign_colors |> fun regctx' ->
-        if not (empty regctx'.spilled_nodes) then (regctx', asms)
+        if not (empty regctx'.spilled_nodes) then regctx'
             (* TODO: add spill coalescing, shuttling, etc. *)
-        else (regctx', asms) in
+        else regctx' in
 
-  (* lol 100 is an empirically determined number *)
-  let finctx, finasms = main empty_ctx given_asms in
-  (*print_endline "final context!!!";*)
-  (*print_endline (_string_of_ctx finctx);*)
+  let finctx = main empty_ctx given_asms in
+  print_endline "final context!!!";
+  print_endline (_string_of_ctx finctx);
+
+  (* remove coalesced moves *)
+  let finasms =
+    let numbered = List.mapi ~f:(fun i x -> (i, x)) given_asms in
+    let coalesced_index =
+      let f { move; _ } = move.num in
+      List.map ~f finctx.coalesced_moves in
+    let f (i, asm) acc =
+      if List.mem coalesced_index i then acc
+      else asm :: acc in
+    List.fold_right ~f ~init:[] numbered in
+
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> spill_allocate

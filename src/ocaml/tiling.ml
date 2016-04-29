@@ -525,8 +525,10 @@ let eat_func_decl
   let num_caller = List.length caller_saved_no_sp in
   let tot_temps = num_temps + num_callee + num_caller in
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
+  (* number of shuttle registers *)
+  let num_shuttles = 3 in
   (* saved rip + saved rbp + temps + rets n args  *)
-  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
+  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args + num_shuttles in
 
   let section_wrap = section_wrap debug in
 
@@ -831,13 +833,16 @@ let rec chomp_binop
         | None -> (fresh_reg, asm1 @ asm2 @ [leaq (Mem binop_mem) (Reg fresh_reg)])
     end
   (* neg case *)
-  | BinOp (Const 0L, SUB, e1) ->
+  | BinOp ((Const 0L) as e2, SUB, e1) ->
     begin
       let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
+      let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
       let fresh_reg = Fake (FreshReg.fresh ()) in
+      let asm1' = asm1 @ [movq (Reg reg1) (Reg fresh_reg)] in
       match dest with
-        | Some dest_reg when dest_reg <> reg1 -> (dest_reg, asm1 @ imm_binop SUB 0L reg1 dest_reg)
-        | None -> (fresh_reg, asm1 @ [movq (Reg reg1) (Reg fresh_reg); negq (Reg fresh_reg)])
+        | Some dest_reg when dest_reg <> reg1 ->
+          (dest_reg, asm1' @ asm2 @ non_imm_binop SUB reg2 fresh_reg dest_reg)
+        | None -> (fresh_reg, asm1' @ [negq (Reg fresh_reg)])
         | _ -> (reg1, asm1 @ [negq (Reg reg1)])
     end
   (* comparisons with zero *)

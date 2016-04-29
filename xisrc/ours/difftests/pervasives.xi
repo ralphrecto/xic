@@ -74,99 +74,54 @@ string_of_5array(x: int[][][][][]) : int[] {
     return s;
 }
 
-string_of_1barray(x: bool[]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_bool(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_2barray(x: bool[][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_1barray(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_3barray(x: bool[][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_2barray(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_4barray(x: bool[][][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_3barray(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_5barray(x: bool[][][][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_4barray(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
 print_1array(x: int[]) {
     i: int = 0
+    println("{")
     while (i < length(x)) {
         println(unparseInt(x[i]))
         i = i + 1
     }
+    println("}")
 }
 
 print_2array(x: int[][]) {
     i: int = 0
+    println("{")
     while (i < length(x)) {
         print_1array(x[i])
         i = i + 1
     }
+    println("}")
 }
 
 print_3array(x: int[][][]) {
     i: int = 0
+    println("{")
     while (i < length(x)) {
         print_2array(x[i])
         i = i + 1
     }
+    println("}")
 }
 
 print_4array(x: int[][][][]) {
     i: int = 0
+    println("{")
     while (i < length(x)) {
         print_3array(x[i])
         i = i + 1
     }
+    println("}")
 }
 
 print_5array(x: int[][][][][]) {
     i: int = 0
+    println("{")
     while (i < length(x)) {
         print_4array(x[i])
         i = i + 1
     }
+    println("}")
 }
 
 // Misc

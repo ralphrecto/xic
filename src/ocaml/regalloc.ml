@@ -264,12 +264,21 @@ module AsmWithLiveVar : CFGWithLatticeT
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data -> fst (usedvars n_data.asm)
 
+  (* handle reg aliases *)
+  let reg_alias (reg : abstract_reg) =
+    match reg with
+    | Real Cl -> Real Rcx
+    | _ -> reg
+
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
     | Start | Exit -> AbstractRegSet.empty
     | Node n_data ->
-        let use_n, def_n = usedvars n_data.asm in
+        let use_n, def_n =
+          let f = AbstractRegSet.map ~f:reg_alias in
+          let l, r = usedvars n_data.asm in
+          f l, f r in
         AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
 
 end
@@ -982,32 +991,57 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             string_of_abstract_reg alias in
           let failstr =
            "select_color: no color for alias. node: " ^ nodestr ^ ", alias : " ^ aliastr in
+          print_endline (_string_of_ctx regctx');
           failwith failstr
       | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
     let color_map' =
       List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in
     { regctx' with color_map = color_map' }
 
-let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : abstract_reg =
-  AReg.Map.find regctx.color_map reg |>
-  function
-    | Some color -> Real (reg_of_color color)
-    | None -> reg
+type trans_context =
+  | None
+  (* set instructions always use cl instead of rcx *)
+  | Set
 
-let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : abstract_reg operand =
+let get_real_reg
+  (tctx : trans_context)
+  (regctx : alloc_context)
+  (reg : abstract_reg) : abstract_reg =
+  match AReg.Map.find regctx.color_map reg, tctx with
+    | Some color, Set ->
+        let r = reg_of_color color in
+        let r' = if r = Rcx then Cl else r in
+        Real r'
+    | Some color, None ->
+        Real (reg_of_color color)
+    | None, _ -> reg
+
+let translate_operand
+  (tctx : trans_context)
+  (regctx : alloc_context)
+  (op : abstract_reg operand) : abstract_reg operand =
   match op with
-  | Reg reg -> Reg (get_real_reg regctx reg)
-  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg regctx reg))
-  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg regctx reg, s))
+  | Reg reg -> Reg (get_real_reg tctx regctx reg)
+  | Mem (Base (c, reg)) -> Mem (Base (c, get_real_reg tctx regctx reg))
+  | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg tctx regctx reg, s))
   | Mem (BaseOff (c, reg1, reg2, s)) ->
-      Mem (BaseOff (c, get_real_reg regctx reg1, get_real_reg regctx reg2, s))
+      Mem (BaseOff (c, get_real_reg tctx regctx reg1, get_real_reg tctx regctx reg2, s))
   | Label l -> Label l
   | Const c -> Const c
+
+let get_trans_context (instr : string) : trans_context =
+  let set_instr = [
+    "sete"; "setne"; "setl"; "setg"; "setle"; "setge"; "setz";
+    "setnz"; "sets"; "setns"; "setc"; "setnc";
+  ] in
+  if List.mem set_instr instr then Set
+  else None
 
 let translate_asm (regctx : alloc_context) (asm : abstract_asm) : abstract_asm =
   match asm with
   | Op (instr, operands) ->
-      Op (instr, List.map ~f:(translate_operand regctx) operands)
+      let ctx = get_trans_context instr in
+      Op (instr, List.map ~f:(translate_operand ctx regctx) operands)
   | Lab l -> Lab l
   | Directive (s, l) -> Directive (s, l)
   | Comment s -> Comment s

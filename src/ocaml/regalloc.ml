@@ -325,7 +325,7 @@ let string_of_color = function
   | Reg13 -> "Reg13"
   | Reg14 -> "Reg14"
 
-let string_of_colors (l : color list) =
+let _string_of_colors (l : color list) =
   l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
 
 let get_next_color (colors : color list) : color option =

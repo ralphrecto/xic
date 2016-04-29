@@ -120,6 +120,18 @@ whileTest8() : int {
   return z;
 }
 
+whileTest9() : int {
+  x:bool[][] = {{true}, {true, true}, {false}};
+  y:int = 0;
+
+  while (x[1][0]) {
+    y = y + 5;
+    x[1][0] = x[2][0];
+  }
+
+  return y;
+}
+
 main (_:int[][]) {
   println (string_of_int (whileTest1()));
   println (string_of_int (whileTest2()));
@@ -129,5 +141,6 @@ main (_:int[][]) {
   println (string_of_int (whileTest6()));
   println (string_of_int (whileTest7()));
   println (string_of_int (whileTest8()));
+  println (string_of_int (whileTest9()));
 }
 

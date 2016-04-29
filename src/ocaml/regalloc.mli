@@ -65,6 +65,8 @@ type color =
   | Reg13
   | Reg14
 
+val string_of_color : color -> string
+
 type temp_move = {
   src: abstract_reg;
   dest: abstract_reg;
@@ -107,6 +109,15 @@ type alloc_context = {
   num_colors         : int;
 }
 
+val string_of_coalesced_nodes : abstract_reg list -> string
+val string_of_reg_set : AReg.Set.t -> string
+val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
+val string_of_color_map : color AReg.Map.t -> string
+
+(* valid_coloring c returns true if c.color_map is a valid coloring of
+ * c.adj_list. That is, every node in adj_list has a different color that all
+ * its neighbors. *)
+val valid_coloring : alloc_context -> bool
 
 (* build stage of register allocation *)
 val build :

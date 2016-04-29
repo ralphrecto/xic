@@ -421,6 +421,64 @@ type alloc_context = {
   num_colors         : int;
 }
 
+(* return node alias after coalescing; if node has not been coalesced,
+ * reduces to identity function *)
+let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
+  if List.mem regctx.coalesced_nodes node then
+    match AReg.Map.find regctx.alias node with
+    | Some a -> get_alias a regctx
+    | None -> node
+  else
+    node
+
+let string_of_abstract_regs regs =
+  sprintf "[%s]" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+
+let string_of_coalesced_nodes = string_of_abstract_regs
+
+let string_of_reg_set reg_set =
+  let regs = AReg.Set.to_list reg_set in
+  sprintf "{%s}" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+
+let string_of_reg_map (f: 'a -> string) (m: 'a AReg.Map.t) =
+  AReg.Map.to_alist m
+  |> List.map ~f:(fun (areg, x) ->
+      sprintf "  %s --> %s"
+        (string_of_abstract_reg areg)
+        (f x)
+  )
+  |> String.concat ~sep:",\n"
+  |> fun s -> "{\n" ^ s ^ "\n}"
+
+let string_of_adj_list adj_list =
+  string_of_reg_map string_of_reg_set adj_list
+
+let string_of_color_map color_map =
+  string_of_reg_map string_of_color color_map
+
+let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
+  AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
+    if List.mem spilled_nodes (get_alias key c) then begin
+      assert (not (AReg.Map.mem color_map key));
+      true
+    end else
+      let get_color areg =
+        match AReg.Map.find color_map areg with
+        | Some c -> c
+        | None -> begin
+            let s = (string_of_abstract_reg areg) in
+            printf "adj list = %s\n" (string_of_adj_list adj_list);
+            printf "color map = %s\n" (string_of_color_map color_map);
+            printf "coalesced nodes = %s\n" (string_of_coalesced_nodes coalesced_nodes);
+            failwith (sprintf "register %s has no color" s)
+        end
+      in
+      let my_color = get_color key in
+      let neighbors = AReg.Set.to_list data in
+      let neighbor_colors = List.map neighbors ~f:get_color in
+      not (List.mem neighbor_colors my_color)
+  )
+
 let string_of_temp_move ({src; dest; move} : temp_move) =
   let srcstr = string_of_abstract_reg src in
   let deststr = string_of_abstract_reg dest in
@@ -787,27 +845,17 @@ let simplify regctx : alloc_context =
   match regctx.simplify_wl with
   | [] -> regctx
   | n :: t ->
-    let regctx1 = 
+    let regctx1 =
       {
         regctx with
         simplify_wl = t;
         select_stack = unduped_cons regctx.select_stack n;
-      } 
+      }
     in
     List.fold_left
       ~f:(fun regctx2 m -> decrement_degree m regctx2)
       ~init:regctx1
       (adjacent n regctx1)
-
-(* return node alias after coalescing; if node has not been coalesced,
- * reduces to identity function *)
-let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
-  if List.mem regctx.coalesced_nodes node then
-    match AReg.Map.find regctx.alias node with
-    | Some a -> get_alias a regctx
-    | None -> node
-  else
-    node
 
 (* potentially add a new node to simplify_wl; see Appel for details *)
 let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
@@ -817,10 +865,10 @@ let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
       begin
         { regctx with
           freeze_wl = remove regctx.freeze_wl node;
-          simplify_wl = unduped_cons regctx.simplify_wl node; 
+          simplify_wl = unduped_cons regctx.simplify_wl node;
         }
       end
-  else 
+  else
     regctx
 
 let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
@@ -831,7 +879,7 @@ let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
 let conservative (nodes : abstract_reg list) regctx : bool =
   let k' = 0 in
   let result = List.fold_left ~init:k' nodes ~f:(fun acc n ->
-    if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc) 
+    if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc)
   in
   result < (regctx.num_colors)
 
@@ -854,25 +902,25 @@ let combine u v regctx =
     AReg.Map.add regctx1.move_list ~key:u ~data:new_lst'
   in
 
-  let regctx2 = 
+  let regctx2 =
     { regctx1 with
       coalesced_nodes = coalesced_nodes';
       alias = alias';
       move_list = move_list';
-    } 
+    }
   in
 
   let regctx3 = enable_moves [v] regctx2 in
 
   let f ctxacc t =
-    add_edge t u ctxacc |> decrement_degree t 
+    add_edge t u ctxacc |> decrement_degree t
   in
   let regctx4 = List.fold_left ~f ~init:regctx3 (adjacent v regctx3) in
 
   if (degree u regctx4) >= (regctx4.num_colors) && List.mem regctx4.freeze_wl u then
     { regctx4 with
       freeze_wl = remove regctx4.freeze_wl u;
-      spill_wl = unduped_cons regctx4.spill_wl u 
+      spill_wl = unduped_cons regctx4.spill_wl u
     }
   else
     regctx4
@@ -888,18 +936,18 @@ let coalesce (regctx : alloc_context) : alloc_context =
     let regctx1 = { regctx with worklist_moves = t } in
     if u = v then
       let regctx2 = { regctx1 with
-                       coalesced_moves = unduped_cons regctx1.coalesced_moves m 
-                    } 
+                       coalesced_moves = unduped_cons regctx1.coalesced_moves m
+                    }
       in
       add_wl u regctx2
     else if List.mem regctx1.precolored v ||
             ARegPair.Set.mem regctx1.adj_set (u, v) then
       let regctx2 = { regctx1 with
-                       constrained_moves = unduped_cons regctx1.constrained_moves m 
-                     } 
+                       constrained_moves = unduped_cons regctx1.constrained_moves m
+                     }
       in
       regctx2 |> add_wl u |> add_wl v
-    else if 
+    else if
       (List.mem regctx1.precolored u &&
        List.fold_left ~init:true (adjacent v regctx1)
        ~f:(fun acc t -> acc && (ok t u regctx1)))
@@ -907,7 +955,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
        (not (List.mem regctx1.precolored u) &&
        conservative ((adjacent u regctx1) @ (adjacent v regctx1)) regctx1) then
       let regctx2 = { regctx1 with
-                       coalesced_moves = unduped_cons regctx1.coalesced_moves m } 
+                       coalesced_moves = unduped_cons regctx1.coalesced_moves m }
       in
       regctx2 |> combine u v |> add_wl u
     else
@@ -921,7 +969,7 @@ let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
       if get_alias dest ctxacc = get_alias node ctxacc then
         get_alias src ctxacc
       else
-        get_alias dest ctxacc 
+        get_alias dest ctxacc
     in
     let active_moves' = remove ctxacc.active_moves tempmove in
     let frozen_moves' = unduped_cons ctxacc.frozen_moves tempmove in
@@ -938,8 +986,8 @@ let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
         ctxacc'.freeze_wl, ctxacc'.simplify_wl in
     { ctxacc' with
       freeze_wl = freeze_wl';
-      simplify_wl = simplify_wl'; 
-    } 
+      simplify_wl = simplify_wl';
+    }
     in
     List.fold_left ~f ~init:regctx (node_moves node regctx)
 
@@ -951,7 +999,7 @@ let freeze (regctx : alloc_context) : alloc_context =
       regctx with
       freeze_wl = t;
       simplify_wl = unduped_cons regctx.simplify_wl fnode;
-    } 
+    }
   in
   freeze_moves regctx' fnode
 
@@ -972,20 +1020,17 @@ let select_spill (regctx : alloc_context) : alloc_context =
         regctx with
         spill_wl = remove regctx.spill_wl chosenreg;
         simplify_wl = unduped_cons regctx.simplify_wl chosenreg;
-      } 
+      }
       in
       freeze_moves regctx' chosenreg
 
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
-  (*
-  print_endline "assign colors wheee";
-  *)
   let select_assign ctxacc select_node =
     let neighbors =
       match AReg.Map.find ctxacc.adj_list select_node with
-      | Some s -> AReg.Set.to_list s 
-      | None -> [] 
+      | Some s -> AReg.Set.to_list s
+      | None -> []
     in
     let neighbor_colors =
       let f acc neighbor =
@@ -996,7 +1041,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             AReg.Map.find ctxacc.color_map alias |>
             function Some c -> unduped_cons acc c | None -> acc
           end
-        else acc 
+        else acc
       in
       List.fold_left ~f ~init:[] neighbors in
     (*
@@ -1020,7 +1065,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
           { ctxacc with
             color_map = color_map';
             colored_nodes = unduped_cons ctxacc.colored_nodes select_node; }
-    end 
+    end
     in
 
     let regctx' =
@@ -1051,6 +1096,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
     let regctx' =
       List.fold_left ~f ~init:{ regctx' with coalesced_nodes = [] } regctx'.coalesced_nodes in
     (*List.iter ~f:print_endline (_string_of_ctx regctx');*)
+    printf "assign_colors valid coloring? %b\n" (valid_coloring regctx');
     regctx'
 
 type trans_context =

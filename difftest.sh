@@ -37,6 +37,7 @@ run_and_diff() {
 
     blue $fname
 
+    # cat "$f" > "$tempname"
     cat "$pervasive_file" "$f" > "$tempname"
 
     should_run=()
@@ -48,9 +49,9 @@ run_and_diff() {
     should_run+=(true)  # ir-cp
     should_run+=(true)  # ir-pre
     should_run+=(true)  # ir-opt
-    should_run+=(true)  # munch
-    should_run+=(true) # chomp
-    should_run+=(true) # s
+    should_run+=(false)  # munch
+    should_run+=(false) # chomp
+    should_run+=(false) # s
 
     names=()
     names+=("typed")

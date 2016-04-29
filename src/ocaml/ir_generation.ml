@@ -110,6 +110,69 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   | AMP      -> AND
   | BAR      -> OR
 
+let concat_name = "__concat"
+let concat_ir =
+  let open Ir.Abbreviations in
+  let open Ir.Infix in
+  let xs = temp "xs" in
+  let ys = temp "ys" in
+  let zs = temp "zs" in
+  let zs2 = temp "zs2" in
+  let len_xs = temp "len_xs" in
+  let len_ys = temp "len_ys" in
+  let len_zs = temp "len_zs" in
+  let i = temp "i" in
+
+  let loop_one_start = "loop_one_start" in
+  let loop_one_true = "loop_one_true" in
+  let loop_one_false = "loop_one_false" in
+
+  let loop_two_start = "loop_two_start" in
+  let loop_two_true = "loop_two_true" in
+  let loop_two_false = "loop_two_false" in
+
+  seq [
+    (* setup *)
+    move xs (temp (argreg 0));
+    move ys (temp (argreg 1));
+    move len_xs (mem (xs + (const (-8L))));
+    move len_ys (mem (ys + (const (-8L))));
+    move len_zs (len_xs + len_ys);
+    move zs (call (name "_I_alloc_i") [(one + len_zs) * eight]);
+    move (mem zs) (len_zs);
+    move zs (zs + eight);
+
+    (* loop 1 *)
+    move i zero;
+
+    label loop_one_start;
+    cjump (i < len_xs) loop_one_true loop_one_false;
+    label loop_one_true;
+      move (mem (zs + (i * eight))) (mem (xs + (i * eight)));
+      move i (i + one);
+      jump (name loop_one_start);
+    label loop_one_false;
+
+    (* loop 2 *)
+    move zs2 (zs + (len_xs * eight));
+    move i zero;
+
+    label loop_two_start;
+    cjump (i < len_ys) loop_two_true loop_two_false;
+    label loop_two_true;
+      move (mem (zs2 + (i * eight))) (mem (ys + (i * eight)));
+      move i (i + one);
+      jump (name loop_two_start);
+    label loop_two_false;
+
+    (* return *)
+    move (temp (retreg 0)) (zs);
+    return;
+  ]
+
+let concat_func_decl =
+  (concat_name, concat_ir, (Typecheck.Expr.EmptyArray, Typecheck.Expr.EmptyArray))
+
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
   | Int i -> Const i
@@ -138,47 +201,8 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
       match t1, op, t2 with
       (* Array concatenation *)
       | (ArrayT _ | EmptyArray), PLUS, (ArrayT _ | EmptyArray) ->
-        let incr_ir e = (BinOp (e, ADD, const 1)) in
-
-        let arr1, arr2 = gen_expr callnames (t1, e1), gen_expr callnames (t2, e2) in
-        let arrtmp1, arrtmp2  = Temp (fresh_temp ()), Temp (fresh_temp ()) in
-        let lenarr1, lenarr2 = Temp (fresh_temp ()), Temp (fresh_temp ()) in
-        let newarr1, newarr2 = Temp (fresh_temp ()), Temp (fresh_temp ()) in
-        let while_lbl1, while_lbl2 = fresh_label (), fresh_label () in
-        let t1_lbl, f1_lbl = fresh_label (), fresh_label () in
-        let t2_lbl, f2_lbl = fresh_label (), fresh_label () in
-        let i, j = Temp (fresh_temp ()), Temp (fresh_temp ()) in
-        ESeq (
-          Seq ([
-              Move (arrtmp1, arr1);
-              Move (arrtmp2, arr2);
-              Move (lenarr1, Mem(arrtmp1$(-1), NORMAL));
-              Move (lenarr2, Mem(arrtmp2$(-1), NORMAL));
-              Move (newarr1, (BinOp (lenarr1, ADD, lenarr2)) |> incr_ir |> malloc_word_ir );
-              Move (Mem (newarr1, NORMAL), BinOp (lenarr1, ADD, lenarr2));
-              Move (newarr1, BinOp (newarr1, ADD, word));
-
-              Move (i, const 0);
-              Label while_lbl1;
-              CJump (BinOp(BinOp(i, LT, lenarr1), AND, BinOp(lenarr1, GT, const 0)), t1_lbl, f1_lbl);
-              Label t1_lbl;
-              Move (Mem (newarr1$$(i), NORMAL), Mem (arrtmp1$$(i), NORMAL));
-              Move (i, incr_ir i);
-              Jump (Name while_lbl1);
-              Label f1_lbl;
-
-              Move (newarr2,  newarr1$$(lenarr1));
-              Move (j, const 0);
-              Label while_lbl2;
-              CJump (BinOp(BinOp(j, LT, lenarr2), AND, BinOp(lenarr2, GT, const 0)), t2_lbl, f2_lbl);
-              Label t2_lbl;
-              Move (Mem (newarr2$$(j), NORMAL), Mem (arrtmp2$$(j), NORMAL));
-              Move (j, incr_ir j);
-              Jump (Name while_lbl2);
-              Label f2_lbl;
-            ]),
-          newarr1
-        )
+          Call (Name concat_name, [gen_expr callnames (t1, e1);
+                                   gen_expr callnames (t2, e2)])
       | _ -> BinOp (gen_expr callnames (t1, e1), ir_of_ast_binop op, gen_expr callnames (t2, e2))
     end
   | UnOp (UMINUS, e1) -> BinOp (Const (0L), SUB, gen_expr callnames e1)
@@ -446,6 +470,8 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let f map (cname, block, typ) =
     String.Map.add map ~key:cname ~data:(cname, block, typ) in
   let callable_map = List.fold_left ~f ~init:String.Map.empty gen_callables in
+  let callable_map =
+    String.Map.add callable_map ~key:concat_name ~data:concat_func_decl in
   let open Filename in
   let program_name = name |> chop_extension |> basename in
   (program_name, callable_map)

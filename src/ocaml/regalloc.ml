@@ -318,35 +318,6 @@ type color =
   | Reg13
   | Reg14
 
-let string_of_color = function
-  | Reg1 -> "Reg1"
-  | Reg2 -> "Reg2"
-  | Reg3 -> "Reg3"
-  | Reg4 -> "Reg4"
-  | Reg5 -> "Reg5"
-  | Reg6 -> "Reg6"
-  | Reg7 -> "Reg7"
-  | Reg8 -> "Reg8"
-  | Reg9 -> "Reg9"
-  | Reg10 -> "Reg10"
-  | Reg11 -> "Reg11"
-  | Reg12 -> "Reg12"
-  | Reg13 -> "Reg13"
-  | Reg14 -> "Reg14"
-
-let _string_of_colors (l : color list) =
-  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
-
-let get_next_color (colors : color list) : color option =
-  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
-    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
-  let f acc x =
-    match acc with
-    | Some _ -> acc
-    | None -> if not (List.mem colors x) then Some x
-        else None in
-  List.fold_left ~f ~init:None colorlist
-
 let reg_of_color (c : color) : reg =
   match c with
   | Reg1 -> Rax
@@ -382,6 +353,22 @@ let color_of_reg (r : reg) : color =
   | R14 -> Reg13
   | R15 -> Reg14
   | _ -> failwith "color_of_reg: no color for rbp/rsp"
+
+let string_of_color (c : color) =
+  c |> reg_of_color |> string_of_reg
+
+let _string_of_colors (l : color list) =
+  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
+
+let get_next_color (colors : color list) : color option =
+  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
+    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
+  let f acc x =
+    match acc with
+    | Some _ -> acc
+    | None -> if not (List.mem colors x) then Some x
+        else None in
+  List.fold_left ~f ~init:None colorlist
 
 type temp_move = {
   src: abstract_reg;

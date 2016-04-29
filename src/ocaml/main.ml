@@ -138,6 +138,7 @@ let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
   )
 
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
+  print_endline "asmgen whee";
   Result.(
     typecheck opts ast >>= fun typed_prog ->
     irgen opts ast >>| fun ir_prog ->

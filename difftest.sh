@@ -49,8 +49,8 @@ run_and_diff() {
     should_run+=(true)  # ir-pre
     should_run+=(true)  # ir-opt
     should_run+=(true)  # munch
-    should_run+=(false) # chomp
-    should_run+=(false) # s
+    should_run+=(true) # chomp
+    should_run+=(true) # s
 
     names=()
     names+=("typed")

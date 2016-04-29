@@ -637,8 +637,8 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
-      print_endline (string_of_abstract_asm asm);
-      print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");
+      (*print_endline (string_of_abstract_asm asm);*)
+      (*print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");*)
 
       (* add interferences between defs and liveset *)
       let _, defs = UseDefs.usedvars asm in
@@ -951,10 +951,10 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc in
       List.fold_left ~f ~init:[] neighbors in
     begin
-    let nodestr = string_of_abstract_reg select_node  in
-    let colorstr = string_of_colors neighbor_colors in
-    let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in
-    print_endline s;
+    (*let nodestr = string_of_abstract_reg select_node  in*)
+    (*let colorstr = string_of_colors neighbor_colors in*)
+    (*let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in*)
+    (*print_endline s;*)
     match get_next_color neighbor_colors with
     | None ->
         { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
@@ -1131,8 +1131,8 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
 
   (* lol 100 is an empirically determined number *)
   let finctx, finasms = main empty_ctx given_asms in
-  print_endline "final context!!!";
-  print_endline (_string_of_ctx finctx);
+  (*print_endline "final context!!!";*)
+  (*print_endline (_string_of_ctx finctx);*)
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> spill_allocate

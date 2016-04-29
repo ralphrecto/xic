@@ -282,7 +282,7 @@ let live_vars_test _ =
   
   assert_livevars cfg expecteds livevars;
 
-  (* test 6 *********************************************************)
+  (* test 5 *********************************************************)
   let n0 = movq (const 5) (fkr 0) |> node 0 in
   let n1 = movq (const 6) (fkr 1) |> node 1 in
   let n2 = cmpq (fkr 0) (fkr 1) |> node 2 in

@@ -109,6 +109,11 @@ type alloc_context = {
   num_colors         : int;
 }
 
+val degree_ok : alloc_context -> bool
+val simplify_ok : alloc_context -> bool
+val freeze_ok : alloc_context -> bool
+val spill_ok : alloc_context -> bool
+
 val string_of_coalesced_nodes : abstract_reg list -> string
 val string_of_reg_set : AReg.Set.t -> string
 val string_of_adj_list : AReg.Set.t AReg.Map.t -> string

@@ -1288,3 +1288,36 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
       let buildctx, livevars = build regctx asms in
 
       print_endline "start building";
+      print_endline "------------------------------------";
+      List.iter ~f:print_endline (_string_of_ctx buildctx);
+      print_endline "------------------------------------";
+      print_endline "end building";
+
+      buildctx |> loop |> assign_colors |> fun finctx ->
+      (finctx, livevars) in
+
+  let finctx, livevars = main empty_ctx given_asms in
+  let finctx_comments : abstract_asm list =
+    let f str = Comment str in
+    List.map ~f (_string_of_ctx finctx) in
+
+  (* remove coalesced moves *)
+  let finasms =
+    let numbered : AsmData.t list =
+      List.mapi ~f:(fun num asm -> { AsmData.num; AsmData.asm; }) given_asms in
+    let coalesced_index =
+      let f { move; _ } = move.num in
+      List.map ~f finctx.coalesced_moves in
+    let f node acc =
+      let livevar_str : abstract_asm =
+        let comment_str = livevars (Node node) |> _set_to_string in
+        Comment ("<< livevars: " ^ comment_str ^ ">>") in
+      let asm_str = Comment (string_of_abstract_asm node.asm) in
+      if List.mem coalesced_index node.num then acc
+      else node.asm :: asm_str :: livevar_str :: acc in
+    List.fold_right ~f ~init:[] numbered in
+
+  (* translate abstract_asms with allocated nodes, leaving spills.
+   * stack allocate spill nodes with Tiling.register_allocate *)
+  List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
+    finctx_comments @ finasms' |> spill_allocate

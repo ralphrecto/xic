@@ -945,7 +945,12 @@ let assign_colors (regctx : alloc_context) : alloc_context =
           colored_nodes = select_node :: ctxacc.colored_nodes; }
     end in
 
-  List.fold_left ~f:select_assign ~init:regctx regctx.select_stack |> fun regctx' ->
+    let regctx' =
+      List.fold_left
+        ~f:select_assign
+        ~init:{regctx with select_stack = []}
+        regctx.select_stack in
+
     let f coloracc coalesced_node =
       let alias = get_alias coalesced_node regctx' in
       match AReg.Map.find regctx'.color_map alias with

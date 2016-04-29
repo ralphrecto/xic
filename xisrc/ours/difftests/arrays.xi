@@ -41,22 +41,22 @@ test6() {
     x[7] = 8
     x[8] = 9
     x[9] = 10
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 test7() {
     x: int[] = {}
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 test8() {
     x: int[] = {1}
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 test9() {
     x: int[] = {1, 2, 3, 4, 5, 6}
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 test10() {
@@ -67,7 +67,7 @@ test10() {
     x[3] = 40
     x[4] = 50
     x[5] = 60
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 foo11(x: int[]) { }
@@ -79,7 +79,7 @@ test11() {
     }
     print_1array(x)
     foo11(x)
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 foo12(x: int[]) {
@@ -88,7 +88,7 @@ foo12(x: int[]) {
 test12() {
     x: int[] = {1, 2, 3, 4, 5, 6}
     foo12(x)
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 test13() {
@@ -114,9 +114,9 @@ mangle_first(x: int[]) {
 }
 test15() {
     x: int[] = {0, 1, 2, 3}
-    println(string_of_1array(x))
+    print_1array(x)
     mangle_first(x)
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 main(_: int[][]) {

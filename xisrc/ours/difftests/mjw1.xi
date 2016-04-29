@@ -14,34 +14,34 @@ increment(xs: int[]) : int[] {
 main(args:int[][]) {
     {
         xs: int[][] = {{}, {1}, {1,2}};
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[2] = xs[0];
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[1] = xs[1] + {xs[1][0]};
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[0] = {} + {} + "a" + "" + {} + {}
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         empty_first(xs);
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[0] = {} + {0} + {};
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[0] = xs[0] + xs[0] + {xs[xs[0][0]][xs[0][0]]}
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[2] = xs[2] + xs[0] + xs[1]
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs[0] = {{({0} + "")[{0}[0]]}[0]}
-        println(string_of_2array(xs));
+        print_2array(xs);
 
         xs = xs + xs + xs;
-        println(string_of_2array(xs));
+        print_2array(xs);
     }
 
     {
@@ -52,14 +52,14 @@ main(args:int[][]) {
         xs[1][0] = 3;
         xs[1][1] = 4;
         xs[1][2] = 5;
-        println(string_of_2array(xs));
+        print_2array(xs);
     }
 
     {
         xs: int[2][3];
         xs[0] = {};
         xs[1] = {1, 2};
-        println(string_of_2array(xs));
+        print_2array(xs);
     }
 
     {
@@ -75,11 +75,11 @@ main(args:int[][]) {
         four = {three} + {{two}} + {{{one}}};
         five = {four} + "" + "" + {four};
 
-        println(string_of_1array(one));
-        println(string_of_2array(two));
-        println(string_of_3array(three));
-        println(string_of_4array(four));
-        println(string_of_5array(five));
+        print_1array(one);
+        print_2array(two);
+        print_3array(three);
+        print_4array(four);
+        print_5array(five);
 
         one = one + one;
         two = two + two + two;
@@ -87,45 +87,45 @@ main(args:int[][]) {
         four = four + four + four;
         five = five;
 
-        // println(string_of_1array(one));
-        // println(string_of_2array(two));
-        // println(string_of_3array(three));
-        // println(string_of_4array(four));
-        // println(string_of_5array(five));
+        // print_1array(one);
+        // print_2array(two);
+        // print_3array(three);
+        // print_4array(four);
+        // print_5array(five);
     }
 
     {
         xs: int[] = {1, 2};
         ys: int[] = {2, 1, 3, 1};
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
+        print_1array(xs);
+        print_1array(ys);
 
         temp: int[]
         temp = xs
         xs = ys
         ys = temp
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
+        print_1array(xs);
+        print_1array(ys);
 
         xs = ys;
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
+        print_1array(xs);
+        print_1array(ys);
 
         ys[0] = 42;
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
+        print_1array(xs);
+        print_1array(ys);
 
         xs[1] = 43;
-        println(string_of_1array(xs));
-        println(string_of_1array(ys));
+        print_1array(xs);
+        print_1array(ys);
     }
 
     {
         xs:int[] = range(0, 10);
-        println(string_of_1array(xs))
+        print_1array(xs)
         _ = increment(xs);
-        println(string_of_1array(xs))
-        println(string_of_1array(increment(xs)))
-        println(string_of_1array(increment({1, 2, 3, 4})))
+        print_1array(xs)
+        print_1array(increment(xs))
+        print_1array(increment({1, 2, 3, 4}))
     }
 }

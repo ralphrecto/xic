@@ -3,11 +3,22 @@
 set -euo pipefail
 
 NORMAL="\e[0m"
+
 red() {
     echo -e "\e[91m$1$NORMAL"
 }
+
 blue() {
     echo -e "\e[96m$1$NORMAL"
+}
+
+usage() {
+    echo "Usage:"
+    echo "  difftest test.xi..."
+    echo ""
+    echo "Options:"
+    echo "  -h    Print this message"
+    echo "  -n    Don't cat pervasives.xi"
 }
 
 link_and_run() {
@@ -21,6 +32,7 @@ link_and_run() {
 
 run_and_diff() {
     f="$1"
+    cat_pervasives="$2"
 
     nonce=TEMP
     dname=$(dirname $f)                     # foo/bar
@@ -37,21 +49,28 @@ run_and_diff() {
 
     blue $fname
 
-    # cat "$f" > "$tempname"
-    cat "$pervasive_file" "$f" > "$tempname"
+    if "$cat_pervasives"; then
+        cat "$pervasive_file" "$f" > "$tempname"
+    else
+        echo -n "" > "$tempname"
+        echo "use conv" >> "$tempname"
+        echo "use io"   >> "$tempname"
+        echo ""         >> "$tempname"
+        cat "$f"        >> "$tempname"
+    fi
 
     should_run=()
-    should_run+=(true)  # typed
-    should_run+=(true)  # typed-acf
-    should_run+=(true)  # nolower
-    should_run+=(true)  # lower
-    should_run+=(true)  # ir
-    should_run+=(true)  # ir-cp
-    should_run+=(true)  # ir-pre
-    should_run+=(true)  # ir-opt
-    should_run+=(false)  # munch
-    should_run+=(false) # chomp
-    should_run+=(false) # s
+    should_run+=(true) # typed
+    should_run+=(true) # typed-acf
+    should_run+=(true) # nolower
+    should_run+=(true) # lower
+    should_run+=(true) # ir
+    should_run+=(true) # ir-cp
+    should_run+=(true) # ir-pre
+    should_run+=(true) # ir-opt
+    should_run+=(true) # munch
+    should_run+=(true) # chomp
+    should_run+=(true) # s
 
     names=()
     names+=("typed")
@@ -151,12 +170,32 @@ run_and_diff() {
 }
 
 main() {
+    cat_pervasives=true
+
+    while getopts "nh" opt; do
+      case $opt in
+        n)
+          cat_pervasives=false
+          ;;
+        h)
+          usage
+          exit 0
+          ;;
+        \?)
+          echo "Invalid option: -$OPTARG" >&2
+          exit 1
+          ;;
+      esac
+    done
+    shift $((OPTIND-1))
+
     if [[ $# == 0 ]]; then
-        echo "usage: difftest test.xi..."
+        usage
+        exit 1
     fi
 
     for f in "$@"; do
-        run_and_diff "$f"
+        run_and_diff "$f" "$cat_pervasives"
     done
 }
 

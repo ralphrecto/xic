@@ -131,7 +131,7 @@ test5() {
 test6() {
     x: int[] = {1, 2, 3}
     x[1 + 1] = x[1 + 1] + (1 + 1)
-    println(string_of_1array(x))
+    print_1array(x)
 }
 
 // troll test case
@@ -185,7 +185,7 @@ test8() {
 
     println(string_of_int(x))
     println(string_of_int(y))
-    println(string_of_1array(z))
+    print_1array(z)
 }
 
 test9() {

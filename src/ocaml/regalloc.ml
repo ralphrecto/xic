@@ -7,13 +7,26 @@ open Fresh
 open Util
 
 (**** Invariant Checks ****)
+let (intersect) l1 l2 =
+  List.filter l1 ~f:(fun elm -> List.mem l2 elm)
+
+let (union) l1 l2 =
+  List.fold_left ~init:l1 l2 (fun acc elm -> if (List.mem elm acc) then acc
+                                             else elm::acc)
+
 let degree_ok _regctx = failwith "TODO"
 
 let simplify_ok _regctx = failwith "TODO"
 
-let freeze_ok _regctx = failwith "TODO"
+let freeze_ok regctx =
+  List.fold_left ~init:true regctx.freeze_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find regctx.degree u) < regctx.num_colors &&
+    ((AReg.Map.find regctx.move_list u) intersect (regctx.active_moves union
+        regctx.worklist_moves) != [])
 
-let spill_ok _regctx = failwith "TODO"
+let spill_ok regctx =
+  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find regctx.degree u) >= regctx.num_colors
 
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =

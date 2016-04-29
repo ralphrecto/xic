@@ -475,21 +475,22 @@ let diff_int_map
   (map : int AReg.Map.t) : int AReg.Map.t =
   AReg.Map.update map key ~f:(function Some i -> diff i | None -> diff 0)
 
-(* moves between two temps can be coalesced *)
+(* moves between two registers can be coalesced *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   match stmt with
   | Start | Exit -> None
-  | Node { num; asm; } -> begin
+  | Node { num; asm; } ->
+    begin
     match asm with
-    | Op (instr, op1 :: op2 :: []) when instr = "movq" || instr = "mov" ->
+    | Op (instr, ((Reg (_ as op1)) :: (Reg (_ as op2)) :: [])) ->
       begin
-      match fakes_of_operand op1, fakes_of_operand op2 with
-      | fake1 :: [], fake2 :: [] ->
-          Some { src = Fake fake1; dest = Fake fake2; move = {num; asm;}}
-      | _ -> None
+      if instr = "movq" || instr = "mov" then
+          Some { src = op1; dest = op2; move = {num; asm;}}
+      else
+        None
       end
     | _ -> None
-  end
+    end
 
 (* possibly coalescable moves involving the node *)
 let node_moves (node : abstract_reg) (regctx : alloc_context) : temp_move list =

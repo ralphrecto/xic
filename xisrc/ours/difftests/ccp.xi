@@ -119,11 +119,36 @@ test6() {
   }
 }
 
+test7(){
+  x:int = 1
+  y:int = 1
+  z:int
+  while (x < y) {
+    z = 3
+  }
+  z = 4
+  println(unparseInt(z))
+}
+
+test8(){
+  x:int = 1
+  y:int = 1
+  z:int
+  while (x == y) {
+    z = 3
+    x = x + 1
+  }
+  z = 4
+  println(unparseInt(z))
+}
+
 main(_: int[][]) {
-    //test1();
-    //test2();
+    test1();
+    test2();
     test3();
-    //test4();
-    //test5();
-    //test6();
+    test4();
+    test5();
+    test6();
+    test7();
+    test8();
 }

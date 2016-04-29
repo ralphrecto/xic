@@ -6,28 +6,9 @@ open Asm
 open Fresh
 open Util
 
-(**** Invariant Checks ****)
-let (intersect) l1 l2 =
-  List.filter l1 ~f:(fun elm -> List.mem l2 elm)
-
-let (union) l1 l2 =
-  List.fold_left ~init:l1 l2 (fun acc elm -> if (List.mem elm acc) then acc
-                                             else elm::acc)
-
-let degree_ok _regctx = failwith "TODO"
-
-let simplify_ok _regctx = failwith "TODO"
-
-let freeze_ok regctx =
-  List.fold_left ~init:true regctx.freeze_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find regctx.degree u) < regctx.num_colors &&
-    ((AReg.Map.find regctx.move_list u) intersect (regctx.active_moves union
-        regctx.worklist_moves) != [])
-
-let spill_ok regctx =
-  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find regctx.degree u) >= regctx.num_colors
-
+(* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
@@ -40,39 +21,76 @@ let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
 
 let empty (l: 'a list) = List.length l = 0
 
-module AbstractRegSet : Set.S with type Elt.t = abstract_reg = Set.Make (
-  struct
+(* ************************************************************************** *)
+(* Maps and Sets                                                              *)
+(* ************************************************************************** *)
+module ARegKey = struct
   type t = abstract_reg [@@deriving compare,sexp]
-  end
-)
-
-module AdjacencySet : Set.S with type Elt.t = abstract_reg * abstract_reg =
-  Set.Make (struct type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp] end)
-
-let _set_to_string (set : AbstractRegSet.t) : string =
-  let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
-  "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }"
-
-module type UseDefsT = sig
-  type usedefs = AbstractRegSet.t * AbstractRegSet.t
-
-  type usedef_pattern =
-    | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
-    | Unop of string list * (abstract_reg operand -> usedefs)
-    | Zeroop of string list * usedefs
-
-  type usedef_val =
-    | BinopV of string * abstract_reg operand * abstract_reg operand
-    | UnopV of string * abstract_reg operand
-    | ZeroopV of string
-
-  val usedef_match : usedef_pattern list -> usedef_val -> usedefs
-
-  val usedvars : abstract_asm -> usedefs
 end
 
-module UseDefs : UseDefsT = struct
-  type usedefs = AbstractRegSet.t * AbstractRegSet.t
+module ARegPairKey = struct
+  type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp]
+end
+
+module AReg = struct
+  module Set = Set.Make (ARegKey)
+  module Map = Map.Make (ARegKey)
+end
+
+module ARegPair = struct
+  module Set = Set.Make (ARegPairKey)
+  module Map = Map.Make (ARegPairKey)
+end
+
+let string_of_areg = Asm.string_of_abstract_reg
+
+let string_of_areg_set reg_set =
+  let regs = AReg.Set.to_list reg_set in
+  sprintf "{%s}" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+
+let string_of_areg_map m ~f =
+  AReg.Map.to_alist m
+  |> List.map ~f:(fun (areg, x) ->
+      sprintf "  %s --> %s"
+        (string_of_abstract_reg areg)
+        (f x)
+  )
+  |> String.concat ~sep:",\n"
+  |> fun s -> "{\n" ^ s ^ "\n}"
+
+(**** Invariant Checks ****)
+let intersect l1 l2 =
+  List.filter l1 ~f:(fun elm -> List.mem l2 elm)
+
+let union l1 l2 =
+  List.fold_left ~init:l1 l2 ~f:(fun acc elm -> if (List.mem acc elm) then acc
+                                             else elm::acc)
+
+let degree_ok _regctx = failwith "TODO"
+
+let simplify_ok regctx =
+  List.fold_left ~init:true regctx.simplify_wl ~f:(fun acc u ->
+    acc)
+
+let freeze_ok regctx =
+  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find regctx.degree u) < regctx.num_colors &&
+    (intersect (AReg.Map.find regctx.move_list u) (union regctx.active_moves 
+        regctx.worklist_moves) != []))
+
+let spill_ok regctx =
+  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find regctx.degree u) >= regctx.num_colors)
+
+let _set_to_string (set : AReg.Set.t) : string =
+  let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
+  "{ " ^ (AReg.Set.fold ~f ~init:"" set) ^ " }"
+
+(* ************************************************************************** *)
+(* Live Variable Analysis                                                     *)
+(* ************************************************************************** *)
+module UseDefs = struct
+  type usedefs = AReg.Set.t * AReg.Set.t
 
   type usedef_pattern =
     | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
@@ -90,9 +108,9 @@ module UseDefs : UseDefsT = struct
     remove regs' (Real Rsp)
 
   (* grabs all temps that appear in an operand *)
-  let set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
+  let set_of_arg (arg: abstract_reg operand) : AReg.Set.t =
     let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
-    AbstractRegSet.of_list regs_list
+    AReg.Set.of_list regs_list
 
   let usedef_match (patterns : usedef_pattern list) (v : usedef_val) =
     let f acc (pat : usedef_pattern) =
@@ -109,7 +127,7 @@ module UseDefs : UseDefsT = struct
       end in
     match List.fold_left ~f ~init:None patterns with
     | Some usedef -> usedef
-    | None -> AbstractRegSet.empty, AbstractRegSet.empty
+    | None -> AReg.Set.empty, AReg.Set.empty
 
   let binops_use_plus_def =
     let instr = [
@@ -121,10 +139,10 @@ module UseDefs : UseDefsT = struct
       let set2 = set_of_arg op2 in
       match op2 with
       | Reg _ ->
-        (AbstractRegSet.union set1 set2, set2)
+        (AReg.Set.union set1 set2, set2)
       | Mem _ ->
-        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
-      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+        (AReg.Set.union set1 set2, AReg.Set.empty)
+      | _ -> AReg.Set.empty, AReg.Set.empty in
     Binop (instr, f)
 
   let binops_leaq =
@@ -135,8 +153,8 @@ module UseDefs : UseDefsT = struct
       match op2 with
       | Reg _ -> (set1, set2)
       | Mem _ ->
-        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
-      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+        (AReg.Set.union set1 set2, AReg.Set.empty)
+      | _ -> AReg.Set.empty, AReg.Set.empty in
     Binop (instr, f)
 
   let binops_move =
@@ -147,15 +165,15 @@ module UseDefs : UseDefsT = struct
       match op2 with
       | Reg _ -> (set1, set2)
       | Mem _ ->
-        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
-      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+        (AReg.Set.union set1 set2, AReg.Set.empty)
+      | _ -> AReg.Set.empty, AReg.Set.empty in
     Binop (instr, f)
 
   let binops_use =
     let instr = [ "bt"; "cmpq"; "test" ] in
     let f op1 op2 =
-      let uses = AbstractRegSet.union (set_of_arg op1) (set_of_arg op2) in
-      (uses, AbstractRegSet.empty) in
+      let uses = AReg.Set.union (set_of_arg op1) (set_of_arg op2) in
+      (uses, AReg.Set.empty) in
     Binop (instr, f)
 
   let unops_use_plus_def =
@@ -164,8 +182,8 @@ module UseDefs : UseDefsT = struct
       let opregs = set_of_arg op in
       match op with
       | Reg _ -> (opregs, opregs)
-      | Mem _ -> (opregs, AbstractRegSet.empty)
-      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty) in
+      | Mem _ -> (opregs, AReg.Set.empty)
+      | _ -> (AReg.Set.empty, AReg.Set.empty) in
     Unop (instr, f)
 
   (* TODO: these should go in as a special case since we se CL for the
@@ -180,21 +198,21 @@ module UseDefs : UseDefsT = struct
     let f op =
       let opregs = set_of_arg op in
       match op with
-      | Reg _ -> (AbstractRegSet.empty, opregs)
-      | Mem _ -> (opregs, AbstractRegSet.empty)
-      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty) in
+      | Reg _ -> (AReg.Set.empty, opregs)
+      | Mem _ -> (opregs, AReg.Set.empty)
+      | _ -> (AReg.Set.empty, AReg.Set.empty) in
     Unop (instr, f)
 
   let unops_use =
     let instr = [ "push" ; "pushq" ] in
-    let f op = (set_of_arg op, AbstractRegSet.empty) in
+    let f op = (set_of_arg op, AReg.Set.empty) in
     Unop (instr, f)
 
   let unops_mul_div =
     let instr = [ "imulq"; "idivq"; ] in
     let f op =
-      let useset = AbstractRegSet.add (set_of_arg op) (Real Rax) in
-      let defset = AbstractRegSet.of_list [Real Rax; Real Rdx;] in
+      let useset = AReg.Set.add (set_of_arg op) (Real Rax) in
+      let defset = AReg.Set.of_list [Real Rax; Real Rdx;] in
       (useset, defset) in
     Unop (instr, f)
 
@@ -206,7 +224,7 @@ module UseDefs : UseDefsT = struct
         caller_saved_regs |>
         List.map ~f:(fun reg -> Real reg) |>
         no_rbp_or_rsp |>
-        AbstractRegSet.of_list in
+        AReg.Set.of_list in
       (useset, defset) in
     Unop (instr, f)
 
@@ -216,8 +234,8 @@ module UseDefs : UseDefsT = struct
       callee_saved_regs |>
       List.map ~f:(fun reg -> Real reg) |>
       no_rbp_or_rsp |>
-      AbstractRegSet.of_list in
-    Zeroop (instr, (useset, AbstractRegSet.empty))
+      AReg.Set.of_list in
+    Zeroop (instr, (useset, AReg.Set.empty))
 
   let asm_match =
     let patterns = [
@@ -235,7 +253,7 @@ module UseDefs : UseDefsT = struct
     usedef_match patterns
 
   (* returns a sets of vars used and defd, respectively *)
-  let usedvars : abstract_asm -> AbstractRegSet.t * AbstractRegSet.t =
+  let usedvars : abstract_asm -> AReg.Set.t * AReg.Set.t =
     function
       | Op (name, []) ->
           asm_match (ZeroopV name)
@@ -243,21 +261,21 @@ module UseDefs : UseDefsT = struct
           asm_match (UnopV (name, arg))
       | Op (name, arg1 :: arg2 :: []) ->
           asm_match (BinopV (name, arg1, arg2))
-      | _ -> (AbstractRegSet.empty, AbstractRegSet.empty)
+      | _ -> (AReg.Set.empty, AReg.Set.empty)
 
 end
 
 
-module LiveVariableLattice : LowerSemilattice with type data = AbstractRegSet.t with
-  type data = AbstractRegSet.t = struct
+module LiveVariableLattice : LowerSemilattice with type data = AReg.Set.t with
+  type data = AReg.Set.t = struct
 
-  type data = AbstractRegSet.t
-  let ( ** ) = AbstractRegSet.union
-  let ( === ) = AbstractRegSet.equal
+  type data = AReg.Set.t
+  let ( ** ) = AReg.Set.union
+  let ( === ) = AReg.Set.equal
   let to_string data =
     let f acc reg =
       string_of_abstract_reg reg ^ ", " ^ acc in
-    AbstractRegSet.fold ~f ~init:"" data
+    AReg.Set.fold ~f ~init:"" data
 end
 
 module AsmWithLiveVar : CFGWithLatticeT
@@ -283,7 +301,7 @@ module AsmWithLiveVar : CFGWithLatticeT
 
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
     match n with
-    | Start | Exit -> AbstractRegSet.empty
+    | Start | Exit -> AReg.Set.empty
     | Node n_data -> fst (usedvars n_data.asm)
 
   (* handle reg aliases *)
@@ -295,35 +313,21 @@ module AsmWithLiveVar : CFGWithLatticeT
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
-    | Start | Exit -> AbstractRegSet.empty
+    | Start | Exit -> AReg.Set.empty
     | Node n_data ->
         let use_n, def_n =
-          let f = AbstractRegSet.map ~f:reg_alias in
+          let f = AReg.Set.map ~f:reg_alias in
           let l, r = usedvars n_data.asm in
           f l, f r in
-        AbstractRegSet.union use_n (AbstractRegSet.diff d def_n)
+        AReg.Set.union use_n (AReg.Set.diff d def_n)
 
 end
 
 module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
 
-module ARegKey = struct
-  type t = abstract_reg [@@deriving compare,sexp]
-end
-
-module ARegPairKey = struct
-  type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp]
-end
-
-module AReg = struct
-  module Map = Map.Make (ARegKey)
-  module Set = Set.Make (ARegKey)
-end
-
-module ARegPair = struct
-  module Set = Set.Make (ARegPairKey)
-end
-
+(* ************************************************************************** *)
+(* Register Allocation Types                                                  *)
+(* ************************************************************************** *)
 type color =
   | Reg1
   | Reg2
@@ -340,56 +344,53 @@ type color =
   | Reg13
   | Reg14
 
-let reg_of_color (c : color) : reg =
-  match c with
-  | Reg1 -> Rax
-  | Reg2 -> Rbx
-  | Reg3 -> Rcx
-  | Reg4 -> Rdx
-  | Reg5 -> Rsi
-  | Reg6 -> Rdi
-  | Reg7 -> R8
-  | Reg8 -> R9
-  | Reg9 -> R10
+let reg_of_color = function
+  | Reg1  -> Rax
+  | Reg2  -> Rbx
+  | Reg3  -> Rcx
+  | Reg4  -> Rdx
+  | Reg5  -> Rsi
+  | Reg6  -> Rdi
+  | Reg7  -> R8
+  | Reg8  -> R9
+  | Reg9  -> R10
   | Reg10 -> R11
   | Reg11 -> R12
   | Reg12 -> R13
   | Reg13 -> R14
   | Reg14 -> R15
 
-let color_of_reg (r : reg) : color =
-  match r with
+let color_of_reg = function
   | Rax -> Reg1
   | Rbx -> Reg2
   | Rcx -> Reg3
-  | Cl -> Reg3
+  | Cl  -> Reg3
   | Rdx -> Reg4
   | Rsi -> Reg5
   | Rdi -> Reg6
-  | R8 -> Reg7
-  | R9 -> Reg8
+  | R8  -> Reg7
+  | R9  -> Reg8
   | R10 -> Reg9
   | R11 -> Reg10
   | R12 -> Reg11
   | R13 -> Reg12
   | R14 -> Reg13
   | R15 -> Reg14
-  | _ -> failwith "color_of_reg: no color for rbp/rsp"
+  | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
 let string_of_color (c : color) =
-  c |> reg_of_color |> string_of_reg
-
-let _string_of_colors (l : color list) =
-  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
+  Asm.string_of_reg (reg_of_color c)
 
 let get_next_color (colors : color list) : color option =
-  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
-    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
+  let colorlist = [
+    Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8; Reg9; Reg10; Reg11; Reg12;
+    Reg13; Reg14;
+  ] in
   let f acc x =
     match acc with
     | Some _ -> acc
-    | None -> if not (List.mem colors x) then Some x
-        else None in
+    | None -> if not (List.mem colors x) then Some x else None
+  in
   List.fold_left ~f ~init:None colorlist
 
 type temp_move = {
@@ -399,7 +400,6 @@ type temp_move = {
 }
 
 type alloc_context = {
-  (* IG node lists *)
   precolored         : abstract_reg list;
   initial            : abstract_reg list;
   simplify_wl        : abstract_reg list;
@@ -409,30 +409,65 @@ type alloc_context = {
   coalesced_nodes    : abstract_reg list;
   colored_nodes      : abstract_reg list;
   select_stack       : abstract_reg list;
-  (* coalesced nodes whose aliases were spilled *)
   coalesced_spills   : abstract_reg list;
-
-  (* move lists *)
   coalesced_moves    : temp_move list;
   constrained_moves  : temp_move list;
   frozen_moves       : temp_move list;
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
-
-  (* interference graph / node related *)
   degree             : int AReg.Map.t;
   adj_list           : AReg.Set.t AReg.Map.t;
   adj_set            : ARegPair.Set.t;
   move_list          : (temp_move list) AReg.Map.t;
   alias              : abstract_reg AReg.Map.t;
   color_map          : color AReg.Map.t;
-
-  (* other data structures *)
-  (* number of times a temp appears; used for spill heuristic *)
   node_occurrences   : int AReg.Map.t;
-  (* number of available machine registers for allocation *)
   num_colors         : int;
 }
+
+(* return node alias after coalescing; if node has not been coalesced,
+ * reduces to identity function *)
+let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
+  if List.mem regctx.coalesced_nodes node then
+    match AReg.Map.find regctx.alias node with
+    | Some a -> get_alias a regctx
+    | None -> node
+  else
+    node
+
+let string_of_abstract_regs regs =
+  sprintf "[%s]" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+
+let string_of_coalesced_nodes = string_of_abstract_regs
+
+let string_of_adj_list adj_list =
+  string_of_areg_map ~f:string_of_areg_set adj_list
+
+let string_of_color_map color_map =
+  string_of_areg_map ~f:string_of_color color_map
+
+let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
+  AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
+    if List.mem spilled_nodes (get_alias key c) then begin
+      assert (not (AReg.Map.mem color_map key));
+      true
+    end else
+      let get_color areg =
+        match AReg.Map.find color_map areg with
+        | Some c -> c
+        | None -> begin
+            let s = (string_of_abstract_reg areg) in
+            printf "adj list = %s\n" (string_of_adj_list adj_list);
+            printf "color map = %s\n" (string_of_color_map color_map);
+            printf "coalesced nodes = %s\n" (string_of_coalesced_nodes coalesced_nodes);
+            failwith (sprintf "register %s has no color" s)
+        end
+      in
+      let my_color = get_color key in
+      let neighbors = AReg.Set.to_list data in
+      let neighbor_colors = List.map neighbors ~f:get_color in
+      not (List.mem neighbor_colors my_color)
+  )
 
 let string_of_temp_move ({src; dest; move} : temp_move) =
   let srcstr = string_of_abstract_reg src in
@@ -634,11 +669,11 @@ let build
 
   let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
     match v with
-    | Start | Exit -> AbstractRegSet.empty
+    | Start | Exit -> AReg.Set.empty
     | Node _ as node ->
       begin
         match AsmCfg.succ_e cfg node with
-        | [] -> AbstractRegSet.empty
+        | [] -> AReg.Set.empty
         | edge :: _ -> livevars_edge edge
       end in
 
@@ -649,13 +684,13 @@ let build
     | Real _ -> { regctx with precolored = reg :: regctx.precolored } in
 
   (* make edges for nodes interfering with each other in one statement *)
-  let create_inter_edges (temps : AbstractRegSet.t) (regctx: alloc_context) : alloc_context =
+  let create_inter_edges (temps : AReg.Set.t) (regctx: alloc_context) : alloc_context =
     let g1 ctxacc1 reg1 =
       let g2 ctxacc2 reg2 =
         if reg1 <> reg2 then add_edge reg1 reg2 ctxacc2
         else ctxacc2 in
-      AbstractRegSet.fold ~f:g2 ~init:ctxacc1 temps in
-    AbstractRegSet.fold ~f:g1 ~init:regctx temps in
+      AReg.Set.fold ~f:g2 ~init:ctxacc1 temps in
+    AReg.Set.fold ~f:g1 ~init:regctx temps in
 
   (* initialize regctx with move_list and worklist_moves *)
   let init1 (regctx : alloc_context) (cfg_node : AsmCfg.vertex) : alloc_context =
@@ -668,13 +703,13 @@ let build
       let liveset = livevars cfg_node in
       (* add interferences between defs and liveset *)
       let _, defs = UseDefs.usedvars asm in
-      let regctx' = create_inter_edges (AbstractRegSet.union liveset defs) regctx in
+      let regctx' = create_inter_edges (AReg.Set.union liveset defs) regctx in
 
       (* update node occurrences *)
       let node_occurrences' =
         let f acc livevar =
           diff_int_map livevar succ acc in
-        AbstractRegSet.fold ~f ~init:regctx'.node_occurrences liveset in
+        AReg.Set.fold ~f ~init:regctx'.node_occurrences liveset in
 
       (* populate worklist_moves and move_list *)
       let worklist_moves', move_list' =
@@ -713,7 +748,7 @@ let build
     | Real _ -> regctx in
 
   (* add colors of precolored regs in color map *)
-  let color_precoloreds (precoloreds : AbstractRegSet.t) regctx =
+  let color_precoloreds (precoloreds : AReg.Set.t) regctx =
     let f ctxacc key =
       match key with
       | Fake _ -> ctxacc
@@ -721,12 +756,12 @@ let build
         let data = color_of_reg r in
         { ctxacc with
           color_map = AReg.Map.add ctxacc.color_map ~key ~data } in
-    AbstractRegSet.fold precoloreds ~f ~init:regctx in
+    AReg.Set.fold precoloreds ~f ~init:regctx in
 
   (* all fake temps in the program *)
   let fakes_set =
     let f fake = Fake fake in
-    List.map ~f (fakes_of_asms asms) |> AbstractRegSet.of_list in
+    List.map ~f (fakes_of_asms asms) |> AReg.Set.of_list in
 
   (* set of all precolored nodes. we use this to create a precolored
    * clique in the interference graph. *)
@@ -735,12 +770,12 @@ let build
     List.map ~f [
       Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8;
       R9; R10; R11; R12; R13; R14; R15;
-    ] |> AbstractRegSet.of_list in
+    ] |> AReg.Set.of_list in
 
-  let all_vars_set = AbstractRegSet.union fakes_set precolored_set in
+  let all_vars_set = AReg.Set.union fakes_set precolored_set in
 
   (* put all vars into either precoloreds or initial worklist *)
-  AbstractRegSet.fold ~f:init0 ~init:initctx all_vars_set |>
+  AReg.Set.fold ~f:init0 ~init:initctx all_vars_set |>
   (* create interferences between all precolored nodes *)
   create_inter_edges precolored_set |>
   (* set colors of precolored nodes in color map *)
@@ -800,27 +835,17 @@ let simplify regctx : alloc_context =
   match regctx.simplify_wl with
   | [] -> regctx
   | n :: t ->
-    let regctx1 = 
+    let regctx1 =
       {
         regctx with
         simplify_wl = t;
         select_stack = unduped_cons regctx.select_stack n;
-      } 
+      }
     in
     List.fold_left
       ~f:(fun regctx2 m -> decrement_degree m regctx2)
       ~init:regctx1
       (adjacent n regctx1)
-
-(* return node alias after coalescing; if node has not been coalesced,
- * reduces to identity function *)
-let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
-  if List.mem regctx.coalesced_nodes node then
-    match AReg.Map.find regctx.alias node with
-    | Some a -> get_alias a regctx
-    | None -> node
-  else
-    node
 
 (* potentially add a new node to simplify_wl; see Appel for details *)
 let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
@@ -830,10 +855,10 @@ let add_wl (node : abstract_reg) (regctx : alloc_context) : alloc_context =
       begin
         { regctx with
           freeze_wl = remove regctx.freeze_wl node;
-          simplify_wl = unduped_cons regctx.simplify_wl node; 
+          simplify_wl = unduped_cons regctx.simplify_wl node;
         }
       end
-  else 
+  else
     regctx
 
 let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
@@ -844,7 +869,7 @@ let ok (t : abstract_reg) (r : abstract_reg) regctx : bool =
 let conservative (nodes : abstract_reg list) regctx : bool =
   let k' = 0 in
   let result = List.fold_left ~init:k' nodes ~f:(fun acc n ->
-    if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc) 
+    if (degree n regctx) >= (regctx.num_colors) then acc + 1 else acc)
   in
   result < (regctx.num_colors)
 
@@ -867,25 +892,25 @@ let combine u v regctx =
     AReg.Map.add regctx1.move_list ~key:u ~data:new_lst'
   in
 
-  let regctx2 = 
+  let regctx2 =
     { regctx1 with
       coalesced_nodes = coalesced_nodes';
       alias = alias';
       move_list = move_list';
-    } 
+    }
   in
 
   let regctx3 = enable_moves [v] regctx2 in
 
   let f ctxacc t =
-    add_edge t u ctxacc |> decrement_degree t 
+    add_edge t u ctxacc |> decrement_degree t
   in
   let regctx4 = List.fold_left ~f ~init:regctx3 (adjacent v regctx3) in
 
   if (degree u regctx4) >= (regctx4.num_colors) && List.mem regctx4.freeze_wl u then
     { regctx4 with
       freeze_wl = remove regctx4.freeze_wl u;
-      spill_wl = unduped_cons regctx4.spill_wl u 
+      spill_wl = unduped_cons regctx4.spill_wl u
     }
   else
     regctx4
@@ -901,18 +926,18 @@ let coalesce (regctx : alloc_context) : alloc_context =
     let regctx1 = { regctx with worklist_moves = t } in
     if u = v then
       let regctx2 = { regctx1 with
-                       coalesced_moves = unduped_cons regctx1.coalesced_moves m 
-                    } 
+                       coalesced_moves = unduped_cons regctx1.coalesced_moves m
+                    }
       in
       add_wl u regctx2
     else if List.mem regctx1.precolored v ||
             ARegPair.Set.mem regctx1.adj_set (u, v) then
       let regctx2 = { regctx1 with
-                       constrained_moves = unduped_cons regctx1.constrained_moves m 
-                     } 
+                       constrained_moves = unduped_cons regctx1.constrained_moves m
+                     }
       in
       regctx2 |> add_wl u |> add_wl v
-    else if 
+    else if
       (List.mem regctx1.precolored u &&
        List.fold_left ~init:true (adjacent v regctx1)
        ~f:(fun acc t -> acc && (ok t u regctx1)))
@@ -920,7 +945,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
        (not (List.mem regctx1.precolored u) &&
        conservative ((adjacent u regctx1) @ (adjacent v regctx1)) regctx1) then
       let regctx2 = { regctx1 with
-                       coalesced_moves = unduped_cons regctx1.coalesced_moves m } 
+                       coalesced_moves = unduped_cons regctx1.coalesced_moves m }
       in
       regctx2 |> combine u v |> add_wl u
     else
@@ -934,7 +959,7 @@ let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
       if get_alias dest ctxacc = get_alias node ctxacc then
         get_alias src ctxacc
       else
-        get_alias dest ctxacc 
+        get_alias dest ctxacc
     in
     let active_moves' = remove ctxacc.active_moves tempmove in
     let frozen_moves' = unduped_cons ctxacc.frozen_moves tempmove in
@@ -951,8 +976,8 @@ let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
         ctxacc'.freeze_wl, ctxacc'.simplify_wl in
     { ctxacc' with
       freeze_wl = freeze_wl';
-      simplify_wl = simplify_wl'; 
-    } 
+      simplify_wl = simplify_wl';
+    }
     in
     List.fold_left ~f ~init:regctx (node_moves node regctx)
 
@@ -964,7 +989,7 @@ let freeze (regctx : alloc_context) : alloc_context =
       regctx with
       freeze_wl = t;
       simplify_wl = unduped_cons regctx.simplify_wl fnode;
-    } 
+    }
   in
   freeze_moves regctx' fnode
 
@@ -985,20 +1010,17 @@ let select_spill (regctx : alloc_context) : alloc_context =
         regctx with
         spill_wl = remove regctx.spill_wl chosenreg;
         simplify_wl = unduped_cons regctx.simplify_wl chosenreg;
-      } 
+      }
       in
       freeze_moves regctx' chosenreg
 
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
-  (*
-  print_endline "assign colors wheee";
-  *)
   let select_assign ctxacc select_node =
     let neighbors =
       match AReg.Map.find ctxacc.adj_list select_node with
-      | Some s -> AReg.Set.to_list s 
-      | None -> [] 
+      | Some s -> AReg.Set.to_list s
+      | None -> []
     in
     let neighbor_colors =
       let f acc neighbor =
@@ -1009,7 +1031,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             AReg.Map.find ctxacc.color_map alias |>
             function Some c -> unduped_cons acc c | None -> acc
           end
-        else acc 
+        else acc
       in
       List.fold_left ~f ~init:[] neighbors in
     (*
@@ -1033,7 +1055,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
           { ctxacc with
             color_map = color_map';
             colored_nodes = unduped_cons ctxacc.colored_nodes select_node; }
-    end 
+    end
     in
 
     let regctx' =
@@ -1064,6 +1086,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
     let regctx' =
       List.fold_left ~f ~init:{ regctx' with coalesced_nodes = [] } regctx'.coalesced_nodes in
     (*List.iter ~f:print_endline (_string_of_ctx regctx');*)
+    printf "assign_colors valid coloring? %b\n" (valid_coloring regctx');
     regctx'
 
 type trans_context =
@@ -1255,3 +1278,36 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
       let buildctx, livevars = build regctx asms in
 
       print_endline "start building";
+      print_endline "------------------------------------";
+      List.iter ~f:print_endline (_string_of_ctx buildctx);
+      print_endline "------------------------------------";
+      print_endline "end building";
+
+      buildctx |> loop |> assign_colors |> fun finctx ->
+      (finctx, livevars) in
+
+  let finctx, livevars = main empty_ctx given_asms in
+  let finctx_comments : abstract_asm list =
+    let f str = Comment str in
+    List.map ~f (_string_of_ctx finctx) in
+
+  (* remove coalesced moves *)
+  let finasms =
+    let numbered : AsmData.t list =
+      List.mapi ~f:(fun num asm -> { AsmData.num; AsmData.asm; }) given_asms in
+    let coalesced_index =
+      let f { move; _ } = move.num in
+      List.map ~f finctx.coalesced_moves in
+    let f node acc =
+      let livevar_str : abstract_asm =
+        let comment_str = livevars (Node node) |> _set_to_string in
+        Comment ("<< livevars: " ^ comment_str ^ ">>") in
+      let asm_str = Comment (string_of_abstract_asm node.asm) in
+      if List.mem coalesced_index node.num then acc
+      else node.asm :: asm_str :: livevar_str :: acc in
+    List.fold_right ~f ~init:[] numbered in
+
+  (* translate abstract_asms with allocated nodes, leaving spills.
+   * stack allocate spill nodes with Tiling.register_allocate *)
+  List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
+    finctx_comments @ finasms' |> spill_allocate

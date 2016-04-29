@@ -2,10 +2,36 @@ open Core.Std
 open Asm
 open Cfg
 
-module AbstractRegSet : Set.S with type Elt.t = abstract_reg
+(* ************************************************************************** *)
+(* Maps and Sets                                                              *)
+(* ************************************************************************** *)
+module ARegKey : sig
+  type t = abstract_reg [@@deriving sexp, compare]
+end
 
-module type UseDefsT = sig
-  type usedefs = AbstractRegSet.t * AbstractRegSet.t
+module ARegPairKey : sig
+  type t = abstract_reg * abstract_reg [@@deriving sexp, compare]
+end
+
+module AReg : sig
+  module Set : module type of Set.Make (ARegKey)
+  module Map : module type of Map.Make (ARegKey)
+end
+
+module ARegPair : sig
+  module Set : module type of Set.Make (ARegPairKey)
+  module Map : module type of Map.Make (ARegPairKey)
+end
+
+val string_of_areg     : abstract_reg -> string
+val string_of_areg_set : AReg.Set.t -> string
+val string_of_areg_map : 'a AReg.Map.t -> f:('a -> string) -> string
+
+(* ************************************************************************** *)
+(* Live Variable Analysis                                                     *)
+(* ************************************************************************** *)
+module UseDefs : sig
+  type usedefs = AReg.Set.t * AReg.Set.t
 
   type usedef_pattern =
     | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
@@ -22,10 +48,7 @@ module type UseDefsT = sig
   val usedvars : abstract_asm -> usedefs
 end
 
-module UseDefs : UseDefsT
-
-module LiveVariableLattice : Dataflow.LowerSemilattice with
-  type data = AbstractRegSet.t
+module LiveVariableLattice : Dataflow.LowerSemilattice with type data = AReg.Set.t
 
 module AsmWithLiveVar : Dataflow.CFGWithLatticeT
   with module CFG = Cfg.AsmCfg
@@ -34,21 +57,9 @@ module AsmWithLiveVar : Dataflow.CFGWithLatticeT
 
 module LiveVariableAnalysis : (module type of Dataflow.GenericAnalysis(AsmWithLiveVar))
 
-module ARegKey : Map.Key with
-  type t = abstract_reg
-
-module ARegPairKey : Set.Elt with
-  type t = abstract_reg * abstract_reg
-
-module AReg : sig
-  module Map : module type of Map.Make (ARegKey)
-  module Set : module type of Set.Make (ARegKey)
-end
-
-module ARegPair : sig
-  module Set : module type of Set.Make (ARegPairKey)
-end
-
+(* ************************************************************************** *)
+(* Register Allocation Types                                                  *)
+(* ************************************************************************** *)
 type color =
   | Reg1
   | Reg2
@@ -65,10 +76,17 @@ type color =
   | Reg13
   | Reg14
 
+val reg_of_color    : color -> reg
+val color_of_reg    : reg   -> color
+val string_of_color : color -> string
+
+(* get_next_color cs returns a color not in cs if possible, or None otherwise *)
+val get_next_color : color list -> color option
+
 type temp_move = {
-  src: abstract_reg;
+  src:  abstract_reg;
   dest: abstract_reg;
-  move: AsmData.t; (* { num; abstract_asm } *)
+  move: AsmData.t;
 }
 
 type alloc_context = {
@@ -107,7 +125,30 @@ type alloc_context = {
   num_colors         : int;
 }
 
+val string_of_coalesced_nodes : abstract_reg list -> string
+val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
+val string_of_color_map : color AReg.Map.t -> string
 
+(* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
+
+(* ************************************************************************** *)
+(* Invariants                                                                 *)
+(* ************************************************************************** *)
+val degree_ok : alloc_context -> bool
+val simplify_ok : alloc_context -> bool
+val freeze_ok : alloc_context -> bool
+val spill_ok : alloc_context -> bool
+
+(* valid_coloring c returns true if c.color_map is a valid coloring of
+ * c.adj_list. That is, every node in adj_list has a different color that all
+ * its neighbors. *)
+val valid_coloring : alloc_context -> bool
+
+(* ************************************************************************** *)
+(* Register Allocation                                                        *)
+(* ************************************************************************** *)
 (* build stage of register allocation *)
 val build :
   alloc_context ->

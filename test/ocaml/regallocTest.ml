@@ -25,15 +25,15 @@ let use_defs_test _ =
   let open Regalloc in
   let open Fresh in
 
-  let set_to_string (set : AbstractRegSet.t) : string =
+  let set_to_string (set : AReg.Set.t) : string =
     let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
-    "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }" in
+    "{ " ^ (AReg.Set.fold ~f ~init:"" set) ^ " }" in
 
-  let set_of (regs : abstract_reg list) : AbstractRegSet.t =
-    AbstractRegSet.of_list regs in
+  let set_of (regs : abstract_reg list) : AReg.Set.t =
+    AReg.Set.of_list regs in
 
-  let (===) (a: AbstractRegSet.t) (b: AbstractRegSet.t) : unit =
-    assert_equal ~cmp:AbstractRegSet.equal ~printer:set_to_string a b in
+  let (===) (a: AReg.Set.t) (b: AReg.Set.t) : unit =
+    assert_equal ~cmp:AReg.Set.equal ~printer:set_to_string a b in
 
   let fk i = Asm.Fake (FreshReg.gen i) in
   let fkr i = Asm.Reg (fk i) in
@@ -50,9 +50,9 @@ let use_defs_test _ =
     remove regs' (Asm.Real Asm.Rsp) in
 
   (* grabs all temps that appear in an operand *)
-  let _set_of_arg (arg: abstract_reg operand) : AbstractRegSet.t =
+  let _set_of_arg (arg: abstract_reg operand) : AReg.Set.t =
     let regs_list = no_rbp_or_rsp (regs_of_operand arg) in
-    AbstractRegSet.of_list regs_list in
+    AReg.Set.of_list regs_list in
 
   let n0 = movq (const 5) (fkr 0) in
   let uses0, defs0 = UseDefs.usedvars n0 in
@@ -94,20 +94,20 @@ let live_vars_test _ =
     g
   in
 
-  let set_to_string (set : AbstractRegSet.t) : string =
+  let set_to_string (set : AReg.Set.t) : string =
     let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
-    "{ " ^ (AbstractRegSet.fold ~f ~init:"" set) ^ " }" in
+    "{ " ^ (AReg.Set.fold ~f ~init:"" set) ^ " }" in
 
-  let set_of (regs : abstract_reg list) : AbstractRegSet.t =
-    AbstractRegSet.of_list regs in
+  let set_of (regs : abstract_reg list) : AReg.Set.t =
+    AReg.Set.of_list regs in
 
-  let (===) (a: AbstractRegSet.t) (b: AbstractRegSet.t) : unit =
-    assert_equal ~cmp:AbstractRegSet.equal ~printer:set_to_string a b in
+  let (===) (a: AReg.Set.t) (b: AReg.Set.t) : unit =
+    assert_equal ~cmp:AReg.Set.equal ~printer:set_to_string a b in
 
   let assert_livevars
     (cfg : Cfg.AsmCfg.t)
-    (expecteds : ((Cfg.AsmCfg.V.t * Cfg.AsmCfg.V.t) * AbstractRegSet.t) list)
-    (livevars_f : Cfg.AsmCfg.E.t -> AbstractRegSet.t) =
+    (expecteds : ((Cfg.AsmCfg.V.t * Cfg.AsmCfg.V.t) * AReg.Set.t) list)
+    (livevars_f : Cfg.AsmCfg.E.t -> AReg.Set.t) =
       let f ((src, dest), expected) =
         let actual = Cfg.AsmCfg.find_edge cfg src dest |> livevars_f in
         expected === actual in
@@ -189,7 +189,7 @@ let live_vars_test _ =
     ((n1, n2), set_of [fk 0; fk 1]);
     ((n2, exit), set_of []);
   ] in
-  
+
   assert_livevars cfg expecteds livevars;
 
   (* test 3 *********************************************************)
@@ -219,7 +219,7 @@ let live_vars_test _ =
     ((n3, n4), set_of [fk 1]);
     ((n4, exit), set_of []);
   ] in
-  
+
   assert_livevars cfg expecteds livevars;
 
   (* test 4 *********************************************************)
@@ -279,7 +279,7 @@ let live_vars_test _ =
     ((r14, n6), set_of [r Asm.Rbx; r Asm.R12; r Asm.R13; r Asm.R14; r Asm.R15]);
     ((n6, exit), set_of []);
   ] in
-  
+
   assert_livevars cfg expecteds livevars;
 
   (* test 5 *********************************************************)

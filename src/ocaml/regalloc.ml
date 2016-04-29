@@ -92,7 +92,7 @@ module UseDefs : UseDefsT = struct
   let binops_use_plus_def =
     let instr = [
       "addq"; "subq"; "andq"; "orq"; "xorq"; "shlq";
-      "shrq"; "sarq"; "leaq";
+      "shrq"; "sarq";
     ] in
     let f op1 op2 =
       let set1 = set_of_arg op1 in
@@ -100,6 +100,18 @@ module UseDefs : UseDefsT = struct
       match op2 with
       | Reg _ ->
         (AbstractRegSet.union set1 set2, set2)
+      | Mem _ ->
+        (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
+      | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
+    Binop (instr, f)
+
+  let binops_leaq =
+    let instr = ["leaq"] in
+    let f op1 op2 =
+      let set1 = set_of_arg op1 in
+      let set2 = set_of_arg op2 in
+      match op2 with
+      | Reg _ -> (set1, set2)
       | Mem _ ->
         (AbstractRegSet.union set1 set2, AbstractRegSet.empty)
       | _ -> AbstractRegSet.empty, AbstractRegSet.empty in
@@ -188,6 +200,7 @@ module UseDefs : UseDefsT = struct
   let asm_match =
     let patterns = [
       binops_use_plus_def;
+      binops_leaq;
       binops_move;
       binops_use;
       unops_use_plus_def;
@@ -563,6 +576,10 @@ let cfgnode_sort (nodes : AsmCfg.V.t list) =
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let cfg = AsmCfg.create_cfg asms in
+
+  (*print_endline (AsmCfg.to_dot cfg);*)
+  (*exit 1;*)
+
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
   let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =

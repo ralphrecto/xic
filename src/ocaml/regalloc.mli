@@ -76,12 +76,17 @@ type color =
   | Reg13
   | Reg14
 
+val reg_of_color    : color -> reg
+val color_of_reg    : reg   -> color
 val string_of_color : color -> string
 
+(* get_next_color cs returns a color not in cs if possible, or None otherwise *)
+val get_next_color : color list -> color option
+
 type temp_move = {
-  src: abstract_reg;
+  src:  abstract_reg;
   dest: abstract_reg;
-  move: AsmData.t; (* { num; abstract_asm } *)
+  move: AsmData.t;
 }
 
 type alloc_context = {
@@ -120,20 +125,30 @@ type alloc_context = {
   num_colors         : int;
 }
 
+val string_of_coalesced_nodes : abstract_reg list -> string
+val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
+val string_of_color_map : color AReg.Map.t -> string
+
+(* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
+
+(* ************************************************************************** *)
+(* Invariants                                                                 *)
+(* ************************************************************************** *)
 val degree_ok : alloc_context -> bool
 val simplify_ok : alloc_context -> bool
 val freeze_ok : alloc_context -> bool
 val spill_ok : alloc_context -> bool
-
-val string_of_coalesced_nodes : abstract_reg list -> string
-val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
-val string_of_color_map : color AReg.Map.t -> string
 
 (* valid_coloring c returns true if c.color_map is a valid coloring of
  * c.adj_list. That is, every node in adj_list has a different color that all
  * its neighbors. *)
 val valid_coloring : alloc_context -> bool
 
+(* ************************************************************************** *)
+(* Register Allocation                                                        *)
+(* ************************************************************************** *)
 (* build stage of register allocation *)
 val build :
   alloc_context ->

@@ -310,6 +310,9 @@ end
 
 module LiveVariableAnalysis = GenericAnalysis (AsmWithLiveVar)
 
+(* ************************************************************************** *)
+(* Register Allocation Types                                                  *)
+(* ************************************************************************** *)
 type color =
   | Reg1
   | Reg2
@@ -326,56 +329,53 @@ type color =
   | Reg13
   | Reg14
 
-let reg_of_color (c : color) : reg =
-  match c with
-  | Reg1 -> Rax
-  | Reg2 -> Rbx
-  | Reg3 -> Rcx
-  | Reg4 -> Rdx
-  | Reg5 -> Rsi
-  | Reg6 -> Rdi
-  | Reg7 -> R8
-  | Reg8 -> R9
-  | Reg9 -> R10
+let reg_of_color = function
+  | Reg1  -> Rax
+  | Reg2  -> Rbx
+  | Reg3  -> Rcx
+  | Reg4  -> Rdx
+  | Reg5  -> Rsi
+  | Reg6  -> Rdi
+  | Reg7  -> R8
+  | Reg8  -> R9
+  | Reg9  -> R10
   | Reg10 -> R11
   | Reg11 -> R12
   | Reg12 -> R13
   | Reg13 -> R14
   | Reg14 -> R15
 
-let color_of_reg (r : reg) : color =
-  match r with
+let color_of_reg = function
   | Rax -> Reg1
   | Rbx -> Reg2
   | Rcx -> Reg3
-  | Cl -> Reg3
+  | Cl  -> Reg3
   | Rdx -> Reg4
   | Rsi -> Reg5
   | Rdi -> Reg6
-  | R8 -> Reg7
-  | R9 -> Reg8
+  | R8  -> Reg7
+  | R9  -> Reg8
   | R10 -> Reg9
   | R11 -> Reg10
   | R12 -> Reg11
   | R13 -> Reg12
   | R14 -> Reg13
   | R15 -> Reg14
-  | _ -> failwith "color_of_reg: no color for rbp/rsp"
+  | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
 let string_of_color (c : color) =
-  c |> reg_of_color |> string_of_reg
-
-let _string_of_colors (l : color list) =
-  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
+  Asm.string_of_reg (reg_of_color c)
 
 let get_next_color (colors : color list) : color option =
-  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
-    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
+  let colorlist = [
+    Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8; Reg9; Reg10; Reg11; Reg12;
+    Reg13; Reg14;
+  ] in
   let f acc x =
     match acc with
     | Some _ -> acc
-    | None -> if not (List.mem colors x) then Some x
-        else None in
+    | None -> if not (List.mem colors x) then Some x else None
+  in
   List.fold_left ~f ~init:None colorlist
 
 type temp_move = {
@@ -385,7 +385,6 @@ type temp_move = {
 }
 
 type alloc_context = {
-  (* IG node lists *)
   precolored         : abstract_reg list;
   initial            : abstract_reg list;
   simplify_wl        : abstract_reg list;
@@ -395,28 +394,19 @@ type alloc_context = {
   coalesced_nodes    : abstract_reg list;
   colored_nodes      : abstract_reg list;
   select_stack       : abstract_reg list;
-  (* coalesced nodes whose aliases were spilled *)
   coalesced_spills   : abstract_reg list;
-
-  (* move lists *)
   coalesced_moves    : temp_move list;
   constrained_moves  : temp_move list;
   frozen_moves       : temp_move list;
   worklist_moves     : temp_move list;
   active_moves       : temp_move list;
-
-  (* interference graph / node related *)
   degree             : int AReg.Map.t;
   adj_list           : AReg.Set.t AReg.Map.t;
   adj_set            : ARegPair.Set.t;
   move_list          : (temp_move list) AReg.Map.t;
   alias              : abstract_reg AReg.Map.t;
   color_map          : color AReg.Map.t;
-
-  (* other data structures *)
-  (* number of times a temp appears; used for spill heuristic *)
   node_occurrences   : int AReg.Map.t;
-  (* number of available machine registers for allocation *)
   num_colors         : int;
 }
 

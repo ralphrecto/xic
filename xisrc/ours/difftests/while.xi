@@ -79,11 +79,55 @@ whileTest5() : int {
   return w;
 }
 
+whileTest6() : int {
+  x:int = 0;
+
+  while (x < 10) {
+    x = x + 1;
+  }
+
+  return x;
+}
+
+whileTest7() : int {
+  x:int[] = {1;2;3};
+  y:int[3];
+  a:int = 0;
+
+  while (a < x[2]) {
+    y[a] = x[a];
+    a = a + 1;
+  }
+
+  return a;
+}
+
+whileTest8() : int {
+  x:bool[] = {true};
+  y:bool[] = {true};
+  z:int = 0;
+
+  while (x[0]) {
+    z = z + 1;
+    while (y[0]) {
+      z = z + 1;
+      y[0] = false;
+    }
+    z = z + 1;
+    x[0] = false;
+  }
+
+  return z;
+}
+
 main (_:int[][]) {
   println (string_of_int (whileTest1()));
   println (string_of_int (whileTest2()));
   println (string_of_int (whileTest3()));
   println (string_of_int (whileTest4()));
   println (string_of_int (whileTest5()));
+  println (string_of_int (whileTest6()));
+  println (string_of_int (whileTest7()));
+  println (string_of_int (whileTest8()));
 }
 

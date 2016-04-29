@@ -472,7 +472,8 @@ public class Main {
             commonSubexprElim,
             loopInvariantCodeMotion,
             partialRedundancyElim,
-            constantPropagation
+            constantPropagation,
+            instructionSelection
         );
         boolean optsSpecified = any(opts, b -> b);
 
@@ -485,7 +486,8 @@ public class Main {
             noCommonSubexprElim,
             noLoopInvariantCodeMotion,
             noPartialRedundancyElim,
-            noConstantPropagation
+            noConstantPropagation,
+            noInstructionSelection
         );
         boolean noOptsSpecified = any(noOpts, b -> b);
 

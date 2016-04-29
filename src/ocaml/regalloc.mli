@@ -109,7 +109,10 @@ type alloc_context = {
 
 
 (* build stage of register allocation *)
-val build : alloc_context -> abstract_asm list -> alloc_context
+val build :
+  alloc_context ->
+  abstract_asm list ->
+  alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data)
 
 (* performs register allocation with move coalescing *)
 val reg_alloc : ?debug:bool -> abstract_asm list -> asm list

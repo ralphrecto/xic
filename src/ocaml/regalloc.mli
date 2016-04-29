@@ -92,8 +92,8 @@ type temp_move = {
   move: AsmData.t;
 } [@@deriving sexp, compare]
 
-val string_of_temp_move : temp_move -> string
 module TempMoveSet : Set.S with type Elt.t = temp_move
+val string_of_temp_move : temp_move -> string
 val string_of_temp_move_set : TempMoveSet.t -> string
 
 type alloc_context = {
@@ -152,7 +152,7 @@ val string_of_active_moves      : TempMoveSet.t -> string
 val string_of_degree            : int AReg.Map.t -> string
 val string_of_adj_list          : AReg.Set.t AReg.Map.t -> string
 val string_of_adj_set           : ARegPair.Set.t -> string
-val string_of_move_list         : (temp_move list) AReg.Map.t -> string
+val string_of_move_list         : TempMoveSet.t AReg.Map.t -> string
 val string_of_alias             : abstract_reg AReg.Map.t -> string
 val string_of_color_map         : color AReg.Map.t -> string
 val string_of_node_occurrences  : int AReg.Map.t -> string

@@ -317,8 +317,8 @@ let string_of_asm_template f asm =
   | Directive (d, args) -> sprintf "    .%s %s" d (comma_spaces args)
   | Comment s ->
       let pattern = "\n" in
-      let with_ = "    # " in
-      sprintf "%s%s" with_ ((String.substr_replace_all ~pattern ~with_ (String.strip s)))
+      let with_ = "\n    # " in
+      sprintf "    # %s" ((String.substr_replace_all ~pattern ~with_ (String.strip s)))
 
 let string_of_abstract_asm asm =
   string_of_asm_template string_of_abstract_reg asm

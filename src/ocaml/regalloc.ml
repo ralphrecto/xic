@@ -370,16 +370,20 @@ type temp_move = {
   move: AsmData.t;
 } [@@deriving sexp, compare]
 
+module TempMoveSet = Set.Make(struct
+  type t = temp_move [@@deriving sexp, compare]
+end)
+
 let string_of_temp_move ({src; dest; move} : temp_move) =
   let src_str  = string_of_areg src in
   let dest_str = string_of_areg dest in
   sprintf "{src=%s; dst=%s; move=%s}" src_str dest_str (AsmData.to_string move)
 
-module TempMoveSet = Set.Make(struct
-  type t = temp_move [@@deriving sexp, compare]
-end)
+let string_of_temp_move_set s =
+  U.string_of_set ~short:false s ~f:string_of_temp_move
 
-let string_of_temp_move_set s = U.string_of_set ~short:false s ~f:string_of_temp_move
+let string_of_temp_move_set_short s =
+  U.string_of_set ~short:true s ~f:string_of_temp_move
 
 type alloc_context = {
   precolored         : AReg.Set.t;
@@ -417,9 +421,6 @@ let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg 
   else
     node
 
-(* let string_of_abstract_regs regs = *)
-  (* sprintf "[%s]" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg)) *)
-
 let string_of_precolored         = string_of_areg_set
 let string_of_initial            = string_of_areg_set
 let string_of_simplify_wl        = string_of_areg_set
@@ -438,7 +439,7 @@ let string_of_active_moves       = string_of_temp_move_set
 let string_of_degree             = string_of_areg_map ~f:Int.to_string
 let string_of_adj_list           = string_of_areg_map ~f:string_of_areg_set_short
 let string_of_adj_set            = string_of_areg_pair_set
-let string_of_move_list        _ = "TODO: update to set"
+let string_of_move_list          = string_of_areg_map ~f:string_of_temp_move_set_short
 let string_of_alias              = string_of_areg_map ~f:string_of_areg
 let string_of_color_map          = string_of_areg_map ~f:string_of_color
 let string_of_node_occurrences   = string_of_areg_map ~f:Int.to_string

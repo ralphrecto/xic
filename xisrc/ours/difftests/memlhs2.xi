@@ -11,9 +11,9 @@ main(_: int[][]) {
     x: int[] = {0, 1}
     y: int[] = {0}
 
-    println(string_of_1array(x));
-    println(string_of_1array(y));
+    print_1array(x);
+    print_1array(y);
     x[y[0]] = foo(y)
-    println(string_of_1array(x));
-    println(string_of_1array(y));
+    print_1array(x);
+    print_1array(y);
 }

@@ -9,7 +9,7 @@ main(_: int[][]) {
     l: int[][] = {x}
     l[0][0] = foo(l, y, 42)
 
-    println(string_of_1array(x));
-    println(string_of_1array(y));
-    println(string_of_2array(l));
+    print_1array(x);
+    print_1array(y);
+    print_2array(l);
 }

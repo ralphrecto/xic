@@ -6,7 +6,7 @@ foo(x: int[]) : int {
 
 main(_: int[][]) {
     x: int[] = {0, 1}
-    println(string_of_1array(x));
+    print_1array(x);
     x[foo(x)] = x[0] + 1
-    println(string_of_1array(x));
+    print_1array(x);
 }

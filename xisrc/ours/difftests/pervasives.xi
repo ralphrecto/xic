@@ -19,61 +19,6 @@ string_of_int(x: int) : int[] {
     return unparseInt(x);
 }
 
-string_of_1array(x: int[]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + unparseInt(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_2array(x: int[][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_1array(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_3array(x: int[][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_2array(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_4array(x: int[][][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_3array(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
-string_of_5array(x: int[][][][][]) : int[] {
-    s: int[] = "{";
-    i: int = 0;
-    while (i < length(x)) {
-        s = s + string_of_4array(x[i]) + ",";
-        i = i + 1;
-    }
-    s = s + "}"
-    return s;
-}
-
 print_1array(x: int[]) {
     i: int = 0
     println("{")

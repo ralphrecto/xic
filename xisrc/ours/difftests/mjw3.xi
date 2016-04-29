@@ -11,5 +11,5 @@ main(_: int[][]) {
     four  = "" + "" + {three} + {three} + {three} + {three};
     five  = "" + {four};
 
-    println(string_of_5array(five));
+    print_5array(five);
 }

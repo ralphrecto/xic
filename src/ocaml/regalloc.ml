@@ -566,10 +566,13 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
     match cfg_node with
     (* TODO: should we handle procedure entry/exit differently? *)
     | Start | Exit -> regctx
-    | Node _ ->
+    | Node { asm; _; } ->
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
+
+      (* add interferences between defs and liveset *)
+      let _, defs = UseDefs.usedvars asm in
 
       (*let nodestr = AsmCfg.string_of_vertex cfg_node in*)
       (*let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in*)
@@ -577,7 +580,7 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       (*print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);*)
 
       (*print_endline (_string_of_ctx regctx);*)
-      let regctx' = create_inter_edges liveset regctx in
+      let regctx' = create_inter_edges (AbstractRegSet.union liveset defs) regctx in
       (*print_endline (_string_of_ctx regctx');*)
 
       (* update node occurrences *)

@@ -37,7 +37,10 @@ val ret_ptr_reg : Asm.abstract_reg
  *              12 | r13       | | callee-saved
  *              13 | r14       | | callee-saved
  *              14 | r15       |/  callee-saved
- *                 | temp_0    |\
+ *              15 | r13'      |\
+ *              16 | r14'      | | spill space for shuttle registers
+ *              17 | r15'      |/
+ *              18 | temp_0    |\  <-- beginning of stack space for spills
  *                 | temp_1    | | stack space for fake registers
  *                 | ...       | |
  *                 | temp_n    |/

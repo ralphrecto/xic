@@ -525,8 +525,10 @@ let eat_func_decl
   let num_caller = List.length caller_saved_no_sp in
   let tot_temps = num_temps + num_callee + num_caller in
   let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
+  (* number of shuttle registers *)
+  let num_shuttles = 3 in
   (* saved rip + saved rbp + temps + rets n args  *)
-  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
+  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args + num_shuttles in
 
   let section_wrap = section_wrap debug in
 

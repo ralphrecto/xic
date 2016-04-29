@@ -480,22 +480,25 @@ let union s1 s2 = AReg.Set.union s1 s2
 let size s = Set.count s ~f:(fun _ -> true)
 
 let disjoint_list_ok regctx =
-  let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; rectx.freeze_wl;
+  let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
            regctx.spill_wl; regctx.spilled_nodes; regctx.coalesced_nodes;
            regctx.colored_nodes; AReg.Set.of_list regctx.select_stack] in
   List.for_alli l ~f:(fun i l' ->
     List.for_alli l ~f:(fun j l'' ->
-      if i != j then AReg.Set.is_empty (inter l' l'') else true))
+      if i <> j then AReg.Set.is_empty (inter l' l'') else true))
 
 let disjoint_set_ok regctx =
   let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
            regctx.active_moves; regctx.active_moves] in
   List.for_alli s ~f:(fun i s' ->
     List.for_alli s ~f:(fun j s'' ->
-      if i != j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
+      if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
 
 (* TODO: no dups in select_stack
  * The union of all of them forms exactly the entire list of nodes *)
+let no_dups regctx =
+  List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
+    regctx.select_stack
 
 let degree_ok regctx =
   let s = union (union regctx.simplify_wl regctx.freeze_wl) regctx.spill_wl in

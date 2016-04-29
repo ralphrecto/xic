@@ -318,35 +318,6 @@ type color =
   | Reg13
   | Reg14
 
-let string_of_color = function
-  | Reg1 -> "Reg1"
-  | Reg2 -> "Reg2"
-  | Reg3 -> "Reg3"
-  | Reg4 -> "Reg4"
-  | Reg5 -> "Reg5"
-  | Reg6 -> "Reg6"
-  | Reg7 -> "Reg7"
-  | Reg8 -> "Reg8"
-  | Reg9 -> "Reg9"
-  | Reg10 -> "Reg10"
-  | Reg11 -> "Reg11"
-  | Reg12 -> "Reg12"
-  | Reg13 -> "Reg13"
-  | Reg14 -> "Reg14"
-
-let _string_of_colors (l : color list) =
-  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
-
-let get_next_color (colors : color list) : color option =
-  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
-    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
-  let f acc x =
-    match acc with
-    | Some _ -> acc
-    | None -> if not (List.mem colors x) then Some x
-        else None in
-  List.fold_left ~f ~init:None colorlist
-
 let reg_of_color (c : color) : reg =
   match c with
   | Reg1 -> Rax
@@ -382,6 +353,22 @@ let color_of_reg (r : reg) : color =
   | R14 -> Reg13
   | R15 -> Reg14
   | _ -> failwith "color_of_reg: no color for rbp/rsp"
+
+let string_of_color (c : color) =
+  c |> reg_of_color |> string_of_reg
+
+let _string_of_colors (l : color list) =
+  l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
+
+let get_next_color (colors : color list) : color option =
+  let colorlist = [ Reg1; Reg2; Reg3; Reg4; Reg5; Reg6;
+    Reg7; Reg8; Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;] in
+  let f acc x =
+    match acc with
+    | Some _ -> acc
+    | None -> if not (List.mem colors x) then Some x
+        else None in
+  List.fold_left ~f ~init:None colorlist
 
 type temp_move = {
   src: abstract_reg;
@@ -436,16 +423,22 @@ let _string_of_abstract_regs (regs : abstract_reg list) : string =
     (string_of_abstract_reg reg) ^ ", " ^ acc in
   List.fold_left ~f ~init:"" regs
 
-let areg_map_to_str (val_strf : 'a -> string) (map : 'a AReg.Map.t) (mapname : string) =
+let areg_map_to_str
+  (val_strf : 'a -> string)
+  (map : 'a AReg.Map.t)
+  (mapname : string) : string list =
   let f ~key ~data acc =
-    (string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ "; " ^ acc in
-  "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n"
+    ((string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ ";") :: acc in
+  let pre = "{{ " ^ mapname ^ ": " in
+  let post = " }}" in
+  let body = AReg.Map.fold ~f ~init:[post] map in
+  pre :: body
 
-let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
+let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) : string =
   let f acc s = (strf s) ^ ", " ^ acc in
-  "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]\n\n"
+  "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]"
 
-let _string_of_ctx (regctx : alloc_context) : string =
+let _string_of_ctx (regctx : alloc_context) : string list =
 
   let reglist_to_str (l: abstract_reg list) (name : string) : string =
     list_to_str string_of_abstract_reg l name in
@@ -453,20 +446,18 @@ let _string_of_ctx (regctx : alloc_context) : string =
   let movelist_to_str (l: temp_move list) (name : string) : string =
     list_to_str string_of_temp_move l name in
 
-  let str_reglists (l : ((abstract_reg list) * string) list) =
-    let f acc (lst, name) = (reglist_to_str lst name) ^ acc in
-    List.fold_left ~f ~init:"" l in
+  let str_reglists (l : ((abstract_reg list) * string) list) : string list =
+    let f acc (lst, name) = (reglist_to_str lst name) :: acc in
+    List.fold_left ~f ~init:[] l in
 
-  let str_movelists (l : ((temp_move list) * string) list) =
-    let f acc (lst, name) = (movelist_to_str lst name) ^ acc in
-    List.fold_left ~f ~init:"" l in
+  let str_movelists (l : ((temp_move list) * string) list) : string list =
+    let f acc (lst, name) = (movelist_to_str lst name) :: acc in
+    List.fold_left ~f ~init:[] l in
 
   let adjlist_to_str aregset =
     reglist_to_str (AReg.Set.to_list aregset) "neighbors" in
 
-  let ( >> ) x y = (x ^ "\n -------------------------- \n") ^ y in
-
-  "BEGIN CONTEXT" >>
+  ["BEGIN CONTEXT"] @
   str_reglists [
     (regctx.precolored, "precolored");
     (regctx.initial, "initial");
@@ -477,17 +468,17 @@ let _string_of_ctx (regctx : alloc_context) : string =
     (regctx.coalesced_nodes, "coalesced_nodes");
     (regctx.colored_nodes, "colored_nodes");
     (regctx.select_stack, "select_stack");
-  ] >>
+  ] @
   str_movelists [
     (regctx.coalesced_moves, "coalesced_moves");
     (regctx.constrained_moves, "constrained_moves");
     (regctx.frozen_moves, "frozen_moves");
     (regctx.worklist_moves, "worklist_moves");
     (regctx.active_moves, "active_moves");
-  ] >>
-  areg_map_to_str string_of_color regctx.color_map "color_map" >>
-  areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" >>
-  "END CONTEXT"
+  ] @
+  areg_map_to_str string_of_color regctx.color_map "color_map" @
+  areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" @
+  ["END CONTEXT"]
 
 let empty_ctx = {
   (* IG node lists *)
@@ -607,11 +598,12 @@ let cfgnode_sort (nodes : AsmCfg.V.t list) =
 
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
-let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
-  let cfg = AsmCfg.create_cfg asms in
+let build
+  (initctx : alloc_context)
+  (asms : abstract_asm list)
+  : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
 
-  (*print_endline (AsmCfg.to_dot cfg);*)
-  (*exit 1;*)
+  let cfg = AsmCfg.create_cfg asms in
 
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
@@ -649,20 +641,9 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
-      (*print_endline (string_of_abstract_asm asm);*)
-      (*print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");*)
-
       (* add interferences between defs and liveset *)
       let _, defs = UseDefs.usedvars asm in
-
-      (*let nodestr = AsmCfg.string_of_vertex cfg_node in*)
-      (*let livestr = _string_of_abstract_regs (AbstractRegSet.to_list liveset) in*)
-
-      (*print_endline ("liveset at " ^ nodestr ^ ": " ^ livestr);*)
-
-      (*print_endline (_string_of_ctx regctx);*)
       let regctx' = create_inter_edges (AbstractRegSet.union liveset defs) regctx in
-      (*print_endline (_string_of_ctx regctx');*)
 
       (* update node occurrences *)
       let node_occurrences' =
@@ -743,7 +724,9 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let sorted_nodes = cfgnode_sort nodes in
   List.fold_left ~f:init1 ~init:regctx' sorted_nodes |> fun regctx' ->
   (* populate node worklists *)
-  List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial
+  let finctx =
+    List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial in
+  (finctx, livevars)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
@@ -1162,16 +1145,14 @@ let spill_allocate ?(debug=false) asms =
     allocated
 
 
-
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   ignore debug;
   let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
-    : alloc_context =
+    : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
 
     let rec loop (innerctx : alloc_context) =
-      (*print_endline (_string_of_ctx innerctx);*)
       if (empty innerctx.simplify_wl &&
           empty innerctx.worklist_moves &&
           empty innerctx.freeze_wl &&
@@ -1189,26 +1170,31 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
             select_spill innerctx in
         loop innerctx' in
 
-      build regctx asms |> loop |> assign_colors |> fun regctx' ->
-        if not (empty regctx'.spilled_nodes) then regctx'
-            (* TODO: add spill coalescing, shuttling, etc. *)
-        else regctx' in
+      let buildctx, livevars = build regctx asms in
+      buildctx |> loop |> assign_colors |> fun finctx ->
+      (finctx, livevars) in
 
-  let finctx = main empty_ctx given_asms in
-  print_endline "final context!!!";
-  print_endline (_string_of_ctx finctx);
+  let finctx, livevars = main empty_ctx given_asms in
+  let finctx_comments : abstract_asm list =
+    let f str = Comment str in
+    List.map ~f (_string_of_ctx finctx) in
 
   (* remove coalesced moves *)
   let finasms =
-    let numbered = List.mapi ~f:(fun i x -> (i, x)) given_asms in
+    let numbered : AsmData.t list =
+      List.mapi ~f:(fun num asm -> { AsmData.num; AsmData.asm; }) given_asms in
     let coalesced_index =
       let f { move; _ } = move.num in
       List.map ~f finctx.coalesced_moves in
-    let f (i, asm) acc =
-      if List.mem coalesced_index i then acc
-      else asm :: acc in
+    let f node acc =
+      let livevar_str : abstract_asm =
+        let comment_str = livevars (Node node) |> _set_to_string in
+        Comment ("<< livevars: " ^ comment_str ^ ">>") in
+      if List.mem coalesced_index node.num then acc
+      else node.asm :: livevar_str :: acc in
     List.fold_right ~f ~init:[] numbered in
 
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
-  List.map ~f:(translate_asm finctx) finasms |> spill_allocate
+  List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
+    finctx_comments @ finasms' |> spill_allocate

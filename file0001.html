@@ -25,10 +25,10 @@
             <tr><td>binding</td><td width="16px">&nbsp;</td><td>4 / 4 (100%)</td></tr>
             <tr><td>sequence</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>for</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>0 / 2 (0%)</td></tr>
+            <tr><td>if/then</td><td width="16px">&nbsp;</td><td>2 / 2 (100%)</td></tr>
             <tr><td>try</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
             <tr><td>while</td><td width="16px">&nbsp;</td><td>0 / 0 (-%)</td></tr>
-            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>2 / 4 (50%)</td></tr>
+            <tr><td>match/function</td><td width="16px">&nbsp;</td><td>4 / 4 (100%)</td></tr>
           </table>
         </td>
         <td valign="top">
@@ -66,25 +66,21 @@
       <div id="line000012" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000012| end</div>
       <div id="line000013" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000013| &nbsp;</div>
       <div id="line000014" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000014| module&nbsp;Make(N:&nbsp;Name)&nbsp;=&nbsp;struct</div>
-      <div id="line000015" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;&nbsp;let&nbsp;n&nbsp;=&nbsp;(*[28]*)ref&nbsp;0</div>
-      <div id="line000016" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;let&nbsp;gen&nbsp;n&nbsp;=&nbsp;(*[2764]*)N.name&nbsp;^&nbsp;(string_of_int&nbsp;n)</div>
-      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;let&nbsp;fresh&nbsp;()&nbsp;=&nbsp;(*[2716]*)gen&nbsp;(Util.get_and_incr&nbsp;n)</div>
-      </div>
-      <div id="line000018" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000018| &nbsp;&nbsp;let&nbsp;reset&nbsp;()&nbsp;=&nbsp;(*[0]*)n&nbsp;:=&nbsp;0</div>
-      <div id="fold000019">
-      <div id="line000019" class="lineNone"><a href="javascript:fold('fold000019');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000019| &nbsp;</div>
+      <div id="line000015" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000015| &nbsp;&nbsp;let&nbsp;n&nbsp;=&nbsp;(*[21]*)ref&nbsp;0</div>
+      <div id="line000016" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000016| &nbsp;&nbsp;let&nbsp;gen&nbsp;n&nbsp;=&nbsp;(*[1156]*)N.name&nbsp;^&nbsp;(string_of_int&nbsp;n)</div>
+      <div id="line000017" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000017| &nbsp;&nbsp;let&nbsp;fresh&nbsp;()&nbsp;=&nbsp;(*[817]*)gen&nbsp;(Util.get_and_incr&nbsp;n)</div>
+      <div id="line000018" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000018| &nbsp;&nbsp;let&nbsp;reset&nbsp;()&nbsp;=&nbsp;(*[453]*)n&nbsp;:=&nbsp;0</div>
+      <div id="line000019" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000019| &nbsp;</div>
       <div id="line000020" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000020| &nbsp;&nbsp;let&nbsp;get&nbsp;s&nbsp;=</div>
-      </div>
-      <div id="line000021" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000021| &nbsp;&nbsp;&nbsp;&nbsp;(*[0]*)if&nbsp;String.is_prefix&nbsp;s&nbsp;~prefix:N.name</div>
-      <div id="line000022" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000022| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;(*[0]*)Util.int_of_string&nbsp;(String.drop_prefix&nbsp;s&nbsp;(String.length&nbsp;N.name))</div>
-      <div id="line000023" class="lineAllUnvisited"><img border="0" height="10" width="10"src="blank.png"/>000023| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;(*[0]*)None</div>
-      <div id="fold000024">
-      <div id="line000024" class="lineNone"><a href="javascript:fold('fold000024');"><img border="0" height="10" width="10" src="minus.png" title="fold code"/></a>000024| end</div>
+      <div id="line000021" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000021| &nbsp;&nbsp;&nbsp;&nbsp;(*[1176]*)if&nbsp;String.is_prefix&nbsp;s&nbsp;~prefix:N.name</div>
+      <div id="line000022" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000022| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;(*[49]*)Util.int_of_string&nbsp;(String.drop_prefix&nbsp;s&nbsp;(String.length&nbsp;N.name))</div>
+      <div id="line000023" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000023| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;(*[1127]*)None</div>
+      <div id="line000024" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000024| end</div>
       <div id="line000025" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000025| &nbsp;</div>
       <div id="line000026" class="lineNone"><img border="0" height="10" width="10"src="dash.png"/>000026| (*&nbsp;Tiling&nbsp;fresh&nbsp;modules&nbsp;*)</div>
-      <div id="line000027" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000027| module&nbsp;FreshReg&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[4]*)&quot;_asmreg&quot;&nbsp;end)</div>
-      <div id="line000028" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000028| module&nbsp;FreshAsmRet&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[4]*)&quot;_asmret&quot;&nbsp;end)</div>
-      <div id="line000029" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000029| module&nbsp;FreshLabel&nbsp;&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[4]*)&quot;_asmlabel&quot;&nbsp;end)</div>
+      <div id="line000027" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000027| module&nbsp;FreshReg&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[3]*)&quot;_asmreg&quot;&nbsp;end)</div>
+      <div id="line000028" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000028| module&nbsp;FreshAsmRet&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[3]*)&quot;_asmret&quot;&nbsp;end)</div>
+      <div id="line000029" class="lineAllVisited"><img border="0" height="10" width="10"src="dash.png"/>000029| module&nbsp;FreshLabel&nbsp;&nbsp;=&nbsp;Make(struct&nbsp;let&nbsp;name&nbsp;=&nbsp;(*[3]*)&quot;_asmlabel&quot;&nbsp;end)</div>
       </div>
     </code>
     <br/>
@@ -107,12 +103,12 @@
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000018');" title="jump to line 18"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000021');" title="jump to line 21"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000022');" title="jump to line 22"></td></tr>
-        <tr><td bgcolor="red" style="cursor: pointer;" onclick="javascript:jump('line000023');" title="jump to line 23"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
+        <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
         <tr><td bgcolor="gray"></td></tr>
@@ -128,6 +124,6 @@
     &nbsp;&nbsp;&nbsp;<span class="lineMixed">some code</span>&nbsp;-&nbsp;line containing both visited and unvisited points<br/>
     <br/>
     <hr class="codeSep"/>
-    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-28 06:35:14</p>
+    <p class="footer">Generated by <a href="http://bisect.x9c.fr">Bisect 1.3</a> on 2016-04-29 08:09:46</p>
   </body>
 </html>

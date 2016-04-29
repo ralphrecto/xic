@@ -28,11 +28,12 @@ COVERAGE = coverage
 JAVAC_FLAGS = -Xlint
 JAVADOC_FLAGS = -Xdoclint:all,-missing
 
+OCAML_SUFFIX=byte
 OCAML_MAIN  = src/ocaml/main
 OCAML_SRCS  = $(OCAML_MAIN).ml src/ocaml/xi.ml
 OCAML_TESTS = $(shell find test -name '*Test.ml')
-OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
-OCAML_TESTS_BIN = $(OCAML_TESTS:.ml=.byte)
+OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.$(OCAML_SUFFIX))
+OCAML_TESTS_BIN = $(OCAML_TESTS:.ml=.$(OCAML_SUFFIX))
 OCAML_TESTS_EXE = $(notdir $(OCAML_TESTS_BIN))
 BISECT = ""
 
@@ -76,7 +77,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	mkdir -p $(BIN) && javac $(JAVAC_FLAGS) -d $(BIN) -cp $(CP) $(SRCS)
 	@echo
 
-%.byte: %.ml
+%.$(OCAML_SUFFIX): %.ml
 	@echo "********************************************************************"
 	@echo "* make $@"
 	@echo "********************************************************************"

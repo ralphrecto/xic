@@ -605,6 +605,8 @@ let build
 
   let cfg = AsmCfg.create_cfg asms in
 
+  (*print_endline (AsmCfg.to_dot cfg);*)
+
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
   let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
@@ -946,26 +948,41 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc in
       List.fold_left ~f ~init:[] neighbors in
     begin
-    (*let nodestr = string_of_abstract_reg select_node  in*)
-    (*let colorstr = string_of_colors neighbor_colors in*)
-    (*let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in*)
-    (*print_endline s;*)
     match get_next_color neighbor_colors with
     | None ->
-        { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }
+        let c = { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; } in
+        begin
+        match select_node with
+        | Fake name when name = "_asmreg32" ->
+            print_endline "no color for 32!";
+            List.iter ~f:print_endline (_string_of_ctx c);
+            c
+        | _ -> c
+        end
     | Some c ->
         let color_map' =
            AReg.Map.add ctxacc.color_map ~key:select_node ~data:c in
-        { ctxacc with
+        let ctx' = { ctxacc with
           color_map = color_map';
-          colored_nodes = select_node :: ctxacc.colored_nodes; }
+          colored_nodes = select_node :: ctxacc.colored_nodes; } in
+        begin
+        match select_node with
+        | Fake name when name = "_asmreg32" ->
+            print_endline "has color for 32!";
+            List.iter ~f:print_endline (_string_of_ctx ctx');
+            ctx'
+        | _ -> ctx'
+        end
     end in
 
     let regctx' =
+      print_endline "before fold";
+      List.iter ~f:print_endline (_string_of_ctx regctx);
+      let deduped = List.dedup regctx.select_stack in
       List.fold_left
         ~f:select_assign
         ~init:{regctx with select_stack = []}
-        regctx.select_stack in
+        deduped in
 
     let f ctxacc coalesced_node =
       let alias = get_alias coalesced_node regctx' in
@@ -1146,11 +1163,12 @@ let spill_allocate ?(debug=false) asms =
 
 
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
-  ignore debug;
   let main
     (regctx : alloc_context)
     (asms : abstract_asm list)
     : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
+
+    ignore debug;
 
     let rec loop (innerctx : alloc_context) =
       if (empty innerctx.simplify_wl &&

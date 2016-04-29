@@ -1,4 +1,5 @@
 open Core.Std
+open Async.Std
 
 let init xs =
   match List.rev xs with
@@ -37,3 +38,15 @@ let ordered_dedup xs =
     | [] -> acc
   in
   help (List.rev xs) []
+
+let time thunk =
+  let start = Time.now () in
+  let x = thunk () in
+  let stop = Time.now () in
+  (Time.diff stop start, x)
+
+let time_def d =
+  let start = Time.now () in
+  d >>= fun x ->
+  let stop = Time.now () in
+  return (Time.diff stop start, x)

@@ -1,18 +1,28 @@
 package mjw297;
 
-import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import edu.cornell.cs.cs4120.util.SExpPrinter;
-
-import mjw297.Ast.*;
-
 import java.io.OutputStream;
-import java.util.List;
+import java.io.PrintWriter;
 
-@SuppressWarnings("deprecation")
+import mjw297.Ast.AnnotatedId;
+import mjw297.Ast.AnnotatedUnderscore;
+import mjw297.Ast.AnnotatedVar;
+import mjw297.Ast.Underscore;
+
 class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
-    SExpPrinter printer;
+    PrintWriter printer;
+
     SExpJaneStreetOut(OutputStream o) {
-        this.printer = new CodeWriterSExpPrinter(o);
+        this.printer = new PrintWriter(o);
+    }
+
+    void startList()         { printer.write('(');     }
+    void printAtom(String s) { printer.write(s + " "); }
+    void endList()           { printer.write(')');     }
+    private void posPrinter(Position p) {
+        startList();
+        printAtom(((Integer) p.row).toString());
+        printAtom(((Integer) p.col).toString());
+        endList();
     }
 
     class AnnotatedVarPos implements Ast.AnnotatedVarVisitor<Position, Position> {
@@ -26,325 +36,322 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     class SExpVar implements Ast.VarVisitor<Position, Void> {
         SExpJaneStreetOut parent;
-        SExpPrinter printer;
+        PrintWriter printer;
+
+        void startList()         { printer.print('('); }
+        void printAtom(String s) { printer.print(s);   }
+        void endList()           { printer.print(')'); }
 
         SExpVar(SExpJaneStreetOut parent) {
-            this.parent = parent;
+            this.parent  = parent;
             this.printer = parent.printer;
         }
 
         @Override
         public Void visit(AnnotatedVar<Position> v) {
-            printer.startList();
+            startList();
             posPrinter(v.accept(new AnnotatedVarPos()));
-            printer.startList();
-            printer.printAtom("AVar");
+            startList();
+            printAtom("AVar");
             v.accept(this.parent);
-            printer.endList();
-            printer.endList();
+            endList();
+            endList();
 
             return null;
         }
 
         @Override
         public Void visit(Underscore<Position> u) {
-            printer.startList();
+            startList();
             posPrinter(u.a);
-            printer.printAtom("Underscore");
-            printer.endList();
+            printAtom("Underscore");
+            endList();
 
             return null;
         }
     }
 
-    private void posPrinter(Position p) {
-        this.printer.startList();
-        this.printer.printAtom(((Integer) p.row).toString());
-        this.printer.printAtom(((Integer) p.col).toString());
-        this.printer.endList();
-    }
-
     private void rawIdPrinter(Ast.Id<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
-        printer.printAtom(i.x);
-        printer.endList();
+        printAtom(i.x);
+        endList();
     }
 
     public Void visit(Ast.AnnotatedId<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
 
-        printer.startList();
-        printer.printAtom("AId");
+        startList();
+        printAtom("AId");
 
         rawIdPrinter(i.x);
         i.t.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.AnnotatedUnderscore<Position> u) {
-        printer.startList();
+        startList();
         posPrinter(u.a);
-        printer.startList();
-        printer.printAtom("AUnderscore");
+        startList();
+        printAtom("AUnderscore");
         u.t.accept(this);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.Func<Position> f) {
         /* function name */
-        printer.startList();
+        startList();
         posPrinter(f.a);
 
-        printer.startList();
-        printer.printAtom("Func");
+        startList();
+        printAtom("Func");
         rawIdPrinter(f.name);
 
         /* proc parameters */
-        printer.startList();
+        startList();
         f.args.forEach(a -> a.accept(this));
-        printer.endList();
+        endList();
 
         /* return types */
-        printer.startList();
+        startList();
         f.returnType.forEach(t -> t.accept(this));
-        printer.endList();
+        endList();
 
         f.body.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.Proc<Position> p) {
         /* function name */
-        printer.startList();
+        startList();
         posPrinter(p.a);
 
-        printer.startList();
-        printer.printAtom("Proc");
+        startList();
+        printAtom("Proc");
 
         rawIdPrinter(p.name);
 
         /* proc parameters */
-        printer.startList();
+        startList();
         p.args.forEach(av -> av.accept(this));
-        printer.endList();
+        endList();
 
         /* block */
         p.body.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.Id<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
-        printer.startList();
-        printer.printAtom("Id");
+        startList();
+        printAtom("Id");
         rawIdPrinter(i);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.BinOp<Position> o) {
-        printer.startList();
+        startList();
         posPrinter(o.a);
-        printer.startList();
-        printer.printAtom("BinOp");
+        startList();
+        printAtom("BinOp");
         o.lhs.accept(this);
-        printer.printAtom(o.c.name());
+        printAtom(o.c.name());
         o.rhs.accept(this);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.UnOp<Position> o) {
-        printer.startList();
+        startList();
         posPrinter(o.a);
-        printer.startList();
-        printer.printAtom("UnOp");
-        printer.printAtom(o.c.name());
+        startList();
+        printAtom("UnOp");
+        printAtom(o.c.name());
         o.e.accept(this);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.Index<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
-        printer.startList();
-        printer.printAtom("Index");
+        startList();
+        printAtom("Index");
         i.e.accept(this);
         i.index.accept(this);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Length<Position> l) {
-        printer.startList();
+        startList();
         posPrinter(l.a);
-        printer.startList();
-        printer.printAtom("Length");
+        startList();
+        printAtom("Length");
         l.e.accept(this);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.NumLiteral<Position> n) {
-        printer.startList();
+        startList();
         posPrinter(n.a);
-        printer.startList();
-        printer.printAtom("Int");
-        printer.printAtom(((Long) n.x).toString());
-        printer.endList();
-        printer.endList();
+        startList();
+        printAtom("Int");
+        printAtom(((Long) n.x).toString());
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.BoolLiteral<Position> b) {
-        printer.startList();
+        startList();
         posPrinter(b.a);
-        printer.startList();
-        printer.printAtom("Bool");
-        printer.printAtom(((Boolean) b.b).toString());
-        printer.endList();
-        printer.endList();
+        startList();
+        printAtom("Bool");
+        printAtom(((Boolean) b.b).toString());
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.StringLiteral<Position> s) {
-        printer.startList();
+        startList();
         posPrinter(s.a);
-        printer.startList();
-        printer.printAtom("String");
-        printer.printAtom(
+        startList();
+        printAtom("String");
+        printAtom(
                 String.format("\"%s\"", SymUtil.prettyPrintString(s.s))
         );
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.CharLiteral<Position> c) {
-        printer.startList();
+        startList();
         posPrinter(c.a);
-        printer.startList();
-        printer.printAtom("Char");
-        printer.printAtom(
+        startList();
+        printAtom("Char");
+        printAtom(
                 String.format("%s", SymUtil.prettyPrintChar(c.c))
         );
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.ArrayLiteral<Position> a) {
-        printer.startList();
+        startList();
         posPrinter(a.a);
-        printer.startList();
-        printer.printAtom("Array");
+        startList();
+        printAtom("Array");
 
         /* Actual list contents */
-        printer.startList();
+        startList();
         a.xs.forEach(e -> e.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Program<Position> p) {
-        printer.startList();
+        startList();
         posPrinter(p.a);
 
-        printer.startList();
-        printer.printAtom("Prog");
+        startList();
+        printAtom("Prog");
 
-        printer.startList();
+        startList();
         p.uses.forEach((u -> u.accept(this)));
-        printer.endList();
+        endList();
 
-        printer.startList();
+        startList();
         p.fs.forEach(f -> f.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Decl<Position> d) {
-        printer.startList();
+        startList();
         posPrinter(d.a);
-        printer.startList();
-        printer.printAtom("Decl");
+        startList();
+        printAtom("Decl");
 
-        printer.startList();
+        startList();
         SExpVar varVisitor = new SExpVar(this);
         d.vs.forEach(v -> v.accept(varVisitor));
-        printer.endList();
+        endList();
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.DeclAsgn<Position> d) {
-        printer.startList();
+        startList();
         posPrinter(d.a);
-        printer.startList();
-        printer.printAtom("DeclAsgn");
+        startList();
+        printAtom("DeclAsgn");
 
-        printer.startList();
+        startList();
         SExpVar varVisitor = new SExpVar(this);
         d.vs.forEach(v -> v.accept(varVisitor));
-        printer.endList();
+        endList();
 
         d.e.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Asgn<Position> a) {
-        printer.startList();
+        startList();
         posPrinter(a.a);
-        printer.startList();
-        printer.printAtom("Asgn");
+        startList();
+        printAtom("Asgn");
 
         a.lhs.accept(this);
         a.rhs.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
@@ -354,73 +361,73 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
     @Override
     public Void visit(Ast.Block<Position> b) {
-        printer.startList();
+        startList();
         posPrinter(b.a);
 
-        printer.startList();
-        printer.printAtom("Block");
+        startList();
+        printAtom("Block");
 
         /* stmt list */
-        printer.startList();
+        startList();
         b.ss.forEach(s -> s.accept(this));
         if (b.ret.isPresent()) {
-            printer.startList();
+            startList();
             posPrinter(b.ret_a);
 
-            printer.startList();
-            printer.printAtom("Return");
+            startList();
+            printAtom("Return");
 
-            printer.startList();
+            startList();
             b.ret.get().forEach(e -> e.accept(this));
-            printer.endList();
+            endList();
 
-            printer.endList();
+            endList();
 
-            printer.endList();
+            endList();
         }
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.If<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
-        printer.startList();
-        printer.printAtom("If");
+        startList();
+        printAtom("If");
 
         i.b.accept(this);
         i.body.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
 
         return null;
     }
 
     public Void visit(Ast.IfElse<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
-        printer.startList();
-        printer.printAtom("IfElse");
+        startList();
+        printAtom("IfElse");
 
         i.b.accept(this);
         i.thenBody.accept(this);
         i.elseBody.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.While<Position> w) {
-        printer.startList();
+        startList();
         posPrinter(w.a);
-        printer.startList();
-        printer.printAtom("While");
+        startList();
+        printAtom("While");
 
         /* predicate */
         w.b.accept(this);
@@ -428,176 +435,176 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         /* body */
         w.body.accept(this);
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Int<Position> l) {
-        printer.startList();
+        startList();
         posPrinter(l.a);
-        printer.printAtom("TInt");
-        printer.endList();
+        printAtom("TInt");
+        endList();
         return null;
     }
 
     public Void visit(Ast.Bool<Position> o) {
-        printer.startList();
+        startList();
         posPrinter(o.a);
-        printer.printAtom("TBool");
-        printer.endList();
+        printAtom("TBool");
+        endList();
         return null;
     }
 
     public Void visit(Ast.Array<Position> o) {
-        printer.startList();
+        startList();
         posPrinter(o.a);
-        printer.startList();
-        printer.printAtom("TArray");
+        startList();
+        printAtom("TArray");
 
         o.t.accept(this);
 
         if (o.size.isPresent()) {
-            printer.startList();
+            startList();
             o.size.get().accept(this);
-            printer.endList();
+            endList();
         } else {
-            printer.startList();
-            printer.endList();
+            startList();
+            endList();
         }
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Use<Position> u) {
-        printer.startList();
+        startList();
         posPrinter(u.a);
-        printer.startList();
-        printer.printAtom("Use");
+        startList();
+        printAtom("Use");
         rawIdPrinter(u.x);
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Underscore<Position> u) {
-        printer.startList();
-        printer.printAtom("Underscore");
+        startList();
+        printAtom("Underscore");
         posPrinter(u.a);
-        printer.endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.FuncCall<Position> c) {
-        printer.startList();
+        startList();
         posPrinter(c.a);
-        printer.startList();
-        printer.printAtom("FuncCall");
+        startList();
+        printAtom("FuncCall");
 
         rawIdPrinter(c.f);
 
         /* function arguments */
-        printer.startList();
+        startList();
         c.args.forEach(v -> v.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.ProcCall<Position> c) {
-        printer.startList();
+        startList();
         posPrinter(c.a);
-        printer.startList();
-        printer.printAtom("ProcCall");
+        startList();
+        printAtom("ProcCall");
 
         rawIdPrinter(c.f);
 
         /* function arguments */
-        printer.startList();
+        startList();
         c.args.forEach(v -> v.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
-        printer.endList();
+        endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.ProcDecl<Position> p) {
-        printer.startList();
+        startList();
         posPrinter(p.a);
 
-        printer.startList();
-        printer.printAtom("ProcDecl");
+        startList();
+        printAtom("ProcDecl");
 
         rawIdPrinter(p.name);
 
-        printer.startList();
+        startList();
         p.args.forEach(a -> a.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.FuncDecl<Position> f) {
-        printer.startList();
+        startList();
         posPrinter(f.a);
 
-        printer.startList();
-        printer.printAtom("FuncDecl");
+        startList();
+        printAtom("FuncDecl");
 
         rawIdPrinter(f.name);
 
-        printer.startList();
+        startList();
         f.args.forEach(a -> a.accept(this));
-        printer.endList();
+        endList();
 
-        printer.startList();
+        startList();
         f.returnType.forEach(t -> t.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.Interface<Position> i) {
-        printer.startList();
+        startList();
         posPrinter(i.a);
 
-        printer.startList();
-        printer.printAtom("Interface");
+        startList();
+        printAtom("Interface");
 
-        printer.startList();
+        startList();
         i.fs.forEach(f -> f.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
         return null;
     }
 
     public Void visit(Ast.FullProgram<Position> p) {
-        printer.startList();
-        printer.printAtom("FullProg");
+        startList();
+        printAtom("FullProg");
 
-        printer.printAtom(p.progname);
+        printAtom(p.progname);
 
         p.prog.accept(this);
 
-        printer.startList();
+        startList();
         p.inters.forEach(i -> i.accept(this));
-        printer.endList();
+        endList();
 
-        printer.endList();
+        endList();
 
         return null;
     }

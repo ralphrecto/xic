@@ -1,3 +1,6 @@
+open Core.Std
+open Async.Std
+
 (* init [] = []
  * init [a] = []
  * init [a, b] = [a]
@@ -30,3 +33,7 @@ val int_of_string: string -> int option
 (* ordered_dedup [1;2;3] = [1;2;3]
  * ordered_dedup [1;2;1;1;3;2;2;3;3] = [1;2;3] *)
 val ordered_dedup: 'a list -> 'a list
+
+(* time thunk returns the time taken to evaluate thunk *)
+val time: (unit -> 'a) -> (Time.Span.t * 'a)
+val time_def: 'a Deferred.t -> (Time.Span.t * 'a) Deferred.t

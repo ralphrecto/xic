@@ -399,17 +399,14 @@ public class Main {
               XiSource src = t.fst;
               FullProgram<Position> prog = t.snd;
 
-              // Convert AST to sexp
-              ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              SExpJaneStreetOut sexpOut = new SExpJaneStreetOut(baos);
-              sexpOut.visit(prog);
-              sexpOut.flush();
-
               // Write file
               String outputFilename = diagPathOut(src, extension);
               File outputFile = Paths.get(outputFilename).toFile();
               try {
-                Files.write(baos.toString().getBytes(), outputFile);
+                  SExpJaneStreetOut sexpOut
+                      = new SExpJaneStreetOut(new FileOutputStream(outputFile));
+                  sexpOut.visit(prog);
+                  sexpOut.flush();
               } catch(IOException e) {
                 System.out.println(e.getMessage());
                 e.printStackTrace();

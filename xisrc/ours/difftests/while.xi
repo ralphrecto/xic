@@ -58,3 +58,32 @@ whileTest4() : int {
 
   return z;
 }   
+
+whileTest5() : int {
+  w:int, x:int, y:int, z:int;
+  w = 0; x = 0; y = 0; z = 0;
+
+  while (x < 1) {
+    while (y < 1) {
+      while (z < 1) {
+        w = w + 1;
+        z = z + 1;
+      }
+      w = w + 2;
+      y = y + 1;
+    }
+    w = w + 3;
+    x = x + 1;
+  }
+
+  return w;
+}
+
+main (_:int[][]) {
+  println (string_of_int (whileTest1()));
+  println (string_of_int (whileTest2()));
+  println (string_of_int (whileTest3()));
+  println (string_of_int (whileTest4()));
+  println (string_of_int (whileTest5()));
+}
+

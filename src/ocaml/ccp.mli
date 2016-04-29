@@ -18,6 +18,6 @@ module CcpCFG : sig
   module CFG = IrCfg
 end
 
-val ccp: Ir.stmt list -> Ir.stmt list
+val ccp: Ir.stmt list -> Ir.stmt
 val ccp_comp_unit : Ir.comp_unit -> Ir.comp_unit
 

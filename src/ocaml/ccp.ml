@@ -286,46 +286,54 @@ let ccp irs =
   let module C = IrCfg in
   let module IDSE = IrDataStartExit in
   let module L = CcpLattice in
+  let module IG = Ir_generation in
   let g = C.create_cfg irs in
   let undef_mapping = map_temp_undef (get_all_temps g) in
   let ccp_e = Ccp.worklist undef_mapping g in
   let ccp_v_map = make_in_forwards g ccp_e (L.Unreach, undef_mapping) (L.Reach, undef_mapping) in
-  let f_vertex v (stmt_acc, del_labels) =
+  let f_vertex v stmt_acc =
     match v with
     | IDSE.Start
-    | IDSE.Exit -> (stmt_acc, del_labels)
+    | IDSE.Exit -> stmt_acc
     | IDSE.Node {num; ir} ->
       begin
         match M.find_exn ccp_v_map v with
-        | L.Unreach, _ ->
-          begin
-            match ir with
-            | Label l ->  (stmt_acc, String.Set.add del_labels l)
-            | _ -> (stmt_acc, del_labels)
-          end
+        | L.Unreach, _ -> stmt_acc
         | L.Reach, mapping ->
-          (Int.Map.add ~key:num ~data:(subst_stmt mapping ir) stmt_acc, del_labels)
+          match ir with
+          | CJumpOne _ ->
+            begin
+              let succs = C.succ_e g v in
+              let tru = List.find_exn succs ~f:(fun e -> C.E.label e = Cfg.EdgeData.True) in
+              let fls = List.find_exn succs ~f:(fun e -> C.E.label e = Cfg.EdgeData.False) in
+              match ccp_e tru, ccp_e fls with
+              | (L.Unreach,_), (L.Reach,_) -> stmt_acc
+              | (L.Reach,_), (L.Unreach,_) ->
+                begin
+                  match C.E.dst tru with
+                  | IDSE.Node {ir=Label l; _} ->
+                    let new_jump = Jump (Name l) in
+                    Int.Map.add ~key:num ~data:(subst_stmt mapping new_jump) stmt_acc
+                  | _ -> failwith "can't happen"
+                end
+              | (L.Reach,_), (L.Reach,_) ->
+                  Int.Map.add ~key:num ~data:(subst_stmt mapping ir) stmt_acc
+              | (L.Unreach,_), (L.Unreach,_) -> stmt_acc
+            end
+          | _ -> Int.Map.add ~key:num ~data:(subst_stmt mapping ir) stmt_acc
       end
   in
-  let (stmts, del_labels) = C.fold_vertex f_vertex g (Int.Map.empty, String.Set.empty) in
-  let del_jumps acc s =
-    match s with
-    | CJumpOne (_, l)
-    | Jump (Name l) ->
-      if String.Set.mem del_labels l then acc else s::acc
-    | _ -> s::acc
-  in
-  stmts
+  C.fold_vertex f_vertex g Int.Map.empty
   |> Int.Map.to_alist
   |> List.sort ~cmp:(fun (i1, _) (i2, _) -> Pervasives.compare i1 i2)
   |> List.map ~f:snd
-  |> List.fold_left ~f:del_jumps ~init:[]
-  |> List.rev
+  |> IG.block_reorder
+  |> IG.block_to_stmt
 
 let ccp_comp_unit (id, funcs) =
   let f ((fname, stmt, typ): Ir.func_decl) =
     match stmt with
-    | Seq irs -> (fname, Seq (ccp irs), typ)
+    | Seq irs -> (fname, ccp irs, typ)
     | _ -> failwith "ccp_comp_unit: lowered func_decls should only have seqs"
   in
   (id, String.Map.map ~f funcs)

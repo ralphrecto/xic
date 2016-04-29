@@ -58,30 +58,6 @@ let string_of_areg_map m ~f =
   |> String.concat ~sep:",\n"
   |> fun s -> "{\n" ^ s ^ "\n}"
 
-(**** Invariant Checks ****)
-let intersect l1 l2 =
-  List.filter l1 ~f:(fun elm -> List.mem l2 elm)
-
-let union l1 l2 =
-  List.fold_left ~init:l1 l2 ~f:(fun acc elm -> if (List.mem acc elm) then acc
-                                             else elm::acc)
-
-let degree_ok _regctx = failwith "TODO"
-
-let simplify_ok regctx =
-  List.fold_left ~init:true regctx.simplify_wl ~f:(fun acc u ->
-    acc)
-
-let freeze_ok regctx =
-  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find regctx.degree u) < regctx.num_colors &&
-    (intersect (AReg.Map.find regctx.move_list u) (union regctx.active_moves 
-        regctx.worklist_moves) != []))
-
-let spill_ok regctx =
-  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find regctx.degree u) >= regctx.num_colors)
-
 let _set_to_string (set : AReg.Set.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
   "{ " ^ (AReg.Set.fold ~f ~init:"" set) ^ " }"
@@ -445,6 +421,38 @@ let string_of_adj_list adj_list =
 
 let string_of_color_map color_map =
   string_of_areg_map ~f:string_of_color color_map
+
+(**** Invariant Checks ****)
+let intersect l1 l2 =
+  List.filter l1 ~f:(fun elm -> List.mem l2 elm)
+
+let union l1 l2 =
+  List.fold_left ~init:l1 l2 ~f:(fun acc elm -> if (List.mem acc elm) then acc
+                                             else elm::acc)
+
+let degree_ok regctx =
+  let l = union (union regctx.simplify_wl regctx.freeze_wl) regctx.spill_wl in
+  let l2 u = intersect (AReg.Set.to_list (AReg.Map.find_exn regctx.adj_list u))
+    (union (union (union regctx.precolored regctx.simplify_wl) regctx.freeze_wl)
+    regctx.spill_wl) in
+  List.fold_left ~init:true l ~f:(fun acc u ->
+    acc && (AReg.Map.find_exn regctx.degree u = List.length (l2 u)))
+
+let simplify_ok regctx =
+  List.fold_left ~init:true regctx.simplify_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find_exn regctx.degree u < regctx.num_colors) &&
+    (empty (intersect (AReg.Map.find_exn regctx.move_list u)
+      (union regctx.active_moves regctx.worklist_moves))))
+
+let freeze_ok regctx =
+  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
+    acc && ((AReg.Map.find_exn regctx.degree u) < regctx.num_colors) &&
+    not (empty (intersect (AReg.Map.find_exn regctx.move_list u)
+      (union regctx.active_moves regctx.worklist_moves))))
+
+let spill_ok regctx =
+  List.fold_left ~init:true regctx.spill_wl ~f:(fun acc u ->
+    acc && (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->

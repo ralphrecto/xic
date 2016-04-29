@@ -325,7 +325,7 @@ let get_next_color (colors : color list) : color option =
         else None in
   List.fold_left ~f ~init:None colorlist
 
-let color_to_reg (c : color) : reg =
+let reg_of_color (c : color) : reg =
   match c with
   | Reg1 -> Rax
   | Reg2 -> Rbx
@@ -341,6 +341,25 @@ let color_to_reg (c : color) : reg =
   | Reg12 -> R13
   | Reg13 -> R14
   | Reg14 -> R15
+
+let color_of_reg (r : reg) : color =
+  match r with
+  | Rax -> Reg1
+  | Rbx -> Reg2
+  | Rcx -> Reg3
+  | Cl -> Reg3
+  | Rdx -> Reg4
+  | Rsi -> Reg5
+  | Rdi -> Reg6
+  | R8 -> Reg7
+  | R9 -> Reg8
+  | R10 -> Reg9
+  | R11 -> Reg10
+  | R12 -> Reg11
+  | R13 -> Reg12
+  | R14 -> Reg13
+  | R15 -> Reg14
+  | _ -> failwith "color_of_reg: no color for rbp/rsp"
 
 type temp_move = {
   src: abstract_reg;
@@ -636,11 +655,24 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
   let precolored_set =
     let f r = Real r in
     List.map ~f [
-      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8; R9; R10; R11; R12; R13; R14; R15;
+      Rax; Rbx; Rcx; Cl; Rdx; Rsi; Rdi; R8;
+      R9; R10; R11; R12; R13; R14; R15;
     ] |> AbstractRegSet.of_list in
+
+  (* add colors of precolored regs in color map *)
+  let color_precoloreds (precoloreds : AbstractRegSet.t) regctx =
+    let f ctxacc key =
+      match key with
+      | Fake _ -> ctxacc
+      | Real r ->
+        let data = color_of_reg r in
+        { ctxacc with
+          color_map = AReg.Map.add ctxacc.color_map ~key ~data } in
+    AbstractRegSet.fold precoloreds ~f ~init:regctx in
 
   AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |>
   create_inter_edges precolored_set |>
+  color_precoloreds precolored_set |>
   AsmCfg.fold_vertex init1 cfg |> fun regctx' ->
   List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial
 
@@ -898,7 +930,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
 let get_real_reg (regctx : alloc_context) (reg : abstract_reg) : abstract_reg =
   AReg.Map.find regctx.color_map reg |>
   function
-    | Some color -> Real (color_to_reg color)
+    | Some color -> Real (reg_of_color color)
     | None -> reg
 
 let translate_operand (regctx : alloc_context) (op : abstract_reg operand) : abstract_reg operand =

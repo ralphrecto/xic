@@ -82,6 +82,8 @@ type alloc_context = {
   coalesced_nodes    : abstract_reg list;
   colored_nodes      : abstract_reg list;
   select_stack       : abstract_reg list;
+  (* coalesced nodes whose aliases were spilled *)
+  coalesced_spills   : abstract_reg list;
 
   (* move lists *)
   coalesced_moves    : temp_move list;

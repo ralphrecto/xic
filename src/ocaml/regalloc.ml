@@ -400,6 +400,8 @@ type alloc_context = {
   coalesced_nodes    : abstract_reg list;
   colored_nodes      : abstract_reg list;
   select_stack       : abstract_reg list;
+  (* coalesced nodes whose aliases were spilled *)
+  coalesced_spills   : abstract_reg list;
 
   (* move lists *)
   coalesced_moves    : temp_move list;
@@ -498,6 +500,7 @@ let empty_ctx = {
   coalesced_nodes    = [];
   colored_nodes      = [];
   select_stack       = [];
+  coalesced_spills   = [];
 
   (* move lists *)
   coalesced_moves    = [];
@@ -876,11 +879,11 @@ let coalesce (regctx : alloc_context) : alloc_context =
       let regctx'' = { regctx' with
                        constrained_moves = m::regctx'.constrained_moves } in
       regctx'' |> add_wl u |> add_wl v
-    else if List.mem regctx'.precolored u &&
+    else if (List.mem regctx'.precolored u &&
             List.fold_left ~init:true (adjacent v regctx')
-              ~f:(fun acc t -> acc && (ok t u regctx')) ||
-            not (List.mem regctx'.precolored u) &&
-            conservative ((adjacent u regctx') @ (adjacent v regctx')) regctx' then
+              ~f:(fun acc t -> acc && (ok t u regctx'))) ||
+            (not (List.mem regctx'.precolored u) &&
+            conservative ((adjacent u regctx') @ (adjacent v regctx')) regctx') then
       let regctx'' = { regctx' with
                        coalesced_moves = m::regctx'.coalesced_moves } in
       regctx'' |> combine u v |> add_wl u
@@ -981,22 +984,23 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         ~init:{regctx with select_stack = []}
         regctx.select_stack in
 
-    let f coloracc coalesced_node =
+    let f ctxacc coalesced_node =
       let alias = get_alias coalesced_node regctx' in
       match AReg.Map.find regctx'.color_map alias with
-      | None ->
-          let nodestr =
-            string_of_abstract_reg coalesced_node in
-          let aliastr =
-            string_of_abstract_reg alias in
-          let failstr =
-           "select_color: no color for alias. node: " ^ nodestr ^ ", alias : " ^ aliastr in
-          print_endline (_string_of_ctx regctx');
-          failwith failstr
-      | Some c -> AReg.Map.add coloracc ~key:coalesced_node ~data:c in
-    let color_map' =
-      List.fold_left ~f ~init:regctx'.color_map regctx'.coalesced_nodes in
-    { regctx' with color_map = color_map' }
+      (* Note: if a coalesced node's alias has been spilled, the color map
+       * has no binding for the alias. In this case, we do not assign a color
+       * to the coalesced node. Before translating colors to actual registers,
+       * we take uncolored coalesced nodes and assign them to the same memory
+       * location as their spilled alias. *)
+      | None -> {
+          ctxacc with
+          coalesced_spills = coalesced_node :: ctxacc.coalesced_spills
+        }
+      | Some c -> {
+          ctxacc with
+          color_map = AReg.Map.add ctxacc.color_map ~key:coalesced_node ~data:c
+      } in
+    List.fold_left ~f ~init:{ regctx' with coalesced_nodes = [] } regctx'.coalesced_nodes
 
 type trans_context =
   | None
@@ -1014,7 +1018,11 @@ let get_real_reg
         Real r'
     | Some color, None ->
         Real (reg_of_color color)
-    | None, _ -> reg
+    | None, _ ->
+        (* see note above in assign color regarding coalesced_spills *)
+        if List.mem regctx.coalesced_spills reg then
+          get_alias reg regctx
+        else reg
 
 let translate_operand
   (tctx : trans_context)

@@ -2,10 +2,28 @@ open Core.Std
 open Asm
 open Cfg
 
-module AbstractRegSet : Set.S with type Elt.t = abstract_reg
+(* ************************************************************************** *)
+(* Maps and Sets                                                              *)
+(* ************************************************************************** *)
+module ARegKey : sig
+  type t = abstract_reg [@@deriving sexp, compare]
+end
+module ARegPairKey : sig
+  type t = abstract_reg * abstract_reg [@@deriving sexp, compare]
+end
+
+module AReg : sig
+  module Set : module type of Set.Make (ARegKey)
+  module Map : module type of Map.Make (ARegKey)
+end
+
+module ARegPair : sig
+  module Set : module type of Set.Make (ARegPairKey)
+  module Map : module type of Map.Make (ARegPairKey)
+end
 
 module type UseDefsT = sig
-  type usedefs = AbstractRegSet.t * AbstractRegSet.t
+  type usedefs = AReg.Set.t * AReg.Set.t
 
   type usedef_pattern =
     | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
@@ -25,7 +43,7 @@ end
 module UseDefs : UseDefsT
 
 module LiveVariableLattice : Dataflow.LowerSemilattice with
-  type data = AbstractRegSet.t
+  type data = AReg.Set.t
 
 module AsmWithLiveVar : Dataflow.CFGWithLatticeT
   with module CFG = Cfg.AsmCfg
@@ -33,21 +51,6 @@ module AsmWithLiveVar : Dataflow.CFGWithLatticeT
   and type extra_info = unit
 
 module LiveVariableAnalysis : (module type of Dataflow.GenericAnalysis(AsmWithLiveVar))
-
-module ARegKey : Map.Key with
-  type t = abstract_reg
-
-module ARegPairKey : Set.Elt with
-  type t = abstract_reg * abstract_reg
-
-module AReg : sig
-  module Map : module type of Map.Make (ARegKey)
-  module Set : module type of Set.Make (ARegKey)
-end
-
-module ARegPair : sig
-  module Set : module type of Set.Make (ARegPairKey)
-end
 
 type color =
   | Reg1

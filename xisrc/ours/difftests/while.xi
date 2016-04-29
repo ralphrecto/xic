@@ -90,7 +90,7 @@ whileTest6() : int {
 }
 
 whileTest7() : int {
-  x:int[] = {1;2;3};
+  x:int[] = {1,2,3};
   y:int[3];
   a:int = 0;
 

@@ -118,7 +118,7 @@ type alloc_context = {
   degree             : int AReg.Map.t;
   adj_list           : AReg.Set.t AReg.Map.t;
   adj_set            : ARegPair.Set.t;
-  move_list          : (temp_move list) AReg.Map.t;
+  move_list          : TempMoveSet.t AReg.Map.t;
   alias              : abstract_reg AReg.Map.t;
   color_map          : color AReg.Map.t;
 

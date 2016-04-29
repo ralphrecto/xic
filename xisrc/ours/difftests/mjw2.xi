@@ -1,3 +1,14 @@
+string_of_1barray(x: bool[]) : int[] {
+    s: int[] = "{";
+    i: int = 0;
+    while (i < length(x)) {
+        s = s + string_of_bool(x[i]) + ",";
+        i = i + 1;
+    }
+    s = s + "}"
+    return s;
+}
+
 is_prime(x: int) : bool {
     if (x <= 1) {
         return false;

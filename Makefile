@@ -34,6 +34,7 @@ OCAML_TESTS = $(shell find test -name '*Test.ml')
 OCAML_SRCS_BIN  = $(OCAML_SRCS:.ml=.byte)
 OCAML_TESTS_BIN = $(OCAML_TESTS:.ml=.byte)
 OCAML_TESTS_EXE = $(notdir $(OCAML_TESTS_BIN))
+BISECT = ""
 
 default: clean src test doc publish
 
@@ -80,7 +81,7 @@ src: $(SRCS) $(OCAML_SRCS_BIN) $(OCAML_TESTS_BIN)
 	@echo "* make $@"
 	@echo "********************************************************************"
 	# corebuild -pkgs async,oUnit,ocamlgraph,bisect_ppx
-	corebuild -pkgs async,oUnit,ocamlgraph \
+	corebuild -pkgs async,oUnit,ocamlgraph$$(if [ $(BISECT) ]; then echo ",bisect_ppx"; fi) \
 			  -Is   src/ocaml,test $@ \
 			  -cflags -warn-error,+a
 	mkdir -p $(BIN)

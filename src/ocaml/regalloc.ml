@@ -494,8 +494,7 @@ let disjoint_set_ok regctx =
     List.for_alli s ~f:(fun j s'' ->
       if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
 
-(* TODO: no dups in select_stack
- * The union of all of them forms exactly the entire list of nodes *)
+(* TODO: The union of all of them forms exactly the entire list of nodes *)
 let no_dups regctx =
   List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
     regctx.select_stack
@@ -524,6 +523,12 @@ let freeze_ok regctx =
 let spill_ok regctx =
   AReg.Set.fold ~init:true regctx.spill_wl ~f:(fun acc u ->
     acc && (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
+
+let rep_ok regctx =
+  if (disjoint_list_ok regctx) && (disjoint_set_ok regctx) &&
+    (no_dups regctx) && (degree_ok regctx) && (simplify_ok regctx) &&
+    (freeze_ok regctx) && (spill_ok regctx) then regctx
+  else failwith "Invariants not held"
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
@@ -1272,18 +1277,18 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
           TempMoveSet.is_empty innerctx.worklist_moves &&
           AReg.Set.is_empty innerctx.freeze_wl &&
           AReg.Set.is_empty innerctx.spill_wl) then
-         innerctx
+         rep_ok innerctx
       else
         let innerctx' =
           if not (AReg.Set.is_empty innerctx.simplify_wl) then
-            simplify innerctx
+            rep_ok (simplify innerctx)
           else if not (TempMoveSet.is_empty innerctx.worklist_moves) then
-            coalesce innerctx
+            rep_ok (coalesce innerctx)
           else if not (AReg.Set.is_empty innerctx.freeze_wl) then
-            freeze innerctx
+            rep_ok (freeze innerctx)
           else
-            select_spill innerctx in
-        loop innerctx' in
+            rep_ok (select_spill innerctx) in
+        rep_ok (loop innerctx') in
 
       let buildctx, livevars = build regctx asms in
 

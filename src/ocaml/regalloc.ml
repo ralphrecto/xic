@@ -325,7 +325,7 @@ let string_of_color = function
   | Reg13 -> "Reg13"
   | Reg14 -> "Reg14"
 
-let string_of_colors (l : color list) =
+let _string_of_colors (l : color list) =
   l |> List.map ~f:string_of_color |> List.fold_left ~f:( ^ ) ~init:""
 
 let get_next_color (colors : color list) : color option =
@@ -637,8 +637,8 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
-      print_endline (string_of_abstract_asm asm);
-      print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");
+      (*print_endline (string_of_abstract_asm asm);*)
+      (*print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");*)
 
       (* add interferences between defs and liveset *)
       let _, defs = UseDefs.usedvars asm in
@@ -951,10 +951,10 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc in
       List.fold_left ~f ~init:[] neighbors in
     begin
-    let nodestr = string_of_abstract_reg select_node  in
-    let colorstr = string_of_colors neighbor_colors in
-    let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in
-    print_endline s;
+    (*let nodestr = string_of_abstract_reg select_node  in*)
+    (*let colorstr = string_of_colors neighbor_colors in*)
+    (*let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in*)
+    (*print_endline s;*)
     match get_next_color neighbor_colors with
     | None ->
         { ctxacc with spilled_nodes = select_node :: ctxacc.spilled_nodes; }

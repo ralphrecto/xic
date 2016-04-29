@@ -163,9 +163,7 @@ test7() {
 
 // super complicated
 foo(x: int, y: int, z: int[]) : int {
-    println("I'll substitute eminem for eminem in the body")
-    println("After two steps, that will give me s n m bar")
-    println("And then after a bunch of steps...that's gonna give me m + n")
+    println("x")
     z[0] = z[0] + 1
     return x + y + z[0]
 }

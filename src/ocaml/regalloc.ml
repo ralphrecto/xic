@@ -414,6 +414,12 @@ type alloc_context = {
   num_colors         : int;
 }
 
+let string_of_temp_move ({src; dest; move} : temp_move) =
+  let srcstr = string_of_abstract_reg src in
+  let deststr = string_of_abstract_reg dest in
+  let movestr = (string_of_int move.num) ^ ": " ^ (string_of_abstract_asm move.asm) in
+  "{ src = " ^ srcstr ^ "; dest = " ^ deststr ^ "; move = " ^ movestr ^ "}"
+
 let _string_of_abstract_regs (regs : abstract_reg list) : string =
   let f acc reg =
     (string_of_abstract_reg reg) ^ ", " ^ acc in
@@ -424,16 +430,24 @@ let areg_map_to_str (val_strf : 'a -> string) (map : 'a AReg.Map.t) (mapname : s
     (string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ "; " ^ acc in
   "{{ " ^ mapname ^ ": " ^ (AReg.Map.fold ~f ~init:"" map) ^ " }}\n\n"
 
+let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
+  let f acc s = (strf s) ^ ", " ^ acc in
+  "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]\n\n"
+
 let _string_of_ctx (regctx : alloc_context) : string =
-  let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) =
-    let f acc s = (strf s) ^ ", " ^ acc in
-    "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]\n\n" in
 
   let reglist_to_str (l: abstract_reg list) (name : string) : string =
     list_to_str string_of_abstract_reg l name in
 
+  let movelist_to_str (l: temp_move list) (name : string) : string =
+    list_to_str string_of_temp_move l name in
+
   let str_reglists (l : ((abstract_reg list) * string) list) =
     let f acc (lst, name) = (reglist_to_str lst name) ^ acc in
+    List.fold_left ~f ~init:"" l in
+
+  let str_movelists (l : ((temp_move list) * string) list) =
+    let f acc (lst, name) = (movelist_to_str lst name) ^ acc in
     List.fold_left ~f ~init:"" l in
 
   let adjlist_to_str aregset =
@@ -452,6 +466,13 @@ let _string_of_ctx (regctx : alloc_context) : string =
     (regctx.coalesced_nodes, "coalesced_nodes");
     (regctx.colored_nodes, "colored_nodes");
     (regctx.select_stack, "select_stack");
+  ] >>
+  str_movelists [
+    (regctx.coalesced_moves, "coalesced_moves");
+    (regctx.constrained_moves, "constrained_moves");
+    (regctx.frozen_moves, "frozen_moves");
+    (regctx.worklist_moves, "worklist_moves");
+    (regctx.active_moves, "active_moves");
   ] >>
   areg_map_to_str string_of_color regctx.color_map "color_map" >>
   areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" >>

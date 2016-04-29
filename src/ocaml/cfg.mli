@@ -64,13 +64,13 @@ module Make(N: NodeData) : sig
 
   module VertexSet : sig include Set.S with type Elt.t = V.t end
   module EdgeSet   : sig include Set.S with type Elt.t = E.t end
-  val vertex_set : t -> VertexSet.t
-  val edge_set   : t -> EdgeSet.t
-  val succs      : t -> vertex -> VertexSet.t
-  val preds      : t -> vertex -> VertexSet.t
-  val preds_e    : t -> vertex -> EdgeSet.t
-  val succs_e    : t -> vertex -> EdgeSet.t
-  val equal      : t -> t -> bool
+  val vertex_set   : t -> VertexSet.t
+  val edge_set     : t -> EdgeSet.t
+  val succs        : t -> vertex -> VertexSet.t
+  val preds        : t -> vertex -> VertexSet.t
+  val preds_e      : t -> vertex -> EdgeSet.t
+  val succs_e      : t -> vertex -> EdgeSet.t
+  val equal        : t -> t -> bool
 
   val swap : t -> oldv:vertex -> newv:vertex -> unit
 

@@ -37,3 +37,10 @@ val ordered_dedup: 'a list -> 'a list
 (* time thunk returns the time taken to evaluate thunk *)
 val time: (unit -> 'a) -> (Time.Span.t * 'a)
 val time_def: 'a Deferred.t -> (Time.Span.t * 'a) Deferred.t
+
+(* Pretty printing. When the short argument is true, data structures are
+ * printed more concisely. short defaults false. *)
+val string_of_list : ?short:bool -> 'a list -> f:('a -> string) -> string
+val string_of_set  : ?short:bool -> ('a, _) Set.t -> f:('a -> string) -> string
+val string_of_map  : ?short:bool -> ('k, 'v, _) Map.t ->
+                     k:('k -> string) -> v:('v -> string) -> string

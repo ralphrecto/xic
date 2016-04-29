@@ -50,3 +50,21 @@ let time_def d =
   d >>= fun x ->
   let stop = Time.now () in
   return (Time.diff stop start, x)
+
+let string_of_list ?(short=false) xs ~f =
+  ignore short;
+  sprintf "[%s]" (commas (List.map ~f xs))
+
+let string_of_set ?(short=false) s ~f =
+  Set.to_list s
+  |> List.map ~f:(fun x -> (if short then "" else "  ") ^ f x)
+  |> String.concat ~sep:(if short then "," else ",\n")
+  |> fun s -> if short then "{" ^ s ^ "}" else "{\n" ^ s ^ "\n}"
+
+let string_of_map ?(short=false) m ~k ~v =
+  Map.to_alist m
+  |> List.map ~f:(fun (key, value) ->
+      (if short then "" else "  ") ^ sprintf "%s->%s" (k key) (v value)
+    )
+  |> String.concat ~sep:(if short then "," else ",\n")
+  |> fun s -> sprintf "{\n%s\n}" s

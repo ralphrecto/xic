@@ -23,9 +23,12 @@ module ARegPair : sig
   module Map : module type of Map.Make (ARegPairKey)
 end
 
-val string_of_areg     : abstract_reg -> string
-val string_of_areg_set : AReg.Set.t -> string
-val string_of_areg_map : 'a AReg.Map.t -> f:('a -> string) -> string
+val string_of_areg          : ARegKey.t -> string
+val string_of_areg_set      : AReg.Set.t -> string
+val string_of_areg_map      : 'a AReg.Map.t -> f:('a -> string) -> string
+val string_of_areg_pair     : ARegPairKey.t -> string
+val string_of_areg_pair_set : ARegPair.Set.t -> string
+val string_of_areg_pair_map : 'a ARegPair.Map.t -> f:('a -> string) -> string
 
 (* ************************************************************************** *)
 (* Live Variable Analysis                                                     *)
@@ -129,9 +132,32 @@ type alloc_context = {
   num_colors         : int;
 }
 
-val string_of_coalesced_nodes : AReg.Set.t -> string
-val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
-val string_of_color_map : color AReg.Map.t -> string
+val empty_ctx : alloc_context
+
+val string_of_precolored        : AReg.Set.t -> string
+val string_of_initial           : AReg.Set.t -> string
+val string_of_simplify_wl       : AReg.Set.t -> string
+val string_of_freeze_wl         : AReg.Set.t -> string
+val string_of_spill_wl          : AReg.Set.t -> string
+val string_of_spilled_nodes     : AReg.Set.t -> string
+val string_of_coalesced_nodes   : AReg.Set.t -> string
+val string_of_colored_nodes     : AReg.Set.t -> string
+val string_of_select_stack      : abstract_reg list -> string
+val string_of_coalesced_spills  : AReg.Set.t -> string
+val string_of_coalesced_moves   : TempMoveSet.t -> string
+val string_of_constrained_moves : TempMoveSet.t -> string
+val string_of_frozen_moves      : TempMoveSet.t -> string
+val string_of_worklist_moves    : TempMoveSet.t -> string
+val string_of_active_moves      : TempMoveSet.t -> string
+val string_of_degree            : int AReg.Map.t -> string
+val string_of_adj_list          : AReg.Set.t AReg.Map.t -> string
+val string_of_adj_set           : ARegPair.Set.t -> string
+val string_of_move_list         : (temp_move list) AReg.Map.t -> string
+val string_of_alias             : abstract_reg AReg.Map.t -> string
+val string_of_color_map         : color AReg.Map.t -> string
+val string_of_node_occurrences  : int AReg.Map.t -> string
+val string_of_num_colors        : int -> string
+val string_of_alloc_context     : alloc_context -> string
 
 (* ************************************************************************** *)
 (* Helpers                                                                    *)

@@ -1,10 +1,10 @@
+module U = Util
 open Core.Std
 open Graph
 open Cfg
 open Dataflow
 open Asm
 open Fresh
-open Util
 
 (* ************************************************************************** *)
 (* Helpers                                                                    *)
@@ -41,20 +41,18 @@ module ARegPair = struct
 end
 
 let string_of_areg = Asm.string_of_abstract_reg
+let string_of_areg_set s = U.string_of_set ~short:false s ~f:string_of_areg
+let string_of_areg_set_short s = U.string_of_set ~short:true s ~f:string_of_areg
+let string_of_areg_map m ~f = U.string_of_map ~short:false m ~k:string_of_areg ~v:f
 
-let string_of_areg_set reg_set =
-  let regs = AReg.Set.to_list reg_set in
-  sprintf "{%s}" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+let string_of_areg_pair (a, b) =
+  sprintf "(%s, %s)" (string_of_areg a) (string_of_areg b)
 
-let string_of_areg_map m ~f =
-  AReg.Map.to_alist m
-  |> List.map ~f:(fun (areg, x) ->
-      sprintf "  %s --> %s"
-        (string_of_abstract_reg areg)
-        (f x)
-  )
-  |> String.concat ~sep:",\n"
-  |> fun s -> "{\n" ^ s ^ "\n}"
+let string_of_areg_pair_set s =
+  U.string_of_set ~short:false s ~f:string_of_areg_pair
+
+let string_of_areg_pair_map m ~f =
+  U.string_of_map ~short:false m ~k:string_of_areg_pair ~v:f
 
 let _set_to_string (set : AReg.Set.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
@@ -239,7 +237,6 @@ module UseDefs = struct
 
 end
 
-
 module LiveVariableLattice : LowerSemilattice with type data = AReg.Set.t with
   type data = AReg.Set.t = struct
 
@@ -382,10 +379,7 @@ module TempMoveSet = Set.Make(struct
   type t = temp_move [@@deriving sexp, compare]
 end)
 
-let string_of_temp_move_set temp_move_set =
-  let temp_moves = TempMoveSet.to_list temp_move_set in
-  let strings = List.map temp_moves ~f:string_of_temp_move in
-  sprintf "{%s}" (String.concat ~sep:"," strings)
+let string_of_temp_move_set s = U.string_of_set ~short:false s ~f:string_of_temp_move
 
 type alloc_context = {
   precolored         : AReg.Set.t;
@@ -426,13 +420,56 @@ let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg 
 (* let string_of_abstract_regs regs = *)
   (* sprintf "[%s]" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg)) *)
 
-let string_of_coalesced_nodes = string_of_areg_set
-
-let string_of_adj_list adj_list =
-  string_of_areg_map ~f:string_of_areg_set adj_list
-
-let string_of_color_map color_map =
-  string_of_areg_map ~f:string_of_color color_map
+let string_of_precolored         = string_of_areg_set
+let string_of_initial            = string_of_areg_set
+let string_of_simplify_wl        = string_of_areg_set
+let string_of_freeze_wl          = string_of_areg_set
+let string_of_spill_wl           = string_of_areg_set
+let string_of_spilled_nodes      = string_of_areg_set
+let string_of_coalesced_nodes    = string_of_areg_set
+let string_of_colored_nodes      = string_of_areg_set
+let string_of_select_stack       = U.string_of_list ~short:false ~f:string_of_areg
+let string_of_coalesced_spills   = string_of_areg_set
+let string_of_coalesced_moves    = string_of_temp_move_set
+let string_of_constrained_moves  = string_of_temp_move_set
+let string_of_frozen_moves       = string_of_temp_move_set
+let string_of_worklist_moves     = string_of_temp_move_set
+let string_of_active_moves       = string_of_temp_move_set
+let string_of_degree             = string_of_areg_map ~f:Int.to_string
+let string_of_adj_list           = string_of_areg_map ~f:string_of_areg_set_short
+let string_of_adj_set            = string_of_areg_pair_set
+let string_of_move_list        _ = "TODO: update to set"
+let string_of_alias              = string_of_areg_map ~f:string_of_areg
+let string_of_color_map          = string_of_areg_map ~f:string_of_color
+let string_of_node_occurrences   = string_of_areg_map ~f:Int.to_string
+let string_of_num_colors         = Int.to_string
+let string_of_alloc_context c =
+  let fields = [
+    "precolored = "        ^ (string_of_precolored        (c.precolored));
+    "initial = "           ^ (string_of_initial           (c.initial));
+    "simplify_wl = "       ^ (string_of_simplify_wl       (c.simplify_wl));
+    "freeze_wl = "         ^ (string_of_freeze_wl         (c.freeze_wl));
+    "spill_wl = "          ^ (string_of_spill_wl          (c.spill_wl));
+    "spilled_nodes = "     ^ (string_of_spilled_nodes     (c.spilled_nodes));
+    "coalesced_nodes = "   ^ (string_of_coalesced_nodes   (c.coalesced_nodes));
+    "colored_nodes = "     ^ (string_of_colored_nodes     (c.colored_nodes));
+    "select_stack = "      ^ (string_of_select_stack      (c.select_stack));
+    "coalesced_spills = "  ^ (string_of_coalesced_spills  (c.coalesced_spills));
+    "coalesced_moves = "   ^ (string_of_coalesced_moves   (c.coalesced_moves));
+    "constrained_moves = " ^ (string_of_constrained_moves (c.constrained_moves));
+    "frozen_moves = "      ^ (string_of_frozen_moves      (c.frozen_moves));
+    "worklist_moves = "    ^ (string_of_worklist_moves    (c.worklist_moves));
+    "active_moves = "      ^ (string_of_active_moves      (c.active_moves));
+    "degree = "            ^ (string_of_degree            (c.degree));
+    "adj_list = "          ^ (string_of_adj_list          (c.adj_list));
+    "adj_set = "           ^ (string_of_adj_set           (c.adj_set));
+    "move_list = "         ^ (string_of_move_list         (c.move_list));
+    "alias = "             ^ (string_of_alias             (c.alias));
+    "color_map = "         ^ (string_of_color_map         (c.color_map));
+    "node_occurrences = "  ^ (string_of_node_occurrences  (c.node_occurrences));
+    "num_colors = "        ^ (string_of_num_colors        (c.num_colors));
+  ] in
+  sprintf "[\n%s\n]" (String.concat ~sep:"\n\n" fields)
 
 (**** Invariant Checks ****)
 let inter s1 s2 = AReg.Set.inter s1 s2
@@ -495,67 +532,7 @@ let _string_of_abstract_regs (regs : abstract_reg list) : string =
     (string_of_abstract_reg reg) ^ ", " ^ acc in
   List.fold_left ~f ~init:"" regs
 
-(* let areg_map_to_str *)
-  (* (val_strf : 'a -> string) *)
-  (* (map : 'a AReg.Map.t) *)
-  (* (mapname : string) : string list = *)
-  (* let f ~key ~data acc = *)
-    (* ((string_of_abstract_reg key) ^ " -> " ^ (val_strf data) ^ ";") :: acc in *)
-  (* let pre = "{{ " ^ mapname ^ ": " in *)
-  (* let post = " }}" in *)
-  (* let body = AReg.Map.fold ~f ~init:[post] map in *)
-  (* pre :: body *)
-
-(* let list_to_str (strf : 'a -> string) (lst : 'a list) (listname : string) : string = *)
-  (* let f acc s = (strf s) ^ ", " ^ acc in *)
-  (* "[[ " ^ listname ^ ": " ^ (List.fold_left ~f ~init:"" lst) ^ "]]" *)
-
-let _string_of_ctx _ = []
-(* let _string_of_ctx (regctx : alloc_context) : string list = *)
-
-  (* let reglist_to_str (l: abstract_reg list) (name : string) : string = *)
-    (* list_to_str string_of_abstract_reg l name in *)
-
-  (* let movelist_to_str (l: temp_move list) (name : string) : string = *)
-    (* list_to_str string_of_temp_move l name in *)
-
-  (* let str_reglists (l : ((abstract_reg list) * string) list) : string list = *)
-    (* let f acc (lst, name) = (reglist_to_str lst name) :: acc in *)
-    (* List.fold_left ~f ~init:[] l in *)
-
-  (* let str_movelists (l : ((temp_move list) * string) list) : string list = *)
-    (* let f acc (lst, name) = (movelist_to_str lst name) :: acc in *)
-    (* List.fold_left ~f ~init:[] l in *)
-
-  (* let adjlist_to_str aregset = *)
-    (* reglist_to_str (AReg.Set.to_list aregset) "neighbors" in *)
-
-  (* ["BEGIN CONTEXT"] @ *)
-  (* str_reglists [ *)
-    (* (regctx.precolored, "precolored"); *)
-    (* (regctx.initial, "initial"); *)
-    (* (regctx.simplify_wl, "simplify_wl"); *)
-    (* (regctx.freeze_wl, "freeze_wl"); *)
-    (* (regctx.spill_wl, "spill_wl"); *)
-    (* (regctx.spilled_nodes, "spilled_nodes"); *)
-    (* (regctx.coalesced_nodes, "coalesced_nodes"); *)
-    (* (regctx.colored_nodes, "colored_nodes"); *)
-    (* (regctx.select_stack, "select_stack"); *)
-  (* ] @ *)
-  (* str_movelists [ *)
-    (* (regctx.coalesced_moves, "coalesced_moves"); *)
-    (* (regctx.constrained_moves, "constrained_moves"); *)
-    (* (regctx.frozen_moves, "frozen_moves"); *)
-    (* (regctx.worklist_moves, "worklist_moves"); *)
-    (* (regctx.active_moves, "active_moves"); *)
-  (* ] @ *)
-  (* areg_map_to_str string_of_color regctx.color_map "color_map" @ *)
-  (* areg_map_to_str adjlist_to_str regctx.adj_list "adj_list" @ *)
-  (* areg_map_to_str string_of_abstract_reg regctx.alias "alias" @ *)
-  (* ["END CONTEXT"] *)
-
 let empty_ctx = {
-  (* IG node lists *)
   precolored         = AReg.Set.empty;
   initial            = AReg.Set.empty;
   simplify_wl        = AReg.Set.empty;
@@ -566,26 +543,18 @@ let empty_ctx = {
   colored_nodes      = AReg.Set.empty;
   select_stack       = [];
   coalesced_spills   = AReg.Set.empty;
-
-  (* move lists *)
   coalesced_moves    = TempMoveSet.empty;
   constrained_moves  = TempMoveSet.empty;
   frozen_moves       = TempMoveSet.empty;
   worklist_moves     = TempMoveSet.empty;
   active_moves       = TempMoveSet.empty;
-
-  (* interference graph / node related *)
   degree             = AReg.Map.empty;
   adj_list           = AReg.Map.empty;
   adj_set            = ARegPair.Set.empty;
   move_list          = AReg.Map.empty;
   alias              = AReg.Map.empty;
   color_map          = AReg.Map.empty;
-
-  (* other data structures *)
-  (* number of times a temp appears; used for spill heuristic *)
   node_occurrences   = AReg.Map.empty;
-  (* number of available machine registers for allocation *)
   num_colors         = 14;
 }
 
@@ -858,7 +827,7 @@ let simplify regctx : alloc_context =
       {
         regctx with
         simplify_wl = AReg.Set.of_list t;
-        select_stack = unduped_cons regctx.select_stack n;
+        select_stack = n::regctx.select_stack;
       }
     in
     AReg.Set.fold
@@ -1105,7 +1074,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
     let regctx' =
       AReg.Set.fold ~f ~init:{ regctx' with coalesced_nodes = AReg.Set.empty } regctx'.coalesced_nodes in
     (*List.iter ~f:print_endline (_string_of_ctx regctx');*)
-    printf "assign_colors valid coloring? %b\n" (valid_coloring regctx');
+    (* printf "assign_colors valid coloring? %b\n" (valid_coloring regctx'); *)
     regctx'
 
 type trans_context =
@@ -1298,7 +1267,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
 
       print_endline "start building";
       print_endline "------------------------------------";
-      (* List.iter ~f:print_endline (_string_of_ctx buildctx); *)
+      print_endline (string_of_alloc_context buildctx);
       print_endline "------------------------------------";
       print_endline "end building";
 
@@ -1307,8 +1276,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
 
   let finctx, livevars = main empty_ctx given_asms in
   let finctx_comments : abstract_asm list =
-    let f str = Comment str in
-    List.map ~f (_string_of_ctx finctx) in
+    [Comment (string_of_alloc_context finctx)] in
 
   (* remove coalesced moves *)
   let finasms =

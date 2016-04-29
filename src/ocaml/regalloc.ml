@@ -7,6 +7,21 @@ open Fresh
 open Util
 
 (* ************************************************************************** *)
+(* Helpers                                                                    *)
+(* ************************************************************************** *)
+(* remove x from lst, if it exists *)
+let remove (lst : 'a list) (x : 'a) : 'a list =
+  let f y = x <> y in
+  List.filter ~f lst
+
+(* conses x onto list unless x is already in list *)
+let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
+  if List.mem lst x then lst
+  else x :: lst
+
+let empty (l: 'a list) = List.length l = 0
+
+(* ************************************************************************** *)
 (* Maps and Sets                                                              *)
 (* ************************************************************************** *)
 module ARegKey = struct
@@ -27,6 +42,21 @@ module ARegPair = struct
   module Map = Map.Make (ARegPairKey)
 end
 
+let string_of_areg = Asm.string_of_abstract_reg
+
+let string_of_areg_set reg_set =
+  let regs = AReg.Set.to_list reg_set in
+  sprintf "{%s}" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
+
+let string_of_areg_map m ~f =
+  AReg.Map.to_alist m
+  |> List.map ~f:(fun (areg, x) ->
+      sprintf "  %s --> %s"
+        (string_of_abstract_reg areg)
+        (f x)
+  )
+  |> String.concat ~sep:",\n"
+  |> fun s -> "{\n" ^ s ^ "\n}"
 
 (**** Invariant Checks ****)
 let degree_ok _regctx = failwith "TODO"
@@ -37,44 +67,14 @@ let freeze_ok _regctx = failwith "TODO"
 
 let spill_ok _regctx = failwith "TODO"
 
-(* remove x from lst, if it exists *)
-let remove (lst : 'a list) (x : 'a) : 'a list =
-  let f y = x <> y in
-  List.filter ~f lst
-
-(* conses x onto list unless x is already in list *)
-let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
-  if List.mem lst x then lst
-  else x :: lst
-
-let empty (l: 'a list) = List.length l = 0
-
-module AdjacencySet : Set.S with type Elt.t = abstract_reg * abstract_reg =
-  Set.Make (struct type t = (abstract_reg * abstract_reg) [@@deriving compare,sexp] end)
-
 let _set_to_string (set : AReg.Set.t) : string =
   let f acc reg = (string_of_abstract_reg reg) ^ ", " ^ acc in
   "{ " ^ (AReg.Set.fold ~f ~init:"" set) ^ " }"
 
-module type UseDefsT = sig
-  type usedefs = AReg.Set.t * AReg.Set.t
-
-  type usedef_pattern =
-    | Binop of string list * (abstract_reg operand -> abstract_reg operand -> usedefs)
-    | Unop of string list * (abstract_reg operand -> usedefs)
-    | Zeroop of string list * usedefs
-
-  type usedef_val =
-    | BinopV of string * abstract_reg operand * abstract_reg operand
-    | UnopV of string * abstract_reg operand
-    | ZeroopV of string
-
-  val usedef_match : usedef_pattern list -> usedef_val -> usedefs
-
-  val usedvars : abstract_asm -> usedefs
-end
-
-module UseDefs : UseDefsT = struct
+(* ************************************************************************** *)
+(* Live Variable Analysis                                                     *)
+(* ************************************************************************** *)
+module UseDefs = struct
   type usedefs = AReg.Set.t * AReg.Set.t
 
   type usedef_pattern =
@@ -435,25 +435,11 @@ let string_of_abstract_regs regs =
 
 let string_of_coalesced_nodes = string_of_abstract_regs
 
-let string_of_reg_set reg_set =
-  let regs = AReg.Set.to_list reg_set in
-  sprintf "{%s}" (String.concat ~sep:"," (List.map regs ~f:string_of_abstract_reg))
-
-let string_of_reg_map (f: 'a -> string) (m: 'a AReg.Map.t) =
-  AReg.Map.to_alist m
-  |> List.map ~f:(fun (areg, x) ->
-      sprintf "  %s --> %s"
-        (string_of_abstract_reg areg)
-        (f x)
-  )
-  |> String.concat ~sep:",\n"
-  |> fun s -> "{\n" ^ s ^ "\n}"
-
 let string_of_adj_list adj_list =
-  string_of_reg_map string_of_reg_set adj_list
+  string_of_areg_map ~f:string_of_areg_set adj_list
 
 let string_of_color_map color_map =
-  string_of_reg_map string_of_color color_map
+  string_of_areg_map ~f:string_of_color color_map
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->

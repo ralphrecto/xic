@@ -8,6 +8,7 @@ open Cfg
 module ARegKey : sig
   type t = abstract_reg [@@deriving sexp, compare]
 end
+
 module ARegPairKey : sig
   type t = abstract_reg * abstract_reg [@@deriving sexp, compare]
 end
@@ -22,7 +23,14 @@ module ARegPair : sig
   module Map : module type of Map.Make (ARegPairKey)
 end
 
-module type UseDefsT = sig
+val string_of_areg     : abstract_reg -> string
+val string_of_areg_set : AReg.Set.t -> string
+val string_of_areg_map : 'a AReg.Map.t -> f:('a -> string) -> string
+
+(* ************************************************************************** *)
+(* Live Variable Analysis                                                     *)
+(* ************************************************************************** *)
+module UseDefs : sig
   type usedefs = AReg.Set.t * AReg.Set.t
 
   type usedef_pattern =
@@ -40,10 +48,7 @@ module type UseDefsT = sig
   val usedvars : abstract_asm -> usedefs
 end
 
-module UseDefs : UseDefsT
-
-module LiveVariableLattice : Dataflow.LowerSemilattice with
-  type data = AReg.Set.t
+module LiveVariableLattice : Dataflow.LowerSemilattice with type data = AReg.Set.t
 
 module AsmWithLiveVar : Dataflow.CFGWithLatticeT
   with module CFG = Cfg.AsmCfg
@@ -52,6 +57,9 @@ module AsmWithLiveVar : Dataflow.CFGWithLatticeT
 
 module LiveVariableAnalysis : (module type of Dataflow.GenericAnalysis(AsmWithLiveVar))
 
+(* ************************************************************************** *)
+(* Register Allocation Types                                                  *)
+(* ************************************************************************** *)
 type color =
   | Reg1
   | Reg2
@@ -118,7 +126,6 @@ val freeze_ok : alloc_context -> bool
 val spill_ok : alloc_context -> bool
 
 val string_of_coalesced_nodes : abstract_reg list -> string
-val string_of_reg_set : AReg.Set.t -> string
 val string_of_adj_list : AReg.Set.t AReg.Map.t -> string
 val string_of_color_map : color AReg.Map.t -> string
 

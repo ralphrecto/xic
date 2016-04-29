@@ -478,7 +478,6 @@ let empty_ctx = {
   num_colors         = 14;
 }
 
-(* generic helper methods *)
 (* data structure helpers *)
 let adj_list_add
   (key: abstract_reg)
@@ -549,6 +548,17 @@ let add_edge (u : abstract_reg) (v : abstract_reg) regctx : alloc_context =
     end
   else regctx
 
+let cfgnode_sort (nodes : AsmCfg.V.t list) =
+  let cmp (node1 : AsmCfg.V.t) (node2 : AsmCfg.V.t) : int =
+    match node1, node2 with
+    | Start, Start | Exit, Exit -> 0
+    | Start, _ -> -1
+    | Exit, _ -> 1
+    | Node _ , Start -> 1
+    | Node _ , Exit -> -1
+    | Node n1, Node n2 -> compare n1.num n2.num in
+  List.sort ~cmp nodes
+
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
@@ -581,7 +591,7 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
     AbstractRegSet.fold ~f:g1 ~init:regctx temps in
 
   (* initialize regctx with move_list and worklist_moves *)
-  let init1 (cfg_node : AsmCfg.vertex) regctx : alloc_context =
+  let init1 (regctx : alloc_context) (cfg_node : AsmCfg.vertex) : alloc_context =
     match cfg_node with
     (* TODO: should we handle procedure entry/exit differently? *)
     | Start | Exit -> regctx
@@ -589,6 +599,8 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
       begin
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
+      print_endline (string_of_abstract_asm asm);
+      print_endline ("<<" ^ (_string_of_abstract_regs (AbstractRegSet.to_list liveset)) ^ ">>");
 
       (* add interferences between defs and liveset *)
       let _, defs = UseDefs.usedvars asm in
@@ -670,10 +682,17 @@ let build (initctx : alloc_context) (asms : abstract_asm list) : alloc_context =
           color_map = AReg.Map.add ctxacc.color_map ~key ~data } in
     AbstractRegSet.fold precoloreds ~f ~init:regctx in
 
+  (* put all live vars into either precoloreds or initial worklist *)
   AbstractRegSet.fold ~f:init0 ~init:initctx all_livevars |>
+  (* create interferences between all precolored nodes *)
   create_inter_edges precolored_set |>
-  color_precoloreds precolored_set |>
-  AsmCfg.fold_vertex init1 cfg |> fun regctx' ->
+  (* set colors of precolored nodes in color map *)
+  color_precoloreds precolored_set |> fun regctx' ->
+  (* populate move worklists *)
+  let nodes = AsmCfg.VertexSet.to_list (AsmCfg.vertex_set cfg) in
+  let sorted_nodes = cfgnode_sort nodes in
+  List.fold_left ~f:init1 ~init:regctx' sorted_nodes |> fun regctx' ->
+  (* populate node worklists *)
   List.fold_left ~f:init2 ~init:{ regctx' with initial = []} regctx'.initial
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
@@ -775,18 +794,16 @@ let combine u v regctx =
     let new_lst = (find regctx'.move_list u) @ (find regctx'.move_list v) in
     AReg.Map.add regctx'.move_list ~key:u ~data:new_lst in
 
-  let regctx' = {
-    regctx' with
+  { regctx' with
     coalesced_nodes = coalesced_nodes';
     alias = alias';
     move_list = move_list';
-  } in
-  let regctx' =
-    enable_moves [v] regctx' in
-  let regctx' =
-    let f ctxacc t =
-      add_edge t u ctxacc |> decrement_degree t in
-    List.fold_left ~f ~init:regctx' (adjacent v regctx') in
+  } |> enable_moves [v] |> fun regctx' ->
+
+  let f ctxacc t =
+    add_edge t u ctxacc |> decrement_degree t in
+  List.fold_left ~f ~init:regctx' (adjacent v regctx') |> fun regctx' ->
+
   if (degree u regctx') >= (regctx.num_colors) && List.mem regctx'.freeze_wl u then
     { regctx' with
       freeze_wl = remove regctx'.freeze_wl u;
@@ -896,8 +913,9 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc in
       List.fold_left ~f ~init:[] neighbors in
     begin
-      let s =
-       "calling get next color with neighbor colors " ^ (string_of_colors neighbor_colors) in
+    let nodestr = string_of_abstract_reg select_node  in
+    let colorstr = string_of_colors neighbor_colors in
+    let s = "neighbor colors of " ^ nodestr ^ ": " ^ colorstr in
     print_endline s;
     match get_next_color neighbor_colors with
     | None ->
@@ -1039,7 +1057,6 @@ let spill_allocate ?(debug=false) asms =
 
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   ignore debug;
-
   let main
     (regctx : alloc_context)
     (asms : abstract_asm list)

@@ -582,9 +582,25 @@ let degree_ok regctx =
   let (+) = AReg.Set.union in
   let (&) = AReg.Set.inter in
   let s = regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl in
-  let s2 u = (AReg.Map.find_exn regctx.adj_list u) & (regctx.precolored +
-    regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl) in
-  AReg.Set.for_all s ~f:(fun u -> AReg.Map.find_exn regctx.degree u = size (s2 u))
+  let s2 u =
+    (AReg.Map.find_exn regctx.adj_list u) &
+    (regctx.precolored + regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl)
+  in
+  AReg.Set.for_all s ~f:(fun u ->
+    let degree = AReg.Map.find_exn regctx.degree u in
+    let size_rhs = size (s2 u) in
+    if degree = size_rhs then
+      true
+    else begin
+      printf "degree_ok failed for reg %s\n" (string_of_areg u);
+      printf "  degree            = %d\n" degree;
+      printf "  size_rhs          = %d\n" size_rhs;
+      printf "  u in simplify_wl? = %b\n" (AReg.Set.mem regctx.simplify_wl u);
+      printf "  u in freeze_wl?   = %b\n" (AReg.Set.mem regctx.freeze_wl u);
+      printf "  u in spill_wl?    = %b\n" (AReg.Set.mem regctx.spill_wl u);
+      false
+    end
+  )
 
 let simplify_ok regctx =
   let (+) = TempMoveSet.union in

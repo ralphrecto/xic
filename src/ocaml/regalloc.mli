@@ -78,10 +78,14 @@ type color =
   | Reg12
   | Reg13
   | Reg14
+[@@deriving sexp, compare]
 
-val reg_of_color    : color -> reg
-val color_of_reg    : reg   -> color
-val string_of_color : color -> string
+module ColorSet : Set.S with type Elt.t = color
+
+val reg_of_color        : color -> reg
+val color_of_reg        : reg   -> color
+val string_of_color     : color -> string
+val string_of_color_set : ColorSet.t -> string
 
 (* get_next_color cs returns a color not in cs if possible, or None otherwise *)
 val get_next_color : color list -> color option

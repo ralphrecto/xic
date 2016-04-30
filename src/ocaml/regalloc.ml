@@ -318,6 +318,7 @@ type color =
   | Reg12
   | Reg13
   | Reg14
+[@@deriving sexp, compare]
 
 let reg_of_color = function
   | Reg1  -> Rax
@@ -353,8 +354,12 @@ let color_of_reg = function
   | R15 -> Reg14
   | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
-let string_of_color (c : color) =
-  Asm.string_of_reg (reg_of_color c)
+module ColorSet = Set.Make(struct
+  type t = color [@@deriving sexp, compare]
+end)
+
+let string_of_color c = Asm.string_of_reg (reg_of_color c)
+let string_of_color_set s = U.string_of_set ~short:false s ~f:string_of_color
 
 let get_next_color (colors : color list) : color option =
   let colorlist = [

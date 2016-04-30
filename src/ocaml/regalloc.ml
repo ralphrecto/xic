@@ -16,11 +16,6 @@ let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
   List.filter ~f lst
 
-(* conses x onto list unless x is already in list *)
-let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
-  if List.mem lst x then lst
-  else x :: lst
-
 (* ************************************************************************** *)
 (* Maps and Sets                                                              *)
 (* ************************************************************************** *)
@@ -1143,11 +1138,7 @@ let select_spill (regctx : alloc_context) : alloc_context =
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
   let select_assign ctxacc select_node =
-    let neighbors =
-      match AReg.Map.find ctxacc.adj_list select_node with
-      | Some s -> AReg.Set.to_list s
-      | None -> []
-    in
+    let neighbors = AReg.Map.find_exn ctxacc.adj_list select_node in
     let neighbor_colors =
       let f acc neighbor =
         let alias = get_alias neighbor ctxacc in
@@ -1155,11 +1146,12 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             AReg.Set.mem ctxacc.precolored alias) then
           begin
             AReg.Map.find ctxacc.color_map alias |>
-            function Some c -> unduped_cons acc c | None -> acc
+            (* TODO: should this fail if you can't find a color? *)
+            function Some c -> AReg.Set.add acc c | None -> acc
           end
         else acc
       in
-      List.fold_left ~f ~init:[] neighbors in
+      AReg.Set.fold ~f ~init:AReg.Set.empty neighbors in
     (*
     let () =
       match select_node with

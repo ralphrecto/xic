@@ -1152,11 +1152,11 @@ let assign_colors (regctx : alloc_context) : alloc_context =
           begin
             AReg.Map.find ctxacc.color_map alias |>
             (* TODO: should this fail if you can't find a color? *)
-            function Some c -> AReg.Set.add acc c | None -> acc
+            function Some c -> ColorSet.add acc c | None -> acc
           end
         else acc
       in
-      AReg.Set.fold ~f ~init:AReg.Set.empty neighbors in
+      AReg.Set.fold ~f ~init:ColorSet.empty neighbors in
     (*
     let () =
       match select_node with
@@ -1169,7 +1169,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
       | _ -> () in
     *)
     begin
-      match get_next_color neighbor_colors with
+      match get_next_color (ColorSet.to_list neighbor_colors) with
       | None ->
           { ctxacc with spilled_nodes = AReg.Set.add ctxacc.spilled_nodes select_node; }
       | Some c ->

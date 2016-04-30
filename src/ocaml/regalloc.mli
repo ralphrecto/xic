@@ -171,20 +171,31 @@ val string_of_alloc_context     : alloc_context -> string
 (* ************************************************************************** *)
 (* Invariants                                                                 *)
 (* ************************************************************************** *)
-val disjoint_list_ok : alloc_context -> bool
-val disjoint_set_ok : alloc_context -> bool
-val all_nodes_ok : alloc_context -> bool
-val all_moves_ok : alloc_context -> bool
-val select_stack_no_dups_ok : alloc_context -> bool
-val degree_ok : alloc_context -> bool
-val simplify_ok : alloc_context -> bool
-val freeze_ok : alloc_context -> bool
-val spill_ok : alloc_context -> bool
+type invariant = alloc_context -> bool
+
+val disjoint_list_ok        : invariant
+val disjoint_set_ok         : invariant
+val all_nodes_ok            : invariant
+val all_moves_ok            : invariant
+val select_stack_no_dups_ok : invariant
+val degree_ok               : invariant
+val simplify_ok             : invariant
+val freeze_ok               : invariant
+val spill_ok                : invariant
+
+(* a list of all invariants along with their name *)
+val invariants : (string * invariant) list
+
+(* check invs takes in a list of invariants and converts them to an invariant
+ * checking function. If all the invariants hold, then the checking function
+ * acts as the idendity. If any invariant doens't hold, diagnostic
+ * information is printed and the program is crashed. *)
+val check : (string * invariant) list -> (alloc_context -> alloc_context)
 
 (* valid_coloring c returns true if c.color_map is a valid coloring of
  * c.adj_list. That is, every node in adj_list has a different color that all
  * its neighbors. *)
-val valid_coloring : alloc_context -> bool
+val valid_coloring : invariant
 
 (* ************************************************************************** *)
 (* Register Allocation                                                        *)

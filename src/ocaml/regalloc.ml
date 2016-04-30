@@ -16,6 +16,9 @@ let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
   List.filter ~f lst
 
+let size s =
+  Set.count s ~f:(fun _ -> true)
+
 (* ************************************************************************** *)
 (* Maps and Sets                                                              *)
 (* ************************************************************************** *)
@@ -524,11 +527,7 @@ let string_of_alloc_context c =
 (* ************************************************************************** *)
 (* Invariants                                                                 *)
 (* ************************************************************************** *)
-let inter s1 s2 = AReg.Set.inter s1 s2
-
-let union s1 s2 = AReg.Set.union s1 s2
-
-let size s = Set.count s ~f:(fun _ -> true)
+type invariant = alloc_context -> bool
 
 let disjoint_list_ok regctx =
   let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
@@ -536,7 +535,7 @@ let disjoint_list_ok regctx =
            regctx.colored_nodes; AReg.Set.of_list regctx.select_stack] in
   List.for_alli l ~f:(fun i l' ->
     List.for_alli l ~f:(fun j l'' ->
-      if i <> j then AReg.Set.is_empty (inter l' l'') else true))
+      if i <> j then AReg.Set.is_empty (AReg.Set.inter l' l'') else true))
 
 let disjoint_set_ok regctx =
   let s = [
@@ -620,40 +619,41 @@ let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
     (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
-let disjoint_ok (regctx : alloc_context) : alloc_context =
-    let f () (g, name) =
-      if g regctx then ()
-      else failwith (sprintf "invariant %s does not hold" name) in
-    List.fold_left ~f ~init:() [
-      (select_stack_no_dups_ok, "select_stack_no_dups_ok");
-      (disjoint_list_ok, "disjoint_list_ok");
-      (disjoint_set_ok, "disjoint_set_ok");
-    ];
-    regctx
+let disjoint_list_inv        = ("disjoint_list_ok        = ", disjoint_list_ok)
+let disjoint_set_inv         = ("disjoint_set_ok         = ", disjoint_set_ok)
+let all_nodes_inv            = ("all_nodes_ok            = ", all_nodes_ok)
+let all_moves_inv            = ("all_moves_ok            = ", all_moves_ok)
+let select_stack_no_dups_inv = ("select_stack_no_dups_ok = ", select_stack_no_dups_ok)
+let degree_inv               = ("degree_ok               = ", degree_ok)
+let simplify_inv             = ("simplify_ok             = ", simplify_ok)
+let freeze_inv               = ("freeze_ok               = ", freeze_ok)
+let spill_inv                = ("spill_ok                = ", spill_ok)
 
-let rep_ok =
-  let num_ok = ref 0 in
-  fun regctx ->
-    incr num_ok;
-    let invariants = [
-      ("disjoint_list_ok        = ", disjoint_list_ok regctx);
-      ("disjoint_set_ok         = ", disjoint_set_ok regctx);
-      ("all_nodes_ok            = ", all_nodes_ok regctx);
-      ("all_moves_ok            = ", all_moves_ok regctx);
-      ("select_stack_no_dups_ok = ", select_stack_no_dups_ok regctx);
-      ("degree_ok               = ", degree_ok regctx);
-      ("simplify_ok             = ", simplify_ok regctx);
-      ("freeze_ok               = ", freeze_ok regctx);
-      ("spill_ok                = ", spill_ok regctx);
-    ] in
-    if List.for_all ~f:snd invariants then
-      regctx
+let invariants = [
+  disjoint_list_inv; disjoint_set_inv; all_nodes_inv; all_moves_inv;
+  select_stack_no_dups_inv; degree_inv; simplify_inv; freeze_inv; spill_inv;
+]
+
+let check =
+  let num_checked = ref 0 in
+  fun invariants regctx ->
+    incr num_checked;
+    if List.for_all ~f:(fun (_, i) -> i regctx) invariants then regctx
     else begin
-      let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
+      let strs = List.map invariants ~f:(fun (s, i) -> sprintf "%s%b" s (i regctx)) in
       print_endline (string_of_alloc_context regctx);
       print_endline (U.join strs);
-      failwith (sprintf "invariants not held on rep_ok %d" (!num_ok))
+      failwith (sprintf "invariants not held on %d check" (!num_checked))
     end
+
+let disjoint_ok = check [
+  select_stack_no_dups_inv; disjoint_list_inv; disjoint_set_inv;
+]
+
+let rep_ok = check [
+  disjoint_list_inv; disjoint_set_inv; all_nodes_inv; all_moves_inv;
+  select_stack_no_dups_inv; degree_inv; simplify_inv; freeze_inv; spill_inv;
+]
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
@@ -678,12 +678,9 @@ let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as 
       not (List.mem neighbor_colors my_color)
   )
 
-
-let _string_of_abstract_regs (regs : abstract_reg list) : string =
-  let f acc reg =
-    (string_of_abstract_reg reg) ^ ", " ^ acc in
-  List.fold_left ~f ~init:"" regs
-
+(* ************************************************************************** *)
+(* Register Allocation                                                        *)
+(* ************************************************************************** *)
 let empty_ctx = {
   precolored         = AReg.Set.empty;
   initial            = AReg.Set.empty;
@@ -979,7 +976,8 @@ let decrement_degree (m : abstract_reg) regctx : alloc_context =
   let d' = (degree m regctx) - 1 in
   let regctx1 = { regctx with degree = diff_int_map m pred regctx.degree } in
   if d' = regctx1.num_colors - 1 then
-    let regctx2 = enable_moves (union (adjacent m regctx1) (AReg.Set.singleton m))
+    let regctx2 = enable_moves
+      (AReg.Set.union (adjacent m regctx1) (AReg.Set.singleton m))
       regctx1 in
     let regctx3 = { regctx2 with spill_wl = AReg.Set.remove regctx2.spill_wl m } in
     if move_related m regctx3 then
@@ -1107,7 +1105,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
        ~f:(fun acc t -> acc && (ok t u regctx1)))
        ||
        (not (AReg.Set.mem regctx1.precolored u) &&
-       conservative (union (adjacent u regctx1) (adjacent v regctx1)) regctx1) then
+       conservative (AReg.Set.union (adjacent u regctx1) (adjacent v regctx1)) regctx1) then
       let regctx2 = {
         regctx1 with
         coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
@@ -1198,17 +1196,6 @@ let assign_colors (regctx : alloc_context) : alloc_context =
         else acc
       in
       AReg.Set.fold ~f ~init:ColorSet.empty neighbors in
-    (*
-    let () =
-      match select_node with
-      | Fake s when "__temp0" = s || "_asmreg14" = s ->
-          begin
-          print_endline ("have " ^ s);
-          print_endline ("neighbors: " ^ (_string_of_abstract_regs neighbors));
-          print_endline ("neighbor colors:" ^ (_string_of_colors neighbor_colors));
-          end
-      | _ -> () in
-    *)
     begin
       match get_next_color (ColorSet.to_list neighbor_colors) with
       | None ->

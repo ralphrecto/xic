@@ -10,16 +10,15 @@ open Fresh
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
 let printing_on = true
+let invariant_checking_on = true
 
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
   List.filter ~f lst
 
-(* conses x onto list unless x is already in list *)
-let unduped_cons (lst : 'a list) (x : 'a) : 'a list =
-  if List.mem lst x then lst
-  else x :: lst
+let size s =
+  Set.count s ~f:(fun _ -> true)
 
 (* ************************************************************************** *)
 (* Maps and Sets                                                              *)
@@ -83,6 +82,13 @@ module UseDefs = struct
     | UnopV of string * abstract_reg operand
     | ZeroopV of string
 
+  let string_of_usedef_val v =
+    let sor = string_of_operand string_of_abstract_reg in
+    match v with
+    | BinopV (s, o1, o2) -> sprintf "BinopV (%s, %s, %s) " s (sor o1) (sor o2)
+    | UnopV (s, o)       -> sprintf "UnopV (%s, %s)  " s (sor o)
+    | ZeroopV s          -> sprintf "ZeroopV %s" s
+
   (* we do not include Rbp and Rsp at all in our regalloc algo *)
   let no_rbp_or_rsp (regs : abstract_reg list) =
     remove regs (Real Rbp) |> fun regs' ->
@@ -108,7 +114,12 @@ module UseDefs = struct
       end in
     match List.fold_left ~f ~init:None patterns with
     | Some usedef -> usedef
-    | None -> AReg.Set.empty, AReg.Set.empty
+    | None ->
+        let msg = sprintf
+          "usedef_match: no match found %s"
+          (string_of_usedef_val v)
+        in
+        failwith msg
 
   let binops_use_plus_def =
     let instr = [
@@ -123,7 +134,7 @@ module UseDefs = struct
         (AReg.Set.union set1 set2, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_use_plus_def: invalid operand" in
     Binop (instr, f)
 
   let binops_leaq =
@@ -135,7 +146,7 @@ module UseDefs = struct
       | Reg _ -> (set1, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_leaq: invalid operand" in
     Binop (instr, f)
 
   let binops_move =
@@ -147,7 +158,7 @@ module UseDefs = struct
       | Reg _ -> (set1, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_move: invalid operand" in
     Binop (instr, f)
 
   let binops_use =
@@ -157,6 +168,15 @@ module UseDefs = struct
       (uses, AReg.Set.empty) in
     Binop (instr, f)
 
+  let binops_enter =
+    let instr = ["enter"] in
+    let f op1 op2 =
+      match op1, op2 with
+      | Const _, Const _ -> (AReg.Set.empty, AReg.Set.empty)
+      | _ -> failwith "binops_enter: invalid operand"
+    in
+    Binop (instr, f)
+
   let unops_use_plus_def =
     let instr = [ "incq"; "decq"; "negq"; ] in
     let f op =
@@ -164,7 +184,7 @@ module UseDefs = struct
       match op with
       | Reg _ -> (opregs, opregs)
       | Mem _ -> (opregs, AReg.Set.empty)
-      | _ -> (AReg.Set.empty, AReg.Set.empty) in
+      | _ -> failwith "unops_use_plus_def: invalid operand" in
     Unop (instr, f)
 
   (* TODO: these should go in as a special case since we se CL for the
@@ -174,14 +194,16 @@ module UseDefs = struct
   let unops_def =
     let instr = [
       "asete"; "asetne"; "asetl"; "asetg"; "asetle"; "asetge"; "asetz";
-      "asetnz"; "asets"; "asetns"; "asetc"; "asetnc"; "pop"
+      "asetnz"; "asets"; "asetns"; "asetc"; "asetnc"; "sete"; "setne"; "setl";
+      "setg"; "setle"; "setge"; "setz"; "setnz"; "sets"; "setns"; "setc";
+      "setnc"; "pop";
     ] in
     let f op =
       let opregs = set_of_arg op in
       match op with
       | Reg _ -> (AReg.Set.empty, opregs)
       | Mem _ -> (opregs, AReg.Set.empty)
-      | _ -> (AReg.Set.empty, AReg.Set.empty) in
+      | _ -> failwith "unops_def: invalid operand" in
     Unop (instr, f)
 
   let unops_use =
@@ -209,6 +231,18 @@ module UseDefs = struct
       (useset, defset) in
     Unop (instr, f)
 
+  let unops_jumps =
+    let instr = [
+      "jmp"; "je"; "jne"; "jnz"; "jz"; "jg"; "jge"; "jl"; "jle"; "js"; "jns";
+      "jc"; "jnc";
+    ] in
+    let f op =
+      match op with
+      | Label _ -> (AReg.Set.empty, AReg.Set.empty)
+      | _ -> failwith "unops_jumps: invalid operand"
+    in
+    Unop (instr, f)
+
   let zeroop_ret =
     let instr = ["retq"] in
     let useset =
@@ -218,18 +252,25 @@ module UseDefs = struct
       AReg.Set.of_list in
     Zeroop (instr, (useset, AReg.Set.empty))
 
+  let zeroop_leave =
+    let instr = ["leave"] in
+    Zeroop (instr, (AReg.Set.empty, AReg.Set.empty))
+
   let asm_match =
     let patterns = [
       binops_use_plus_def;
       binops_leaq;
       binops_move;
       binops_use;
+      binops_enter;
       unops_use_plus_def;
       unops_def;
       unops_use;
       unops_mul_div;
       unops_call;
+      unops_jumps;
       zeroop_ret;
+      zeroop_leave;
     ] in
     usedef_match patterns
 
@@ -238,11 +279,12 @@ module UseDefs = struct
     function
       | Op (name, []) ->
           asm_match (ZeroopV name)
-      | Op (name, arg :: []) ->
+      | Op (name, [arg]) ->
           asm_match (UnopV (name, arg))
-      | Op (name, arg1 :: arg2 :: []) ->
+      | Op (name, [arg1; arg2]) ->
           asm_match (BinopV (name, arg1, arg2))
-      | _ -> failwith "passed in something that's not an instruction"
+      | Op _ -> failwith "usedvars: invalid asm"
+      | Lab _ | Directive _ | Comment _ -> (AReg.Set.empty, AReg.Set.empty)
 
 end
 
@@ -318,6 +360,7 @@ type color =
   | Reg12
   | Reg13
   | Reg14
+[@@deriving sexp, compare]
 
 let reg_of_color = function
   | Reg1  -> Rax
@@ -353,8 +396,12 @@ let color_of_reg = function
   | R15 -> Reg14
   | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
-let string_of_color (c : color) =
-  Asm.string_of_reg (reg_of_color c)
+module ColorSet = Set.Make(struct
+  type t = color [@@deriving sexp, compare]
+end)
+
+let string_of_color c = Asm.string_of_reg (reg_of_color c)
+let string_of_color_set s = U.string_of_set ~short:false s ~f:string_of_color
 
 let get_next_color (colors : color list) : color option =
   let colorlist = [
@@ -481,11 +528,7 @@ let string_of_alloc_context c =
 (* ************************************************************************** *)
 (* Invariants                                                                 *)
 (* ************************************************************************** *)
-let inter s1 s2 = AReg.Set.inter s1 s2
-
-let union s1 s2 = AReg.Set.union s1 s2
-
-let size s = Set.count s ~f:(fun _ -> true)
+type invariant = alloc_context -> bool
 
 let disjoint_list_ok regctx =
   let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
@@ -493,7 +536,7 @@ let disjoint_list_ok regctx =
            regctx.colored_nodes; AReg.Set.of_list regctx.select_stack] in
   List.for_alli l ~f:(fun i l' ->
     List.for_alli l ~f:(fun j l'' ->
-      if i <> j then AReg.Set.is_empty (inter l' l'') else true))
+      if i <> j then AReg.Set.is_empty (AReg.Set.inter l' l'') else true))
 
 let disjoint_set_ok regctx =
   let s = [
@@ -540,9 +583,27 @@ let degree_ok regctx =
   let (+) = AReg.Set.union in
   let (&) = AReg.Set.inter in
   let s = regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl in
-  let s2 u = (AReg.Map.find_exn regctx.adj_list u) & (regctx.precolored +
-    regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl) in
-  AReg.Set.for_all s ~f:(fun u -> AReg.Map.find_exn regctx.degree u = size (s2 u))
+  let s2 u =
+    (AReg.Map.find_exn regctx.adj_list u) &
+    (regctx.precolored + regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl)
+  in
+  AReg.Set.for_all s ~f:(fun u ->
+    let degree = AReg.Map.find_exn regctx.degree u in
+    let rhs = s2 u in
+    let size_rhs = size rhs in
+    if degree = size_rhs then
+      true
+    else begin
+      printf "degree_ok failed for reg %s\n" (string_of_areg u);
+      printf "  degree            = %d\n" degree;
+      printf "  size_rhs          = %d\n" size_rhs;
+      printf "  u in simplify_wl? = %b\n" (AReg.Set.mem regctx.simplify_wl u);
+      printf "  u in freeze_wl?   = %b\n" (AReg.Set.mem regctx.freeze_wl u);
+      printf "  u in spill_wl?    = %b\n" (AReg.Set.mem regctx.spill_wl u);
+      printf "  rhs               = %s\n" (string_of_areg_set_short rhs);
+      false
+    end
+  )
 
 let simplify_ok regctx =
   let (+) = TempMoveSet.union in
@@ -575,35 +636,51 @@ let freeze_ok regctx =
 
 let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
-    ((AReg.Map.find_exn regctx.degree u) >= regctx.num_colors) &&
-    match u with
-    | Real _ -> false
-    | _ -> true
-  )
+    (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
-let rep_ok =
-  let num_ok = ref 0 in
-  fun regctx ->
-    incr num_ok;
-    let invariants = [
-      ("disjoint_list_ok        = ", disjoint_list_ok regctx);
-      ("disjoint_set_ok         = ", disjoint_set_ok regctx);
-      ("all_nodes_ok            = ", all_nodes_ok regctx);
-      ("all_moves_ok            = ", all_moves_ok regctx);
-      ("select_stack_no_dups_ok = ", select_stack_no_dups_ok regctx);
-      ("degree_ok               = ", degree_ok regctx);
-      ("simplify_ok             = ", simplify_ok regctx);
-      ("freeze_ok               = ", freeze_ok regctx);
-      ("spill_ok                = ", spill_ok regctx);
-    ] in
-    if List.for_all ~f:snd invariants then
+let disjoint_list_inv        = ("disjoint_list_ok        = ", disjoint_list_ok)
+let disjoint_set_inv         = ("disjoint_set_ok         = ", disjoint_set_ok)
+let all_nodes_inv            = ("all_nodes_ok            = ", all_nodes_ok)
+let all_moves_inv            = ("all_moves_ok            = ", all_moves_ok)
+let select_stack_no_dups_inv = ("select_stack_no_dups_ok = ", select_stack_no_dups_ok)
+let degree_inv               = ("degree_ok               = ", degree_ok)
+let simplify_inv             = ("simplify_ok             = ", simplify_ok)
+let freeze_inv               = ("freeze_ok               = ", freeze_ok)
+let spill_inv                = ("spill_ok                = ", spill_ok)
+
+let invariants = [
+  disjoint_list_inv; disjoint_set_inv; all_nodes_inv; all_moves_inv;
+  select_stack_no_dups_inv; degree_inv; simplify_inv; freeze_inv; spill_inv;
+]
+
+let check =
+  let num_checked = ref 0 in
+  fun invariants regctx ->
+    if invariant_checking_on then begin
+      incr num_checked;
+      let invariants_met = List.map invariants ~f:(fun (_, i) -> i regctx) in
+      if List.for_all ~f:(fun x -> x) invariants_met then regctx
+      else begin
+        let invs = List.zip_exn invariants invariants_met in
+        let strs = List.map invs ~f:(fun ((s, _), b) -> sprintf "%s%b" s b) in
+        print_endline (string_of_alloc_context regctx);
+        print_endline (U.join strs);
+        failwith (sprintf "invariants not held on %d check" (!num_checked))
+      end
+    end else
       regctx
-    else begin
-      let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
-      print_endline (string_of_alloc_context regctx);
-      print_endline (U.join strs);
-      failwith (sprintf "invariants not held on rep_ok %d" (!num_ok))
-    end
+
+let rep_ok = check [
+  disjoint_list_inv;
+  disjoint_set_inv;
+  all_nodes_inv;
+  all_moves_inv;
+  select_stack_no_dups_inv;
+  degree_inv;
+  simplify_inv;
+  freeze_inv;
+  spill_inv;
+]
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
@@ -628,12 +705,9 @@ let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as 
       not (List.mem neighbor_colors my_color)
   )
 
-
-let _string_of_abstract_regs (regs : abstract_reg list) : string =
-  let f acc reg =
-    (string_of_abstract_reg reg) ^ ", " ^ acc in
-  List.fold_left ~f ~init:"" regs
-
+(* ************************************************************************** *)
+(* Register Allocation                                                        *)
+(* ************************************************************************** *)
 let empty_ctx = {
   precolored         = AReg.Set.empty;
   initial            = AReg.Set.empty;
@@ -861,7 +935,7 @@ let build
   let precolored_set =
     let f r = Real r in
     List.map ~f [
-      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8;
+      Rax; Rbx; Rcx; Cl; Rdx; Rsi; Rdi; R8;
       R9; R10; R11; R12; R13; R14; R15;
     ] |> AReg.Set.of_list in
 
@@ -935,7 +1009,7 @@ let decrement_degree (m : abstract_reg) regctx : alloc_context =
       { regctx with degree = diff_int_map m pred regctx.degree }
     in
     let regctx2 =
-      enable_moves (union (adjacent m regctx1) (AReg.Set.singleton m)) regctx1
+      enable_moves (AReg.Set.union (adjacent m regctx1) (AReg.Set.singleton m)) regctx1
     in
     let regctx3 =
       { regctx2 with spill_wl = AReg.Set.remove regctx2.spill_wl m }
@@ -1066,7 +1140,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
        ~f:(fun acc t -> acc && (ok t u regctx1)))
        ||
        (not (AReg.Set.mem regctx1.precolored u) &&
-       conservative (union (adjacent u regctx1) (adjacent v regctx1)) regctx1) then
+       conservative (AReg.Set.union (adjacent u regctx1) (adjacent v regctx1)) regctx1) then
       let regctx2 = {
         regctx1 with
         coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
@@ -1143,11 +1217,7 @@ let select_spill (regctx : alloc_context) : alloc_context =
 (* Pop nodes from the stack and assign a color *)
 let assign_colors (regctx : alloc_context) : alloc_context =
   let select_assign ctxacc select_node =
-    let neighbors =
-      match AReg.Map.find ctxacc.adj_list select_node with
-      | Some s -> AReg.Set.to_list s
-      | None -> failwith "assign_colors: cannot find node in adj_list"
-    in
+    let neighbors = AReg.Map.find_exn ctxacc.adj_list select_node in
     let neighbor_colors =
       let f acc neighbor =
         let alias = get_alias neighbor ctxacc in
@@ -1155,24 +1225,14 @@ let assign_colors (regctx : alloc_context) : alloc_context =
             AReg.Set.mem ctxacc.precolored alias) then
           begin
             AReg.Map.find ctxacc.color_map alias |>
-            function Some c -> unduped_cons acc c | None -> acc
+            (* TODO: should this fail if you can't find a color? *)
+            function Some c -> ColorSet.add acc c | None -> acc
           end
         else acc
       in
-      List.fold_left ~f ~init:[] neighbors in
-    (*
-    let () =
-      match select_node with
-      | Fake s when "__temp0" = s || "_asmreg14" = s ->
-          begin
-          print_endline ("have " ^ s);
-          print_endline ("neighbors: " ^ (_string_of_abstract_regs neighbors));
-          print_endline ("neighbor colors:" ^ (_string_of_colors neighbor_colors));
-          end
-      | _ -> () in
-    *)
+      AReg.Set.fold ~f ~init:ColorSet.empty neighbors in
     begin
-      match get_next_color neighbor_colors with
+      match get_next_color (ColorSet.to_list neighbor_colors) with
       | None ->
           { ctxacc with spilled_nodes = AReg.Set.add ctxacc.spilled_nodes select_node; }
       | Some c ->
@@ -1406,6 +1466,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     let buildctx = rep_ok buildctx in
     let loopctx = rep_ok (loop buildctx) in
     let coloredctx = assign_colors loopctx in
+    assert (valid_coloring coloredctx);
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);

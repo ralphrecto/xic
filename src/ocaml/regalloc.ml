@@ -413,6 +413,8 @@ type alloc_context = {
   color_map          : color AReg.Map.t;
   node_occurrences   : int AReg.Map.t;
   num_colors         : int;
+  all_moves          : TempMoveSet.t;
+  all_nodes          : AReg.Set.t;
 }
 
 (* return node alias after coalescing; if node has not been coalesced,
@@ -603,6 +605,8 @@ let empty_ctx = {
   color_map          = AReg.Map.empty;
   node_occurrences   = AReg.Map.empty;
   num_colors         = 14;
+  all_moves          = TempMoveSet.empty;
+  all_nodes          = AReg.Set.empty;
 }
 
 (* data structure helpers *)
@@ -814,8 +818,10 @@ let build
       alias = AReg.Map.add ctxacc.alias ~key ~data:key;
       node_occurrences = AReg.Map.add ctxacc.node_occurrences ~key ~data:0; } in
 
+  let initctx_with_vars = { initctx with all_nodes = all_vars_set } in
+
   (* initialize non-worklist data structures *)
-  AReg.Set.fold ~f:data_init ~init:initctx all_vars_set |> fun regctx0 ->
+  AReg.Set.fold ~f:data_init ~init:initctx_with_vars all_vars_set |> fun regctx0 ->
   (* put all vars into either precoloreds or initial worklist *)
   AReg.Set.fold ~f:init0 ~init:regctx0 all_vars_set |>
   (* create interferences between all precolored nodes *)
@@ -829,7 +835,15 @@ let build
   (* populate node worklists *)
   let finctx =
     AReg.Set.fold ~f:init2 ~init:{ regctx2 with initial = AReg.Set.empty} regctx2.initial in
-  (finctx, livevars)
+  let all_moves_set =
+    TempMoveSet.union_list [
+      finctx.coalesced_moves;
+      finctx.constrained_moves;
+      finctx.frozen_moves;
+      finctx.worklist_moves;
+      finctx.active_moves;
+    ] in
+  ({ finctx with all_moves = all_moves_set }, livevars)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)

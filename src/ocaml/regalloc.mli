@@ -130,6 +130,11 @@ type alloc_context = {
   node_occurrences   : int AReg.Map.t;
   (* number of available machine registers for allocation *)
   num_colors         : int;
+
+  (* used to verify no nodes are being dropped. *)
+  all_moves          : TempMoveSet.t;
+  (* used to verify no moves are being dropped. *)
+  all_nodes          : AReg.Set.t;
 }
 
 val empty_ctx : alloc_context

@@ -677,14 +677,12 @@ let build
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
   let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
+    let module L = LiveVariableLattice in
     match v with
     | Start | Exit -> AReg.Set.empty
-    | Node _ as node ->
-      begin
-        match AsmCfg.succ_e cfg node with
-        | [] -> AReg.Set.empty
-        | edge :: _ -> livevars_edge edge
-      end in
+    | Node _ ->
+        AsmCfg.fold_succ_e (fun e a -> L.(livevars_edge e ** a)) cfg v (AReg.Set.empty)
+  in
 
   (* populate precolored, initial work lists *)
   let init0 (regctx : alloc_context) (reg : abstract_reg) =

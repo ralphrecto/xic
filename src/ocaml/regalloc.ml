@@ -526,7 +526,7 @@ let all_nodes_ok regctx =
 
 let all_moves_ok regctx =
   let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
-           regctx.active_moves; regctx.active_moves] in
+           regctx.active_moves; regctx.constrained_moves] in
   let all_sets = TempMoveSet.union_list s in
   TempMoveSet.equal all_sets regctx.all_moves
 

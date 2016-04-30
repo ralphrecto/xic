@@ -34,7 +34,14 @@ end
 
 module AReg = struct
   module Set = Set.Make (ARegKey)
-  module Map = Map.Make (ARegKey)
+  module Map = struct
+    include Map.Make (ARegKey)
+
+    let find_exn (m: 'a t) (k: Key.t) =
+      match find m k with
+      | Some v -> v
+      | None -> failwith (sprintf "reg %s not found" (string_of_abstract_reg k))
+  end
 end
 
 module ARegPair = struct
@@ -525,10 +532,23 @@ let spill_ok regctx =
     (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
 let rep_ok regctx =
-  if (disjoint_list_ok regctx) && (disjoint_set_ok regctx) &&
-    (no_dups_ok regctx) && (degree_ok regctx) && (simplify_ok regctx) &&
-    (freeze_ok regctx) && (spill_ok regctx) then regctx
-  else failwith "Invariants not held"
+  let invariants = [
+    ("disjoint_list_ok = ", disjoint_list_ok regctx);
+    ("disjoint_set_ok = ",  disjoint_set_ok regctx);
+    ("no_dups_ok = ",       no_dups_ok regctx);
+    ("degree_ok = ",        degree_ok regctx);
+    ("simplify_ok = ",      simplify_ok regctx);
+    ("freeze_ok = ",        freeze_ok regctx);
+    ("spill_ok = ",         spill_ok regctx);
+  ] in
+  if List.for_all ~f:snd invariants then
+    regctx
+  else begin
+    let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
+    print_endline (string_of_alloc_context regctx);
+    print_endline (U.join strs);
+    failwith "invariants not held"
+  end
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
@@ -680,14 +700,12 @@ let build
   let livevars_edge = LiveVariableAnalysis.worklist () cfg in
 
   let livevars (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
+    let module L = LiveVariableLattice in
     match v with
     | Start | Exit -> AReg.Set.empty
-    | Node _ as node ->
-      begin
-        match AsmCfg.succ_e cfg node with
-        | [] -> AReg.Set.empty
-        | edge :: _ -> livevars_edge edge
-      end in
+    | Node _ ->
+        AsmCfg.fold_succ_e (fun e a -> L.(livevars_edge e ** a)) cfg v (AReg.Set.empty)
+  in
 
   (* populate precolored, initial work lists *)
   let init0 (regctx : alloc_context) (reg : abstract_reg) =
@@ -1292,8 +1310,9 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     in
 
     let (buildctx, livevars) = build regctx asms in
-    let loopctx = loop buildctx in
-    let coloredctx = assign_colors loopctx in
+    let buildctx = rep_ok buildctx in
+    let loopctx = rep_ok (loop buildctx) in
+    let coloredctx = rep_ok (assign_colors loopctx) in
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);

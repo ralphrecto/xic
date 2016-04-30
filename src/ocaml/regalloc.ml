@@ -413,6 +413,8 @@ type alloc_context = {
   color_map          : color AReg.Map.t;
   node_occurrences   : int AReg.Map.t;
   num_colors         : int;
+  all_moves          : TempMoveSet.t;
+  all_nodes          : AReg.Set.t;
 }
 
 (* return node alias after coalescing; if node has not been coalesced,
@@ -492,11 +494,28 @@ let disjoint_list_ok regctx =
       if i <> j then AReg.Set.is_empty (inter l' l'') else true))
 
 let disjoint_set_ok regctx =
-  let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
-           regctx.active_moves; regctx.active_moves] in
-  List.for_alli s ~f:(fun i s' ->
-    List.for_alli s ~f:(fun j s'' ->
-      if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
+  let s = [
+    ("coalesced_moves", regctx.coalesced_moves);
+    ("frozen_moves",    regctx.frozen_moves);
+    ("worklist_moves",  regctx.worklist_moves);
+    ("active_moves",    regctx.active_moves);
+    ("active_moves",    regctx.active_moves);
+  ] in
+  List.for_alli s ~f:(fun i (name', s') ->
+    List.for_alli s ~f:(fun j (name'', s'') ->
+      if j > i then
+        let overlap = TempMoveSet.inter s' s'' in
+        if not (TempMoveSet.is_empty overlap) then begin
+          printf "%s and %s not disjoint: %s\n"
+                 name'
+                 name''
+                 (string_of_temp_move_set overlap);
+          false
+        end else
+          true
+      else true
+    )
+  )
 
 let all_nodes_ok regctx =
   let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
@@ -508,8 +527,8 @@ let all_nodes_ok regctx =
 let all_moves_ok regctx =
   let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
            regctx.active_moves; regctx.active_moves] in
-  let all_sets = AReg.Set.union_list s in
-  AReg.Set.equal all_sets regctx.all_moves
+  let all_sets = TempMoveSet.union_list s in
+  TempMoveSet.equal all_sets regctx.all_moves
 
 let select_stack_no_dups_ok regctx =
   not (List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
@@ -543,26 +562,29 @@ let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
     (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
-let rep_ok regctx =
-  let invariants = [
-    ("disjoint_list_ok = ", disjoint_list_ok regctx);
-    ("disjoint_set_ok = ",  disjoint_set_ok regctx);
-    ("all_nodes_ok = ",     all_nodes_ok regctx);
-    ("all_moves_ok = ",     all_moves_ok regctx);
-    ("select_stack_no_dups_ok = ",       select_stack_no_dups_ok regctx);
-    ("degree_ok = ",        degree_ok regctx);
-    ("simplify_ok = ",      simplify_ok regctx);
-    ("freeze_ok = ",        freeze_ok regctx);
-    ("spill_ok = ",         spill_ok regctx);
-  ] in
-  if List.for_all ~f:snd invariants then
-    regctx
-  else begin
-    let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
-    print_endline (string_of_alloc_context regctx);
-    print_endline (U.join strs);
-    failwith "invariants not held"
-  end
+let rep_ok =
+  let num_ok = ref 0 in
+  fun regctx ->
+    incr num_ok;
+    let invariants = [
+      ("disjoint_list_ok = ", disjoint_list_ok regctx);
+      ("disjoint_set_ok  = ", disjoint_set_ok regctx);
+      ("all_nodes_ok = ",     all_nodes_ok regctx);
+      ("all_moves_ok = ",     all_moves_ok regctx);
+      ("select_stack_no_dups_ok = ",       select_stack_no_dups_ok regctx);
+      ("degree_ok        = ", degree_ok regctx);
+      ("simplify_ok      = ", simplify_ok regctx);
+      ("freeze_ok        = ", freeze_ok regctx);
+      ("spill_ok         = ", spill_ok regctx);
+    ] in
+    if List.for_all ~f:snd invariants then
+      regctx
+    else begin
+      let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
+      print_endline (string_of_alloc_context regctx);
+      print_endline (U.join strs);
+      failwith (sprintf "invariants not held on rep_ok %d" (!num_ok))
+    end
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->
@@ -617,6 +639,8 @@ let empty_ctx = {
   color_map          = AReg.Map.empty;
   node_occurrences   = AReg.Map.empty;
   num_colors         = 14;
+  all_moves          = TempMoveSet.empty;
+  all_nodes          = AReg.Set.empty;
 }
 
 (* data structure helpers *)
@@ -820,20 +844,40 @@ let build
 
   let all_vars_set = AReg.Set.union fakes_set precolored_set in
 
+  let data_init (ctxacc : alloc_context) (key : abstract_reg) =
+    { ctxacc with
+      degree = AReg.Map.add ctxacc.degree ~key ~data:0;
+      adj_list = AReg.Map.add ctxacc.adj_list ~key ~data:AReg.Set.empty;
+      move_list = AReg.Map.add ctxacc.move_list ~key ~data:TempMoveSet.empty;
+      alias = AReg.Map.add ctxacc.alias ~key ~data:key;
+      node_occurrences = AReg.Map.add ctxacc.node_occurrences ~key ~data:0; } in
+
+  let initctx_with_vars = { initctx with all_nodes = all_vars_set } in
+
+  (* initialize non-worklist data structures *)
+  AReg.Set.fold ~f:data_init ~init:initctx_with_vars all_vars_set |> fun regctx0 ->
   (* put all vars into either precoloreds or initial worklist *)
-  AReg.Set.fold ~f:init0 ~init:initctx all_vars_set |>
+  AReg.Set.fold ~f:init0 ~init:regctx0 all_vars_set |>
   (* create interferences between all precolored nodes *)
   create_inter_edges precolored_set |>
   (* set colors of precolored nodes in color map *)
-  color_precoloreds precolored_set |> fun regctx' ->
+  color_precoloreds precolored_set |> fun regctx1 ->
   (* populate move worklists *)
   let nodes = AsmCfg.VertexSet.to_list (AsmCfg.vertex_set cfg) in
   let sorted_nodes = cfgnode_sort nodes in
-  List.fold_left ~f:init1 ~init:regctx' sorted_nodes |> fun regctx' ->
+  List.fold_left ~f:init1 ~init:regctx1 sorted_nodes |> fun regctx2 ->
   (* populate node worklists *)
   let finctx =
-    AReg.Set.fold ~f:init2 ~init:{ regctx' with initial = AReg.Set.empty} regctx'.initial in
-  (finctx, livevars)
+    AReg.Set.fold ~f:init2 ~init:{ regctx2 with initial = AReg.Set.empty} regctx2.initial in
+  let all_moves_set =
+    TempMoveSet.union_list [
+      finctx.coalesced_moves;
+      finctx.constrained_moves;
+      finctx.frozen_moves;
+      finctx.worklist_moves;
+      finctx.active_moves;
+    ] in
+  ({ finctx with all_moves = all_moves_set }, livevars)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)

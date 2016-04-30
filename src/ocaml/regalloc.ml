@@ -529,10 +529,23 @@ let spill_ok regctx =
     acc && (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
 let rep_ok regctx =
-  if (disjoint_list_ok regctx) && (disjoint_set_ok regctx) &&
-    (no_dups regctx) && (degree_ok regctx) && (simplify_ok regctx) &&
-    (freeze_ok regctx) && (spill_ok regctx) then regctx
-  else failwith "Invariants not held"
+  let invariants = [
+    ("disjoint_list_ok = ", disjoint_list_ok regctx);
+    ("disjoint_set_ok = ",  disjoint_set_ok regctx);
+    ("no_dups = ",          no_dups regctx);
+    ("degree_ok = ",        degree_ok regctx);
+    ("simplify_ok = ",      simplify_ok regctx);
+    ("freeze_ok = ",        freeze_ok regctx);
+    ("spill_ok = ",         spill_ok regctx);
+  ] in
+  if List.for_all ~f:snd invariants then
+    regctx
+  else begin
+    let strs = List.map invariants ~f:(fun (s, b) -> sprintf "%s%b" s b) in
+    print_endline (string_of_alloc_context regctx);
+    print_endline (U.join strs);
+    failwith "invariants not held"
+  end
 
 let valid_coloring ({adj_list; color_map; spilled_nodes; coalesced_nodes; _} as c) =
   AReg.Map.for_alli adj_list ~f:(fun ~key ~data ->

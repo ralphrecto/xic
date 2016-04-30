@@ -478,7 +478,9 @@ let string_of_alloc_context c =
   ] in
   sprintf "[\n%s\n]" (String.concat ~sep:"\n\n" fields)
 
-(**** Invariant Checks ****)
+(* ************************************************************************** *)
+(* Invariants                                                                 *)
+(* ************************************************************************** *)
 let inter s1 s2 = AReg.Set.inter s1 s2
 
 let union s1 s2 = AReg.Set.union s1 s2

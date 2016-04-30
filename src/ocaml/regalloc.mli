@@ -46,8 +46,8 @@ module UseDefs : sig
     | UnopV of string * abstract_reg operand
     | ZeroopV of string
 
+  val string_of_usedef_val : usedef_val -> string
   val usedef_match : usedef_pattern list -> usedef_val -> usedefs
-
   val usedvars : abstract_asm -> usedefs
 end
 

@@ -78,6 +78,13 @@ module UseDefs = struct
     | UnopV of string * abstract_reg operand
     | ZeroopV of string
 
+  let string_of_usedef_val v =
+    let sor = string_of_operand string_of_abstract_reg in
+    match v with
+    | BinopV (s, o1, o2) -> sprintf "BinopV (%s, %s, %s) " s (sor o1) (sor o2)
+    | UnopV (s, o)       -> sprintf "UnopV (%s, %s)  " s (sor o)
+    | ZeroopV s          -> sprintf "ZeroopV %s" s
+
   (* we do not include Rbp and Rsp at all in our regalloc algo *)
   let no_rbp_or_rsp (regs : abstract_reg list) =
     remove regs (Real Rbp) |> fun regs' ->
@@ -103,7 +110,12 @@ module UseDefs = struct
       end in
     match List.fold_left ~f ~init:None patterns with
     | Some usedef -> usedef
-    | None -> AReg.Set.empty, AReg.Set.empty
+    | None ->
+        let msg = sprintf
+          "usedef_match: no match found %s"
+          (string_of_usedef_val v)
+        in
+        failwith msg
 
   let binops_use_plus_def =
     let instr = [
@@ -118,7 +130,7 @@ module UseDefs = struct
         (AReg.Set.union set1 set2, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_use_plus_def: invalid operand" in
     Binop (instr, f)
 
   let binops_leaq =
@@ -130,7 +142,7 @@ module UseDefs = struct
       | Reg _ -> (set1, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_leaq: invalid operand" in
     Binop (instr, f)
 
   let binops_move =
@@ -142,7 +154,7 @@ module UseDefs = struct
       | Reg _ -> (set1, set2)
       | Mem _ ->
         (AReg.Set.union set1 set2, AReg.Set.empty)
-      | _ -> AReg.Set.empty, AReg.Set.empty in
+      | _ -> failwith "binops_move: invalid operand" in
     Binop (instr, f)
 
   let binops_use =
@@ -152,6 +164,15 @@ module UseDefs = struct
       (uses, AReg.Set.empty) in
     Binop (instr, f)
 
+  let binops_enter =
+    let instr = ["enter"] in
+    let f op1 op2 =
+      match op1, op2 with
+      | Const _, Const _ -> (AReg.Set.empty, AReg.Set.empty)
+      | _ -> failwith "binops_enter: invalid operand"
+    in
+    Binop (instr, f)
+
   let unops_use_plus_def =
     let instr = [ "incq"; "decq"; "negq"; ] in
     let f op =
@@ -159,7 +180,7 @@ module UseDefs = struct
       match op with
       | Reg _ -> (opregs, opregs)
       | Mem _ -> (opregs, AReg.Set.empty)
-      | _ -> (AReg.Set.empty, AReg.Set.empty) in
+      | _ -> failwith "unops_use_plus_def: invalid operand" in
     Unop (instr, f)
 
   (* TODO: these should go in as a special case since we se CL for the
@@ -169,14 +190,16 @@ module UseDefs = struct
   let unops_def =
     let instr = [
       "asete"; "asetne"; "asetl"; "asetg"; "asetle"; "asetge"; "asetz";
-      "asetnz"; "asets"; "asetns"; "asetc"; "asetnc"; "pop"
+      "asetnz"; "asets"; "asetns"; "asetc"; "asetnc"; "sete"; "setne"; "setl";
+      "setg"; "setle"; "setge"; "setz"; "setnz"; "sets"; "setns"; "setc";
+      "setnc"; "pop";
     ] in
     let f op =
       let opregs = set_of_arg op in
       match op with
       | Reg _ -> (AReg.Set.empty, opregs)
       | Mem _ -> (opregs, AReg.Set.empty)
-      | _ -> (AReg.Set.empty, AReg.Set.empty) in
+      | _ -> failwith "unops_def: invalid operand" in
     Unop (instr, f)
 
   let unops_use =
@@ -204,6 +227,18 @@ module UseDefs = struct
       (useset, defset) in
     Unop (instr, f)
 
+  let unops_jumps =
+    let instr = [
+      "jmp"; "je"; "jne"; "jnz"; "jz"; "jg"; "jge"; "jl"; "jle"; "js"; "jns";
+      "jc"; "jnc";
+    ] in
+    let f op =
+      match op with
+      | Label _ -> (AReg.Set.empty, AReg.Set.empty)
+      | _ -> failwith "unops_jumps: invalid operand"
+    in
+    Unop (instr, f)
+
   let zeroop_ret =
     let instr = ["retq"] in
     let useset =
@@ -213,18 +248,25 @@ module UseDefs = struct
       AReg.Set.of_list in
     Zeroop (instr, (useset, AReg.Set.empty))
 
+  let zeroop_leave =
+    let instr = ["leave"] in
+    Zeroop (instr, (AReg.Set.empty, AReg.Set.empty))
+
   let asm_match =
     let patterns = [
       binops_use_plus_def;
       binops_leaq;
       binops_move;
       binops_use;
+      binops_enter;
       unops_use_plus_def;
       unops_def;
       unops_use;
       unops_mul_div;
       unops_call;
+      unops_jumps;
       zeroop_ret;
+      zeroop_leave;
     ] in
     usedef_match patterns
 
@@ -233,11 +275,12 @@ module UseDefs = struct
     function
       | Op (name, []) ->
           asm_match (ZeroopV name)
-      | Op (name, arg :: []) ->
+      | Op (name, [arg]) ->
           asm_match (UnopV (name, arg))
-      | Op (name, arg1 :: arg2 :: []) ->
+      | Op (name, [arg1; arg2]) ->
           asm_match (BinopV (name, arg1, arg2))
-      | _ -> (AReg.Set.empty, AReg.Set.empty)
+      | Op _ -> failwith "usedvars: invalid asm"
+      | Lab _ | Directive _ | Comment _ -> (AReg.Set.empty, AReg.Set.empty)
 
 end
 

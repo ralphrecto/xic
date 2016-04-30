@@ -494,11 +494,28 @@ let disjoint_list_ok regctx =
       if i <> j then AReg.Set.is_empty (inter l' l'') else true))
 
 let disjoint_set_ok regctx =
-  let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
-           regctx.active_moves; regctx.active_moves] in
-  List.for_alli s ~f:(fun i s' ->
-    List.for_alli s ~f:(fun j s'' ->
-      if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
+  let s = [
+    ("coalesced_moves", regctx.coalesced_moves);
+    ("frozen_moves",    regctx.frozen_moves);
+    ("worklist_moves",  regctx.worklist_moves);
+    ("active_moves",    regctx.active_moves);
+    ("active_moves",    regctx.active_moves);
+  ] in
+  List.for_alli s ~f:(fun i (name', s') ->
+    List.for_alli s ~f:(fun j (name'', s'') ->
+      if j > i then
+        let overlap = TempMoveSet.inter s' s'' in
+        if not (TempMoveSet.is_empty overlap) then begin
+          printf "%s and %s not disjoint: %s\n"
+                 name'
+                 name''
+                 (string_of_temp_move_set overlap);
+          false
+        end else
+          true
+      else true
+    )
+  )
 
 (* TODO: The union of all of them forms exactly the entire list of nodes *)
 let no_dups_ok regctx =
@@ -539,12 +556,12 @@ let rep_ok =
     incr num_ok;
     let invariants = [
       ("disjoint_list_ok = ", disjoint_list_ok regctx);
-      ("disjoint_set_ok = ",  disjoint_set_ok regctx);
-      ("no_dups_ok = ",       no_dups_ok regctx);
-      ("degree_ok = ",        degree_ok regctx);
-      ("simplify_ok = ",      simplify_ok regctx);
-      ("freeze_ok = ",        freeze_ok regctx);
-      ("spill_ok = ",         spill_ok regctx);
+      ("disjoint_set_ok  = ", disjoint_set_ok regctx);
+      ("no_dups_ok       = ", no_dups_ok regctx);
+      ("degree_ok        = ", degree_ok regctx);
+      ("simplify_ok      = ", simplify_ok regctx);
+      ("freeze_ok        = ", freeze_ok regctx);
+      ("spill_ok         = ", spill_ok regctx);
     ] in
     if List.for_all ~f:snd invariants then
       regctx

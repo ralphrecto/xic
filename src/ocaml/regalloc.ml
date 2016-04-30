@@ -34,7 +34,14 @@ end
 
 module AReg = struct
   module Set = Set.Make (ARegKey)
-  module Map = Map.Make (ARegKey)
+  module Map = struct
+    include Map.Make (ARegKey)
+
+    let find_exn (m: 'a t) (k: Key.t) =
+      match find m k with
+      | Some v -> v
+      | None -> failwith (sprintf "reg %s not found" (string_of_abstract_reg k))
+  end
 end
 
 module ARegPair = struct

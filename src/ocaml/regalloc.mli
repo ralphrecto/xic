@@ -173,7 +173,9 @@ val string_of_alloc_context     : alloc_context -> string
 (* ************************************************************************** *)
 val disjoint_list_ok : alloc_context -> bool
 val disjoint_set_ok : alloc_context -> bool
-val no_dups_ok : alloc_context -> bool
+val all_nodes_ok : alloc_context -> bool
+val all_moves_ok : alloc_context -> bool
+val select_stack_no_dups_ok : alloc_context -> bool
 val degree_ok : alloc_context -> bool
 val simplify_ok : alloc_context -> bool
 val freeze_ok : alloc_context -> bool

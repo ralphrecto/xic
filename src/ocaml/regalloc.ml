@@ -478,7 +478,9 @@ let string_of_alloc_context c =
   ] in
   sprintf "[\n%s\n]" (String.concat ~sep:"\n\n" fields)
 
-(**** Invariant Checks ****)
+(* ************************************************************************** *)
+(* Invariants                                                                 *)
+(* ************************************************************************** *)
 let inter s1 s2 = AReg.Set.inter s1 s2
 
 let union s1 s2 = AReg.Set.union s1 s2
@@ -495,17 +497,42 @@ let disjoint_list_ok regctx =
 
 let disjoint_set_ok regctx =
   let s = [
-    regctx.coalesced_moves;
-    regctx.frozen_moves;
-    regctx.worklist_moves;
-    regctx.active_moves;
+    ("coalesced_moves",   regctx.coalesced_moves);
+    ("frozen_moves",      regctx.frozen_moves);
+    ("worklist_moves",    regctx.worklist_moves);
+    ("active_moves",      regctx.active_moves);
+    ("constrained_moves", regctx.constrained_moves);
   ] in
-  List.for_alli s ~f:(fun i s' ->
-    List.for_alli s ~f:(fun j s'' ->
-      if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
+  List.for_alli s ~f:(fun i (name', s') ->
+    List.for_alli s ~f:(fun j (name'', s'') ->
+      if j > i then
+        let overlap = TempMoveSet.inter s' s'' in
+        if not (TempMoveSet.is_empty overlap) then begin
+          printf "%s and %s not disjoint: %s\n"
+                 name'
+                 name''
+                 (string_of_temp_move_set overlap);
+          false
+        end else
+          true
+      else true
+    )
+  )
 
-(* TODO: The union of all of them forms exactly the entire list of nodes *)
-let no_dups_ok regctx =
+let all_nodes_ok regctx =
+  let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
+           regctx.spill_wl; regctx.spilled_nodes; regctx.coalesced_nodes;
+           regctx.colored_nodes; AReg.Set.of_list regctx.select_stack] in
+  let all_sets = AReg.Set.union_list l in
+  AReg.Set.equal all_sets regctx.all_nodes
+
+let all_moves_ok regctx =
+  let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
+           regctx.active_moves; regctx.active_moves] in
+  let all_sets = TempMoveSet.union_list s in
+  TempMoveSet.equal all_sets regctx.all_moves
+
+let select_stack_no_dups_ok regctx =
   not (List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
     regctx.select_stack)
 
@@ -520,10 +547,23 @@ let degree_ok regctx =
 let simplify_ok regctx =
   let (+) = TempMoveSet.union in
   let (&) = TempMoveSet.inter in
-  let s = regctx.active_moves + regctx.worklist_moves in
   AReg.Set.for_all regctx.simplify_wl ~f:(fun u ->
-    (AReg.Map.find_exn regctx.degree u < regctx.num_colors) &&
-    (TempMoveSet.is_empty ((AReg.Map.find_exn regctx.move_list u) & s)))
+    let move_list = AReg.Map.find_exn regctx.move_list u in
+    let moves = regctx.active_moves + regctx.worklist_moves in
+    let overlap = move_list & moves in
+    let degree = AReg.Map.find_exn regctx.degree u in
+
+    if degree >= regctx.num_colors then begin
+      printf "reg %s has degree %d >= %d" (string_of_areg u) degree regctx.num_colors;
+      false
+    end else if not (TempMoveSet.is_empty overlap) then begin
+      printf "reg %s has overlap = %s"
+        (string_of_areg u)
+        (string_of_temp_move_set overlap);
+      false
+    end else
+      true
+  )
 
 let freeze_ok regctx =
   let (+) = TempMoveSet.union in
@@ -552,12 +592,14 @@ let rep_ok =
     incr num_ok;
     let invariants = [
       ("disjoint_list_ok = ", disjoint_list_ok regctx);
-      ("disjoint_set_ok = ",  disjoint_set_ok regctx);
-      ("no_dups_ok = ",       no_dups_ok regctx);
-      ("degree_ok = ",        degree_ok regctx);
-      ("simplify_ok = ",      simplify_ok regctx);
-      ("freeze_ok = ",        freeze_ok regctx);
-      ("spill_ok = ",         spill_ok regctx);
+      ("disjoint_set_ok  = ", disjoint_set_ok regctx);
+      ("all_nodes_ok = ",     all_nodes_ok regctx);
+      ("all_moves_ok = ",     all_moves_ok regctx);
+      ("select_stack_no_dups_ok = ",       select_stack_no_dups_ok regctx);
+      ("degree_ok        = ", degree_ok regctx);
+      ("simplify_ok      = ", simplify_ok regctx);
+      ("freeze_ok        = ", freeze_ok regctx);
+      ("spill_ok         = ", spill_ok regctx);
     ] in
     if List.for_all ~f:snd invariants then
       regctx

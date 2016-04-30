@@ -498,8 +498,20 @@ let disjoint_set_ok regctx =
     List.for_alli s ~f:(fun j s'' ->
       if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
 
-(* TODO: The union of all of them forms exactly the entire list of nodes *)
-let no_dups_ok regctx =
+let all_nodes_ok regctx =
+  let l = [regctx.precolored; regctx.initial; regctx.simplify_wl; regctx.freeze_wl;
+           regctx.spill_wl; regctx.spilled_nodes; regctx.coalesced_nodes;
+           regctx.colored_nodes; AReg.Set.of_list regctx.select_stack] in
+  let all_sets = AReg.Set.union_list l in
+  AReg.Set.equal all_sets regctx.all_nodes
+
+let all_moves_ok regctx =
+  let s = [regctx.coalesced_moves; regctx.frozen_moves; regctx.worklist_moves;
+           regctx.active_moves; regctx.active_moves] in
+  let all_sets = AReg.Set.union_list s in
+  AReg.Set.equal all_sets regctx.all_moves
+
+let select_stack_no_dups_ok regctx =
   not (List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
     regctx.select_stack)
 
@@ -535,7 +547,9 @@ let rep_ok regctx =
   let invariants = [
     ("disjoint_list_ok = ", disjoint_list_ok regctx);
     ("disjoint_set_ok = ",  disjoint_set_ok regctx);
-    ("no_dups_ok = ",       no_dups_ok regctx);
+    ("all_nodes_ok = ",     all_nodes_ok regctx);
+    ("all_moves_ok = ",     all_moves_ok regctx);
+    ("select_stack_no_dups_ok = ",       select_stack_no_dups_ok regctx);
     ("degree_ok = ",        degree_ok regctx);
     ("simplify_ok = ",      simplify_ok regctx);
     ("freeze_ok = ",        freeze_ok regctx);

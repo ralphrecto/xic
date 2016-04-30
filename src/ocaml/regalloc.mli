@@ -131,9 +131,9 @@ type alloc_context = {
   (* number of available machine registers for allocation *)
   num_colors         : int;
 
-  (* used to verify no nodes are being dropped. *)
-  all_moves          : TempMoveSet.t;
   (* used to verify no moves are being dropped. *)
+  all_moves          : TempMoveSet.t;
+  (* used to verify no nodes are being dropped. *)
   all_nodes          : AReg.Set.t;
 }
 
@@ -163,10 +163,6 @@ val string_of_color_map         : color AReg.Map.t -> string
 val string_of_node_occurrences  : int AReg.Map.t -> string
 val string_of_num_colors        : int -> string
 val string_of_alloc_context     : alloc_context -> string
-
-(* ************************************************************************** *)
-(* Helpers                                                                    *)
-(* ************************************************************************** *)
 
 (* ************************************************************************** *)
 (* Invariants                                                                 *)

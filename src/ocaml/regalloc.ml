@@ -242,7 +242,7 @@ module UseDefs = struct
           asm_match (UnopV (name, arg))
       | Op (name, arg1 :: arg2 :: []) ->
           asm_match (BinopV (name, arg1, arg2))
-      | _ -> (AReg.Set.empty, AReg.Set.empty)
+      | _ -> failwith "passed in something that's not an instruction"
 
 end
 
@@ -276,8 +276,8 @@ module AsmWithLiveVar : CFGWithLatticeT
 
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
     match n with
-    | Start | Exit -> AReg.Set.empty
-    | Node n_data -> fst (usedvars n_data.asm)
+    | Node ({ asm = Op _ ; _ } as n_data) -> fst (usedvars n_data.asm)
+    | _ -> AReg.Set.empty
 
   (* handle reg aliases *)
   let reg_alias (reg : abstract_reg) =
@@ -288,13 +288,13 @@ module AsmWithLiveVar : CFGWithLatticeT
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
-    | Start | Exit -> AReg.Set.empty
-    | Node n_data ->
+    | Node ({ asm = Op _ ; _ } as n_data) ->
         let use_n, def_n =
           let f = AReg.Set.map ~f:reg_alias in
           let l, r = usedvars n_data.asm in
           f l, f r in
         AReg.Set.union use_n (AReg.Set.diff d def_n)
+    | _ -> d
 
 end
 
@@ -575,20 +575,11 @@ let freeze_ok regctx =
 
 let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
-    (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
-
-let disjoint_ok (regctx : alloc_context) : alloc_context =
-    let f () (g, name) =
-      if g regctx then ()
-      else failwith (sprintf "invariant %s does not hold" name) in
-    List.fold_left ~f ~init:() [
-      (all_moves_ok, "all_moves_ok");
-      (all_nodes_ok, "all_nodes_ok");
-      (select_stack_no_dups_ok, "select_stack_no_dups_ok");
-      (disjoint_list_ok, "disjoint_list_ok");
-      (disjoint_set_ok, "disjoint_set_ok");
-    ];
-    regctx
+    ((AReg.Map.find_exn regctx.degree u) >= regctx.num_colors) &&
+    match u with
+    | Real _ -> false
+    | _ -> true
+  )
 
 let rep_ok =
   let num_ok = ref 0 in
@@ -689,19 +680,20 @@ let diff_int_map
 (* moves between two registers can be coalesced *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   match stmt with
-  | Start | Exit -> None
-  | Node { num; asm; } ->
-    begin
-    match asm with
-    | Op (instr, ((Reg (_ as op1)) :: (Reg (_ as op2)) :: [])) ->
-      begin
-      if instr = "movq" || instr = "mov" then
-          Some { src = op1; dest = op2; move = {num; asm;}}
-      else
-        None
-      end
-    | _ -> None
-    end
+  | _ -> None
+  (*| Start | Exit -> None*)
+  (*| Node { num; asm; } ->*)
+    (*begin*)
+    (*match asm with*)
+    (*| Op (instr, ((Reg (_ as op1)) :: (Reg (_ as op2)) :: [])) ->*)
+      (*begin*)
+      (*if instr = "movq" || instr = "mov" then*)
+          (*Some { src = op1; dest = op2; move = {num; asm;}}*)
+      (*else*)
+        (*None*)
+      (*end*)
+    (*| _ -> None*)
+    (*end*)
 
 (* possibly coalescable moves involving the node *)
 let node_moves (node : abstract_reg) (regctx : alloc_context) : TempMoveSet.t =
@@ -798,7 +790,10 @@ let build
       (* create interference graph edges *)
       let liveset = livevars cfg_node in
       (* add interferences between defs and liveset *)
-      let _, defs = UseDefs.usedvars asm in
+      let defs =
+        match asm with
+        | Op _ -> snd (UseDefs.usedvars asm)
+        | _ -> AReg.Set.empty in
       let regctx' = create_inter_edges (AReg.Set.union liveset defs) regctx in
 
       (* update node occurrences *)
@@ -924,8 +919,7 @@ let enable_moves (nodes : AReg.Set.t) regctx : alloc_context =
     if TempMoveSet.mem regctx2.active_moves m then
       { regctx2 with
         active_moves = TempMoveSet.remove regctx2.active_moves m;
-        worklist_moves = TempMoveSet.add regctx2.worklist_moves m;
-      }
+        worklist_moves = TempMoveSet.add regctx2.worklist_moves m; }
     else
       regctx2
   in
@@ -935,24 +929,30 @@ let enable_moves (nodes : AReg.Set.t) regctx : alloc_context =
   AReg.Set.fold ~init:regctx nodes ~f
 
 let decrement_degree (m : abstract_reg) regctx : alloc_context =
-  let d' = (degree m regctx) - 1 in
-  let regctx1 = { regctx with degree = diff_int_map m pred regctx.degree } in
-  if d' = regctx1.num_colors - 1 then
-    let regctx2 = enable_moves (union (adjacent m regctx1) (AReg.Set.singleton m))
-      regctx1 in
-    let regctx3 = { regctx2 with spill_wl = AReg.Set.remove regctx2.spill_wl m } in
+  if degree m regctx = regctx.num_colors then
+    begin
+    let regctx1 =
+      { regctx with degree = diff_int_map m pred regctx.degree }
+    in
+    let regctx2 =
+      enable_moves (union (adjacent m regctx1) (AReg.Set.singleton m)) regctx1
+    in
+    let regctx3 =
+      { regctx2 with spill_wl = AReg.Set.remove regctx2.spill_wl m }
+    in
     if move_related m regctx3 then
       { regctx3 with freeze_wl = AReg.Set.add regctx3.freeze_wl m }
     else
       { regctx3 with simplify_wl = AReg.Set.add regctx3.simplify_wl m }
+    end
   else
-    regctx1
+      { regctx with degree = diff_int_map m pred regctx.degree }
 
 (* Remove non-move-related nodes of low degree *)
 let simplify regctx : alloc_context =
   (* Pick a non-move-related vertex that has <k degree *)
   match AReg.Set.to_list regctx.simplify_wl with
-  | [] -> regctx
+  | [] -> failwith "nothing to simplify"
   | n :: t ->
     let regctx1 =
       {
@@ -993,8 +993,8 @@ let conservative (nodes : AReg.Set.t) regctx : bool =
   result < (regctx.num_colors)
 
 let combine u v regctx =
-  let find map k = AReg.Map.find map k |> function Some l -> l
-                                                 | None -> TempMoveSet.empty in
+  let find map k = AReg.Map.find map k |>
+    function Some s -> s | None -> failwith "combine: cannot find node in map" in
 
   let regctx1 =
     if AReg.Set.mem regctx.freeze_wl v then
@@ -1044,14 +1044,14 @@ let coalesce (regctx : alloc_context) : alloc_context =
     let u, v = if AReg.Set.mem regctx.precolored y then (y, x) else (x, y) in
     let regctx1 = {
       regctx with worklist_moves = TempMoveSet.of_list t;
-    } |> disjoint_ok in
+    } in
     if u = v then
       let regctx2 = {
         regctx1 with
         coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
       }
       in
-      add_wl u regctx2 |> disjoint_ok
+      add_wl u regctx2
     else if AReg.Set.mem regctx1.precolored v ||
             ARegPair.Set.mem regctx1.adj_set (u, v) then
       let regctx2 = {
@@ -1059,7 +1059,7 @@ let coalesce (regctx : alloc_context) : alloc_context =
         constrained_moves = TempMoveSet.add regctx1.constrained_moves m
       }
       in
-      regctx2 |> disjoint_ok |> add_wl u |> disjoint_ok |> add_wl v
+      regctx2 |> add_wl u |> add_wl v
     else if
       (AReg.Set.mem regctx1.precolored u &&
        AReg.Set.fold ~init:true (adjacent v regctx1)
@@ -1072,10 +1072,10 @@ let coalesce (regctx : alloc_context) : alloc_context =
         coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
       }
       in
-      regctx2 |> disjoint_ok |> combine u v |> disjoint_ok |> add_wl u |> disjoint_ok
+      regctx2 |> combine u v |> add_wl u
     else
       { regctx1 with
-        active_moves = TempMoveSet.add regctx1.active_moves m } |> disjoint_ok
+        active_moves = TempMoveSet.add regctx1.active_moves m }
 
 (* freeze: remove a move-related node of low degree *)
 let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =
@@ -1146,7 +1146,7 @@ let assign_colors (regctx : alloc_context) : alloc_context =
     let neighbors =
       match AReg.Map.find ctxacc.adj_list select_node with
       | Some s -> AReg.Set.to_list s
-      | None -> []
+      | None -> failwith "assign_colors: cannot find node in adj_list"
     in
     let neighbor_colors =
       let f acc neighbor =
@@ -1398,14 +1398,14 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
           else if not (AReg.Set.is_empty innerctx.freeze_wl) then
             rep_ok (freeze innerctx)
           else
-            rep_ok (select_spill innerctx) in
-        rep_ok (loop innerctx')
+            select_spill innerctx in
+        (loop innerctx')
     in
 
     let (buildctx, livevars) = build regctx asms in
     let buildctx = rep_ok buildctx in
     let loopctx = rep_ok (loop buildctx) in
-    let coloredctx = rep_ok (assign_colors loopctx) in
+    let coloredctx = assign_colors loopctx in
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);

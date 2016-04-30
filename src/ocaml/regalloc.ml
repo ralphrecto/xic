@@ -492,38 +492,41 @@ let disjoint_set_ok regctx =
       if i <> j then TempMoveSet.is_empty (TempMoveSet.inter s' s'') else true))
 
 (* TODO: The union of all of them forms exactly the entire list of nodes *)
-let no_dups regctx =
-  List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
-    regctx.select_stack
+let no_dups_ok regctx =
+  not (List.contains_dup ~compare:(fun a b -> Asm.compare_abstract_reg a b)
+    regctx.select_stack)
 
 let degree_ok regctx =
-  let s = union (union regctx.simplify_wl regctx.freeze_wl) regctx.spill_wl in
-  let s2 u = inter (AReg.Map.find_exn regctx.adj_list u)
-    (union (union (union regctx.precolored regctx.simplify_wl) regctx.freeze_wl)
-    regctx.spill_wl) in
-  AReg.Set.fold ~init:true s ~f:(fun acc u ->
-    acc && (AReg.Map.find_exn regctx.degree u = size (s2 u)))
+  let (+) = AReg.Set.union in
+  let (&) = AReg.Set.inter in
+  let s = regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl in
+  let s2 u = (AReg.Map.find_exn regctx.adj_list u) & (regctx.precolored +
+    regctx.simplify_wl + regctx.freeze_wl + regctx.spill_wl) in
+  AReg.Set.for_all s ~f:(fun u -> AReg.Map.find_exn regctx.degree u = size (s2 u))
 
 let simplify_ok regctx =
-  AReg.Set.fold ~init:true regctx.simplify_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find_exn regctx.degree u < regctx.num_colors) &&
-    (TempMoveSet.is_empty (TempMoveSet.inter (AReg.Map.find_exn regctx.move_list u)
-      (TempMoveSet.union regctx.active_moves regctx.worklist_moves))))
+  let (+) = TempMoveSet.union in
+  let (&) = TempMoveSet.inter in
+  let s = regctx.active_moves + regctx.worklist_moves in
+  AReg.Set.for_all regctx.simplify_wl ~f:(fun u ->
+    (AReg.Map.find_exn regctx.degree u < regctx.num_colors) &&
+    (TempMoveSet.is_empty ((AReg.Map.find_exn regctx.move_list u) & s)))
 
 let freeze_ok regctx =
-  AReg.Set.fold ~init:true regctx.spill_wl ~f:(fun acc u ->
-    acc && ((AReg.Map.find_exn regctx.degree u) < regctx.num_colors) &&
-    not (TempMoveSet.is_empty (TempMoveSet.inter (AReg.Map.find_exn
-      regctx.move_list u) (TempMoveSet.union regctx.active_moves
-      regctx.worklist_moves))))
+  let (+) = TempMoveSet.union in
+  let (&) = TempMoveSet.inter in
+  let s = regctx.active_moves + regctx.worklist_moves in
+  AReg.Set.for_all regctx.freeze_wl ~f:(fun u ->
+    (AReg.Map.find_exn regctx.degree u) < regctx.num_colors &&
+    not (TempMoveSet.is_empty ((AReg.Map.find_exn regctx.move_list u) & s)))
 
 let spill_ok regctx =
-  AReg.Set.fold ~init:true regctx.spill_wl ~f:(fun acc u ->
-    acc && (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
+  AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
+    (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
 let rep_ok regctx =
   if (disjoint_list_ok regctx) && (disjoint_set_ok regctx) &&
-    (no_dups regctx) && (degree_ok regctx) && (simplify_ok regctx) &&
+    (no_dups_ok regctx) && (degree_ok regctx) && (simplify_ok regctx) &&
     (freeze_ok regctx) && (spill_ok regctx) then regctx
   else failwith "Invariants not held"
 

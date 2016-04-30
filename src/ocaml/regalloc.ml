@@ -654,9 +654,11 @@ let check =
   let num_checked = ref 0 in
   fun invariants regctx ->
     incr num_checked;
-    if List.for_all ~f:(fun (_, i) -> i regctx) invariants then regctx
+    let invariants_met = List.map invariants ~f:(fun (_, i) -> i regctx) in
+    if List.for_all ~f:(fun x -> x) invariants_met then regctx
     else begin
-      let strs = List.map invariants ~f:(fun (s, i) -> sprintf "%s%b" s (i regctx)) in
+      let invs = List.zip_exn invariants invariants_met in
+      let strs = List.map invs ~f:(fun ((s, _), b) -> sprintf "%s%b" s b) in
       print_endline (string_of_alloc_context regctx);
       print_endline (U.join strs);
       failwith (sprintf "invariants not held on %d check" (!num_checked))

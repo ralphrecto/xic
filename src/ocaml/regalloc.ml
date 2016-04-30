@@ -806,19 +806,29 @@ let build
 
   let all_vars_set = AReg.Set.union fakes_set precolored_set in
 
+  let data_init (ctxacc : alloc_context) (key : abstract_reg) =
+    { ctxacc with
+      degree = AReg.Map.add ctxacc.degree ~key ~data:0;
+      adj_list = AReg.Map.add ctxacc.adj_list ~key ~data:AReg.Set.empty;
+      move_list = AReg.Map.add ctxacc.move_list ~key ~data:TempMoveSet.empty;
+      alias = AReg.Map.add ctxacc.alias ~key ~data:key;
+      node_occurrences = AReg.Map.add ctxacc.node_occurrences ~key ~data:0; } in
+
+  (* initialize non-worklist data structures *)
+  AReg.Set.fold ~f:data_init ~init:initctx all_vars_set |> fun regctx0 ->
   (* put all vars into either precoloreds or initial worklist *)
-  AReg.Set.fold ~f:init0 ~init:initctx all_vars_set |>
+  AReg.Set.fold ~f:init0 ~init:regctx0 all_vars_set |>
   (* create interferences between all precolored nodes *)
   create_inter_edges precolored_set |>
   (* set colors of precolored nodes in color map *)
-  color_precoloreds precolored_set |> fun regctx' ->
+  color_precoloreds precolored_set |> fun regctx1 ->
   (* populate move worklists *)
   let nodes = AsmCfg.VertexSet.to_list (AsmCfg.vertex_set cfg) in
   let sorted_nodes = cfgnode_sort nodes in
-  List.fold_left ~f:init1 ~init:regctx' sorted_nodes |> fun regctx' ->
+  List.fold_left ~f:init1 ~init:regctx1 sorted_nodes |> fun regctx2 ->
   (* populate node worklists *)
   let finctx =
-    AReg.Set.fold ~f:init2 ~init:{ regctx' with initial = AReg.Set.empty} regctx'.initial in
+    AReg.Set.fold ~f:init2 ~init:{ regctx2 with initial = AReg.Set.empty} regctx2.initial in
   (finctx, livevars)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.

@@ -478,7 +478,9 @@ let string_of_alloc_context c =
   ] in
   sprintf "[\n%s\n]" (String.concat ~sep:"\n\n" fields)
 
-(**** Invariant Checks ****)
+(* ************************************************************************** *)
+(* Invariants                                                                 *)
+(* ************************************************************************** *)
 let inter s1 s2 = AReg.Set.inter s1 s2
 
 let union s1 s2 = AReg.Set.union s1 s2
@@ -574,6 +576,15 @@ let freeze_ok regctx =
 let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
     (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
+
+let pred_ok (name : string) (pred : alloc_context -> bool) =
+  fun regctx ->
+    if pred regctx then regctx
+    else failwith (sprintf "invariant %s does not hold" name)
+
+let disjoint_ok : alloc_context -> alloc_context =
+  let f regctx = (disjoint_list_ok regctx) && (disjoint_set_ok regctx) in
+  pred_ok "disjoint node and move sets" f
 
 let rep_ok =
   let num_ok = ref 0 in
@@ -1027,20 +1038,24 @@ let coalesce (regctx : alloc_context) : alloc_context =
     let x = get_alias m.src regctx in
     let y = get_alias m.dest regctx in
     let u, v = if AReg.Set.mem regctx.precolored y then (y, x) else (x, y) in
-    let regctx1 = { regctx with worklist_moves = TempMoveSet.of_list t } in
+    let regctx1 = {
+      regctx with worklist_moves = TempMoveSet.of_list t;
+    } |> disjoint_ok in
     if u = v then
-      let regctx2 = { regctx1 with
-                       coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
-                    }
+      let regctx2 = {
+        regctx1 with
+        coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
+      }
       in
-      add_wl u regctx2
+      add_wl u regctx2 |> disjoint_ok
     else if AReg.Set.mem regctx1.precolored v ||
             ARegPair.Set.mem regctx1.adj_set (u, v) then
-      let regctx2 = { regctx1 with
-                       constrained_moves = TempMoveSet.add regctx1.constrained_moves m
-                     }
+      let regctx2 = {
+        regctx1 with
+        constrained_moves = TempMoveSet.add regctx1.constrained_moves m
+      }
       in
-      regctx2 |> add_wl u |> add_wl v
+      regctx2 |> disjoint_ok |> add_wl u |> disjoint_ok |> add_wl v
     else if
       (AReg.Set.mem regctx1.precolored u &&
        AReg.Set.fold ~init:true (adjacent v regctx1)
@@ -1048,12 +1063,15 @@ let coalesce (regctx : alloc_context) : alloc_context =
        ||
        (not (AReg.Set.mem regctx1.precolored u) &&
        conservative (union (adjacent u regctx1) (adjacent v regctx1)) regctx1) then
-      let regctx2 = { regctx1 with
-                       coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m }
+      let regctx2 = {
+        regctx1 with
+        coalesced_moves = TempMoveSet.add regctx1.coalesced_moves m
+      }
       in
-      regctx2 |> combine u v |> add_wl u
+      regctx2 |> disjoint_ok |> combine u v |> disjoint_ok |> add_wl u |> disjoint_ok
     else
-      { regctx1 with active_moves = TempMoveSet.add regctx1.active_moves m }
+      { regctx1 with
+        active_moves = TempMoveSet.add regctx1.active_moves m } |> disjoint_ok
 
 (* freeze: remove a move-related node of low degree *)
 let freeze_moves (regctx : alloc_context) (node: abstract_reg) : alloc_context =

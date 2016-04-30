@@ -9,6 +9,8 @@ open Fresh
 (* ************************************************************************** *)
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
+let printing_on = true
+
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =
   let f y = x <> y in
@@ -237,16 +239,11 @@ module UseDefs = struct
 
 end
 
-module LiveVariableLattice : LowerSemilattice with type data = AReg.Set.t with
-  type data = AReg.Set.t = struct
-
+module LiveVariableLattice = struct
   type data = AReg.Set.t
   let ( ** ) = AReg.Set.union
   let ( === ) = AReg.Set.equal
-  let to_string data =
-    let f acc reg =
-      string_of_abstract_reg reg ^ ", " ^ acc in
-    AReg.Set.fold ~f ~init:"" data
+  let to_string data = string_of_areg_set data
 end
 
 module AsmWithLiveVar : CFGWithLatticeT
@@ -1288,40 +1285,48 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
             rep_ok (freeze innerctx)
           else
             rep_ok (select_spill innerctx) in
-        rep_ok (loop innerctx') in
+        rep_ok (loop innerctx')
+    in
 
-      let buildctx, livevars = build regctx asms in
+    let (buildctx, livevars) = build regctx asms in
+    let loopctx = loop buildctx in
+    let coloredctx = assign_colors loopctx in
 
-      print_endline "start building";
-      print_endline "------------------------------------";
-      print_endline (string_of_alloc_context buildctx);
-      print_endline "------------------------------------";
-      print_endline "end building";
+    if printing_on then begin
+      printf "initial context = %s\n\n" (string_of_alloc_context buildctx);
+      printf "looped context = %s\n\n" (string_of_alloc_context loopctx);
+      printf "colored context = %s\n\n" (string_of_alloc_context coloredctx)
+    end;
 
-      buildctx |> loop |> assign_colors |> fun finctx ->
-      (finctx, livevars) in
+    (coloredctx, livevars)
+  in
 
   let finctx, livevars = main empty_ctx given_asms in
-  let finctx_comments : abstract_asm list =
-    [Comment (string_of_alloc_context finctx)] in
+  let finctx_comment = Comment (string_of_alloc_context finctx) in
 
   (* remove coalesced moves *)
-  let finasms =
-    let numbered : AsmData.t list =
-      List.mapi ~f:(fun num asm -> { AsmData.num; AsmData.asm; }) given_asms in
-    let coalesced_index =
-      let f { move; _ } = move.num in
-      List.map ~f (TempMoveSet.to_list finctx.coalesced_moves) in
-    let f node acc =
-      let livevar_str : abstract_asm =
-        let comment_str = livevars (Node node) |> _set_to_string in
-        Comment ("<< livevars: " ^ comment_str ^ ">>") in
-      let asm_str = Comment (string_of_abstract_asm node.asm) in
-      if List.mem coalesced_index node.num then acc
-      else node.asm :: asm_str :: livevar_str :: acc in
-    List.fold_right ~f ~init:[] numbered in
+  let numbered = List.mapi ~f:(fun num asm -> AsmData.{num; asm;}) given_asms in
+  let comparator = Int.comparator in
+  let f = fun {move; _} -> move.num in
+  let coalesceds = Set.map ~comparator finctx.coalesced_moves ~f in
+  let finasms = List.filter numbered ~f:(fun {num; _} ->
+    not (Int.Set.mem coalesceds num)
+  ) in
+
+  (* add live variable comments *)
+  let finasms = if debug then
+    List.concat_map finasms ~f:(fun node ->
+      let asm_str =
+        sprintf "asm = %s" (string_of_abstract_asm node.asm) in
+      let live_str =
+        sprintf "live vars = %s" (string_of_areg_set (livevars (Node node))) in
+      [Comment asm_str; Comment live_str; node.asm]
+    )
+  else
+    List.map finasms ~f:(fun {asm; _} -> asm)
+  in
 
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
-    finctx_comments @ finasms' |> spill_allocate
+    [finctx_comment] @ finasms' |> spill_allocate

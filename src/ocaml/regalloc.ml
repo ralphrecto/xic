@@ -577,14 +577,18 @@ let spill_ok regctx =
   AReg.Set.for_all regctx.spill_wl ~f:(fun u ->
     (AReg.Map.find_exn regctx.degree u) >= regctx.num_colors)
 
-let pred_ok (name : string) (pred : alloc_context -> bool) =
-  fun regctx ->
-    if pred regctx then regctx
-    else failwith (sprintf "invariant %s does not hold" name)
-
-let disjoint_ok : alloc_context -> alloc_context =
-  let f regctx = (disjoint_list_ok regctx) && (disjoint_set_ok regctx) in
-  pred_ok "disjoint node and move sets" f
+let disjoint_ok (regctx : alloc_context) : alloc_context =
+    let f () (g, name) =
+      if g regctx then ()
+      else failwith (sprintf "invariant %s does not hold" name) in
+    List.fold_left ~f ~init:() [
+      (all_moves_ok, "all_moves_ok");
+      (all_nodes_ok, "all_nodes_ok");
+      (select_stack_no_dups_ok, "select_stack_no_dups_ok");
+      (disjoint_list_ok, "disjoint_list_ok");
+      (disjoint_set_ok, "disjoint_set_ok");
+    ];
+    regctx
 
 let rep_ok =
   let num_ok = ref 0 in

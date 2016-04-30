@@ -1394,7 +1394,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
             rep_ok (freeze innerctx)
           else
             rep_ok (select_spill innerctx) in
-        rep_ok (loop innerctx')
+        loop innerctx'
     in
 
     let (buildctx, livevars) = build regctx asms in

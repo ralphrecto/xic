@@ -582,8 +582,6 @@ let disjoint_ok (regctx : alloc_context) : alloc_context =
       if g regctx then ()
       else failwith (sprintf "invariant %s does not hold" name) in
     List.fold_left ~f ~init:() [
-      (all_moves_ok, "all_moves_ok");
-      (all_nodes_ok, "all_nodes_ok");
       (select_stack_no_dups_ok, "select_stack_no_dups_ok");
       (disjoint_list_ok, "disjoint_list_ok");
       (disjoint_set_ok, "disjoint_set_ok");

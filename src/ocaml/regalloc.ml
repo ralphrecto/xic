@@ -591,15 +591,15 @@ let rep_ok =
   fun regctx ->
     incr num_ok;
     let invariants = [
-      ("disjoint_list_ok = ", disjoint_list_ok regctx);
-      ("disjoint_set_ok  = ", disjoint_set_ok regctx);
-      ("all_nodes_ok = ",     all_nodes_ok regctx);
-      ("all_moves_ok = ",     all_moves_ok regctx);
-      ("select_stack_no_dups_ok = ",       select_stack_no_dups_ok regctx);
-      ("degree_ok        = ", degree_ok regctx);
-      ("simplify_ok      = ", simplify_ok regctx);
-      ("freeze_ok        = ", freeze_ok regctx);
-      ("spill_ok         = ", spill_ok regctx);
+      ("disjoint_list_ok        = ", disjoint_list_ok regctx);
+      ("disjoint_set_ok         = ", disjoint_set_ok regctx);
+      ("all_nodes_ok            = ", all_nodes_ok regctx);
+      ("all_moves_ok            = ", all_moves_ok regctx);
+      ("select_stack_no_dups_ok = ", select_stack_no_dups_ok regctx);
+      ("degree_ok               = ", degree_ok regctx);
+      ("simplify_ok             = ", simplify_ok regctx);
+      ("freeze_ok               = ", freeze_ok regctx);
+      ("spill_ok                = ", spill_ok regctx);
     ] in
     if List.for_all ~f:snd invariants then
       regctx

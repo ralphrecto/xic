@@ -588,7 +588,8 @@ let degree_ok regctx =
   in
   AReg.Set.for_all s ~f:(fun u ->
     let degree = AReg.Map.find_exn regctx.degree u in
-    let size_rhs = size (s2 u) in
+    let rhs = s2 u in
+    let size_rhs = size rhs in
     if degree = size_rhs then
       true
     else begin
@@ -598,6 +599,7 @@ let degree_ok regctx =
       printf "  u in simplify_wl? = %b\n" (AReg.Set.mem regctx.simplify_wl u);
       printf "  u in freeze_wl?   = %b\n" (AReg.Set.mem regctx.freeze_wl u);
       printf "  u in spill_wl?    = %b\n" (AReg.Set.mem regctx.spill_wl u);
+      printf "  rhs               = %s\n" (string_of_areg_set_short rhs);
       false
     end
   )
@@ -922,7 +924,7 @@ let build
   let precolored_set =
     let f r = Real r in
     List.map ~f [
-      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8;
+      Rax; Rbx; Rcx; Cl; Rdx; Rsi; Rdi; R8;
       R9; R10; R11; R12; R13; R14; R15;
     ] |> AReg.Set.of_list in
 

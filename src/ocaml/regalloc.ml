@@ -1294,8 +1294,9 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     in
 
     let (buildctx, livevars) = build regctx asms in
-    let loopctx = loop buildctx in
-    let coloredctx = assign_colors loopctx in
+    let buildctx = rep_ok buildctx in
+    let loopctx = rep_ok (loop buildctx) in
+    let coloredctx = rep_ok (assign_colors loopctx) in
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);

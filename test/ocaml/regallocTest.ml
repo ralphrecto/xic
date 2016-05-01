@@ -360,7 +360,7 @@ let reg_alloc_test _ =
   let temp i = Asm.Reg (fk i) in
   let real reg = Asm.Reg (Asm.Real reg) in
   (* let real_op reg = Asm.Real reg in *)
-  (* let mb reg = Asm.Mem (Asm.Base (None, reg)) in *)
+  let mb reg = Asm.Mem (Asm.Base (None, reg)) in
   (* let mbo reg o = Asm.Mem (Asm.Base (Some o, reg)) in *)
 
   let _ = fk in
@@ -445,11 +445,11 @@ let reg_alloc_test _ =
     movq (const 1) (reg (fake (FreshReg.gen 67)));
     movq (reg (fake (FreshReg.gen 67))) ((reg (fake (FreshReg.gen 66))));
     movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 68)));
-    leaq (8L $ ((reg (fake (FreshReg.gen 68))))) (reg (fake (FreshReg.gen 68)));
+    leaq (8L $ (mb ((fake (FreshReg.gen 68))))) (reg (fake (FreshReg.gen 68)));
     movq (const 1) (reg (fake (FreshReg.gen 70)));
     movq (reg (fake (FreshReg.gen 70))) ((reg (fake (FreshReg.gen 68))));
     movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 72)));
-    leaq (8L $ ((reg (fake (FreshReg.gen 72))))) (reg (fake (FreshReg.gen 72)));
+    leaq (8L $ (mb ((fake (FreshReg.gen 72))))) (reg (fake (FreshReg.gen 72)));
     movq (reg (fake (FreshReg.gen 72))) (reg (fake (FreshReg.gen 71)));
     movq (reg (fake (FreshReg.gen 71))) (reg (fake "x"));
     movq (const 16) (reg (fake (FreshReg.gen 75)));
@@ -468,11 +468,11 @@ let reg_alloc_test _ =
     movq (const 1) (reg (fake (FreshReg.gen 81)));
     movq (reg (fake (FreshReg.gen 81))) ((reg (fake (FreshReg.gen 80))));
     movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 82)));
-    leaq (8L $ ((reg (fake (FreshReg.gen 82))))) (reg (fake (FreshReg.gen 82)));
+    leaq (8L $ (mb ((fake (FreshReg.gen 82))))) (reg (fake (FreshReg.gen 82)));
     movq (const 2) (reg (fake (FreshReg.gen 84)));
     movq (reg (fake (FreshReg.gen 84))) ((reg (fake (FreshReg.gen 82))));
     movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 86)));
-    leaq (8L $ ((reg (fake (FreshReg.gen 86))))) (reg (fake (FreshReg.gen 86)));
+    leaq (8L $ (mb ((fake (FreshReg.gen 86))))) (reg (fake (FreshReg.gen 86)));
     movq (reg (fake (FreshReg.gen 86))) (reg (fake (FreshReg.gen 85)));
     movq (reg (fake (FreshReg.gen 85))) (reg (fake "y"));
     movq (reg (fake "x")) (reg (fake (FreshReg.gen 89)));

@@ -358,26 +358,131 @@ let reg_alloc_test _ =
 
   let fk i = Asm.Fake (FreshReg.gen i) in
   let temp i = Asm.Reg (fk i) in
-  let rr reg = Asm.Reg (Asm.Real reg) in
+  let real reg = Asm.Reg (Asm.Real reg) in
+  let real_op reg = Asm.Real reg in
+  let mb reg = Asm.Mem (Asm.Base (None, reg)) in
+  let mbo reg o = Asm.Mem (Asm.Base (Some o, reg)) in
 
   let _ = fk in
   let _ = temp in
-  let _ = rr in
+  let _ = real in
 
   let label s = Asm.Label s in
 
-  let abstr_asms = [
-    movq (const 1) (temp 0);
-    movq (const 1) (temp 1);
-    movq (const 1) (temp 2);
-    cmpq (temp 0) (temp 1);
-    je (label "label0");
-    movq (const 3) (temp 0);
-    jmp (label "label1");
-    label_op "label0";
-    movq (const 5) (temp 0);
-    label_op "label1";
+  (*let abstr_asms = [*)
+    (*movq (const 1) (temp 0);*)
+    (*movq (const 1) (temp 1);*)
+    (*movq (const 1) (temp 2);*)
+    (*cmpq (temp 0) (temp 1);*)
+    (*je (label "label0");*)
+    (*movq (const 3) (temp 0);*)
+    (*jmp (label "label1");*)
+    (*label_op "label0";*)
+    (*movq (const 5) (temp 0);*)
+    (*label_op "label1";*)
+  (*] in*)
+  (*let asms = reg_alloc abstr_asms in*)
+  (*print_endline (string_of_asms asms);*)
+
+  (*let abstr_asms = [*)
+    (*movq (const 16) (real Asm.Rdi);*)
+    (*call (label "_I_alloc_i");*)
+    (*movq (real Asm.Rax) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (real Asm.R13);*)
+    (*movq (real Asm.R13) (real Asm.R12);*)
+    (*movq (const 1) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (mb (real_op Asm.R12));*)
+    (*movq (real Asm.R13) (real Asm.R12);*)
+    (*leaq (mbo (real_op Asm.R12) 8L) (real Asm.R12);*)
+    (*movq (const 1) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (mb (real_op Asm.R12));*)
+    (*movq (real Asm.R13) (real Asm.Rbx);*)
+    (*leaq (mbo (real_op Asm.Rbx) 8L) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (real Asm.R12);*)
+    (*movq (const 16) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (real Asm.Rdi);*)
+    (*call (label "_I_alloc_i");*)
+    (*movq (real Asm.Rax) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (real Asm.R14);*)
+    (*movq (real Asm.R14) (real Asm.R13);*)
+    (*movq (const 1) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (mb (real_op Asm.R13));*)
+    (*movq (real Asm.R14) (real Asm.R13);*)
+    (*leaq (mbo (real_op Asm.R13) 8L) (real Asm.R13);*)
+    (*movq (const 2) (real Asm.Rbx);*)
+    (*movq (real Asm.Rbx) (mb (real_op Asm.R13));*)
+    (*movq (real Asm.R14) (real Asm.Rbx);*)
+    (*leaq (mbo (real_op Asm.Rbx) 8L) (real Asm.Rbx);*)
+    (*movq (real Asm.R12) (real Asm.R13);*)
+    (*movq (real Asm.Rbx) (real Asm.R12);*)
+    (*movq (real Asm.R13) (real Asm.Rbx);*)
+    (*movq (real Asm.R12) (real Asm.Rax);*)
+    (*movq (real Asm.Rbx) (real Asm.Rdi);*)
+    (*movq (real Asm.Rax) (real Asm.Rsi);*)
+    (*call (label "__concat");*)
+    (*movq (real Asm.Rax) (real Asm.Rbx);*)
+  (*] in*)
+
+  let abstract_asms = [
+    movq $16, %_asmreg61
+    movq %_asmreg61, %_asmreg60
+    movq %_asmreg60, %__temp35
+    movq %__temp35, %_asmreg63
+    movq %_asmreg63, %rdi
+    call _I_alloc_i
+    movq %rax, %_asmret0
+    movq %_asmret0, %_asmreg62
+    movq %_asmreg62, %__temp36
+    movq %__temp36, %_asmreg65
+    movq %_asmreg65, %_asmreg64
+    movq %_asmreg64, %__temp28
+    movq %__temp28, %_asmreg66
+    movq $1, %_asmreg67
+    movq %_asmreg67, (%_asmreg66)
+    movq %__temp28, %_asmreg68
+    leaq 8(%_asmreg68), %_asmreg68
+    movq $1, %_asmreg70
+    movq %_asmreg70, (%_asmreg68)
+    movq %__temp28, %_asmreg72
+    leaq 8(%_asmreg72), %_asmreg72
+    movq %_asmreg72, %_asmreg71
+    movq %_asmreg71, %x
+    movq $16, %_asmreg75
+    movq %_asmreg75, %_asmreg74
+    movq %_asmreg74, %__temp37
+    movq %__temp37, %_asmreg77
+    movq %_asmreg77, %rdi
+    call _I_alloc_i
+    movq %rax, %_asmret0
+    movq %_asmret0, %_asmreg76
+    movq %_asmreg76, %__temp38
+    movq %__temp38, %_asmreg79
+    movq %_asmreg79, %_asmreg78
+    movq %_asmreg78, %__temp29
+    movq %__temp29, %_asmreg80
+    movq $1, %_asmreg81
+    movq %_asmreg81, (%_asmreg80)
+    movq %__temp29, %_asmreg82
+    leaq 8(%_asmreg82), %_asmreg82
+    movq $2, %_asmreg84
+    movq %_asmreg84, (%_asmreg82)
+    movq %__temp29, %_asmreg86
+    leaq 8(%_asmreg86), %_asmreg86
+    movq %_asmreg86, %_asmreg85
+    movq %_asmreg85, %y
+    movq %x, %_asmreg89
+    movq %_asmreg89, %_asmreg88
+    movq %_asmreg88, %__temp39
+    movq %y, %_asmreg91
+    movq %_asmreg91, %_asmreg90
+    movq %_asmreg90, %__temp40
+    movq %__temp39, %_asmreg93
+    movq %__temp40, %_asmreg94
+    movq %_asmreg93, %rdi
+    movq %_asmreg94, %rsi
+    call __concat
   ] in
+
   let asms = reg_alloc abstr_asms in
   print_endline (string_of_asms asms);
 

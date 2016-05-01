@@ -1472,13 +1472,17 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);
       printf "looped context = %s\n\n" (string_of_alloc_context loopctx);
       printf "colored context = %s\n\n" (string_of_alloc_context coloredctx);
+      let sorted_nodes =
+        cfg |> AsmCfg.vertex_set
+            |> AsmCfg.VertexSet.to_list
+            |> cfgnode_sort in
       let f node =
-        print_endline "[LIVEVARS]";
         printf
           "node: %s\n livevars: %s\n\n"
           (AsmCfg.string_of_vertex node)
           (string_of_areg_set (livevars node)) in
-      AsmCfg.iter_vertex f cfg;
+      print_endline "[LIVEVARS]";
+      List.iter ~f sorted_nodes;
       print_endline "[CFG]";
       print_endline (AsmCfg.to_dot cfg)
     end;

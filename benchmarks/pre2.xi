@@ -1,10 +1,7 @@
-use conv
-use io
-nums(): int, int, int, int, int, int {
-    return 1, 2, 3, 4, 5, 6
-}
 main(args: int[][]) {
-    a:int, b:int, c:int, d:int, e:int, f:int = nums(); x:int = 0; i:int = 0;
+    a:int=1; b:int=2; c:int=3; d:int=4; e:int=5; f:int=6;
+    x:int = 0;
+    i:int = 0;
     while(i < 50000000) {
         x = (a * b)
         if (a > 10) {

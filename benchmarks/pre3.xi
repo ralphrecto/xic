@@ -1,6 +1,3 @@
-use conv
-use io
-
 main(args: int[][]) {
     x: int = 0
     if (false) {

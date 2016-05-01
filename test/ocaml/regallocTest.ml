@@ -359,15 +359,15 @@ let reg_alloc_test _ =
   let fk i = Asm.Fake (FreshReg.gen i) in
   let temp i = Asm.Reg (fk i) in
   let real reg = Asm.Reg (Asm.Real reg) in
-  let real_op reg = Asm.Real reg in
-  let mb reg = Asm.Mem (Asm.Base (None, reg)) in
-  let mbo reg o = Asm.Mem (Asm.Base (Some o, reg)) in
+  (* let real_op reg = Asm.Real reg in *)
+  (* let mb reg = Asm.Mem (Asm.Base (None, reg)) in *)
+  (* let mbo reg o = Asm.Mem (Asm.Base (Some o, reg)) in *)
 
   let _ = fk in
   let _ = temp in
   let _ = real in
 
-  let label s = Asm.Label s in
+  (* let label s = Asm.Label s in *)
 
   (*let abstr_asms = [*)
     (*movq (const 1) (temp 0);*)
@@ -423,64 +423,69 @@ let reg_alloc_test _ =
     (*movq (real Asm.Rax) (real Asm.Rbx);*)
   (*] in*)
 
-  let abstract_asms = [
-    movq $16, %_asmreg61
-    movq %_asmreg61, %_asmreg60
-    movq %_asmreg60, %__temp35
-    movq %__temp35, %_asmreg63
-    movq %_asmreg63, %rdi
-    call _I_alloc_i
-    movq %rax, %_asmret0
-    movq %_asmret0, %_asmreg62
-    movq %_asmreg62, %__temp36
-    movq %__temp36, %_asmreg65
-    movq %_asmreg65, %_asmreg64
-    movq %_asmreg64, %__temp28
-    movq %__temp28, %_asmreg66
-    movq $1, %_asmreg67
-    movq %_asmreg67, (%_asmreg66)
-    movq %__temp28, %_asmreg68
-    leaq 8(%_asmreg68), %_asmreg68
-    movq $1, %_asmreg70
-    movq %_asmreg70, (%_asmreg68)
-    movq %__temp28, %_asmreg72
-    leaq 8(%_asmreg72), %_asmreg72
-    movq %_asmreg72, %_asmreg71
-    movq %_asmreg71, %x
-    movq $16, %_asmreg75
-    movq %_asmreg75, %_asmreg74
-    movq %_asmreg74, %__temp37
-    movq %__temp37, %_asmreg77
-    movq %_asmreg77, %rdi
-    call _I_alloc_i
-    movq %rax, %_asmret0
-    movq %_asmret0, %_asmreg76
-    movq %_asmreg76, %__temp38
-    movq %__temp38, %_asmreg79
-    movq %_asmreg79, %_asmreg78
-    movq %_asmreg78, %__temp29
-    movq %__temp29, %_asmreg80
-    movq $1, %_asmreg81
-    movq %_asmreg81, (%_asmreg80)
-    movq %__temp29, %_asmreg82
-    leaq 8(%_asmreg82), %_asmreg82
-    movq $2, %_asmreg84
-    movq %_asmreg84, (%_asmreg82)
-    movq %__temp29, %_asmreg86
-    leaq 8(%_asmreg86), %_asmreg86
-    movq %_asmreg86, %_asmreg85
-    movq %_asmreg85, %y
-    movq %x, %_asmreg89
-    movq %_asmreg89, %_asmreg88
-    movq %_asmreg88, %__temp39
-    movq %y, %_asmreg91
-    movq %_asmreg91, %_asmreg90
-    movq %_asmreg90, %__temp40
-    movq %__temp39, %_asmreg93
-    movq %__temp40, %_asmreg94
-    movq %_asmreg93, %rdi
-    movq %_asmreg94, %rsi
-    call __concat
+  let reg x = Asm.Reg x in
+  let fake x = Asm.Fake x in
+  let label x = Asm.Label x in
+
+  let module FreshTemp = Ir_generation.FreshTemp in
+  let abstr_asms = [
+    movq (const 16) (reg (fake (FreshReg.gen 61)));
+    movq (reg (fake (FreshReg.gen 61))) (reg (fake (FreshReg.gen 60)));
+    movq (reg (fake (FreshReg.gen 60))) (reg (fake (FreshTemp.gen 35)));
+    movq (reg (fake (FreshTemp.gen 35))) (reg (fake (FreshReg.gen 63)));
+    movq (reg (fake (FreshReg.gen 63))) ardi;
+    call (label "_I_alloc_i");
+    movq arax (reg (fake (FreshAsmRet.gen 0)));
+    movq (reg (fake (FreshAsmRet.gen 0))) (reg (fake (FreshReg.gen 62)));
+    movq (reg (fake (FreshReg.gen 62))) (reg (fake (FreshTemp.gen 36)));
+    movq (reg (fake (FreshTemp.gen 36))) (reg (fake (FreshReg.gen 65)));
+    movq (reg (fake (FreshReg.gen 65))) (reg (fake (FreshReg.gen 64)));
+    movq (reg (fake (FreshReg.gen 64))) (reg (fake (FreshTemp.gen 28)));
+    movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 66)));
+    movq (const 1) (reg (fake (FreshReg.gen 67)));
+    movq (reg (fake (FreshReg.gen 67))) ((reg (fake (FreshReg.gen 66))));
+    movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 68)));
+    leaq (8L $ ((reg (fake (FreshReg.gen 68))))) (reg (fake (FreshReg.gen 68)));
+    movq (const 1) (reg (fake (FreshReg.gen 70)));
+    movq (reg (fake (FreshReg.gen 70))) ((reg (fake (FreshReg.gen 68))));
+    movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 72)));
+    leaq (8L $ ((reg (fake (FreshReg.gen 72))))) (reg (fake (FreshReg.gen 72)));
+    movq (reg (fake (FreshReg.gen 72))) (reg (fake (FreshReg.gen 71)));
+    movq (reg (fake (FreshReg.gen 71))) (reg (fake "x"));
+    movq (const 16) (reg (fake (FreshReg.gen 75)));
+    movq (reg (fake (FreshReg.gen 75))) (reg (fake (FreshReg.gen 74)));
+    movq (reg (fake (FreshReg.gen 74))) (reg (fake (FreshTemp.gen 37)));
+    movq (reg (fake (FreshTemp.gen 37))) (reg (fake (FreshReg.gen 77)));
+    movq (reg (fake (FreshReg.gen 77))) ardi;
+    call (label "_I_alloc_i");
+    movq arax (reg (fake (FreshAsmRet.gen 0)));
+    movq (reg (fake (FreshAsmRet.gen 0))) (reg (fake (FreshReg.gen 76)));
+    movq (reg (fake (FreshReg.gen 76))) (reg (fake (FreshTemp.gen 38)));
+    movq (reg (fake (FreshTemp.gen 38))) (reg (fake (FreshReg.gen 79)));
+    movq (reg (fake (FreshReg.gen 79))) (reg (fake (FreshReg.gen 78)));
+    movq (reg (fake (FreshReg.gen 78))) (reg (fake (FreshTemp.gen 29)));
+    movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 80)));
+    movq (const 1) (reg (fake (FreshReg.gen 81)));
+    movq (reg (fake (FreshReg.gen 81))) ((reg (fake (FreshReg.gen 80))));
+    movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 82)));
+    leaq (8L $ ((reg (fake (FreshReg.gen 82))))) (reg (fake (FreshReg.gen 82)));
+    movq (const 2) (reg (fake (FreshReg.gen 84)));
+    movq (reg (fake (FreshReg.gen 84))) ((reg (fake (FreshReg.gen 82))));
+    movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 86)));
+    leaq (8L $ ((reg (fake (FreshReg.gen 86))))) (reg (fake (FreshReg.gen 86)));
+    movq (reg (fake (FreshReg.gen 86))) (reg (fake (FreshReg.gen 85)));
+    movq (reg (fake (FreshReg.gen 85))) (reg (fake "y"));
+    movq (reg (fake "x")) (reg (fake (FreshReg.gen 89)));
+    movq (reg (fake (FreshReg.gen 89))) (reg (fake (FreshReg.gen 88)));
+    movq (reg (fake (FreshReg.gen 88))) (reg (fake (FreshTemp.gen 39)));
+    movq (reg (fake "y")) (reg (fake (FreshReg.gen 91)));
+    movq (reg (fake (FreshReg.gen 91))) (reg (fake (FreshReg.gen 90)));
+    movq (reg (fake (FreshReg.gen 90))) (reg (fake (FreshTemp.gen 40)));
+    movq (reg (fake (FreshTemp.gen 39))) (reg (fake (FreshReg.gen 93)));
+    movq (reg (fake (FreshTemp.gen 40))) (reg (fake (FreshReg.gen 94)));
+    movq (reg (fake (FreshReg.gen 93))) ardi;
+    movq (reg (fake (FreshReg.gen 94))) (reg (fake "rsi"));
+    call (label "__concat");
   ] in
 
   let asms = reg_alloc abstr_asms in

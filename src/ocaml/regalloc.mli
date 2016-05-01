@@ -48,7 +48,7 @@ module UseDefs : sig
 
   val string_of_usedef_val : usedef_val -> string
   val usedef_match : usedef_pattern list -> usedef_val -> usedefs
-  val usedvars : abstract_asm -> usedefs
+  val usedefs : abstract_asm -> usedefs
 end
 
 module LiveVariableLattice : Dataflow.LowerSemilattice with type data = AReg.Set.t

@@ -55,17 +55,17 @@ let use_defs_test _ =
     AReg.Set.of_list regs_list in
 
   let n0 = movq (const 5) (fkr 0) in
-  let uses0, defs0 = UseDefs.usedvars n0 in
+  let uses0, defs0 = UseDefs.usedefs n0 in
   (set_of []) === uses0;
   (set_of [fk 0]) === defs0;
 
   let n1 = movq (const 6) (fkr 1) in
-  let uses1, defs1 = UseDefs.usedvars n1 in
+  let uses1, defs1 = UseDefs.usedefs n1 in
   (set_of []) === uses1;
   (set_of [fk 1]) === defs1;
 
   let n2 = addq (fkr 0) (fkr 1) in
-  let uses2, defs2 = UseDefs.usedvars n2 in
+  let uses2, defs2 = UseDefs.usedefs n2 in
   (set_of [fk 0; fk 1]) === uses2;
   (set_of [fk 1]) === defs2
 

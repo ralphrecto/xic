@@ -1,5 +1,5 @@
 \documentclass{hw}
-\title{Programming Assignment 5:\\ Assembly Code Generation}
+\title{Programming Assignment 6:\\ Optimization}
 
 \usepackage{fancyvrb}
 \usepackage{mathpartir}
@@ -16,7 +16,7 @@
 % The fully qualified class name of your main program and any other
 % instructions needed to run the program.
 We implemented programming assignment $1$ and $2$ in Java, but we implemented
-programming assignment $3,4$, and $5$ in OCaml. Our main OCaml executable is
+programming assignment $3,4,5$, and $6$ in OCaml. Our main OCaml executable is
 implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
 code, you will need to install a couple of packages and OCaml libraries by
 running the following:
@@ -48,12 +48,9 @@ See the \texttt{opam} file for more information regarding our OCaml dependencies
 
 
 \section{Summary}\label{sec:summary}
-In this programming assignment, we generated x86-64 assembly for the Xi programming language.
-The most challenging part of this assignment was handling the complexity of the target
-architecture, especially debugging our generated assembly. Major design decisions for this
-project include naive register allocation (i.e. all temps to stack); calculating a static
-stack frame layout for each function; and implementing both a naive set and a richer set of
-tiles. There are no known bugs or missing functionality in our implementation, modulo a very
+In this programming assignment, we implemented several optimizations for our compiler - register allocation, conditional constant propagation, and partial-redundancy elimination (which also implements common subexpression elimination).
+The most challenging part of this assignment was implementing register allocation. Major design decisions for this project include strictly following Appel's implementation of register allocation. %TODO
+There are no known bugs or missing functionality in our implementation, modulo a very
 small set of corner cases.
 
 \section{Specification}\label{sec:specification}
@@ -207,18 +204,16 @@ beyond these extreme cases our tests pass.
 \section{Work Plan}\label{sec:workplan}
 \begin{itemize}
   \item \textbf{Ralph.}
-    Ralph worked on the front-end, naive tiling, and writing instructions to 
-    handle stack allocation and function calls.
+    Ralph worked on the front-end, set up the data analysis framework, and helped implement and debug register allocation.
 
   \item \textbf{Alice.}
-    Alice worked thoroughly on unit testing our various algorithms for code generation.
+    Alice worked on register allocation and helped test the generated CFGs and conditional constant propagation.
 
   \item \textbf{Seung Hee.}
-    Seung Hee implemented non-naive tiling and worked extensively on debugging.
+    Seung Hee implemented conditional constant propagation and partial-redundancy elimination.
 
   \item \textbf{Michael.}
-    Michael worked on register allocation and generating tests to run in an
-    automated framework.
+    Michael worked on partial-redundancy and extensive debugging in register allocation.
 \end{itemize}
 
 The work was divided in this way because it parallelized our work in the most

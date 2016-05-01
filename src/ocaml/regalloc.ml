@@ -9,7 +9,7 @@ open Fresh
 (* ************************************************************************** *)
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
-let printing_on = false
+let printing_on = true
 let invariant_checking_on = true
 
 (* remove x from lst, if it exists *)
@@ -222,9 +222,16 @@ module UseDefs = struct
   let unops_call =
     let instr = [ "call"; ] in
     let f op =
-      let useset = set_of_arg op in
+      let useset =
+        let arg_regs = AReg.Set.of_list [
+          Rdi; Rsi; Rdx; Rcx; R8; R9;
+        ] in
+        set_of_arg op in
       let defset =
-        caller_saved_regs |>
+        let ret_regs = [
+          Rax; Rdx;
+        ] in
+        ret_regs @ caller_saved_regs |>
         List.map ~f:(fun reg -> Real reg) |>
         no_rbp_or_rsp |>
         AReg.Set.of_list in
@@ -246,7 +253,10 @@ module UseDefs = struct
   let zeroop_ret =
     let instr = ["retq"] in
     let useset =
-      callee_saved_regs |>
+      let ret_regs = [
+        Rax; Rdx;
+      ] in
+      ret_regs @ callee_saved_regs |>
       List.map ~f:(fun reg -> Real reg) |>
       no_rbp_or_rsp |>
       AReg.Set.of_list in

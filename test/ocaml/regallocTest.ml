@@ -429,7 +429,7 @@ let reg_alloc_test _ =
 
   let module FreshTemp = Ir_generation.FreshTemp in
   let abstr_asms = [
-    movq (const 16) (reg (fake (FreshReg.gen 61)));
+   movq (const 16) (reg (fake (FreshReg.gen 61)));
     movq (reg (fake (FreshReg.gen 61))) (reg (fake (FreshReg.gen 60)));
     movq (reg (fake (FreshReg.gen 60))) (reg (fake (FreshTemp.gen 35)));
     movq (reg (fake (FreshTemp.gen 35))) (reg (fake (FreshReg.gen 63)));
@@ -443,10 +443,10 @@ let reg_alloc_test _ =
     movq (reg (fake (FreshReg.gen 64))) (reg (fake (FreshTemp.gen 28)));
     movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 66)));
     movq (const 1) (reg (fake (FreshReg.gen 67)));
-    movq (reg (fake (FreshReg.gen 67))) ((reg (fake (FreshReg.gen 66))));
+    movq (reg (fake (FreshReg.gen 67))) (mb (fake (FreshReg.gen 66)));
     movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 68)));
     leaq (8L $ (mb ((fake (FreshReg.gen 68))))) (reg (fake (FreshReg.gen 68)));
-    movq (const 1) (reg (fake (FreshReg.gen 70)));
+    movq (const 1) (mb (fake (FreshReg.gen 70)));
     movq (reg (fake (FreshReg.gen 70))) ((reg (fake (FreshReg.gen 68))));
     movq (reg (fake (FreshTemp.gen 28))) (reg (fake (FreshReg.gen 72)));
     leaq (8L $ (mb ((fake (FreshReg.gen 72))))) (reg (fake (FreshReg.gen 72)));
@@ -466,11 +466,11 @@ let reg_alloc_test _ =
     movq (reg (fake (FreshReg.gen 78))) (reg (fake (FreshTemp.gen 29)));
     movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 80)));
     movq (const 1) (reg (fake (FreshReg.gen 81)));
-    movq (reg (fake (FreshReg.gen 81))) ((reg (fake (FreshReg.gen 80))));
+    movq (reg (fake (FreshReg.gen 81))) (mb (fake (FreshReg.gen 80)));
     movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 82)));
     leaq (8L $ (mb ((fake (FreshReg.gen 82))))) (reg (fake (FreshReg.gen 82)));
     movq (const 2) (reg (fake (FreshReg.gen 84)));
-    movq (reg (fake (FreshReg.gen 84))) ((reg (fake (FreshReg.gen 82))));
+    movq (mb (fake (FreshReg.gen 84))) ((reg (fake (FreshReg.gen 82))));
     movq (reg (fake (FreshTemp.gen 29))) (reg (fake (FreshReg.gen 86)));
     leaq (8L $ (mb ((fake (FreshReg.gen 86))))) (reg (fake (FreshReg.gen 86)));
     movq (reg (fake (FreshReg.gen 86))) (reg (fake (FreshReg.gen 85)));

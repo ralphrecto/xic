@@ -9,7 +9,7 @@ open Fresh
 (* ************************************************************************** *)
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
-let printing_on = true
+let printing_on = false
 let invariant_checking_on = true
 
 (* remove x from lst, if it exists *)
@@ -223,10 +223,10 @@ module UseDefs = struct
     let instr = [ "call"; ] in
     let f op =
       let useset =
-        let arg_regs = AReg.Set.of_list [
+        let arg_regs = List.map ~f:(fun x -> Real x) [
           Rdi; Rsi; Rdx; Rcx; R8; R9;
-        ] in
-        set_of_arg op in
+        ] |> AReg.Set.of_list in
+        AReg.Set.union (set_of_arg op) arg_regs in
       let defset =
         let ret_regs = [
           Rax; Rdx;

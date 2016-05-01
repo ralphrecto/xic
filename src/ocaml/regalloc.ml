@@ -10,7 +10,7 @@ open Fresh
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
 let printing_on = false
-let invariant_checking_on = true
+let invariant_checking_on = false
 
 (* remove x from lst, if it exists *)
 let remove (lst : 'a list) (x : 'a) : 'a list =

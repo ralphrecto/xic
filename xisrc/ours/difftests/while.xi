@@ -27,7 +27,7 @@ whileTest2() : int {
 }
 
 whileTest3() : int {
-  x:bool, y:bool;
+  x:bool; y:bool;
   x = true;
   y = true;
   z:int = 0;
@@ -45,7 +45,7 @@ whileTest3() : int {
 }
 
 whileTest4() : int {
-  x:bool, y:bool;
+  x:bool; y:bool;
   x = 4 == 1;
   y = true == false;
   z: int = 1;
@@ -60,7 +60,7 @@ whileTest4() : int {
 }   
 
 whileTest5() : int {
-  w:int, x:int, y:int, z:int;
+  w:int; x:int; y:int; z:int;
   w = 0; x = 0; y = 0; z = 0;
 
   while (x < 1) {

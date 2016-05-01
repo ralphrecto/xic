@@ -39,7 +39,8 @@ ifTest7() : int {
 }
 
 ifTest8() : int {
-  x:int, r:int;
+  x:int;
+  r:int;
   x = 5;
   if (x < 7) r = 1;
   else r = 0;
@@ -48,7 +49,7 @@ ifTest8() : int {
 }
 
 ifTest9() : int {
-  x:int, y:int, r:int;
+  x:int; y:int; r:int;
   x = 5;
   y = x + 5;
   if (y > x) r = 1;
@@ -58,7 +59,7 @@ ifTest9() : int {
 }
 
 ifTest10() : int {
-  x:int, r:int;
+  x:int; r:int;
   x = 5;
   if ( x > 0 ) r = 1;
   else r = 0;
@@ -67,7 +68,7 @@ ifTest10() : int {
 }
 
 ifTest11() : int {
-  x:int, r:int;
+  x:int; r:int;
   x = 0;
   r = 0;
   if (x >= 0) {
@@ -82,7 +83,7 @@ ifTest11() : int {
 }
 
 ifTest12() : int {
-  x:int, r:int;
+  x:int; r:int;
   x = 9;
   r = 0;
   while ( 0 <= x ) {
@@ -96,7 +97,7 @@ ifTest12() : int {
 
 // nested if statements
 ifTest13() : int {
-  x:int, y:int, r:int;
+  x:int; y:int; r:int;
   x = 0;
   y = 0;
   r = 0;
@@ -113,7 +114,7 @@ ifTest13() : int {
 
 // dangling else
 ifTest14() : int {
-  x:int,r:int;
+  x:int;r:int;
   x = 0;
   if (x < 1) if (2 > x) r = 1; else r = 0;
 

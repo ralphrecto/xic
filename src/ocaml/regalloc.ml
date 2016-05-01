@@ -201,8 +201,7 @@ module UseDefs = struct
     let f op =
       let opregs = set_of_arg op in
       match op with
-      | Reg _ -> (AReg.Set.empty, opregs)
-      | Mem _ -> (opregs, AReg.Set.empty)
+      | Reg _ -> (opregs, opregs)
       | _ -> failwith "unops_def: invalid operand" in
     Unop (instr, f)
 

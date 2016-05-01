@@ -357,21 +357,31 @@ let reg_alloc_test _ =
   let open Fresh in
 
   let fk i = Asm.Fake (FreshReg.gen i) in
-  let fkr i = Asm.Reg (fk i) in
+  let temp i = Asm.Reg (fk i) in
   let rr reg = Asm.Reg (Asm.Real reg) in
 
   let _ = fk in
-  let _ = fkr in
+  let _ = temp in
   let _ = rr in
 
-  let n0 = movq (const 5) (fkr 0) in
-  let n1 = movq (const 6) (fkr 1) in
-  let n2 = addq (fkr 0) (fkr 1) in
+  let label s = Asm.Label s in
 
-  let res = reg_alloc [n0; n1; n2] in
-  print_endline (string_of_asms res);
+  let abstr_asms = [
+    movq (const 1) (temp 0);
+    movq (const 1) (temp 1);
+    movq (const 1) (temp 2);
+    cmpq (temp 0) (temp 1);
+    je (label "label0");
+    movq (const 3) (temp 0);
+    jmp (label "label1");
+    label_op "label0";
+    movq (const 5) (temp 0);
+    label_op "label1";
+  ] in
+  let asms = reg_alloc abstr_asms in
+  print_endline (string_of_asms asms);
 
-  ()
+  assert_true false
 
 
 

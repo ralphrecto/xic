@@ -341,7 +341,7 @@ module AsmCfg = struct
             | Some (labelstr, conditional) -> begin
                 let labelnode = String.Map.find_exn label_map labelstr in
                 if conditional then [labelnode; hd2]
-                else [hd2] end
+                else [labelnode] end
             (* asm1 not a jump *)
             | None ->
                 if is_ret asm1 then

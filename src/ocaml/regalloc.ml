@@ -823,7 +823,7 @@ let cfgnode_sort (nodes : AsmCfg.V.t list) =
 let build
   (initctx : alloc_context)
   (asms : abstract_asm list)
-  : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
+  : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) * AsmCfg.t =
 
   let cfg = AsmCfg.create_cfg asms in
 
@@ -974,7 +974,7 @@ let build
       finctx.worklist_moves;
       finctx.active_moves;
     ] in
-  ({ finctx with all_moves = all_moves_set }, livevars)
+  ({ finctx with all_moves = all_moves_set }, livevars, cfg)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
@@ -1462,16 +1462,25 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         (loop innerctx')
     in
 
-    let (buildctx, livevars) = build regctx asms in
+    let (buildctx, livevars, cfg) = build regctx asms in
     let buildctx = rep_ok buildctx in
     let loopctx = rep_ok (loop buildctx) in
     let coloredctx = assign_colors loopctx in
-    assert (valid_coloring coloredctx);
+    (*assert (valid_coloring coloredctx);*)
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);
       printf "looped context = %s\n\n" (string_of_alloc_context loopctx);
-      printf "colored context = %s\n\n" (string_of_alloc_context coloredctx)
+      printf "colored context = %s\n\n" (string_of_alloc_context coloredctx);
+      let f node =
+        print_endline "[LIVEVARS]";
+        printf
+          "node: %s\n livevars: %s\n\n"
+          (AsmCfg.string_of_vertex node)
+          (string_of_areg_set (livevars node)) in
+      AsmCfg.iter_vertex f cfg;
+      print_endline "[CFG]";
+      print_endline (AsmCfg.to_dot cfg)
     end;
 
     (coloredctx, livevars)

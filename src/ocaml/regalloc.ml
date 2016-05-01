@@ -9,7 +9,7 @@ open Fresh
 (* ************************************************************************** *)
 (* Helpers                                                                    *)
 (* ************************************************************************** *)
-let printing_on = true
+let printing_on = false
 let invariant_checking_on = true
 
 (* remove x from lst, if it exists *)

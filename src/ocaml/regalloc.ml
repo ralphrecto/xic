@@ -201,8 +201,7 @@ module UseDefs = struct
     let f op =
       let opregs = set_of_arg op in
       match op with
-      | Reg _ -> (AReg.Set.empty, opregs)
-      | Mem _ -> (opregs, AReg.Set.empty)
+      | Reg _ -> (opregs, opregs)
       | _ -> failwith "unops_def: invalid operand" in
     Unop (instr, f)
 
@@ -290,17 +289,25 @@ module UseDefs = struct
     ] in
     usedef_match patterns
 
+  (* handle reg aliases *)
+  let reg_alias (reg : abstract_reg) =
+    match reg with
+    | Real Cl -> Real Rcx
+    | _ -> reg
+
   (* returns a sets of vars used and defd, respectively *)
-  let usedvars : abstract_asm -> AReg.Set.t * AReg.Set.t =
-    function
+  let usedefs (asm : abstract_asm) : AReg.Set.t * AReg.Set.t =
+    let uses, defs =
+      match asm with
       | Op (name, []) ->
           asm_match (ZeroopV name)
       | Op (name, [arg]) ->
           asm_match (UnopV (name, arg))
       | Op (name, [arg1; arg2]) ->
           asm_match (BinopV (name, arg1, arg2))
-      | Op _ -> failwith "usedvars: invalid asm"
-      | Lab _ | Directive _ | Comment _ -> (AReg.Set.empty, AReg.Set.empty)
+      | Op _ -> failwith "usedefs: invalid asm"
+      | Lab _ | Directive _ | Comment _ -> (AReg.Set.empty, AReg.Set.empty) in
+    (AReg.Set.map ~f:reg_alias uses, AReg.Set.map ~f:reg_alias defs)
 
 end
 
@@ -334,23 +341,14 @@ module AsmWithLiveVar : CFGWithLatticeT
 
   let init (_: extra_info) (_: graph) (n: AsmCfg.V.t)  =
     match n with
-    | Node ({ asm = Op _ ; _ } as n_data) -> fst (usedvars n_data.asm)
+    | Node ({ asm = Op _ ; _ } as n_data) -> fst (usedefs n_data.asm)
     | _ -> AReg.Set.empty
-
-  (* handle reg aliases *)
-  let reg_alias (reg : abstract_reg) =
-    match reg with
-    | Real Cl -> Real Rcx
-    | _ -> reg
 
   let transfer (_: extra_info) (e: AsmCfg.E.t) (d: Lattice.data) =
     (* We use dest because live variable analysis is backwards *)
     match E.dst e with
     | Node ({ asm = Op _ ; _ } as n_data) ->
-        let use_n, def_n =
-          let f = AReg.Set.map ~f:reg_alias in
-          let l, r = usedvars n_data.asm in
-          f l, f r in
+        let use_n, def_n = usedefs n_data.asm in
         AReg.Set.union use_n (AReg.Set.diff d def_n)
     | _ -> d
 
@@ -871,7 +869,7 @@ let build
       (* add interferences between defs and liveset *)
       let defs =
         match asm with
-        | Op _ -> snd (UseDefs.usedvars asm)
+        | Op _ -> snd (UseDefs.usedefs asm)
         | _ -> AReg.Set.empty in
       let regctx' = create_inter_edges (AReg.Set.union liveset defs) regctx in
 
@@ -940,7 +938,7 @@ let build
   let precolored_set =
     let f r = Real r in
     List.map ~f [
-      Rax; Rbx; Rcx; Cl; Rdx; Rsi; Rdi; R8;
+      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8;
       R9; R10; R11; R12;
     ] |> AReg.Set.of_list in
 

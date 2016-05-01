@@ -178,19 +178,22 @@ let imm_cmp_jump op reg const label =
   [cmpq (Asm.Const const) (Reg reg); (cmp_to_jump_instr op label)]
 
 let non_imm_cmp op reg1 reg2 dest =
-  [cmpq (Reg reg2) (Reg reg1);
+  [xorq (Reg (Real Rcx)) (Reg (Real Rcx));
+   cmpq (Reg reg2) (Reg reg1);
    (cmp_to_instr op) (Reg (Real Cl));
    movq (Reg (Real Rcx)) (Reg dest)]
 
 let cmp_zero op reg1 dest =
-  [test (Reg reg1) (Reg reg1);
-  (cmp_zero_to_instr op) (Reg (Real Cl));
-  movq (Reg (Real Rcx)) (Reg dest)]
+  [xorq (Reg (Real Rcx)) (Reg (Real Rcx));
+   test (Reg reg1) (Reg reg1);
+   (cmp_zero_to_instr op) (Reg (Real Cl));
+   movq (Reg (Real Rcx)) (Reg dest)]
 
 let imm_cmp op const reg dest =
-  [cmpq (Asm.Const const) (Reg reg);
-  (cmp_to_instr op) (Reg (Real Cl));
-  movq (Reg (Real Rcx)) (Reg dest)]
+  [xorq (Reg (Real Rcx)) (Reg (Real Rcx));
+   cmpq (Asm.Const const) (Reg reg);
+   (cmp_to_instr op) (Reg (Real Cl));
+   movq (Reg (Real Rcx)) (Reg dest)]
 
 (* Java style shifting: mod RHS operand by word size *)
 let non_imm_shift op reg1 reg2 dest =

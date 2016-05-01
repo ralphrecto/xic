@@ -373,9 +373,6 @@ type color =
   | Reg9
   | Reg10
   | Reg11
-  | Reg12
-  | Reg13
-  | Reg14
 [@@deriving sexp, compare]
 
 let reg_of_color = function
@@ -390,9 +387,6 @@ let reg_of_color = function
   | Reg9  -> R10
   | Reg10 -> R11
   | Reg11 -> R12
-  | Reg12 -> R13
-  | Reg13 -> R14
-  | Reg14 -> R15
 
 let color_of_reg = function
   | Rax -> Reg1
@@ -407,9 +401,6 @@ let color_of_reg = function
   | R10 -> Reg9
   | R11 -> Reg10
   | R12 -> Reg11
-  | R13 -> Reg12
-  | R14 -> Reg13
-  | R15 -> Reg14
   | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
 module ColorSet = Set.Make(struct
@@ -421,8 +412,7 @@ let string_of_color_set s = U.string_of_set ~short:false s ~f:string_of_color
 
 let get_next_color (colors : color list) : color option =
   let colorlist = [
-    Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8; Reg9; Reg10; Reg11; Reg12;
-    Reg13; Reg14;
+    Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8; Reg9; Reg10; Reg11;
   ] in
   let f acc x =
     match acc with
@@ -747,7 +737,7 @@ let empty_ctx = {
   alias              = AReg.Map.empty;
   color_map          = AReg.Map.empty;
   node_occurrences   = AReg.Map.empty;
-  num_colors         = 14;
+  num_colors         = 11;
   all_moves          = TempMoveSet.empty;
   all_nodes          = AReg.Set.empty;
 }
@@ -952,7 +942,7 @@ let build
     let f r = Real r in
     List.map ~f [
       Rax; Rbx; Rcx; Cl; Rdx; Rsi; Rdi; R8;
-      R9; R10; R11; R12; R13; R14; R15;
+      R9; R10; R11; R12;
     ] |> AReg.Set.of_list in
 
   let all_vars_set = AReg.Set.union fakes_set precolored_set in

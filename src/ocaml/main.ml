@@ -196,14 +196,18 @@ let main opts flags () : unit Deferred.t =
   | _ when flags.optcfg_initial || flags.optcfg_final ->
       let cfg_phase names (phase: string) (filename: string) ((_, funcs): Ir.comp_unit) =
           let f (fname, (_, body, _)) =
-            match body with
-            | Seq irs ->
-                let cfg = Cfg.IrCfg.create_cfg irs in
-                let dot = Cfg.IrCfg.to_dot cfg in
-                let ext = sprintf "_%s_%s.dot" (String.Map.find_exn names fname) phase in
-                let dot_file = change_ext ~ext filename in
-                Writer.save dot_file ~contents:dot
-            | _ -> failwith "optcfg: lowered ir should be a seq"
+            if fname <> "__concat" then
+              match body with
+              | Seq irs -> begin
+                  let cfg = Cfg.IrCfg.create_cfg irs in
+                  let dot = Cfg.IrCfg.to_dot cfg in
+                  let ext = sprintf "_%s_%s.dot" (String.Map.find_exn names fname) phase in
+                  let dot_file = change_ext ~ext filename in
+                  Writer.save dot_file ~contents:dot
+              end
+              | _ -> failwith "optcfg: lowered ir should be a seq"
+            else
+              return ()
           in
           Deferred.List.iter ~f (String.Map.to_alist funcs)
       in

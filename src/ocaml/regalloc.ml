@@ -471,7 +471,8 @@ type alloc_context = {
 (* return node alias after coalescing; if node has not been coalesced,
  * reduces to identity function *)
 let rec get_alias (node : abstract_reg) (regctx : alloc_context) : abstract_reg =
-  if AReg.Set.mem regctx.coalesced_nodes node then
+  if AReg.Set.mem regctx.coalesced_nodes node ||
+     AReg.Set.mem regctx.coalesced_spills node then
     match AReg.Map.find regctx.alias node with
     | Some a -> get_alias a regctx
     | None -> node
@@ -1296,9 +1297,9 @@ let get_real_reg
         Real (reg_of_color color)
     | None, _ ->
         (* see note above in assign color regarding coalesced_spills *)
-        if AReg.Set.mem regctx.coalesced_spills reg then
-          get_alias reg regctx
-        else reg
+        if AReg.Set.mem regctx.coalesced_spills reg
+          then get_alias reg regctx
+          else reg
 
 let translate_operand
   (tctx : trans_context)
@@ -1444,8 +1445,6 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     (asms : abstract_asm list)
     : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
 
-    ignore debug;
-
     let rec loop (innerctx : alloc_context) =
       if (AReg.Set.is_empty innerctx.simplify_wl &&
           TempMoveSet.is_empty innerctx.worklist_moves &&
@@ -1469,7 +1468,6 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     let buildctx = rep_ok buildctx in
     let loopctx = rep_ok (loop buildctx) in
     let coloredctx = assign_colors loopctx in
-    (*assert (valid_coloring coloredctx);*)
 
     if printing_on then begin
       printf "initial context = %s\n\n" (string_of_alloc_context buildctx);
@@ -1494,7 +1492,11 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   in
 
   let finctx, livevars = main empty_ctx given_asms in
-  let finctx_comment = Comment (string_of_alloc_context finctx) in
+  let finctx_comment =
+    if debug
+      then [Comment (string_of_alloc_context finctx)]
+      else []
+  in
 
   (* remove coalesced moves *)
   let numbered = List.mapi ~f:(fun num asm -> AsmData.{num; asm;}) given_asms in
@@ -1512,7 +1514,9 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         sprintf "asm = %s" (string_of_abstract_asm node.asm) in
       let live_str =
         sprintf "live vars = %s" (string_of_areg_set (livevars (Node node))) in
-      [Comment asm_str; Comment live_str; node.asm]
+      if debug
+        then [Comment asm_str; Comment live_str; node.asm]
+        else [node.asm]
     )
   else
     List.map finasms ~f:(fun {asm; _} -> asm)
@@ -1521,4 +1525,4 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
-    [finctx_comment] @ finasms' |> spill_allocate
+    finctx_comment @ finasms' |> spill_allocate

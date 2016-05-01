@@ -760,20 +760,19 @@ let diff_int_map
 (* moves between two registers can be coalesced *)
 let coalescable_move (stmt: AsmCfg.V.t) : temp_move option =
   match stmt with
-  | _ -> None
-  (*| Start | Exit -> None*)
-  (*| Node { num; asm; } ->*)
-    (*begin*)
-    (*match asm with*)
-    (*| Op (instr, ((Reg (_ as op1)) :: (Reg (_ as op2)) :: [])) ->*)
-      (*begin*)
-      (*if instr = "movq" || instr = "mov" then*)
-          (*Some { src = op1; dest = op2; move = {num; asm;}}*)
-      (*else*)
-        (*None*)
-      (*end*)
-    (*| _ -> None*)
-    (*end*)
+  | Start | Exit -> None
+  | Node { num; asm; } ->
+    begin
+    match asm with
+    | Op (instr, ((Reg (_ as op1)) :: (Reg (_ as op2)) :: [])) ->
+      begin
+      if instr = "movq" || instr = "mov" then
+          Some { src = op1; dest = op2; move = {num; asm;}}
+      else
+        None
+      end
+    | _ -> None
+    end
 
 (* possibly coalescable moves involving the node *)
 let node_moves (node : abstract_reg) (regctx : alloc_context) : TempMoveSet.t =

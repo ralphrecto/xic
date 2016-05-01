@@ -266,6 +266,11 @@ module UseDefs = struct
     let instr = ["leave"] in
     Zeroop (instr, (AReg.Set.empty, AReg.Set.empty))
 
+  let zeroop_cqto =
+    let instr = ["cqto"] in
+    Zeroop (instr, (AReg.Set.singleton (Real Rax),
+                    AReg.Set.singleton (Real Rdx)))
+
   let asm_match =
     let patterns = [
       binops_use_plus_def;
@@ -281,6 +286,7 @@ module UseDefs = struct
       unops_jumps;
       zeroop_ret;
       zeroop_leave;
+      zeroop_cqto;
     ] in
     usedef_match patterns
 

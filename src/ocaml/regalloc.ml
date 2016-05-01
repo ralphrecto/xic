@@ -1445,8 +1445,6 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     (asms : abstract_asm list)
     : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
 
-    ignore debug;
-
     let rec loop (innerctx : alloc_context) =
       if (AReg.Set.is_empty innerctx.simplify_wl &&
           TempMoveSet.is_empty innerctx.worklist_moves &&
@@ -1494,7 +1492,11 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   in
 
   let finctx, livevars = main empty_ctx given_asms in
-  let finctx_comment = Comment (string_of_alloc_context finctx) in
+  let finctx_comment =
+    if debug
+      then [Comment (string_of_alloc_context finctx)]
+      else []
+  in
 
   (* remove coalesced moves *)
   let numbered = List.mapi ~f:(fun num asm -> AsmData.{num; asm;}) given_asms in
@@ -1512,7 +1514,9 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         sprintf "asm = %s" (string_of_abstract_asm node.asm) in
       let live_str =
         sprintf "live vars = %s" (string_of_areg_set (livevars (Node node))) in
-      [Comment asm_str; Comment live_str; node.asm]
+      if debug
+        then [Comment asm_str; Comment live_str; node.asm]
+        else [node.asm]
     )
   else
     List.map finasms ~f:(fun {asm; _} -> asm)
@@ -1521,4 +1525,4 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
   List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
-    [finctx_comment] @ finasms' |> spill_allocate
+    finctx_comment @ finasms' |> spill_allocate

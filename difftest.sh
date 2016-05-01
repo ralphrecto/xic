@@ -94,9 +94,9 @@ run_and_diff() {
     flags+=("--optir final -Ocp")
     flags+=("--optir final -Opre")
     flags+=("--optir final")
-    flags+=("--asmdebug -O")
-    flags+=("--asmdebug -Ois")
-    flags+=("--asmdebug")
+    flags+=("-O")
+    flags+=("-Ois")
+    flags+=("")
 
     generated=()
     generated+=("${tempname_noext}.typeddebug")

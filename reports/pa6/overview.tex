@@ -1,0 +1,234 @@
+\documentclass{hw}
+\title{Programming Assignment 6:\\ Optimization}
+
+\usepackage{fancyvrb}
+\usepackage{mathpartir}
+\usepackage{pervasives}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\newcommand{\ir}{intermediate representation}
+
+\begin{document}
+\maketitle
+
+\section{Metadata}\label{sec:metadata}
+% The fully qualified class name of your main program and any other
+% instructions needed to run the program.
+We implemented programming assignment $1$ and $2$ in Java, but we implemented
+programming assignment $3,4,5$, and $6$ in OCaml. Our main OCaml executable is
+implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
+code, you will need to install a couple of packages and OCaml libraries by
+running the following:
+
+\begin{center}
+\begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip
+opam install core async oUnit
+\end{BVerbatim}
+\end{center}
+
+To build our executable, simply run \texttt{make src}. This will use
+\texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
+code. It will use \texttt{corebuild} to build our OCaml code. Invoking our
+code manually is hard; instead, we we recommend you use the \texttt{xic} script
+which invokes our code with everything configured properly. 
+In summary, perform the following:
+
+\begin{center}
+\begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip
+opam install core async oUnit
+make src
+./xic [flags] <xi_file.xi>...
+\end{BVerbatim}
+\end{center}
+
+See the \texttt{opam} file for more information regarding our OCaml dependencies.
+
+
+\section{Summary}\label{sec:summary}
+In this programming assignment, we implemented several optimizations for our compiler - register allocation, conditional constant propagation, and partial-redundancy elimination (which also implements common subexpression elimination).
+The most challenging part of this assignment was implementing register allocation. Major design decisions for this project include strictly following Appel's implementation of register allocation. %TODO
+There are no known bugs or missing functionality in our implementation, modulo a very
+small set of corner cases.
+
+\section{Specification}\label{sec:specification}
+For this project, we have not deviated from the project specification, given we were allowed
+great freedom to choose instructions for IR nodes. The set of x86 instructions that our
+compiler may generate is documented in \texttt{asm.mli}.
+
+\section{Design and Implementation}\label{sec:design}
+\subsection{Architecture}
+Our assembly code generation is implemented by the following modules.
+\begin{itemize}
+  \item \texttt{tiling}
+    This module implements both naive and non-naive tiling for instruction selection.
+
+  \item \texttt{asm}
+    This module contains a representation of the x86 assembly language in OCaml. It also
+    includes functions to construct all possible x86 instructions that we may generate,
+    as well as printers for these instructions.
+
+  \item \texttt{func\_context}
+    This module produces function information derived from the body and type of each function.
+    This information is used to both assist in instruction selection and to calculate a 
+    static stack frame layout for each function.
+\end{itemize}
+
+\subsection{Code Design}
+We describe a number of major design choices in our assembly generation.    
+
+\subsubsection{Stack frame design}
+We compute static stack frames for each function - that is, during the
+duration of the function's lifetime, the stack pointer should not
+move except when calling other functions. This is computed in the
+following manner for a function $f$, supposing that $G$ is the set of functions
+that $f$ calls:
+  \begin{enumerate}
+    \item If the generated abstract assembly body of $f$ contains $n$ fake temps, and
+    \item $maxret = max(0, (\max_{g\in G} \text{num\_return\_values}(g)) - 2)$, and
+    \item $maxargs = max(0, x)$, where
+        \begin{align*}
+          x &= (\max_{g\in G} \text{num\_arguments}(g)) + ((maxret > 0) \text{ ? } 1 : 0) - 6)
+        \end{align*}
+  \end{enumerate}
+then the stack frame of f should have $1 + 1 + 9 + n + maxret + maxargs$ words,
+with 1 word for the saved rip, 1 word for the saved rbp, and 9 words for all
+caller save registers. Note that we include the ternary expression in $maxargs$
+to include an argument for the pointer to the space allocated on the stack for
+functions called that return more than $2$ arguments. For all $n>2$ return possible
+values of functions called, 1 pointer suffices given that we pass in an address to
+the base of the allocated stack space. The third return value is placed in this base
+address, and all subsequent returns are placed in the subsequent words in the space.
+There is also optionally an additional word to keep the stack aligned to 16 bytes.
+This word is placed if the static stack frame allocated does not have a number of bytes
+that are not aligned to 16 bytes.
+
+Each stack frame is laid out in the following manner:
+
+\begin{center}
+  \begin{tabular}{|c|}
+    \hline
+    Saved instruction pointer \\
+    \hline
+    Saved base pointer \\
+    \hline
+    Caller save registers \\
+    \hline
+    Stack-allocated assembly temps \\
+    \hline
+    Space for spilled return values \\
+    \hline
+    Space for spilled function arguments \\
+    \hline
+  \end{tabular}
+\end{center}
+
+Once the function is entered, the stack pointer stays pointed at the base of the
+space for spilled function arguments and does not change (except for calls).
+This allows access to the space for return values (moving returns from a callee)
+and function arguments (moving args to a callee) without knowledge of how many caller
+saves/fake temps there are by using rsp as a base.
+
+\subsubsection{Renaming logic for special return and argument registers}
+Consider \texttt{Move(dest, src)} with IR Temps regarding \texttt{ARGi} and \texttt{RETi}.
+
+If \texttt{dest = RETi}, then we are the callee returning values to the caller,
+so we stick these in the rdi/rsi/pointers passed as args. The callee
+knows how many return values it has so it knows how many of the passed
+args are pointers. If this function returns $n > 2$ values, then the
+first $(n-2)$ arguments are pointers, (i.e. first registers then stack
+locations), so look here for where to stick the values.
+
+If \texttt{src = RETi}, then we are the caller moving values from the callee
+return. These should be in the allocated multi-return space, which can
+be calculated given the height of the block for passing in arguments
+to functions via the stack in the stackframe is fixed.
+
+If \texttt{src = ARGi}, then we are the callee moving passed arguments into
+the appropriate variable temps. If we return n values for n > 2, then
+the first $(n-2)$ arguments to the function are pointers. Thus "\texttt{ARG0}"
+in this case is actually the $(n-2+1)$th argument, "\texttt{ARG1}" the $n$th, etc. 
+In this case we also need to move the ret pointers into appropriate
+fresh temps. This should probably be done in the prologue.
+
+dest = \texttt{ARGi} is not generated in our IR. 
+
+\subsubsection{Register allocation}
+We implemented a very naive register allocation. Each abstract assembly register
+is given a unique location in the stack. Then, before any abstract register is used,
+it is first shuttled from the stack, operated on, and then written back to the stack.
+This naive allocation is very inefficient but was easy to implement. For more information,
+see src/ocaml/tiling.mli.
+
+\subsection{Programming}
+We followed a bottom-up implementation strategy, implementing each pass of our
+assmebly generation algorithm independently before finally gluing together each
+pass after they had all been tested. This bottom-up approach made it easy to
+divide work between team members and maximized modularity.
+
+We first implemented the most naive tiles by simply tiling individual IR nodes.
+We then implemented a richer set of tiles, building on top of our initial naive
+work. This helped us ensure that our instruction selection is exhaustive, i.e.
+that we would be able to produce assembly instructions for all possible IR trees.
+It also partitioned our work in such a way that a lot of the most complex reasoning
+regarding instruction selection, like handling function prologues and function calls,
+were the focus of our early efforts, given we implemented these with naive tiles. 
+
+The most challenging part of the assignment was handling the complexity of the x86
+architecture. None of our group members had much experience with this architecture,
+so we had to spend a significant amount of time familiarizing ourselves with
+its design and quirks. Debugging was especially challenging given that we were
+dealing with executing actual binary programs, though this was alleviated in part
+by judicious unit testing and use of \texttt{gdb}.
+
+\section{Testing}\label{sec:testing}
+As usual, we have implemented a very comprehensive set of tests that range in
+scale and scope. First, we have implemented the typical unit tests for each major
+part of our program (e.g. tiling). This ensured that our functions behaved as
+expected and validated many of our assumptions regarding our tiling algorithms.
+
+We also focused extensively on running many functional tests. This was done within
+an automated framework that required us only to write high-level Xi programs. This
+framework performed testing in a novel manner: for each stage of our compiler from
+typechecking, AST constant folding, IR generation, IR lowering, IR block reordering,
+all the way to assembly generation, both with naive and non-naive tiling, we generate
+output and use either the Xi interpreter written by Seung Hee for the last project,
+the provided IR interpreter, and gcc to link assembly programs and execute them on our
+machines. We then diff the outputs from all of these executions. This allowed us to find
+stage-specific bugs in our compiler quickly.
+
+There are some corner cases that we were not able to handle (e.g. dividing by minint), but
+beyond these extreme cases our tests pass.
+\section{Work Plan}\label{sec:workplan}
+\begin{itemize}
+  \item \textbf{Ralph.}
+    Ralph worked on the front-end, set up the data analysis framework, and helped implement and debug register allocation.
+
+  \item \textbf{Alice.}
+    Alice worked on register allocation and helped test the generated CFGs and conditional constant propagation.
+
+  \item \textbf{Seung Hee.}
+    Seung Hee implemented conditional constant propagation and partial-redundancy elimination.
+
+  \item \textbf{Michael.}
+    Michael worked on partial-redundancy and extensive debugging in register allocation.
+\end{itemize}
+
+The work was divided in this way because it parallelized our work in the most
+effective manner.
+
+\section{Known Problems}\label{sec:problems}
+Currently we do not support UTF-8 as OCaml does not have good support for
+unicode escapes. We also sometimes report incorrect file positions in our error
+messages.
+
+\section{Comments}\label{sec:comments}
+We spent about 120 hours total on the assignment. As usual, we spent over an
+order of magnitude more time writing tests and gluing things together than we
+did writing actual code. The assignment was hard because testing becomes much
+more challenging, and also it is unclear to see whether all of our generated
+code is correct given the complexity of the architecture.
+
+\end{document}

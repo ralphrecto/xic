@@ -1,0 +1,8 @@
+TEMP*
+*.lexed
+*.parsed
+*.typed
+*.ir
+*.s
+TEMP_*.*
+zinger*.xi

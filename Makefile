@@ -201,5 +201,8 @@ p4.zip: clean src ir irtest lib xic bin/edu bin/mjw297/ bin/polyglot/  test Make
 p5.zip: clean src ir xisrc/ xilib/ lib xi xic bin/edu bin/mjw297/ bin/polyglot/ opam Makefile README.md vagrant xic-build difftest.sh frontend_test.sh
 	zip -r $@ $^
 
+p6.zip: clean src ir xisrc/ xilib/ lib xi xic bin/edu bin/mjw297/ bin/polyglot/ opam Makefile README.md vagrant xic-build difftest.sh frontend_test.sh benchmarks/ test/
+	zip -r $@ $^
+
 print-%:
 	@echo $*=$($*)

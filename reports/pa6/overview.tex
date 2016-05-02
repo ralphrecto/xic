@@ -24,7 +24,7 @@ running the following:
 \begin{center}
 \begin{BVerbatim}
 sudo apt-get install aspcud m4 unzip
-opam install core async oUnit
+opam install core async oUnit ocamlgraph bisect
 \end{BVerbatim}
 \end{center}
 
@@ -38,7 +38,7 @@ In summary, perform the following:
 \begin{center}
 \begin{BVerbatim}
 sudo apt-get install aspcud m4 unzip
-opam install core async oUnit
+opam install core async oUnit ocamlgraph bisect
 make src
 ./xic [flags] <xi_file.xi>...
 \end{BVerbatim}
@@ -49,139 +49,52 @@ See the \texttt{opam} file for more information regarding our OCaml dependencies
 
 \section{Summary}\label{sec:summary}
 In this programming assignment, we implemented several optimizations for our compiler - register allocation, conditional constant propagation, and partial-redundancy elimination (which also implements common subexpression elimination).
-The most challenging part of this assignment was implementing register allocation. Major design decisions for this project include strictly following Appel's implementation of register allocation. %TODO
-There are no known bugs or missing functionality in our implementation, modulo a very
-small set of corner cases.
+The most challenging part of this assignment was implementing register allocation. Major design decisions for this project include strictly following Appel's implementation of register allocation, following Dragon's implementation of partial-redundancy elimination, and coalescing spilled nodes.
+There are no known bugs or missing functionality in our implementation.
 
 \section{Specification}\label{sec:specification}
-For this project, we have not deviated from the project specification, given we were allowed
-great freedom to choose instructions for IR nodes. The set of x86 instructions that our
-compiler may generate is documented in \texttt{asm.mli}.
+For this project, we have not deviated from the project specification. We heavily followed the psuedocode provided by Appel and Dragon for register allocation and partial-redundancy elimination, respectively. The only slight deviation was in register allocation, where Appel did not mention that spilled nodes should be coalesced. In order for register allocation to work properly, we assigned nodes whose alias was a spilled node to point to the same address in the stack.
 
 \section{Design and Implementation}\label{sec:design}
 \subsection{Architecture}
-Our assembly code generation is implemented by the following modules.
+Our optimizations are implemented by the following modules.
 \begin{itemize}
-  \item \texttt{tiling}
-    This module implements both naive and non-naive tiling for instruction selection.
+  \item \texttt{regalloc}
+    This module implements register allocation and relies on \texttt{cfg} and \texttt{dataflow}.
+    
+  \item \texttt{ccp}
+    This module implements conditional constant propagation and relies on \texttt{cfg} and \texttt{dataflow}.
+    
+  \item \texttt{pre}
+    This module implements partial-redundancy elimination and relies on \texttt{cfg} and \texttt{dataflow}.
 
-  \item \texttt{asm}
-    This module contains a representation of the x86 assembly language in OCaml. It also
-    includes functions to construct all possible x86 instructions that we may generate,
-    as well as printers for these instructions.
+  \item \texttt{cfg}
+    This module contains a representation of a control-flow graph.
 
-  \item \texttt{func\_context}
-    This module produces function information derived from the body and type of each function.
-    This information is used to both assist in instruction selection and to calculate a 
-    static stack frame layout for each function.
+  \item \texttt{dataflow}
+    This module implements a lattic and generic dataflow analysis.
 \end{itemize}
 
 \subsection{Code Design}
-We describe a number of major design choices in our assembly generation.    
 
-\subsubsection{Stack frame design}
-We compute static stack frames for each function - that is, during the
-duration of the function's lifetime, the stack pointer should not
-move except when calling other functions. This is computed in the
-following manner for a function $f$, supposing that $G$ is the set of functions
-that $f$ calls:
-  \begin{enumerate}
-    \item If the generated abstract assembly body of $f$ contains $n$ fake temps, and
-    \item $maxret = max(0, (\max_{g\in G} \text{num\_return\_values}(g)) - 2)$, and
-    \item $maxargs = max(0, x)$, where
-        \begin{align*}
-          x &= (\max_{g\in G} \text{num\_arguments}(g)) + ((maxret > 0) \text{ ? } 1 : 0) - 6)
-        \end{align*}
-  \end{enumerate}
-then the stack frame of f should have $1 + 1 + 9 + n + maxret + maxargs$ words,
-with 1 word for the saved rip, 1 word for the saved rbp, and 9 words for all
-caller save registers. Note that we include the ternary expression in $maxargs$
-to include an argument for the pointer to the space allocated on the stack for
-functions called that return more than $2$ arguments. For all $n>2$ return possible
-values of functions called, 1 pointer suffices given that we pass in an address to
-the base of the allocated stack space. The third return value is placed in this base
-address, and all subsequent returns are placed in the subsequent words in the space.
-There is also optionally an additional word to keep the stack aligned to 16 bytes.
-This word is placed if the static stack frame allocated does not have a number of bytes
-that are not aligned to 16 bytes.
+\subsubsection{Optimized Register Allocation with Move Coalescing}
+The data structures and algorithm we use for optimized register allocation intensely follow those mentioned in section 11.4 of Appel's book. The only addition we made to Appel's register allocation algorithm was coalescing spilled nodes. Any node with an alias that is spilled is assigned the same pointer in the stack so that they are properly coalesced. This was necessary because the node cannot point to any pointer in the stack - it must point to the same location as its alias points to.
 
-Each stack frame is laid out in the following manner:
+\subsubsection{Partial-Redundancy Elimination}
+We relied heavily on Dragon's implementation of partial-redundancy elimination (PRE). Similar to Appel's register allocation algorithm, we had to make a few additions to Dragon's PRE algorithm to have a functional and correct PRE. For example, we had to decide how to change the CFG back into a series of IR statements.
 
-\begin{center}
-  \begin{tabular}{|c|}
-    \hline
-    Saved instruction pointer \\
-    \hline
-    Saved base pointer \\
-    \hline
-    Caller save registers \\
-    \hline
-    Stack-allocated assembly temps \\
-    \hline
-    Space for spilled return values \\
-    \hline
-    Space for spilled function arguments \\
-    \hline
-  \end{tabular}
-\end{center}
+\subsubsection{Conditional Constant Propagation}
+We gathered inspiration for this algorithm from lecture and from Appel. We followed the module structure for lattices defined in \texttt{cfg} to create the analysis for conditional constant propagation. To get rid of some unnecessary jumps and branches, we simply called block reordering from pa4.
 
-Once the function is entered, the stack pointer stays pointed at the base of the
-space for spilled function arguments and does not change (except for calls).
-This allows access to the space for return values (moving returns from a callee)
-and function arguments (moving args to a callee) without knowledge of how many caller
-saves/fake temps there are by using rsp as a base.
-
-\subsubsection{Renaming logic for special return and argument registers}
-Consider \texttt{Move(dest, src)} with IR Temps regarding \texttt{ARGi} and \texttt{RETi}.
-
-If \texttt{dest = RETi}, then we are the callee returning values to the caller,
-so we stick these in the rdi/rsi/pointers passed as args. The callee
-knows how many return values it has so it knows how many of the passed
-args are pointers. If this function returns $n > 2$ values, then the
-first $(n-2)$ arguments are pointers, (i.e. first registers then stack
-locations), so look here for where to stick the values.
-
-If \texttt{src = RETi}, then we are the caller moving values from the callee
-return. These should be in the allocated multi-return space, which can
-be calculated given the height of the block for passing in arguments
-to functions via the stack in the stackframe is fixed.
-
-If \texttt{src = ARGi}, then we are the callee moving passed arguments into
-the appropriate variable temps. If we return n values for n > 2, then
-the first $(n-2)$ arguments to the function are pointers. Thus "\texttt{ARG0}"
-in this case is actually the $(n-2+1)$th argument, "\texttt{ARG1}" the $n$th, etc. 
-In this case we also need to move the ret pointers into appropriate
-fresh temps. This should probably be done in the prologue.
-
-dest = \texttt{ARGi} is not generated in our IR. 
-
-\subsubsection{Register allocation}
-We implemented a very naive register allocation. Each abstract assembly register
-is given a unique location in the stack. Then, before any abstract register is used,
-it is first shuttled from the stack, operated on, and then written back to the stack.
-This naive allocation is very inefficient but was easy to implement. For more information,
-see src/ocaml/tiling.mli.
 
 \subsection{Programming}
-We followed a bottom-up implementation strategy, implementing each pass of our
-assmebly generation algorithm independently before finally gluing together each
-pass after they had all been tested. This bottom-up approach made it easy to
-divide work between team members and maximized modularity.
+We followed a top-down implementation strategy, defining the interfaces and modules before finally gluing together each
+component. This top-down approach made it easy to
+divide work between team members and maximized modularity. Each team member was able to work on different modules and implement different components in parallel. For example, one team member worked on general dataflow analysis while another team member was able to assume the interface for dataflow to construct live variable analysis and work on other parts of register allocation. All optimizations followed this top-down strategy because having the interfaces first made it clear to other members of the group what they could expect from each module.
 
-We first implemented the most naive tiles by simply tiling individual IR nodes.
-We then implemented a richer set of tiles, building on top of our initial naive
-work. This helped us ensure that our instruction selection is exhaustive, i.e.
-that we would be able to produce assembly instructions for all possible IR trees.
-It also partitioned our work in such a way that a lot of the most complex reasoning
-regarding instruction selection, like handling function prologues and function calls,
-were the focus of our early efforts, given we implemented these with naive tiles. 
+The most challenging part of the assignment was debugging register allocation. Register allocation itself is a very involved algorithm, in addition to depending on other components, such as live variable analysis and control-flow graphs. Debugging required generating assembly and examining and analyzing the assembly to understand the source of our bugs.
 
-The most challenging part of the assignment was handling the complexity of the x86
-architecture. None of our group members had much experience with this architecture,
-so we had to spend a significant amount of time familiarizing ourselves with
-its design and quirks. Debugging was especially challenging given that we were
-dealing with executing actual binary programs, though this was alleviated in part
-by judicious unit testing and use of \texttt{gdb}.
+Our work allocation is described in \secref{workplan}.
 
 \section{Testing}\label{sec:testing}
 As usual, we have implemented a very comprehensive set of tests that range in
@@ -199,6 +112,8 @@ the provided IR interpreter, and gcc to link assembly programs and execute them 
 machines. We then diff the outputs from all of these executions. This allowed us to validate that the stages of our compiler were still working from the previous programming assignments.
 
 The testing method that helped us debug the most intricate bugs was generating the assembly and analyzing it to understand what would cause our tests to fail, infinitely loop, etc. We should have used this method earlier on in the project because register allocation is a very involved algorithm and even our unit tests were too high level to isolate where the bugs were occurring.
+
+In addition to all of these testing methods, we wrote several benchmarks that clearly showed off our optimizations. For example, we have a few programs that have many live variables throughout the program that would be spilled in naive register allocation but would be allocated registers in smart register allocation. Not having to access memory causes a huge speedup and is demonstrated by this benchmark.
 
 We pass all of our tests.
 \section{Work Plan}\label{sec:workplan}
@@ -227,8 +142,7 @@ messages.
 \section{Comments}\label{sec:comments}
 We spent about 120 hours total on the assignment. As usual, we spent over an
 order of magnitude more time writing tests and gluing things together than we
-did writing actual code. The assignment was hard because the algorithms had many intricate details, testing became much
-more challenging, and also it was unclear to see whether all of our generated
-code is correct given the complexity of the architecture.
+did writing actual code. The assignment was hard because the algorithms had many intricate details and testing became much
+more challenging.
 
 \end{document}

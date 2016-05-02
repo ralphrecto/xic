@@ -1,16 +1,11 @@
-\documentclass{hw}
-\title{Programming Assignment 6:\\ Optimization}
+\documentclass{hw} \title{Programming Assignment 6:\\ Optimization}
 
-\usepackage{fancyvrb}
-\usepackage{mathpartir}
-\usepackage{pervasives}
-\usepackage{tikz}
-\usetikzlibrary{positioning}
+\usepackage{fancyvrb} \usepackage{mathpartir} \usepackage{pervasives}
+\usepackage{tikz} \usetikzlibrary{positioning}
 
 \newcommand{\ir}{intermediate representation}
 
-\begin{document}
-\maketitle
+\begin{document} \maketitle
 
 \section{Metadata}\label{sec:metadata}
 % The fully qualified class name of your main program and any other
@@ -21,128 +16,199 @@ implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
 code, you will need to install a couple of packages and OCaml libraries by
 running the following:
 
-\begin{center}
-\begin{BVerbatim}
-sudo apt-get install aspcud m4 unzip
-opam install core async oUnit ocamlgraph bisect
-\end{BVerbatim}
-\end{center}
+\begin{center} \begin{BVerbatim} sudo apt-get install aspcud m4 unzip opam
+install core async oUnit ocamlgraph bisect \end{BVerbatim} \end{center}
 
 To build our executable, simply run \texttt{make src}. This will use
 \texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
-code. It will use \texttt{corebuild} to build our OCaml code. Invoking our
-code manually is hard; instead, we we recommend you use the \texttt{xic} script
-which invokes our code with everything configured properly. 
-In summary, perform the following:
+code. It will use \texttt{corebuild} to build our OCaml code. Invoking our code
+manually is hard; instead, we we recommend you use the \texttt{xic} script
+which invokes our code with everything configured properly.  In summary,
+perform the following:
 
-\begin{center}
-\begin{BVerbatim}
-sudo apt-get install aspcud m4 unzip
-opam install core async oUnit ocamlgraph bisect
-make src
-./xic [flags] <xi_file.xi>...
-\end{BVerbatim}
-\end{center}
+\begin{center} \begin{BVerbatim} sudo apt-get install aspcud m4 unzip opam
+install core async oUnit ocamlgraph bisect make src ./xic [flags]
+<xi_file.xi>...  \end{BVerbatim} \end{center}
 
-See the \texttt{opam} file for more information regarding our OCaml dependencies.
+See the \texttt{opam} file for more information regarding our OCaml
+dependencies.
 
 
-\section{Summary}\label{sec:summary}
-In this programming assignment, we implemented several optimizations for our compiler - register allocation, conditional constant propagation, and partial-redundancy elimination (which also implements common subexpression elimination).
-The most challenging part of this assignment was implementing register allocation. Major design decisions for this project include strictly following Appel's implementation of register allocation, following Dragon's implementation of partial-redundancy elimination, and coalescing spilled nodes.
-There are no known bugs or missing functionality in our implementation.
+\section{Summary}\label{sec:summary} In this programming assignment, we
+implemented several optimizations for our compiler - register allocation,
+conditional constant propagation, and partial-redundancy elimination (which
+also implements common subexpression elimination).  The most challenging part
+of this assignment was implementing register allocation. Major design decisions
+for this project include strictly following Appel's implementation of register
+allocation, following Dragon's implementation of partial-redundancy
+elimination, and coalescing spilled nodes.  There are no known bugs or missing
+functionality in our implementation.
 
-\section{Specification}\label{sec:specification}
-For this project, we have not deviated from the project specification. We heavily followed the psuedocode provided by Appel and Dragon for register allocation and partial-redundancy elimination, respectively. The only slight deviation was in register allocation, where Appel did not mention that spilled nodes should be coalesced. In order for register allocation to work properly, we assigned nodes whose alias was a spilled node to point to the same address in the stack.
+\section{Specification}\label{sec:specification} For this project, we have not
+deviated from the project specification. We heavily followed the psuedocode
+provided by Appel and Dragon for register allocation and partial-redundancy
+elimination, respectively. The only slight deviation was in register
+allocation, where Appel did not mention that spilled nodes should be coalesced.
+In order for register allocation to work properly, we assigned nodes whose
+alias was a spilled node to point to the same address in the stack.
 
-\section{Design and Implementation}\label{sec:design}
-\subsection{Architecture}
-Our optimizations are implemented by the following modules.
-\begin{itemize}
-  \item \texttt{regalloc}
-    This module implements register allocation and relies on \texttt{cfg} and \texttt{dataflow}.
-    
-  \item \texttt{ccp}
-    This module implements conditional constant propagation and relies on \texttt{cfg} and \texttt{dataflow}.
-    
-  \item \texttt{pre}
-    This module implements partial-redundancy elimination and relies on \texttt{cfg} and \texttt{dataflow}.
+\section{Design and Implementation}\label{sec:design} \subsection{Architecture}
+Our optimizations are implemented by the following modules.  \begin{itemize}
+  \item \texttt{regalloc} This module implements register allocation and relies
+    on \texttt{cfg} and \texttt{dataflow}.
 
-  \item \texttt{cfg}
-    This module contains a representation of a control-flow graph.
+  \item \texttt{ccp} This module implements conditional constant propagation
+    and relies on \texttt{cfg} and \texttt{dataflow}.
 
-  \item \texttt{dataflow}
-    This module implements a lattic and generic dataflow analysis.
-\end{itemize}
+  \item \texttt{pre} This module implements partial-redundancy elimination and
+    relies on \texttt{cfg} and \texttt{dataflow}.
+
+  \item \texttt{cfg} This module contains a representation of a control-flow
+    graph.
+
+  \item \texttt{dataflow} This module implements a lattic and generic dataflow
+analysis.  \end{itemize}
 
 \subsection{Code Design}
 
-\subsubsection{Optimized Register Allocation with Move Coalescing}
-The data structures and algorithm we use for optimized register allocation intensely follow those mentioned in section 11.4 of Appel's book. The only addition we made to Appel's register allocation algorithm was coalescing spilled nodes. Any node with an alias that is spilled is assigned the same pointer in the stack so that they are properly coalesced. This was necessary because the node cannot point to any pointer in the stack - it must point to the same location as its alias points to.
+\subsubsection{Optimized Register Allocation with Move Coalescing} The data
+structures and algorithm we use for optimized register allocation with move
+coalescing closely followed the algorithm mentioned in section 11.4 of Appel's
+book. We made a few modifications in our implementation:
 
-\subsubsection{Partial-Redundancy Elimination}
-We relied heavily on Dragon's implementation of partial-redundancy elimination (PRE). Similar to Appel's register allocation algorithm, we had to make a few additions to Dragon's PRE algorithm to have a functional and correct PRE. For example, we had to decide how to change the CFG back into a series of IR statements.
+  \begin{itemize}
+    \item Any node with an alias that is spilled is assigned the same pointer
+      in the stack so that they are properly coalesced. This was necessary
+      because the node cannot point to any pointer in the stack - it must point
+      to the same location as its alias points to.
 
-\subsubsection{Conditional Constant Propagation}
-We gathered inspiration for this algorithm from lecture and from Appel. We followed the module structure for lattices defined in \texttt{cfg} to create the analysis for conditional constant propagation. To get rid of some unnecessary jumps and branches, we simply called block reordering from pa4.
+    \item We handled spilled registers differently from Appel. Rather than
+      introduce fresh temporaries and recursively run the algorithm, we apply
+      the algorithm only once and handle spilled nodes per instruction in the
+      following manner. Suppose the instruction uses $m$ spilled temporaries:
+      \begin{itemize}
+        \item if the number of variables live on entry $m$ is less than the
+          number of machine registers, we simply pick $m$ machine registers
+          who are not allocated to any of the variables live on entry. We then
+          use these registers to shuttle all of the spilled temporaries used
+          by the instruction from the stack. This operation is safe because
+          these machine registers are not live on entry to the function and
+          may therefore be clobbered.
+
+        \item otherwise, we select $m$ registers that are not allocated to
+          any of the temporaries/registers used by operands in the instruction.
+          We save these $m$ registers ($m$ is at most 3) to designated locations
+          in the stack, use them to shuttle the spilled temporaries, then restore
+          them after the instruction. This operation is safe because we a) save
+          and restore the state of the register before and after the instruction,
+          and b) because the selected registers are not used in the instruction
+          itself.
+      \end{itemize}
+
+      This approach is an optimized version of shuttling spills, allowing us to
+      use the full range of register available for allocation rather than leaving
+      3 out for shuttling. We reasoned that, by not introducing new fresh temps
+      for shuttling, we reduce the number of temps spilled to the stack. The
+      tradeoff in the worst case is double the number of memory accesses per spill;
+      but in the best case, we perform only the memory accesses necessary for the
+      original spilled nodes by using non-live registers, rather than spills for
+      new fresh temporaries for shuttling. This also makes our code generation faster
+      because we do not have to rerun the algorithm on the fresh shuttling temporaries,
+      and also convinced us more fully of termination, since Appel does not provide
+      proof that in the worst case, introducing new shuttling temporaries will not
+      themselves spill ad infinitum.
+  \end{itemize}
 
 
-\subsection{Programming}
-We followed a top-down implementation strategy, defining the interfaces and modules before finally gluing together each
-component. This top-down approach made it easy to
-divide work between team members and maximized modularity. Each team member was able to work on different modules and implement different components in parallel. For example, one team member worked on general dataflow analysis while another team member was able to assume the interface for dataflow to construct live variable analysis and work on other parts of register allocation. All optimizations followed this top-down strategy because having the interfaces first made it clear to other members of the group what they could expect from each module.
+\subsubsection{Partial-Redundancy Elimination} We relied heavily on Dragon's
+implementation of partial-redundancy elimination (PRE). Similar to Appel's
+register allocation algorithm, we had to make a few additions to Dragon's PRE
+algorithm to have a functional and correct PRE. For example, we had to decide
+how to change the CFG back into a series of IR statements.
 
-The most challenging part of the assignment was debugging register allocation. Register allocation itself is a very involved algorithm, in addition to depending on other components, such as live variable analysis and control-flow graphs. Debugging required generating assembly and examining and analyzing the assembly to understand the source of our bugs.
+\subsubsection{Conditional Constant Propagation} We gathered inspiration for
+this algorithm from lecture and from Appel. We followed the module structure
+for lattices defined in \texttt{cfg} to create the analysis for conditional
+constant propagation. To get rid of some unnecessary jumps and branches, we
+simply called block reordering from pa4.
+
+
+\subsection{Programming} We followed a top-down implementation strategy,
+defining the interfaces and modules before finally gluing together each
+component. This top-down approach made it easy to divide work between team
+members and maximized modularity. Each team member was able to work on
+different modules and implement different components in parallel. For example,
+one team member worked on general dataflow analysis while another team member
+was able to assume the interface for dataflow to construct live variable
+analysis and work on other parts of register allocation. All optimizations
+followed this top-down strategy because having the interfaces first made it
+clear to other members of the group what they could expect from each module.
+
+The most challenging part of the assignment was debugging register allocation.
+Register allocation itself is a very involved algorithm, in addition to
+depending on other components, such as live variable analysis and control-flow
+graphs. Debugging required generating assembly and examining and analyzing the
+assembly to understand the source of our bugs.
 
 Our work allocation is described in \secref{workplan}.
 
-\section{Testing}\label{sec:testing}
-As usual, we have implemented a very comprehensive set of tests that range in
-scale and scope. First, we have implemented the typical unit tests for each major
-code component (e.g. partial-redundancy elimination). This ensured that our functions behaved as
-expected and validated many of our assumptions regarding our optimization algorithms.
+\section{Testing}\label{sec:testing} As usual, we have implemented a very
+comprehensive set of tests that range in scale and scope. First, we have
+implemented the typical unit tests for each major code component (e.g.
+partial-redundancy elimination). This ensured that our functions behaved as
+expected and validated many of our assumptions regarding our optimization
+algorithms.
 
-We also wrote and ran many functional tests. This was done within
-an automated framework that required us only to write high-level Xi programs. This
-framework performed testing in a novel manner: for each stage of our compiler from
-typechecking, AST constant folding, IR generation, IR lowering, IR block reordering,
-all the way to assembly generation, both with naive and non-naive tiling, we generate
-output and use the Xi interpreter written by Seung Hee for pa4,
-the provided IR interpreter, and gcc to link assembly programs and execute them on our
-machines. We then diff the outputs from all of these executions. This allowed us to validate that the stages of our compiler were still working from the previous programming assignments.
+We also wrote and ran many functional tests. This was done within an automated
+framework that required us only to write high-level Xi programs. This framework
+performed testing in a novel manner: for each stage of our compiler from
+typechecking, AST constant folding, IR generation, IR lowering, IR block
+reordering, all the way to assembly generation, both with naive and non-naive
+tiling, we generate output and use the Xi interpreter written by Seung Hee for
+pa4, the provided IR interpreter, and gcc to link assembly programs and execute
+them on our machines. We then diff the outputs from all of these executions.
+This allowed us to validate that the stages of our compiler were still working
+from the previous programming assignments.
 
-The testing method that helped us debug the most intricate bugs was generating the assembly and analyzing it to understand what would cause our tests to fail, infinitely loop, etc. We should have used this method earlier on in the project because register allocation is a very involved algorithm and even our unit tests were too high level to isolate where the bugs were occurring.
+The testing method that helped us debug the most intricate bugs was generating
+the assembly and analyzing it to understand what would cause our tests to fail,
+infinitely loop, etc. We should have used this method earlier on in the project
+because register allocation is a very involved algorithm and even our unit
+tests were too high level to isolate where the bugs were occurring.
 
-In addition to all of these testing methods, we wrote several benchmarks that clearly showed off our optimizations. For example, we have a few programs that have many live variables throughout the program that would be spilled in naive register allocation but would be allocated registers in smart register allocation. Not having to access memory causes a huge speedup and is demonstrated by this benchmark.
+In addition to all of these testing methods, we wrote several benchmarks that
+clearly showed off our optimizations. For example, we have a few programs that
+have many live variables throughout the program that would be spilled in naive
+register allocation but would be allocated registers in smart register
+allocation. Not having to access memory causes a huge speedup and is
+demonstrated by this benchmark.
 
-We pass all of our tests.
-\section{Work Plan}\label{sec:workplan}
-\begin{itemize}
-  \item \textbf{Ralph.}
-    Ralph worked on the front-end, set up the data analysis framework, and helped implement and debug register allocation.
+We pass all of our tests.  \section{Work Plan}\label{sec:workplan}
+\begin{itemize} \item \textbf{Ralph.} Ralph worked on the front-end, set up the
+      data analysis framework, and helped implement and debug register
+      allocation.
 
-  \item \textbf{Alice.}
-    Alice worked on register allocation and helped test the generated CFGs and conditional constant propagation.
+  \item \textbf{Alice.} Alice worked on register allocation and helped test the
+    generated CFGs and conditional constant propagation.
 
-  \item \textbf{Seung Hee.}
-    Seung Hee implemented conditional constant propagation and partial-redundancy elimination.
+  \item \textbf{Seung Hee.} Seung Hee implemented conditional constant
+    propagation and partial-redundancy elimination.
 
-  \item \textbf{Michael.}
-    Michael worked on partial-redundancy elimination, extensive debugging in register allocation, and making the dot files.
+  \item \textbf{Michael.} Michael worked on partial-redundancy elimination,
+extensive debugging in register allocation, and making the dot files.
 \end{itemize}
 
 The work was divided in this way because it parallelized our work in the most
 effective manner.
 
-\section{Known Problems}\label{sec:problems}
-Currently we do not support UTF-8 as OCaml does not have good support for
-unicode escapes. We also sometimes report incorrect file positions in our error
-messages.
+\section{Known Problems}\label{sec:problems} Currently we do not support UTF-8
+as OCaml does not have good support for unicode escapes. We also sometimes
+report incorrect file positions in our error messages.
 
-\section{Comments}\label{sec:comments}
-We spent about 120 hours total on the assignment. As usual, we spent over an
-order of magnitude more time writing tests and gluing things together than we
-did writing actual code. The assignment was hard because the algorithms had many intricate details and testing became much
-more challenging.
+\section{Comments}\label{sec:comments} We spent about 120 hours total on the
+assignment. As usual, we spent over an order of magnitude more time writing
+tests and gluing things together than we did writing actual code. The
+assignment was hard because the algorithms had many intricate details and
+testing became much more challenging.
 
 \end{document}

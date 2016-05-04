@@ -1,1 +1,1 @@
-make src
+opam pin add xii -y .; make src

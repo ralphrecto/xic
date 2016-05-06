@@ -59,16 +59,21 @@ terminal MINUS,      // -
 		 UMINUS;	 // -
 
 // Keywords
-terminal WHILE,  // while
-         IF,     // if
-         ELSE,   // else
-         RETURN, // return
-         INT,    // int
-         BOOL,   // bool
-         USE,    // use
-         LENGTH, // length
-         TRUE,   // true
-         FALSE;  // false
+terminal WHILE,     // while
+         IF,        // if
+         ELSE,      // else
+         RETURN,    // return
+         INT,       // int
+         BOOL,      // bool
+         USE,       // use
+         LENGTH,    // length
+         TRUE,      // true
+         FALSE,     // false
+         // OOP keywords
+         CLASS,     // class
+         EXTENDS,   // extends
+         NULL,      // null
+         BREAK;     // break
 
 // Valued Terminals
 terminal String    STRING;  // "foo", "bar", ...,

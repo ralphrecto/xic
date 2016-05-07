@@ -257,9 +257,9 @@ public class LexerTest {
 		Lexer l = new Lexer(new StringReader("\"\\u2013\""));
 		Symbol s = l.next_token();
 		Symbol expected = new Symbol(Sym.STRING, 1, 1, "–");
-		
+
 		assertSymEquals(expected, s);
-	}	
+	}
 
 	@Test
 	public void stringUnicodesTest() throws IOException, XicException {
@@ -283,7 +283,7 @@ public class LexerTest {
         String s4 = "'\\f'";
         // Invalid: escaped character
         String s5 = "'\\a'";
-        // Invalid: unclosed character 
+        // Invalid: unclosed character
         String s6 = "'\\t";
         // Correct: double quote
         String s7 = "'\"'";
@@ -297,7 +297,7 @@ public class LexerTest {
             new Symbol(Sym.CHAR, 1, 1, 'a'),
             eof
         );
-        XicException expected2 = new EmptyCharacterLiteralException(1, 1); 
+        XicException expected2 = new EmptyCharacterLiteralException(1, 1);
         XicException expected3 = new InvalidCharacterConstantException(1, 1);
         List<Symbol> expected4 = Arrays.asList(
             new Symbol(Sym.CHAR, 1, 1, '\f'),
@@ -320,7 +320,7 @@ public class LexerTest {
             Optional.of(new InvalidCharacterConstantException(1, 19))
         );
 
-		assertSymEquals(expected1, lex(s1)); 
+		assertSymEquals(expected1, lex(s1));
         assertSymEquals(expected2, lex(s2));
         assertSymEquals(expected3, lex(s3));
         assertSymEquals(expected4, lex(s4));

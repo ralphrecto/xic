@@ -139,6 +139,22 @@ public class LexerTest {
     }
 
     @Test
+    public void oopKeywordsTest() throws IOException {
+        //          000000000111111111122222222223333333333444444444455
+        //          123456789012345678901234567890123456789012345678901
+        String s = "class extends null break";
+        List<Symbol> expecteds = Arrays.asList(
+            new Symbol(Sym.CLASS,   1, 1),
+            new Symbol(Sym.EXTENDS, 1, 7),
+            new Symbol(Sym.NULL,    1, 15),
+            new Symbol(Sym.BREAK,   1, 20),
+            eof
+        );
+
+        assertSymEquals(expecteds, lex(s));
+    }
+
+    @Test
     public void symbolsTest() throws IOException {
         //          00000000011111111112222222222333
         //          12345678901234567890123456789012

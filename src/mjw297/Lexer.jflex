@@ -120,6 +120,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     "extends"   { return symbol(Sym.EXTENDS);   }
     "null"      { return symbol(Sym.NULL);      }
     "break"     { return symbol(Sym.BREAK);     }
+    "new"       { return symbol(Sym.NEW);       }
 
     /* Symbols */
     "-"         { return symbol(Sym.MINUS);      }

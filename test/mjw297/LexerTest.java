@@ -142,12 +142,13 @@ public class LexerTest {
     public void oopKeywordsTest() throws IOException {
         //          000000000111111111122222222223333333333444444444455
         //          123456789012345678901234567890123456789012345678901
-        String s = "class extends null break";
+        String s = "class extends null break new";
         List<Symbol> expecteds = Arrays.asList(
             new Symbol(Sym.CLASS,   1, 1),
             new Symbol(Sym.EXTENDS, 1, 7),
             new Symbol(Sym.NULL,    1, 15),
             new Symbol(Sym.BREAK,   1, 20),
+            new Symbol(Sym.NEW,     1, 26),
             eof
         );
 

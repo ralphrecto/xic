@@ -73,7 +73,8 @@ terminal WHILE,     // while
          CLASS,     // class
          EXTENDS,   // extends
          NULL,      // null
-         BREAK;     // break
+         BREAK,     // break
+         NEW;       // new
 
 // Valued Terminals
 terminal String    STRING;  // "foo", "bar", ...,

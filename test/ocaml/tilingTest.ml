@@ -88,6 +88,7 @@ let test_munch_expr _ =
     let expected = ((gen 1), [
       movq (const 1) (fakeop 0);
       movq (const 2) (fakeop 1);
+      xorq (Reg (Real Rcx)) (Reg (Real Rcx));
       cmpq (fakeop 1) (fakeop 0);
       asmop (Reg (Real Cl));
       movq (Reg (Real Rcx)) (fakeop 1);
@@ -387,6 +388,7 @@ let test_munch_stmt _ =
   let expected = [
     movq (const 1) (fakeop 0);
     movq (const 2) (fakeop 1);
+    xorq (Reg (Real Rcx)) (Reg (Real Rcx));
     cmpq (fakeop 1) (fakeop 0);
     asete acl;
     movq arcx (fakeop 1);
@@ -497,8 +499,7 @@ let test_munch_func_decl _ =
     globl "f0000";
     align 4;
     Lab "f0000";
-    enter (const 120) (const 0);
-    pushq (const 0);
+    enter (const 144) (const 0); (* 17 caller/callee + 1 temp + 0 args + 0 rets*)
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);
     movq ar13 ( -96L $ mem_rbp);
@@ -513,7 +514,8 @@ let test_munch_func_decl _ =
     globl "f0000";
     align 4;
     Lab "f0000";
-    enter (const 128) (const 0);
+    enter (const 152) (const 0); (* 17 caller/callee + 2 temp + 0 args + 0 rets*)
+    pushq (const 0);
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);
     movq ar13 ( -96L $ mem_rbp);
@@ -529,8 +531,7 @@ let test_munch_func_decl _ =
     globl "f0000";
     align 4;
     Lab "f0000";
-    enter (const 136) (const 0);
-    pushq (const 0);
+    enter (const 160) (const 0); (* 17 caller/callee + 3 temp + 0 args + 0 rets*)
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);
     movq ar13 ( -96L $ mem_rbp);
@@ -548,7 +549,8 @@ let test_munch_func_decl _ =
     globl "f6789";
     align 4;
     Lab "f6789";
-    enter (const 256) (const 0);
+    enter (const 280) (const 0); (* 17 caller/callee + 1 temp + 8 args + 9 rets*)
+    pushq (const 0);
     movq ardi (Reg ret_ptr_reg);
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);
@@ -564,8 +566,7 @@ let test_munch_func_decl _ =
     globl "f6789";
     align 4;
     Lab "f6789";
-    enter (const 264) (const 0);
-    pushq (const 0);
+    enter (const 288) (const 0); (* 17 caller/callee + 2 temp + 8 args + 9 rets*)
     movq ardi (Reg ret_ptr_reg);
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);
@@ -582,7 +583,8 @@ let test_munch_func_decl _ =
     globl "f6789";
     align 4;
     Lab "f6789";
-    enter (const 272) (const 0);
+    enter (const 296) (const 0); (* 17 caller/callee + 3 temp + 8 args + 9 rets*)
+    pushq (const 0);
     movq ardi (Reg ret_ptr_reg);
     movq arbx ( -16L $ mem_rbp);
     movq ar12 ( -88L $ mem_rbp);

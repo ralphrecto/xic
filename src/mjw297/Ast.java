@@ -86,6 +86,7 @@ public interface Ast {
         // Stmt
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
         public R visit(Asgn<A> a);
         public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
@@ -146,6 +147,7 @@ public interface Ast {
     public interface StmtVisitor<A, R> {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
         public R visit(Asgn<A> a);
         public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
@@ -159,6 +161,7 @@ public interface Ast {
     public interface GlobalVisitor<A, R> {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
     }
 
     public interface TypeVisitor<A, R> {
@@ -461,6 +464,17 @@ public interface Ast {
         public final A a;
         public final List<Var<A>> vs;
         public final Expr<A> e;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class MultiDecl<A> implements Stmt<A>, Global<A> {
+        public final A a;
+        public final List<Id<A>> vs;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }

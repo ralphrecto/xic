@@ -76,6 +76,10 @@ public class PositionKiller {
                 Lists.transform(d.vs, v -> v.accept(new VarKiller()));
             return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
         }
+        public Stmt<Position> visit(MultiDecl<Position> c) {
+            // TODO
+            return null;
+        }
 
         public Stmt<Position> visit(Asgn<Position> a) {
 			return Asgn.of(dummyPosition, a.lhs.accept(new ExprKiller()), a.rhs.accept(new ExprKiller()));

@@ -500,7 +500,8 @@ func_def_plus ::= func_def:f
     ;
 
 prog ::= use_def_star:us func_def_plus:fs
-    {: RESULT = Program.of(new Position(usleft, usright), us, fs); :}
+    // TODO
+    {: RESULT = Program.of(new Position(usleft, usright), us, null, null, fs); :}
 	;
 
 

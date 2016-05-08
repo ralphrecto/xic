@@ -264,7 +264,7 @@ public class ParserTest {
         List<Use<Position>> uses,
         List<Callable<Position>> fs
     ) {
-        return Program.of(PositionKiller.dummyPosition, uses, fs);
+        return Program.of(PositionKiller.dummyPosition, uses, null, null, fs);
     }
 
     public static Decl<Position> decl (
@@ -426,6 +426,8 @@ public class ParserTest {
                         pos(1, 1),
                         Id.of(pos(1, 5), "foo")
                 )),
+                null,
+                null,
                 l(Proc.of(
                         pos(2, 1),
                         Id.of(pos(2, 1), "main"),

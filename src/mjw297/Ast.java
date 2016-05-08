@@ -100,6 +100,7 @@ public interface Ast {
         public R visit(Int<A> l);
         public R visit(Bool<A> o);
         public R visit(Array<A> o);
+        public R visit(KlassType<A> o);
 
         // Use
         public R visit(Use<A> u);
@@ -168,6 +169,7 @@ public interface Ast {
         public R visit(Int<A> l);
         public R visit(Bool<A> o);
         public R visit(Array<A> o);
+        public R visit(KlassType<A> o);
     }
 
     public interface VarVisitor<A, R> {
@@ -475,6 +477,7 @@ public interface Ast {
     public final class MultiDecl<A> implements Stmt<A>, Global<A> {
         public final A a;
         public final List<Id<A>> vs;
+        public final Type<A> t;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
@@ -596,6 +599,16 @@ public interface Ast {
         public final A a;
         public final Type<A> t;
         public final Optional<Expr<A>> size;
+        public <R> R accept(TypeVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class KlassType<A> implements Type<A> {
+        public final A a;
+        public final Id<A> name;
         public <R> R accept(TypeVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }

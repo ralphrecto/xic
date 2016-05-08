@@ -132,6 +132,10 @@ public class PositionKiller {
             Type<Position> t = o.t.accept(new TypeKiller());
             return Array.of(dummyPosition, t, size);
         }
+        public Type<Position> visit(KlassType<Position> o) {
+            // TODO
+            return null;
+        }
     }
 
     public static class AnnotatedVarKiller implements

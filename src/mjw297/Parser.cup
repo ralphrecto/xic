@@ -93,7 +93,8 @@ terminal MINUS,      // -
          UNDERSCORE, // _
          COMMA,      // ,
          COLON,      // :
-         UMINUS;     // -
+         UMINUS,     // -
+         DOT;        // .
 
 // Keywords
 terminal WHILE,     // while
@@ -111,7 +112,8 @@ terminal WHILE,     // while
          EXTENDS,   // extends
          NULL,      // null
          BREAK,     // break
-         NEW;       // new
+         NEW,       // new
+         THIS;      // this
 
 // Valued Terminals
 terminal String    STRING;  // "foo", "bar", ...,

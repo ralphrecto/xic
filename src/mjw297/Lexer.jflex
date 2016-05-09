@@ -121,6 +121,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     "null"      { return symbol(Sym.NULL);      }
     "break"     { return symbol(Sym.BREAK);     }
     "new"       { return symbol(Sym.NEW);       }
+    "this"      { return symbol(Sym.THIS);      }
 
     /* Symbols */
     "-"         { return symbol(Sym.MINUS);      }
@@ -149,6 +150,7 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
     "_"         { return symbol(Sym.UNDERSCORE); }
     ","         { return symbol(Sym.COMMA);      }
     ":"         { return symbol(Sym.COLON);      }
+    "."         { return symbol(Sym.DOT);        }
 
     /* String */
     \"          { sb.setLength(0);

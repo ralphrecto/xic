@@ -439,6 +439,7 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t block:b
 
 
 // Interface files
+
 int_proc_decl ::= ID:i args_decl:a end_stmt
     {: Position p = new Position(ileft, iright);
        RESULT = ProcDecl.of(p, Id.of(p, i), a);

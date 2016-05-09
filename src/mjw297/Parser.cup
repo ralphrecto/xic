@@ -184,6 +184,10 @@ nonterminal CallableDecl<Position>
 nonterminal CallableDecl<Position>
     callable_decl;
 
+// classes
+nonterminal ClassDecl<Position>
+    class_decl;
+
 // programs
 nonterminal Use<Position>
     use_def;
@@ -267,6 +271,8 @@ base_type ::= INT:i
 	{: RESULT = Int.of(new Position(ileft, iright)); :}
     | BOOL:b
 	{: RESULT = Bool.of(new Position(bleft, bright)); :}
+	| ID:id
+	{: RESULT = Id.of(new Position(idleft, idright), id); :}
     ;
 
 type ::= base_type:bt
@@ -308,6 +314,30 @@ var ::= avar:av
     :}
     ;
 
+multi_decl ::= id_two_plus:v_lst COLON type:t
+    {: Position p = new Position(v_lstleft, v_lstright);
+       RESULT = TODO
+    :}
+    id_two_plus:v_lst COLON base_type:bt array_index_plus:e_lst
+    {: Position p = new Position(v_lstleft, v_lstright);
+       Position pArray = new Position(btleft, btright);
+	   Expr<Position> first = e_lst.get(e_lst.size() - 1);
+	   Type<Position> array_type = Array.of(
+	        pArray,
+	        bt,
+	        first == null ? Optional.empty() : Optional.of(first)
+       );
+	   for (int i = e_lst.size() - 2; i >= 0; i--) {
+	       Expr<Position> current = e_lst.get(i);
+           array_type = Array.of(
+                pArray,
+                array_type,
+                current == null ? Optional.empty() : Optional.of(current)
+           );
+	   }
+	   RESULT = TODO
+
+    :}
 
 // Statements --RR
 
@@ -438,7 +468,61 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t block:b
     ;
 
 
+// Classes
+
+klass_contents ::=
+    {: ArrayList<Object> kc = new ArrayList<Object>();
+       RESULT = kc;
+    :}
+    | klass_contents:kc multi_decl:md
+    {: kc.add(md);
+       RESULT = kc;
+    :}
+    | klass_contents:kc ID:
+    {: kc.add(av);
+       RESULT = kc;
+    :}
+    | klass_contents:kc func_decl:fd
+    {: kc.add(fd);
+       RESULT = kc;
+    :}
+    | klass_contents:kc proc_decl:pd
+    {: kc.add(pd);
+       RESULT = kc;
+    :}
+
+klass ::= CLASS ID:name LBRACE klass_contents:kc RBRACE
+    {: Position p = new Position(nameleft, nameright);
+       List<AnnotatedId<Position>> fields = new ArrayList<>();
+       List<Callable<Position>> methods = new ArrayList<>();
+       for (Object content : kc) {
+            if (content instanceof MultiDecl<Position>) {
+                MultiDecl<Position> c = (MultiDecl<Position>) content;
+                for (Id<Position> id : c.vs) {
+                    fields.add(AnnotatedId.of(id.a, id, c.t));
+                }
+            } else if (content instanceof AnnotatedVar<Position>) {
+                AnnotatedVar<Position> c = (AnnotatedVar<Position>) content;
+                fields.add(content);
+            } else if (
+                    content instanceof Func<Position> ||
+                    content instanceof Proc<Position) {
+                Callable<Position> c = (Callable<Position>) content;
+                methods.add(content);
+            } else {
+                report_fatal_error(
+                    "Class declarations can only include fields or methods",
+                    null
+                );
+            }
+       }
+
+    :}
+    | CLASS ID:name EXTENDS ID:super LBRACE klass_contents:kc RBRACE
+
+
 // Interface files
+
 int_proc_decl ::= ID:i args_decl:a end_stmt
     {: Position p = new Position(ileft, iright);
        RESULT = ProcDecl.of(p, Id.of(p, i), a);
@@ -677,6 +761,15 @@ var_plus ::= var:v
 	{: v_lst.add(v);
 	   RESULT = v_lst; :}
     ;
+
+id_two_plus ::= ID:i1 COMMA ID:i2
+    {: ArrayList<Id<Position>> list = new ArrayList<>();
+       list.add(i1);
+       list.add(i2);
+       RESULT = list; :}
+    | id_two_plus:id_list COMMA ID:id
+    {: id_list.add(id);
+       RESULT = id_list; :}
 
 type_plus ::= type:t
 	{: ArrayList<Type<Position>> list = new ArrayList<>();

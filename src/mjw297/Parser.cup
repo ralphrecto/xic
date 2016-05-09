@@ -16,13 +16,49 @@ parser code {:
         throw new SyntaxException(-1, -1, message);
     }
 
-        public void syntax_error(Symbol sym) {
-        // Don't print anything
-        }
+    public void syntax_error(Symbol sym) {
+    // Don't print anything
+    }
 
     public void unrecovered_syntax_error(Symbol sym) throws SyntaxException {
         throw new SyntaxException(sym.left, sym.right, SymUtil.symToLiteral(sym));
     }
+
+    public Klass<Position> genKlass(
+        Id<Position> name, Optional<Id<Position>> superclass,
+        ArrayList<Object> klassContents
+      ) throws SyntaxException {
+
+      List<AnnotatedId<Position>> fields = new ArrayList<>();
+      List<Callable<Position>> methods = new ArrayList<>();
+      for (Object content : klassContents) {
+           if (content instanceof MultiDecl<?>) {
+               @SuppressWarnings("unchecked")
+               MultiDecl<Position> c = (MultiDecl<Position>) content;
+               for (Id<Position> id : c.vs) {
+                   fields.add(AnnotatedId.of(id.a, id, c.t));
+               }
+           } else if (content instanceof AnnotatedVar<?>) {
+               @SuppressWarnings("unchecked")
+               AnnotatedId<Position> c = (AnnotatedId<Position>) content;
+               fields.add(c);
+           } else if (
+                   content instanceof Func<?> ||
+                   content instanceof Proc<?>) {
+               @SuppressWarnings("unchecked")
+               Callable<Position> c = (Callable<Position>) content;
+               methods.add(c);
+           } else {
+               report_fatal_error(
+                   "Class declarations can only include fields or methods",
+                   null
+               );
+           }
+      }
+
+      return Klass.of(name.a, name, superclass, fields, methods);
+    }
+
 :}
 
 
@@ -186,8 +222,11 @@ nonterminal CallableDecl<Position>
     callable_decl;
 
 // classes
-nonterminal ClassDecl<Position>
-    class_decl;
+nonterminal ArrayList<Object>
+    klass_contents;
+
+nonterminal Klass<Position>
+    klass_decl;
 
 // programs
 nonterminal Use<Position>
@@ -226,6 +265,9 @@ nonterminal ArrayList<Expr<Position>>
     array_index_plus;
 
 // various lists
+nonterminal ArrayList<Id<Position>>
+    id_two_plus;
+
 nonterminal ArrayList<Expr<Position>>
     expr_star,
     expr_plus;
@@ -273,7 +315,9 @@ base_type ::= INT:i
     | BOOL:b
     {: RESULT = Bool.of(new Position(bleft, bright)); :}
     | ID:id
-    {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    {: Position pos = new Position(idleft, idright);
+       Id<Position> className = Id.of(pos, id);
+       RESULT = KlassType.of(pos, className); :}
     ;
 
 type ::= base_type:bt
@@ -314,31 +358,6 @@ var ::= avar:av
            RESULT = AnnotatedId.of(p, Id.of(p, id), array_type);
     :}
     ;
-
-multi_decl ::= id_two_plus:v_lst COLON type:t
-    {: Position p = new Position(v_lstleft, v_lstright);
-       RESULT = TODO
-    :}
-    id_two_plus:v_lst COLON base_type:bt array_index_plus:e_lst
-    {: Position p = new Position(v_lstleft, v_lstright);
-       Position pArray = new Position(btleft, btright);
-	   Expr<Position> first = e_lst.get(e_lst.size() - 1);
-	   Type<Position> array_type = Array.of(
-	        pArray,
-	        bt,
-	        first == null ? Optional.empty() : Optional.of(first)
-       );
-	   for (int i = e_lst.size() - 2; i >= 0; i--) {
-	       Expr<Position> current = e_lst.get(i);
-           array_type = Array.of(
-                pArray,
-                array_type,
-                current == null ? Optional.empty() : Optional.of(current)
-           );
-	   }
-	   RESULT = TODO
-
-    :}
 
 // Statements --RR
 
@@ -475,12 +494,12 @@ klass_contents ::=
     {: ArrayList<Object> kc = new ArrayList<Object>();
        RESULT = kc;
     :}
-    | klass_contents:kc multi_decl:md
-    {: kc.add(md);
-       RESULT = kc;
-    :}
-    | klass_contents:kc ID:
-    {: kc.add(av);
+    /*| klass_contents:kc multi_decl:md*/
+    /*{: kc.add(md);*/
+       /*RESULT = kc;*/
+    /*:}*/
+    | klass_contents:kc ID:i
+    {: kc.add(i);
        RESULT = kc;
     :}
     | klass_contents:kc func_decl:fd
@@ -491,36 +510,16 @@ klass_contents ::=
     {: kc.add(pd);
        RESULT = kc;
     :}
+    ;
 
-klass ::= CLASS ID:name LBRACE klass_contents:kc RBRACE
-    {: Position p = new Position(nameleft, nameright);
-       List<AnnotatedId<Position>> fields = new ArrayList<>();
-       List<Callable<Position>> methods = new ArrayList<>();
-       for (Object content : kc) {
-            if (content instanceof MultiDecl<Position>) {
-                MultiDecl<Position> c = (MultiDecl<Position>) content;
-                for (Id<Position> id : c.vs) {
-                    fields.add(AnnotatedId.of(id.a, id, c.t));
-                }
-            } else if (content instanceof AnnotatedVar<Position>) {
-                AnnotatedVar<Position> c = (AnnotatedVar<Position>) content;
-                fields.add(content);
-            } else if (
-                    content instanceof Func<Position> ||
-                    content instanceof Proc<Position) {
-                Callable<Position> c = (Callable<Position>) content;
-                methods.add(content);
-            } else {
-                report_fatal_error(
-                    "Class declarations can only include fields or methods",
-                    null
-                );
-            }
-       }
-
-    :}
-    | CLASS ID:name EXTENDS ID:super LBRACE klass_contents:kc RBRACE
-
+klass_decl ::= CLASS ID:name LBRACE klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       RESULT = genKlass(nameObj, Optional.empty(), kc); :}
+    | CLASS ID:name EXTENDS ID:supern LBRACE klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       Id<Position> supernObj = Id.of(new Position(supernleft, supernright), supern);
+       RESULT = genKlass(nameObj, Optional.of(supernObj), kc); :}
+    ;
 
 // Interface files
 
@@ -766,12 +765,12 @@ var_plus ::= var:v
 
 id_two_plus ::= ID:i1 COMMA ID:i2
     {: ArrayList<Id<Position>> list = new ArrayList<>();
-       list.add(i1);
-       list.add(i2);
+       Id<Position> id1obj = Id.of(new Position(i1left, i1right), i1);
+       Id<Position> id2obj = Id.of(new Position(i2left, i2right), i2);
+       list.add(id1obj);
+       list.add(id2obj);
        RESULT = list; :}
-    | id_two_plus:id_list COMMA ID:id
-    {: id_list.add(id);
-       RESULT = id_list; :}
+    ;
 
 type_plus ::= type:t
         {: ArrayList<Type<Position>> list = new ArrayList<>();

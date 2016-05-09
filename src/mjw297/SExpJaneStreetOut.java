@@ -157,6 +157,10 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.Klass<Position> p) {
+        return null;
+    }
+
     public Void visit(Ast.Id<Position> i) {
         startList();
         posPrinter(i.a);
@@ -286,6 +290,10 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.NullLiteral<Position> a) {
+        return null;
+    }
+
     public Void visit(Ast.Program<Position> p) {
         startList();
         posPrinter(p.a);
@@ -338,6 +346,10 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
         endList();
         endList();
+        return null;
+    }
+
+    public Void visit(Ast.MultiDecl<Position> d) {
         return null;
     }
 
@@ -478,6 +490,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.KlassType<Position> o) {
+        // TODO
+        return null;
+    }
+
     public Void visit(Ast.Use<Position> u) {
         startList();
         posPrinter(u.a);
@@ -515,6 +532,10 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.New<Position> c) {
+        return null;
+    }
+
     public Void visit(Ast.ProcCall<Position> c) {
         startList();
         posPrinter(c.a);
@@ -530,6 +551,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
         endList();
         endList();
+        return null;
+    }
+
+    public Void visit(Ast.Break<Position> c) {
+        // TODO: complete this
         return null;
     }
 
@@ -549,6 +575,10 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         endList();
 
         endList();
+        return null;
+    }
+
+    public Void visit(Ast.KlassDecl<Position> p) {
         return null;
     }
 

@@ -501,7 +501,7 @@ func_def_plus ::= func_def:f
     ;
 
 prog ::= callable_decl_plus:cs
-    {: RESULT = Interface.of(new Position(csleft, csright), cs); :}
+    {: RESULT = Interface.of(new Position(csleft, csright), null /* TODO */, cs); :}
 	;
 
 

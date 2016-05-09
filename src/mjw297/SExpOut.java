@@ -299,6 +299,11 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
+    public Void visit(Ast.KlassType<Position> o) {
+        // TODO
+        return null;
+    }
+
     public Void visit(Ast.Use<Position> u) {
         printer.startList();
         printer.printAtom("use");
@@ -366,6 +371,13 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.FullProgram<Position> i) {
         return null;
     }
+
+    public Void visit(Ast.Klass<Position> k) { return null; }
+    public Void visit(Ast.New<Position> k) { return null; }
+    public Void visit(Ast.Break<Position> k) { return null; }
+    public Void visit(Ast.KlassDecl<Position> k) { return null; }
+    public Void visit(Ast.NullLiteral<Position> k) { return null; }
+    public Void visit(Ast.MultiDecl<Position> d) { return null; }
 
     public void flush() {
         printer.flush();

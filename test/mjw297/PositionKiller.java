@@ -28,6 +28,10 @@ public class PositionKiller {
             List<Expr<Position>> args = Lists.transform(c.args, e -> e.accept(this));
             return FuncCall.of(dummyPosition, kill(c.f), args);
         }
+        public Expr<Position> visit(New<Position> a) {
+            // TODO
+            return null;
+        }
         public Expr<Position> visit(NumLiteral<Position> n) {
             return NumLiteral.of(dummyPosition, n.x);
         }
@@ -43,6 +47,10 @@ public class PositionKiller {
         public Expr<Position> visit(ArrayLiteral<Position> a) {
             List<Expr<Position>> xs = Lists.transform(a.xs, e -> e.accept(this));
             return ArrayLiteral.of(dummyPosition, xs);
+        }
+        public Expr<Position> visit(NullLiteral<Position> a) {
+            // TODO
+            return null;
         }
     }
 
@@ -67,6 +75,10 @@ public class PositionKiller {
             List<Var<Position>> vs =
                 Lists.transform(d.vs, v -> v.accept(new VarKiller()));
             return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
+        }
+        public Stmt<Position> visit(MultiDecl<Position> c) {
+            // TODO
+            return null;
         }
 
         public Stmt<Position> visit(Asgn<Position> a) {
@@ -101,6 +113,10 @@ public class PositionKiller {
                 Lists.transform(c.args, e -> e.accept(new ExprKiller()));
             return ProcCall.of(dummyPosition, kill(c.f), args);
         }
+        public Stmt<Position> visit(Break<Position> c) {
+            // TODO
+            return null;
+        }
     }
 
     public static class TypeKiller implements
@@ -115,6 +131,10 @@ public class PositionKiller {
             Optional<Expr<Position>> size = o.size.map(e -> e.accept(new ExprKiller()));
             Type<Position> t = o.t.accept(new TypeKiller());
             return Array.of(dummyPosition, t, size);
+        }
+        public Type<Position> visit(KlassType<Position> o) {
+            // TODO
+            return null;
         }
     }
 
@@ -155,6 +175,7 @@ public class PositionKiller {
         CallableKiller ck = new CallableKiller();
         List<Use<Position>> uses = Lists.transform(p.uses, PositionKiller::kill);
         List<Callable<Position>> fs = Lists.transform(p.fs, c -> c.accept(ck));
-        return Program.of(dummyPosition, uses, fs);
+        // TODO
+        return Program.of(dummyPosition, uses, null, null, fs);
     }
 }

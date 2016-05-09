@@ -28,14 +28,17 @@ public interface Ast {
     public interface Stmt<A> extends Node<A> {
         public <R> R accept(StmtVisitor<A, R> v);
     }
+    public interface Global<A> extends Node<A> {
+        public <R> R accept(GlobalVisitor<A, R> v);
+    }
     public interface Type<A> extends Node<A> {
         public <R> R accept(TypeVisitor<A, R> v);
     }
     public interface Var<A> extends Node<A> {
         public <R> R accept(VarVisitor<A, R> v);
     }
-    public interface CallableDecl<A> extends Node<A> { }
 
+    public interface CallableDecl<A> extends Node<A> { }
     public interface XiFile<A> extends Node<A> { }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -50,6 +53,9 @@ public interface Ast {
         public R visit(Func<A> f);
         public R visit(Proc<A> p);
 
+        // Klass
+        public R visit(Klass<A> c);
+
         // Expr
         public R visit(Id<A> i);
         public R visit(BinOp<A> o);
@@ -57,6 +63,7 @@ public interface Ast {
         public R visit(Index<A> i);
         public R visit(Length<A> l);
         public R visit(FuncCall<A> c);
+        public R visit(New<A> n);
 
         // Literal
         public R visit(NumLiteral<A> n);
@@ -64,6 +71,7 @@ public interface Ast {
         public R visit(StringLiteral<A> s);
         public R visit(CharLiteral<A> c);
         public R visit(ArrayLiteral<A> a);
+        public R visit(NullLiteral<A> n);
 
         // Program
         public R visit(Program<A> p);
@@ -71,12 +79,14 @@ public interface Ast {
         // Interfaces
         public R visit(FuncDecl<A> p);
         public R visit(ProcDecl<A> p);
+        public R visit(KlassDecl<A> p);
         public R visit(Interface<A> p);
         public R visit(FullProgram<A> p);
 
         // Stmt
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
         public R visit(Asgn<A> a);
         public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
@@ -84,11 +94,13 @@ public interface Ast {
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
         public R visit(ProcCall<A> c);
+        public R visit(Break<A> b);
 
         // Type
         public R visit(Int<A> l);
         public R visit(Bool<A> o);
         public R visit(Array<A> o);
+        public R visit(KlassType<A> o);
 
         // Use
         public R visit(Use<A> u);
@@ -114,12 +126,14 @@ public interface Ast {
         public R visit(Index<A> i);
         public R visit(Length<A> l);
         public R visit(FuncCall<A> c);
+        public R visit(New<A> n);
 
         public R visit(NumLiteral<A> n);
         public R visit(BoolLiteral<A> b);
         public R visit(StringLiteral<A> s);
         public R visit(CharLiteral<A> c);
         public R visit(ArrayLiteral<A> a);
+        public R visit(NullLiteral<A> n);
     }
 
     public interface LiteralVisitor<A, R> {
@@ -128,11 +142,13 @@ public interface Ast {
         public R visit(StringLiteral<A> s);
         public R visit(CharLiteral<A> c);
         public R visit(ArrayLiteral<A> a);
+        public R visit(NullLiteral<A> n);
     }
 
     public interface StmtVisitor<A, R> {
         public R visit(Decl<A> d);
         public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
         public R visit(Asgn<A> a);
         public R visit(UnderscoreAsgn<A> a);
         public R visit(Block<A> b);
@@ -140,12 +156,20 @@ public interface Ast {
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
         public R visit(ProcCall<A> c);
+        public R visit(Break<A> b);
+    }
+
+    public interface GlobalVisitor<A, R> {
+        public R visit(Decl<A> d);
+        public R visit(DeclAsgn<A> d);
+        public R visit(MultiDecl<A> d);
     }
 
     public interface TypeVisitor<A, R> {
         public R visit(Int<A> l);
         public R visit(Bool<A> o);
         public R visit(Array<A> o);
+        public R visit(KlassType<A> o);
     }
 
     public interface VarVisitor<A, R> {
@@ -210,6 +234,21 @@ public interface Ast {
         public final List<AnnotatedVar<A>> args;
         public final Stmt<A> body;
         public <R> R accept(CallableVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Klass
+    ////////////////////////////////////////////////////////////////////////////
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class Klass<A> implements Node<A> {
+        public final A a;
+        public final Id<A> name;
+        public final Optional<Id<A>> superclass;
+        public final List<AnnotatedId<A>> fields;
+        public final List<Callable<A>> methods;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -313,6 +352,16 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class New<A> implements Expr<A> {
+        public final A a;
+        public final Id<A> c;
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Literal
     ////////////////////////////////////////////////////////////////////////////
@@ -371,6 +420,16 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class NullLiteral<A> implements Literal<A> {
+        public final A a;
+        public <R> R accept(LiteralVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Program
     ////////////////////////////////////////////////////////////////////////////
@@ -380,6 +439,8 @@ public interface Ast {
     public final class Program<A> implements XiFile<A> {
         public final A a;
         public final List<Use<A>> uses;
+        public final List<Global<A>> globals;
+        public final List<Klass<A>> classes;
         public final List<Callable<A>> fs;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -390,21 +451,35 @@ public interface Ast {
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
-    public final class Decl<A> implements Stmt<A> {
+    public final class Decl<A> implements Stmt<A>, Global<A> {
         public final A a;
         public final List<Var<A>> vs;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
-    public final class DeclAsgn<A> implements Stmt<A> {
+    public final class DeclAsgn<A> implements Stmt<A>, Global<A> {
         public final A a;
         public final List<Var<A>> vs;
         public final Expr<A> e;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class MultiDecl<A> implements Stmt<A>, Global<A> {
+        public final A a;
+        public final List<Id<A>> vs;
+        public final Type<A> t;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(GlobalVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -487,6 +562,15 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class Break<A> implements Stmt<A> {
+        public final A a;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Type
     ////////////////////////////////////////////////////////////////////////////
@@ -515,6 +599,16 @@ public interface Ast {
         public final A a;
         public final Type<A> t;
         public final Optional<Expr<A>> size;
+        public <R> R accept(TypeVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class KlassType<A> implements Type<A> {
+        public final A a;
+        public final Id<A> name;
         public <R> R accept(TypeVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
@@ -570,8 +664,20 @@ public interface Ast {
     @AllArgsConstructor(staticName="of")
     @EqualsAndHashCode
     @ToString(includeFieldNames=false)
+    public final class KlassDecl<A> implements Node<A> {
+        public final A a;
+        public final Id<A> name;
+        public final Optional<Id<A>> superclass;
+        public final List<CallableDecl<A>> methods;
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
     public final class Interface<A> implements XiFile<A> {
         public final A a;
+        public final List<KlassDecl<A>> classes;
         public final List<CallableDecl<A>> fs;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }

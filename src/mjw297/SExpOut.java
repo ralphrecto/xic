@@ -378,10 +378,14 @@ class SExpOut implements Ast.NodeVisitor<Position, Void> {
     public Void visit(Ast.KlassDecl<Position> k) { return null; }
     public Void visit(Ast.NullLiteral<Position> k) { return null; }
     public Void visit(Ast.MultiDecl<Position> d) { return null; }
+    public Void visit(Ast.FieldAccess<Position> m) { return null; }
+    public Void visit(Ast.MethodCall<Position> m) { return null; }
+    public Void visit(Ast.MethodCallStmt<Position> m) { return null; }
 
     public void flush() {
         printer.flush();
     }
+
 }
 
 

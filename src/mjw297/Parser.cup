@@ -199,6 +199,12 @@ nonterminal FuncCall<Position>
 nonterminal ProcCall<Position>
     proc_call;
 
+nonterminal Expr<Position>
+    method_callable;
+
+nonterminal MethodCallStmt<Position>
+    method_call_stmt;
+
 nonterminal ArrayList<Expr<Position>>
     args_call;
 
@@ -255,8 +261,8 @@ nonterminal Expr<Position>
 
 // expressions
 nonterminal Expr<Position>
-    expr,
-    literal;
+    literal,
+    expr;
 
 nonterminal Expr<Position>
     index_contents;
@@ -302,6 +308,8 @@ precedence left GT, GTE, LT, LTE;
 precedence left PLUS, MINUS;
 precedence left STAR, DIV, MOD, HIGHMULT;
 precedence nonassoc BANG, UMINUS;
+precedence left DOT;
+precedence nonassoc NEW;
 precedence left LBRACKET, RBRACKET;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -319,21 +327,24 @@ base_type ::= INT:i
     | ID:id
     {: Position pos = new Position(idleft, idright);
        Id<Position> className = Id.of(pos, id);
-       RESULT = KlassType.of(pos, className); :}
+       RESULT = KlassType.of(pos, className);
+    :}
     ;
 
 type ::= base_type:bt
-        {: RESULT = bt; :}
+    {: RESULT = bt; :}
     | type:t LBRACKET RBRACKET
-        {: RESULT = Array.of(new Position(tleft, tright), t, Optional.empty()); :}
+    {: RESULT = Array.of(new Position(tleft, tright), t, Optional.empty()); :}
     ;
 
 avar ::= ID:id COLON type:t
     {: Position p = new Position(idleft, idright);
-           RESULT = AnnotatedId.of(p, Id.of(p, id), t); :}
+       RESULT = AnnotatedId.of(p, Id.of(p, id), t);
+    :}
     | UNDERSCORE:u COLON type:t
     {: Position p = new Position(uleft, uright);
-           RESULT = AnnotatedUnderscore.of(p, Underscore.of(p), t); :}
+           RESULT = AnnotatedUnderscore.of(p, Underscore.of(p), t);
+    :}
     ;
 
 var ::= avar:av
@@ -364,17 +375,19 @@ var ::= avar:av
 // Statements --RR
 
 stmt ::= full_decl:f
-        {: RESULT = f; :}
+    {: RESULT = f; :}
     | asgn:a
-        {: RESULT = a; :}
+    {: RESULT = a; :}
     | if_stmt:i
-        {: RESULT = i; :}
+    {: RESULT = i; :}
     | while_stmt:w
-        {: RESULT = w; :}
+    {: RESULT = w; :}
     | proc_call:c
-        {: RESULT = c; :}
-        | block:b
-        {: RESULT = b; :}
+    {: RESULT = c; :}
+    | method_call_stmt:m
+    {: RESULT = m; :}
+    | block:b
+    {: RESULT = b; :}
     ;
 
 end_stmt ::=
@@ -382,22 +395,22 @@ end_stmt ::=
     ;
 
 full_stmt ::= stmt:s end_stmt
-        {: RESULT = s; :};
+    {: RESULT = s; :};
 
 block ::= LBRACE:lb stmt_star:s RBRACE
-        {: Position p = new Position(lbleft, lbright);
-           Position ret_p = new Position(-1, -1);
-           RESULT = Block.of(p, s, Optional.empty(), ret_p); :}
-        | LBRACE:lb stmt_star:s RETURN expr_star:el end_stmt RBRACE
-        {: Position p = new Position(lbleft, lbright);
-           Position ret_p = new Position(elleft, elright);
-           RESULT = Block.of(p, s, Optional.of(el), ret_p); :}
-        ;
+    {: Position p = new Position(lbleft, lbright);
+       Position ret_p = new Position(-1, -1);
+       RESULT = Block.of(p, s, Optional.empty(), ret_p); :}
+    | LBRACE:lb stmt_star:s RETURN expr_star:el end_stmt RBRACE
+    {: Position p = new Position(lbleft, lbright);
+       Position ret_p = new Position(elleft, elright);
+       RESULT = Block.of(p, s, Optional.of(el), ret_p); :}
+    ;
 
 full_decl ::= var_plus:v
-        {: RESULT = Decl.of(new Position(vleft, vright), v); :}
+    {: RESULT = Decl.of(new Position(vleft, vright), v); :}
     | var_plus:v EQ expr:e
-        {: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
+    {: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
     ;
 
 asgn_indexable ::= ID:i
@@ -409,57 +422,69 @@ asgn_indexable ::= ID:i
     ;
 
 asgn ::= ID:i EQ expr:e
-        {: Position p = new Position(ileft, iright);
-           RESULT = Asgn.of(p, Id.of(p,i), e); :}
-        | asgn_indexable:a num_array_index_plus:idx EQ expr:e
-        {: Position p = new Position(aleft, aright);
-           Index<Position> index = Index.of(p, a, idx.get(0));
-           for (int i = 1; i < idx.size(); i++){
-               index = Index.of(p, index, idx.get(i));
-           }
-           RESULT = Asgn.of(p, index, e);
-        :}
-        ;
+    {: Position p = new Position(ileft, iright);
+       RESULT = Asgn.of(p, Id.of(p,i), e); :}
+    | asgn_indexable:a num_array_index_plus:idx EQ expr:e
+    {: Position p = new Position(aleft, aright);
+       Index<Position> index = Index.of(p, a, idx.get(0));
+       for (int i = 1; i < idx.size(); i++){
+           index = Index.of(p, index, idx.get(i));
+       }
+       RESULT = Asgn.of(p, index, e);
+    :}
+    ;
 
 underscore_asgn ::= UNDERSCORE:u EQ expr:e
-        {: Position p = new Position(uleft, uright);
-           RESULT = UnderscoreAsgn.of(p, Underscore.of(p), e);
-        :}
-        ;
+    {: Position p = new Position(uleft, uright);
+       RESULT = UnderscoreAsgn.of(p, Underscore.of(p), e);
+    :}
+    ;
 
 if_body ::= full_stmt:s
-        {: RESULT = s; :}
-        ;
+    {: RESULT = s; :}
+    ;
 
 if_stmt ::= IF:i LPAREN expr:e RPAREN if_body:s1 ELSE if_body:s2
-        {: RESULT = IfElse.of(new Position(ileft, iright), e, s1, s2); :}
-        | IF:i LPAREN expr:e RPAREN if_body:s
-        {: RESULT = If.of(new Position(ileft, iright), e, s); :}
-        ;
+    {: RESULT = IfElse.of(new Position(ileft, iright), e, s1, s2); :}
+    | IF:i LPAREN expr:e RPAREN if_body:s
+    {: RESULT = If.of(new Position(ileft, iright), e, s); :}
+    ;
 
 while_body ::= full_stmt:s
-        {: RESULT = s; :}
-        ;
+    {: RESULT = s; :}
+    ;
 
 while_stmt ::= WHILE:w LPAREN expr:e RPAREN while_body:b
-        {: RESULT = While.of(new Position(wleft, wright), e, b); :}
-        ;
+    {: RESULT = While.of(new Position(wleft, wright), e, b); :}
+    ;
 
 args_call ::= LPAREN RPAREN
-        {: RESULT = new ArrayList<>(); :}
+    {: RESULT = new ArrayList<>(); :}
     | LPAREN expr_plus:e RPAREN
-        {: RESULT = e; :}
+    {: RESULT = e; :}
     ;
 
 func_call ::= ID:i args_call:a
-        {: Position p = new Position(ileft, iright);
+    {: Position p = new Position(ileft, iright);
        RESULT = FuncCall.of(p, Id.of(p, i), a); :}
-        ;
+    ;
 
 proc_call ::= ID:i args_call:a
-        {: Position p = new Position(ileft, iright);
+    {: Position p = new Position(ileft, iright);
        RESULT = ProcCall.of(p, Id.of(p, i), a); :}
-        ;
+    ;
+
+// TODO: finish this
+method_callable ::= ID:i
+    {: RESULT = Id.of(new Position(ileft, iright), i); :}
+    ;
+
+method_call_stmt ::= method_callable:receiver DOT ID:fn args_call:args
+    {: Position pos = new Position(receiverleft, argsright);
+       Id<Position> methodName = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCallStmt.of(pos, receiver, methodName, args);
+    :}
+    ;
 
 
 // Functions and procedures --AM
@@ -557,8 +582,9 @@ callable_decl_plus ::= callable_decl:c
 use_def ::= USE:u ID:x end_stmt
     {: Position p = new Position(uleft, uright);
        Position pId = new Position(xleft, xright);
-       RESULT = Use.of(p, Id.of(pId, x)); :}
-        ;
+       RESULT = Use.of(p, Id.of(pId, x));
+    :}
+    ;
 
 func_def ::= func_decl:f
     {: RESULT = f; :}
@@ -590,48 +616,84 @@ prog ::= use_def_star:us func_def_plus:fs
     {: RESULT = Program.of(new Position(usleft, usright), us, null, null, fs); :}
     ;
 
-
 // Expressions --SH
 
 expr ::= literal:l
-        {: RESULT = l; :}
+    {: RESULT = l; :}
     | binop:bop
-        {: RESULT = bop; :}
+    {: RESULT = bop; :}
     | unop:uop
-        {: RESULT = uop; :}
+    {: RESULT = uop; :}
     | expr:e1 num_array_index_plus:e_lst
-        {: Position p = new Position(e1left, e1right);
-           Expr<Position> exp = Index.of(p, e1, e_lst.get(0));
-           for (int i = 1; i < e_lst.size(); i++) {
-               exp = Index.of(p, exp, e_lst.get(i));
-           }
-           RESULT = exp;
-        :}
+    {: Position p = new Position(e1left, e1right);
+       Expr<Position> exp = Index.of(p, e1, e_lst.get(0));
+       for (int i = 1; i < e_lst.size(); i++) {
+           exp = Index.of(p, exp, e_lst.get(i));
+       }
+       RESULT = exp;
+    :}
     | LENGTH:l LPAREN expr:e RPAREN
-        {: RESULT = Length.of(new Position(lleft, lright), e); :}
+    {: RESULT = Length.of(new Position(lleft, lright), e); :}
     | LPAREN:l expr:e RPAREN
-        {: RESULT = e; :}
+    {: RESULT = e; :}
     | func_call:c
-        {: RESULT = c; :}
+    {: RESULT = c; :}
     | ID:id
-        {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    | THIS:t
+    {: RESULT = Id.of(new Position(tleft, tright), "this"); :}
+    | expr:e DOT ID:fn
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);
+    :}
+    | expr:e DOT ID:fn args_call:args
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCall.of(new Position(eleft, argsright), e, field, args);
+    :}
+    | NEW:n ID:cn
+    {: Id<Position> className = Id.of(new Position(cnleft, cnright), cn);
+       RESULT = New.of(new Position(nleft, cnright), className);
+    :}
     ;
 
+literal ::= NUM:n
+    {: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
+    | MINUS:m BIG_NUM:n
+    {: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
+    | STRING:s
+    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
+    | CHAR:c
+    {: RESULT = CharLiteral.of(new Position(cleft, cright), c); :}
+    | TRUE:b
+    {: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
+    | FALSE:b
+    {: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
+    | LBRACE:l expr_star:e RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    | LBRACE:l expr_plus:e COMMA RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    | NULL:n
+    {: RESULT = NullLiteral.of(new Position(nleft, nright)); :}
+    ;
+
+
 empty_array_index_star ::=
-        {: RESULT = new ArrayList<Expr<Position>>(); :}
+    {: RESULT = new ArrayList<Expr<Position>>(); :}
     | empty_array_index_star:list LBRACKET RBRACKET
-        {: list.add(null);
-           RESULT = list;
-        :}
+    {: list.add(null);
+       RESULT = list;
+    :}
     ;
 
 num_array_index_plus ::= LBRACKET expr:e RBRACKET
-        {: ArrayList<Expr<Position>> list = new ArrayList<>();
-           list.add(e);
-           RESULT = list; :}
+    {: ArrayList<Expr<Position>> list = new ArrayList<>();
+       list.add(e);
+       RESULT = list;
+    :}
     | num_array_index_plus:e_lst LBRACKET expr:e RBRACKET
-        {: e_lst.add(e);
-           RESULT = e_lst; :}
+    {: e_lst.add(e);
+       RESULT = e_lst;
+    :}
     ;
 
 index_contents ::=
@@ -643,7 +705,8 @@ index_contents ::=
 array_index_plus ::= LBRACKET index_contents:e RBRACKET
     {: ArrayList<Expr<Position>> indexList = new ArrayList<>();
        indexList.add(e);
-       RESULT = indexList; :}
+       RESULT = indexList;
+    :}
     | array_index_plus:a LBRACKET index_contents:e RBRACKET
     {: if (e != null && a.get(a.size() - 1) == null) {
            report_fatal_error(String.format(
@@ -657,112 +720,114 @@ array_index_plus ::= LBRACKET index_contents:e RBRACKET
     :}
     ;
 
-
-literal ::= NUM:n
-        {: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
-    | MINUS:m BIG_NUM:n
-        {: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
-    | STRING:s
-        {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
-    | CHAR:c
-        {: RESULT = CharLiteral.of(new Position(cleft, cright), c); :}
-    | TRUE:b
-        {: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
-    | FALSE:b
-        {: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
-    | LBRACE:l expr_star:e RBRACE
-        {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
-    | LBRACE:l expr_plus:e COMMA RBRACE
-        {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
-    ;
-
 binop ::= expr:e1 MINUS expr:e2
-        {: Position p = new Position(e1left, e2right);
-           RESULT = BinOp.of(p, BinOpCode.MINUS, e1, e2); :}
+    {: Position p = new Position(e1left, e2right);
+       RESULT = BinOp.of(p, BinOpCode.MINUS, e1, e2);
+    :}
     | expr:e1 STAR expr:e2
-        {: Position p = new Position(e1left, e2right);
-           RESULT = BinOp.of(p, BinOpCode.STAR, e1, e2); :}
+    {: Position p = new Position(e1left, e2right);
+       RESULT = BinOp.of(p, BinOpCode.STAR, e1, e2);
+    :}
     | expr:e1 HIGHMULT expr:e2
-        {: Position p = new Position(e1left, e2right);
-           RESULT = BinOp.of(p, BinOpCode.HIGHMULT, e1, e2); :}
+    {: Position p = new Position(e1left, e2right);
+       RESULT = BinOp.of(p, BinOpCode.HIGHMULT, e1, e2);
+    :}
     | expr:e1 DIV expr:e2
-        {: Position p = new Position(e1left, e2right);
-           RESULT = BinOp.of(p, BinOpCode.DIV, e1, e2); :}
+    {: Position p = new Position(e1left, e2right);
+       RESULT = BinOp.of(p, BinOpCode.DIV, e1, e2);
+    :}
     | expr:e1 MOD expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.MOD, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.MOD, e1, e2);
+    :}
     | expr:e1 PLUS expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.PLUS, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.PLUS, e1, e2);
+    :}
     | expr:e1 LT expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.LT, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.LT, e1, e2);
+    :}
     | expr:e1 LTE expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.LTE, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.LTE, e1, e2);
+    :}
     | expr:e1 GTE expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.GTE, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.GTE, e1, e2);
+    :}
     | expr:e1 GT expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.GT, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.GT, e1, e2);
+    :}
     | expr:e1 EQEQ expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.EQEQ, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.EQEQ, e1, e2);
+    :}
     | expr:e1 NEQ expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.NEQ, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.NEQ, e1, e2);
+    :}
     | expr:e1 AMP expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.AMP, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.AMP, e1, e2);
+    :}
     | expr:e1 BAR expr:e2
-        {: Position p = new Position(e1left, e1right);
-           RESULT = BinOp.of(p, BinOpCode.BAR, e1, e2); :}
+    {: Position p = new Position(e1left, e1right);
+       RESULT = BinOp.of(p, BinOpCode.BAR, e1, e2);
+    :}
     ;
 
 unop ::= BANG:b expr:e
-        {: Position p = new Position(bleft, bright);
-          RESULT = UnOp.of(p, UnOpCode.BANG, e); :} %prec UMINUS
+    {: Position p = new Position(bleft, bright);
+      RESULT = UnOp.of(p, UnOpCode.BANG, e);
+    :} %prec UMINUS
     | MINUS:u expr:e
-        {: Position p = new Position(uleft, uright);
-           RESULT = UnOp.of(p, UnOpCode.UMINUS, e); :} %prec UMINUS
+    {: Position p = new Position(uleft, uright);
+       RESULT = UnOp.of(p, UnOpCode.UMINUS, e);
+    :} %prec UMINUS
     ;
 
 
 // Various lists --SH
 
 expr_star ::=
-        {: RESULT = new ArrayList<Expr<Position>>(); :}
+    {: RESULT = new ArrayList<Expr<Position>>(); :}
     | expr_plus:e_lst
-        {: RESULT = e_lst; :}
+    {: RESULT = e_lst; :}
     ;
 
 expr_plus ::= expr:e
-        {: ArrayList<Expr<Position>> list = new ArrayList<>();
-           list.add(e);
-           RESULT = list; :}
+    {: ArrayList<Expr<Position>> list = new ArrayList<>();
+       list.add(e);
+       RESULT = list;
+    :}
     | expr_plus:e_lst COMMA expr:e
-        {: e_lst.add(e);
-           RESULT = e_lst;
-        :}
+    {: e_lst.add(e);
+       RESULT = e_lst;
+    :}
     ;
 
 avar_plus ::= avar:av
-        {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
-           list.add(av);
-           RESULT = list; :}
+    {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
+       list.add(av);
+       RESULT = list;
+    :}
     | avar_plus:a_lst COMMA avar:av
-        {: a_lst.add(av);
-           RESULT = a_lst; :}
+    {: a_lst.add(av);
+       RESULT = a_lst;
+    :}
     ;
 
 var_plus ::= var:v
-        {: ArrayList<Var<Position>> list = new ArrayList<>();
-           list.add(v);
-           RESULT = list; :}
+    {: ArrayList<Var<Position>> list = new ArrayList<>();
+       list.add(v);
+       RESULT = list;
+    :}
     | var_plus:v_lst COMMA var:v
-        {: v_lst.add(v);
-           RESULT = v_lst; :}
+    {: v_lst.add(v);
+       RESULT = v_lst;
+    :}
     ;
 
 id_two_plus ::= ID:i1 COMMA ID:i2
@@ -771,21 +836,25 @@ id_two_plus ::= ID:i1 COMMA ID:i2
        Id<Position> id2obj = Id.of(new Position(i2left, i2right), i2);
        list.add(id1obj);
        list.add(id2obj);
-       RESULT = list; :}
+       RESULT = list;
+    :}
     ;
 
 type_plus ::= type:t
-        {: ArrayList<Type<Position>> list = new ArrayList<>();
-           list.add(t);
-           RESULT = list; :}
+    {: ArrayList<Type<Position>> list = new ArrayList<>();
+       list.add(t);
+       RESULT = list;
+    :}
     | type_plus:t_lst COMMA type:t
-        {: t_lst.add(t);
-           RESULT = t_lst; :}
+    {: t_lst.add(t);
+       RESULT = t_lst;
+    :}
     ;
 
 stmt_star ::=
-        {: RESULT = new ArrayList<Stmt<Position>>(); :}
+    {: RESULT = new ArrayList<Stmt<Position>>(); :}
     | stmt_star:s_lst full_stmt:s
-        {: s_lst.add(s);
-           RESULT = s_lst; :}
+    {: s_lst.add(s);
+       RESULT = s_lst;
+    :}
     ;

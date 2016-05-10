@@ -28,9 +28,17 @@ public class PositionKiller {
             List<Expr<Position>> args = Lists.transform(c.args, e -> e.accept(this));
             return FuncCall.of(dummyPosition, kill(c.f), args);
         }
+        public Expr<Position> visit(FieldAccess<Position> c) {
+            Expr<Position> receiver = c.receiver.accept(this);
+            return FieldAccess.of(dummyPosition, receiver, kill(c.field));
+        }
+        public Expr<Position> visit(MethodCall<Position> c) {
+            Expr<Position> receiver = c.receiver.accept(this);
+            List<Expr<Position>> args = Lists.transform(c.args, e -> e.accept(this));
+            return MethodCall.of(dummyPosition, receiver, kill(c.methodName), args);
+        }
         public Expr<Position> visit(New<Position> a) {
-            // TODO
-            return null;
+            return New.of(dummyPosition, kill(a.c));
         }
         public Expr<Position> visit(NumLiteral<Position> n) {
             return NumLiteral.of(dummyPosition, n.x);
@@ -49,8 +57,7 @@ public class PositionKiller {
             return ArrayLiteral.of(dummyPosition, xs);
         }
         public Expr<Position> visit(NullLiteral<Position> a) {
-            // TODO
-            return null;
+            return NullLiteral.of(dummyPosition);
         }
     }
 
@@ -114,8 +121,12 @@ public class PositionKiller {
             return ProcCall.of(dummyPosition, kill(c.f), args);
         }
         public Stmt<Position> visit(Break<Position> c) {
-            // TODO
-            return null;
+            return Break.of(dummyPosition);
+        }
+        public Stmt<Position> visit(MethodCallStmt<Position> c) {
+            Expr<Position> receiver = c.receiver.accept(new ExprKiller());
+            List<Expr<Position>> args = Lists.transform(c.args, e -> e.accept(new ExprKiller()));
+            return MethodCallStmt.of(dummyPosition, receiver, kill(c.methodName), args);
         }
     }
 

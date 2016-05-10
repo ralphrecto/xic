@@ -64,6 +64,8 @@ public interface Ast {
         public R visit(Length<A> l);
         public R visit(FuncCall<A> c);
         public R visit(New<A> n);
+        public R visit(FieldAccess<A> n);
+        public R visit(MethodCall<A> n);
 
         // Literal
         public R visit(NumLiteral<A> n);
@@ -94,6 +96,7 @@ public interface Ast {
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
         public R visit(ProcCall<A> c);
+        public R visit(MethodCallStmt<A> b);
         public R visit(Break<A> b);
 
         // Type
@@ -127,6 +130,8 @@ public interface Ast {
         public R visit(Length<A> l);
         public R visit(FuncCall<A> c);
         public R visit(New<A> n);
+        public R visit(FieldAccess<A> n);
+        public R visit(MethodCall<A> n);
 
         public R visit(NumLiteral<A> n);
         public R visit(BoolLiteral<A> b);
@@ -156,6 +161,7 @@ public interface Ast {
         public R visit(IfElse<A> i);
         public R visit(While<A> w);
         public R visit(ProcCall<A> c);
+        public R visit(MethodCallStmt<A> b);
         public R visit(Break<A> b);
     }
 
@@ -362,6 +368,29 @@ public interface Ast {
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class FieldAccess<A> implements Expr<A> {
+        public final A a;
+        public final Expr<A> receiver;
+        public final Id<A> field;
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class MethodCall<A> implements Expr<A> {
+        public final A a;
+        public final Expr<A> receiver;
+        public final Id<A> methodName;
+        public final List<Expr<A>> args;
+        public <R> R accept(ExprVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Literal
     ////////////////////////////////////////////////////////////////////////////
@@ -557,6 +586,18 @@ public interface Ast {
     public final class ProcCall<A> implements Stmt<A> {
         public final A a;
         public final Id<A> f;
+        public final List<Expr<A>> args;
+        public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
+        public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
+    }
+
+    @AllArgsConstructor(staticName="of")
+    @EqualsAndHashCode
+    @ToString(includeFieldNames=false)
+    public final class MethodCallStmt<A> implements Stmt<A> {
+        public final A a;
+        public final Expr<A> receiver;
+        public final Id<A> methodName;
         public final List<Expr<A>> args;
         public <R> R accept(StmtVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }

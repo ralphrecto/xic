@@ -349,10 +349,6 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.MultiDecl<Position> d) {
-        return null;
-    }
-
     public Void visit(Ast.Asgn<Position> a) {
         startList();
         posPrinter(a.a);

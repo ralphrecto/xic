@@ -24,28 +24,19 @@ parser code {:
         throw new SyntaxException(sym.left, sym.right, SymUtil.symToLiteral(sym));
     }
 
+    @SuppressWarnings("unchecked")
     public Klass<Position> genKlass(
         Id<Position> name, Optional<Id<Position>> superclass,
         ArrayList<Object> klassContents
-      ) throws SyntaxException {
+    ) throws SyntaxException {
 
       List<AnnotatedId<Position>> fields = new ArrayList<>();
       List<Callable<Position>> methods = new ArrayList<>();
       for (Object content : klassContents) {
-           if (content instanceof MultiDecl<?>) {
-               @SuppressWarnings("unchecked")
-               MultiDecl<Position> c = (MultiDecl<Position>) content;
-               for (Id<Position> id : c.vs) {
-                   fields.add(AnnotatedId.of(id.a, id, c.t));
-               }
-           } else if (content instanceof AnnotatedVar<?>) {
-               @SuppressWarnings("unchecked")
+           if (content instanceof AnnotatedVar<?>) {
                AnnotatedId<Position> c = (AnnotatedId<Position>) content;
                fields.add(c);
-           } else if (
-                   content instanceof Func<?> ||
-                   content instanceof Proc<?>) {
-               @SuppressWarnings("unchecked")
+           } else if ( content instanceof Func<?> || content instanceof Proc<?>) {
                Callable<Position> c = (Callable<Position>) content;
                methods.add(c);
            } else {
@@ -59,6 +50,31 @@ parser code {:
       return Klass.of(name.a, name, superclass, fields, methods);
     }
 
+    @SuppressWarnings("unchecked")
+    public Program<Position> genProgram(Position p, List<Use<Position>> uses, List<Object> progContents)
+    throws SyntaxException {
+        List<Global<Position>> globals = new ArrayList<>();
+        List<Klass<Position>> classes = new ArrayList<>();
+        List<Callable<Position>> calls = new ArrayList<>();
+        for (Object content: progContents) {
+            if (content instanceof Decl<?>) {
+                Decl<Position> d = (Decl<Position>) content;
+                globals.add(d);
+            } else if (content instanceof Klass<?>) {
+                Klass<Position> k = (Klass<Position>) content;
+                classes.add(k);
+            } else if (content instanceof Callable<?>) {
+                Callable<Position> k = (Callable<Position>) content;
+                calls.add(k);
+            } else {
+               report_fatal_error(
+                   "Program can only include interface, global, class and function declarations",
+                   null
+               );
+            }
+        }
+        return Program.of(p, uses, globals, classes, calls);
+    }
 :}
 
 
@@ -165,7 +181,7 @@ nonterminal Type<Position>
     type;
 
 nonterminal AnnotatedVar<Position>
-    avar;
+    single_avar;
 
 nonterminal Var<Position>
     var;
@@ -186,6 +202,7 @@ nonterminal Expr<Position>
 
 nonterminal Stmt<Position>
     full_decl,
+    full_decl_asgn,
     full_stmt,
     stmt,
     asgn,
@@ -210,6 +227,7 @@ nonterminal ArrayList<Expr<Position>>
 
 // functions and procedures
 nonterminal ArrayList<AnnotatedVar<Position>>
+    multi_decl,
     args_decl;
 
 nonterminal ArrayList<Expr<Position>>
@@ -240,14 +258,8 @@ nonterminal Klass<Position>
 nonterminal Use<Position>
     use_def;
 
-nonterminal Callable<Position>
-    func_def;
-
 nonterminal ArrayList<Use<Position>>
     use_def_star;
-
-nonterminal ArrayList<Callable<Position>>
-    func_def_plus;
 
 nonterminal ArrayList<CallableDecl<Position>>
     callable_decl_plus;
@@ -283,7 +295,7 @@ nonterminal ArrayList<Expr<Position>>
     expr_plus;
 
 nonterminal ArrayList<AnnotatedVar<Position>>
-    avar_plus;
+    single_avar_plus;
 
 nonterminal ArrayList<Var<Position>>
     var_plus;
@@ -293,6 +305,12 @@ nonterminal ArrayList<Type<Position>>
 
 nonterminal ArrayList<Stmt<Position>>
     stmt_star;
+
+nonterminal Object
+    prog_content;
+
+nonterminal ArrayList<Object>
+    prog_content_star;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
@@ -320,7 +338,7 @@ precedence left LBRACKET, RBRACKET;
 
 start with prog;
 
-// Types and variables --SH
+// Types and variables
 
 base_type ::= INT:i
     {: RESULT = Int.of(new Position(ileft, iright)); :}
@@ -339,7 +357,7 @@ type ::= base_type:bt
     {: RESULT = Array.of(new Position(tleft, tright), t, Optional.empty()); :}
     ;
 
-avar ::= ID:id COLON type:t
+single_avar ::= ID:id COLON type:t
     {: Position p = new Position(idleft, idright);
        RESULT = AnnotatedId.of(p, Id.of(p, id), t);
     :}
@@ -349,12 +367,22 @@ avar ::= ID:id COLON type:t
     :}
     ;
 
-var ::= avar:av
-        {: RESULT = av; :}
+multi_decl ::= id_two_plus:itp COLON type:t
+    {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
+       for (Id<Position> idObj : itp){
+           AnnotatedId<Position> aId = AnnotatedId.of(idObj.a, idObj, t);
+           list.add(aId);
+       }
+       RESULT = list;
+    :}
+    ;
+
+var ::= single_avar:sa
+    {: RESULT = sa; :}
     | UNDERSCORE:u
-        {: RESULT = Underscore.of(new Position(uleft, uright)); :}
+    {: RESULT = Underscore.of(new Position(uleft, uright)); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
-        {: Position p = new Position(idleft, idright);
+    {: Position p = new Position(idleft, idright);
        Position pArray = new Position(btleft, btright);
            Expr<Position> first = e_lst.get(e_lst.size() - 1);
            Type<Position> array_type = Array.of(
@@ -374,9 +402,9 @@ var ::= avar:av
     :}
     ;
 
-// Statements --RR
+// Statements
 
-stmt ::= full_decl:f
+stmt ::= full_decl_asgn:f
     {: RESULT = f; :}
     | asgn:a
     {: RESULT = a; :}
@@ -444,10 +472,29 @@ block ::= LBRACE:lb stmt_star:s RBRACE
        RESULT = Block.of(p, s, Optional.of(el), ret_p); :}
     ;
 
-full_decl ::= var_plus:v
+full_decl ::= multi_decl:md
+    {: ArrayList<Var<Position>> lst = new ArrayList<>();
+       for (AnnotatedVar<Position> mdObj : md){
+          lst.add((Var<Position>) mdObj);
+       }
+       RESULT = Decl.of(new Position(mdleft, mdright), lst);
+    :}
+    | var_plus:v
     {: RESULT = Decl.of(new Position(vleft, vright), v); :}
+    ;
+
+full_decl_asgn ::= full_decl:fd
+    {: RESULT = fd; :}
     | var_plus:v EQ expr:e
     {: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
+    ;
+
+asgn_indexable ::= ID:i
+    {: RESULT = Id.of(new Position(ileft, iright), i); :}
+    | func_call:c
+    {: RESULT = c; :}
+    | STRING:s
+    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
     ;
 
 asgn ::= ID:i EQ expr:e
@@ -510,11 +557,11 @@ method_call_stmt ::= expr_lhs_stmt:receiver DOT ID:fn args_call:args
     :}
     ;
 
-// Functions and procedures --AM
+// Functions and procedures
 
 args_decl ::= LPAREN RPAREN
     {: RESULT = new ArrayList<AnnotatedVar<Position>>(); :}
-    | LPAREN avar_plus:a RPAREN
+    | LPAREN single_avar_plus:a RPAREN
     {: RESULT = a; :}
     ;
 
@@ -544,12 +591,16 @@ klass_contents ::=
     {: ArrayList<Object> kc = new ArrayList<Object>();
        RESULT = kc;
     :}
-    /*| klass_contents:kc multi_decl:md*/
-    /*{: kc.add(md);*/
-       /*RESULT = kc;*/
-    /*:}*/
-    | klass_contents:kc ID:i
-    {: kc.add(i);
+    | klass_contents:kc single_avar_plus:sap
+    {: for (AnnotatedVar<Position> saObj : sap){
+           kc.add(saObj);
+       }
+       RESULT = kc;
+    :}
+    | klass_contents:kc multi_decl:md
+    {: for (AnnotatedVar<Position> mdObj : md){
+           kc.add(mdObj);
+       }
        RESULT = kc;
     :}
     | klass_contents:kc func_decl:fd
@@ -570,6 +621,7 @@ klass_decl ::= CLASS ID:name LBRACE klass_contents:kc RBRACE
        Id<Position> supernObj = Id.of(new Position(supernleft, supernright), supern);
        RESULT = genKlass(nameObj, Optional.of(supernObj), kc); :}
     ;
+
 
 // Interface files
 
@@ -600,19 +652,13 @@ callable_decl_plus ::= callable_decl:c
        RESULT = cl; :}
     ;
 
-// Programs (and Interfaces) --AM
+// Programs (and Interfaces)
 
 use_def ::= USE:u ID:x end_stmt
     {: Position p = new Position(uleft, uright);
        Position pId = new Position(xleft, xright);
        RESULT = Use.of(p, Id.of(pId, x));
     :}
-    ;
-
-func_def ::= func_decl:f
-    {: RESULT = f; :}
-    | proc_decl:p
-    {: RESULT = p; :}
     ;
 
 use_def_star ::=
@@ -623,20 +669,18 @@ use_def_star ::=
     :}
     ;
 
-func_def_plus ::= func_def:f
-    {: ArrayList<Callable<Position>> list = new ArrayList<>();
-       list.add(f);
-       RESULT = list;
-    :}
-    | func_def_plus:fs func_def:f
-    {: fs.add(f);
-       RESULT = fs;
-    :}
+prog_content ::= full_decl_asgn:fda
+    {: RESULT = fda; :}
+    | klass_decl:kd
+    {: RESULT = kd; :}
+    | proc_decl:pd
+    {: RESULT = pd; :}
+    | func_decl:fd
+    {: RESULT = fd; :}
     ;
 
-prog ::= use_def_star:us func_def_plus:fs
-    // TODO
-    {: RESULT = Program.of(new Position(usleft, usright), us, null, null, fs); :}
+prog ::= use_def_star:us prog_content_star:pcs
+    {: RESULT = genProgram(new Position (usleft, usright), us, pcs); :}
     ;
 
 // Expressions --SH
@@ -819,7 +863,33 @@ unop ::= BANG:b expr:e
     ;
 
 
-// Various lists --SH
+// Various lists
+
+prog_content_star ::=
+    {: RESULT = new ArrayList<>();:}
+    | prog_content_star:pcs prog_content:pc
+    {: pcs.add(pc);
+       RESULT = pcs;
+    :}
+    ;
+
+id_two_plus ::= ID:id1 COMMA ID:id2
+    {: ArrayList<Id<Position>> lst = new ArrayList<>();
+       Position p1 = new Position(id1left, id1right);
+       Id<Position> id1Obj = Id.of(p1, id1);
+       Position p2 = new Position(id2left, id2right);
+       Id<Position> id2Obj = Id.of(p2, id2);
+       lst.add(id1Obj);
+       lst.add(id2Obj);
+       RESULT = lst;
+    :}
+    | id_two_plus:itp COMMA ID:id
+    {: Position p = new Position(idleft, idright);
+       Id<Position> idObj = Id.of(p, id);
+       itp.add(idObj);
+       RESULT = itp;
+    :}
+    ;
 
 expr_star ::=
     {: RESULT = new ArrayList<Expr<Position>>(); :}
@@ -838,12 +908,12 @@ expr_plus ::= expr:e
     :}
     ;
 
-avar_plus ::= avar:av
+single_avar_plus ::= single_avar:av
     {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
        list.add(av);
        RESULT = list;
     :}
-    | avar_plus:a_lst COMMA avar:av
+    | single_avar_plus:a_lst COMMA single_avar:av
     {: a_lst.add(av);
        RESULT = a_lst;
     :}
@@ -857,16 +927,6 @@ var_plus ::= var:v
     | var_plus:v_lst COMMA var:v
     {: v_lst.add(v);
        RESULT = v_lst;
-    :}
-    ;
-
-id_two_plus ::= ID:i1 COMMA ID:i2
-    {: ArrayList<Id<Position>> list = new ArrayList<>();
-       Id<Position> id1obj = Id.of(new Position(i1left, i1right), i1);
-       Id<Position> id2obj = Id.of(new Position(i2left, i2right), i2);
-       list.add(id1obj);
-       list.add(id2obj);
-       RESULT = list;
     :}
     ;
 

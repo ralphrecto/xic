@@ -261,7 +261,9 @@ nonterminal Expr<Position>
 
 // expressions
 nonterminal Expr<Position>
-    literal,
+    non_array_literal,
+    array_literal,
+    non_literal_expr,
     expr;
 
 nonterminal Expr<Position>
@@ -384,10 +386,10 @@ stmt ::= full_decl:f
     {: RESULT = w; :}
     | proc_call:c
     {: RESULT = c; :}
-    | method_call_stmt:m
-    {: RESULT = m; :}
     | block:b
     {: RESULT = b; :}
+    | method_call_stmt:m
+    {: RESULT = m; :}
     ;
 
 end_stmt ::=
@@ -413,18 +415,10 @@ full_decl ::= var_plus:v
     {: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
     ;
 
-asgn_indexable ::= ID:i
-    {: RESULT = Id.of(new Position(ileft, iright), i); :}
-    | func_call:c
-    {: RESULT = c; :}
-    | STRING:s
-    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
-    ;
-
 asgn ::= ID:i EQ expr:e
     {: Position p = new Position(ileft, iright);
        RESULT = Asgn.of(p, Id.of(p,i), e); :}
-    | asgn_indexable:a num_array_index_plus:idx EQ expr:e
+    | method_callable:a num_array_index_plus:idx EQ expr:e
     {: Position p = new Position(aleft, aright);
        Index<Position> index = Index.of(p, a, idx.get(0));
        for (int i = 1; i < idx.size(); i++){
@@ -474,9 +468,39 @@ proc_call ::= ID:i args_call:a
        RESULT = ProcCall.of(p, Id.of(p, i), a); :}
     ;
 
-// TODO: finish this
-method_callable ::= ID:i
-    {: RESULT = Id.of(new Position(ileft, iright), i); :}
+/* possible receivers of method call stmts. these are not all
+ * exprs because array literals and blocks both begin with {,
+ * so doing so introduces ambiguities in the grammar. */
+method_callable ::= non_array_literal:l
+    {: RESULT = l; :}
+    | method_callable:e1 num_array_index_plus:e_lst
+    {: Position p = new Position(e1left, e1right);
+       Expr<Position> exp = Index.of(p, e1, e_lst.get(0));
+       for (int i = 1; i < e_lst.size(); i++) {
+           exp = Index.of(p, exp, e_lst.get(i));
+       }
+       RESULT = exp;
+    :}
+    | LPAREN:l expr:e RPAREN
+    {: RESULT = e; :}
+    | func_call:c
+    {: RESULT = c; :}
+    | ID:id
+    {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    | THIS:t
+    {: RESULT = Id.of(new Position(tleft, tright), "this"); :}
+    | method_callable:e DOT ID:fn
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);
+    :}
+    | method_callable:e DOT ID:fn args_call:args
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCall.of(new Position(eleft, argsright), e, field, args);
+    :}
+    | NEW:n ID:cn
+    {: Id<Position> className = Id.of(new Position(cnleft, cnright), cn);
+       RESULT = New.of(new Position(nleft, cnright), className);
+    :}
     ;
 
 method_call_stmt ::= method_callable:receiver DOT ID:fn args_call:args
@@ -485,7 +509,6 @@ method_call_stmt ::= method_callable:receiver DOT ID:fn args_call:args
        RESULT = MethodCallStmt.of(pos, receiver, methodName, args);
     :}
     ;
-
 
 // Functions and procedures --AM
 
@@ -618,9 +641,15 @@ prog ::= use_def_star:us func_def_plus:fs
 
 // Expressions --SH
 
-expr ::= literal:l
-    {: RESULT = l; :}
-    | binop:bop
+expr ::= non_array_literal:lit
+    {: RESULT = lit; :}
+    | array_literal:lit
+    {: RESULT = lit; :}
+    | non_literal_expr:e
+    {: RESULT = e; :}
+    ;
+
+non_literal_expr ::= binop:bop
     {: RESULT = bop; :}
     | unop:uop
     {: RESULT = uop; :}
@@ -656,7 +685,7 @@ expr ::= literal:l
     :}
     ;
 
-literal ::= NUM:n
+non_array_literal ::= NUM:n
     {: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
     | MINUS:m BIG_NUM:n
     {: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
@@ -668,14 +697,15 @@ literal ::= NUM:n
     {: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
     | FALSE:b
     {: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
-    | LBRACE:l expr_star:e RBRACE
-    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
-    | LBRACE:l expr_plus:e COMMA RBRACE
-    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
     | NULL:n
     {: RESULT = NullLiteral.of(new Position(nleft, nright)); :}
     ;
 
+array_literal ::= LBRACE:l expr_star:e RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    | LBRACE:l expr_plus:e COMMA RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    ;
 
 empty_array_index_star ::=
     {: RESULT = new ArrayList<Expr<Position>>(); :}

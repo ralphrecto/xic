@@ -2180,7 +2180,75 @@ public class ParserTest {
     ////////////////////////////////////////////////////////////////////////////
     // MultiDecl
     ////////////////////////////////////////////////////////////////////////////
-    // TODO
+    @Test
+    public void multiDeclTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET)
+        );
+        List<Stmt<Position>> ss = l(
+            decl(l(annotatedId(id("x"), array(num(), Optional.empty()))))
+        );
+        stmtsTestHelper(symbols, ss);
+    }
+
+    @Test
+    public void multiDeclTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET)
+        );
+        List<Stmt<Position>> ss = l(
+            decl(l(annotatedId(id("x"), array(num(), Optional.empty())),
+                   annotatedId(id("y"), array(num(), Optional.empty()))))
+        );
+        stmtsTestHelper(symbols, ss);
+    }
+
+    @Test
+    public void multiDeclTest3() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COMMA),
+            sym(ID, "z"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET)
+        );
+        List<Stmt<Position>> ss = l(
+            decl(l(annotatedId(id("x"), array(num(), Optional.empty())),
+                   annotatedId(id("y"), array(num(), Optional.empty())),
+                   annotatedId(id("z"), array(num(), Optional.empty()))))
+        );
+        stmtsTestHelper(symbols, ss);
+    }
+
+    @Test
+    public void multiDeclTest4() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(NUM, 3L),
+            sym(RBRACKET)
+        );
+        List<Stmt<Position>> ss = l(
+            decl(l(annotatedId(id("x"), array(num(), Optional.of(numLiteral(3L))))))
+        );
+        stmtsTestHelper(symbols, ss);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Field Access
@@ -2692,6 +2760,50 @@ public class ParserTest {
             sym(ID, "b"), sym(EQ), sym(NUM,5),
             sym(ELSE),
             sym(ID, "b"), sym(EQ), sym(NUM,5)
+        );
+
+        stmtErrorTestHelper(symbols);
+    }
+
+    // :int
+    @Test(expected=XicException.SyntaxException.class)
+    public void declErrorTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(COLON),
+            sym(INT)
+        );
+
+        stmtErrorTestHelper(symbols);
+    }
+
+    // x,y:int[1]
+    @Test(expected=XicException.SyntaxException.class)
+    public void declErrorTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(NUM, 0L),
+            sym(RBRACKET)
+        );
+
+        stmtErrorTestHelper(symbols);
+    }
+
+    // x,y:int = 1
+    @Test(expected=XicException.SyntaxException.class)
+    public void declErrorTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+            sym(EQ),
+            sym(NUM, 1L)
         );
 
         stmtErrorTestHelper(symbols);

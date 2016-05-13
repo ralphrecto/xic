@@ -2656,6 +2656,9 @@ public class ParserTest {
         exprTestHelper(symbols, e);
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Randomized Expressions
+    ////////////////////////////////////////////////////////////////////////////
     @Test
     public void callTest() throws Exception {
         int numTests = 25;
@@ -2809,6 +2812,69 @@ public class ParserTest {
         }
     }
 
+    @Test
+    public void randomFieldAccessTest() throws Exception {
+        int numTests = 25;
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> es =
+                Util.choose(exprs);
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : es.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+            symbols.add(sym(DOT));
+            symbols.add(sym(ID, "f"));
+
+            exprTestHelper(symbols, fieldAccess(es.snd, id("f")));
+        }
+    }
+
+    @Test
+    public void randomMethodCallTest() throws Exception {
+        int numTests = 25;
+        int maxArgs = 10;
+        Random rand = new Random();
+
+        for (int i = 0; i < numTests; ++i) {
+            Util.Tuple<List<Symbol>, Expr<Position>> se =
+                Util.choose(exprs);
+
+            Util.Tuple<List<List<Symbol>>, List<Expr<Position>>> ses
+                = Util.unzip(Util.choose(exprs, rand.nextInt(maxArgs)));
+            List<List<Symbol>> ss = ses.fst;
+            List<Expr<Position>> es = ses.snd;
+
+            List<Symbol> symbols = new ArrayList<Symbol>();
+            symbols.add(sym(LPAREN));
+            for (Symbol s : se.fst) {
+                symbols.add(sym(s));
+            }
+            symbols.add(sym(RPAREN));
+            symbols.add(sym(DOT));
+            symbols.add(sym(ID, "foo"));
+            symbols.add(sym(LPAREN));
+            for (int j = 0; j < ss.size(); ++j) {
+                for (Symbol s : ss.get(j)) {
+                    symbols.add(sym(s));
+                }
+                if (j + 1 != ss.size()) {
+                    symbols.add(sym(COMMA));
+                }
+            }
+            symbols.add(sym(RPAREN));
+
+            exprTestHelper(symbols, methodCall(se.snd, id("foo"), es));
+        }
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Invalid Expressions
+    ////////////////////////////////////////////////////////////////////////////
     // x x
     // x[]
     // _

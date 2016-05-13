@@ -262,9 +262,18 @@ public class ParserTest {
 
     public static Program<Position> program (
         List<Use<Position>> uses,
+        List<Global<Position>> globals,
+        List<Klass<Position>> klasses,
         List<Callable<Position>> fs
     ) {
-        return Program.of(PositionKiller.dummyPosition, uses, l(), l(), fs);
+        return Program.of(PositionKiller.dummyPosition, uses, globals, klasses, fs);
+    }
+
+    public static Program<Position> program (
+        List<Use<Position>> uses,
+        List<Callable<Position>> fs
+    ) {
+        return program(uses, l(), l(), fs);
     }
 
     public static Decl<Position> decl (

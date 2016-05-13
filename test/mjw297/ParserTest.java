@@ -426,8 +426,8 @@ public class ParserTest {
                         pos(1, 1),
                         Id.of(pos(1, 5), "foo")
                 )),
-                null,
-                null,
+                l(),
+                l(),
                 l(Proc.of(
                         pos(2, 1),
                         Id.of(pos(2, 1), "main"),

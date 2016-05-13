@@ -17,7 +17,7 @@ parser code {:
     }
 
     public void syntax_error(Symbol sym) {
-    // Don't print anything
+        // Don't print anything
     }
 
     public void unrecovered_syntax_error(Symbol sym) throws SyntaxException {
@@ -51,8 +51,10 @@ parser code {:
     }
 
     @SuppressWarnings("unchecked")
-    public Program<Position> genProgram(Position p, List<Use<Position>> uses, List<Object> progContents)
-    throws SyntaxException {
+    public Program<Position> genProgram(
+        Position p, List<Use<Position>> uses, List<Object> progContents
+    ) throws SyntaxException {
+
         List<Global<Position>> globals = new ArrayList<>();
         List<Klass<Position>> classes = new ArrayList<>();
         List<Callable<Position>> calls = new ArrayList<>();
@@ -77,11 +79,8 @@ parser code {:
     }
 :}
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals
-////////////////////////////////////////////////////////////////////////////////
-// Symbols
 ////////////////////////////////////////////////////////////////////////////////
 terminal MINUS,      // -
          BANG,       // !
@@ -174,7 +173,6 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 // Nonterminals
 ////////////////////////////////////////////////////////////////////////////////
-
 // types and variables
 nonterminal Type<Position>
     base_type,
@@ -315,7 +313,6 @@ nonterminal ArrayList<Object>
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
 ////////////////////////////////////////////////////////////////////////////////
-
 precedence nonassoc ID;
 precedence nonassoc ELSE;
 precedence nonassoc SEMICOLON;
@@ -331,6 +328,7 @@ precedence nonassoc BANG, UMINUS;
 precedence left DOT;
 precedence nonassoc NEW;
 precedence left LBRACKET, RBRACKET;
+precedence left LPAREN, RPAREN;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar

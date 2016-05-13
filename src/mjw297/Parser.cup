@@ -328,7 +328,7 @@ precedence nonassoc BANG, UMINUS;
 precedence left DOT;
 precedence nonassoc NEW;
 precedence left LBRACKET, RBRACKET;
-precedence left LPAREN, RPAREN;
+precedence left LPAREN;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar

@@ -375,14 +375,14 @@ public class ParserTest {
         return New.of(PositionKiller.dummyPosition, c);
     }
 
-    public static FieldAccess<Position> fieldaccess(
+    public static FieldAccess<Position> fieldAccess(
         Expr<Position> receiver,
         Id<Position> field
     ) {
         return FieldAccess.of(PositionKiller.dummyPosition, receiver, field);
     }
 
-    public static MethodCall<Position> methodcall(
+    public static MethodCall<Position> methodCall(
         Expr<Position> receiver,
         Id<Position> methodName,
         List<Expr<Position>> args
@@ -391,11 +391,11 @@ public class ParserTest {
                 methodName, args);
     }
 
-    public static NullLiteral<Position> nullliteral() {
+    public static NullLiteral<Position> nullLiteral() {
         return NullLiteral.of(PositionKiller.dummyPosition);
     }
 
-    public static KlassDecl<Position> klassdecl(
+    public static KlassDecl<Position> klassDecl(
         Id<Position> name,
         Optional<Id<Position>> superclass,
         List<CallableDecl<Position>> methods
@@ -404,7 +404,7 @@ public class ParserTest {
                 methods);
     }
 
-    public static MethodCallStmt<Position> methodcallstmt(
+    public static MethodCallStmt<Position> methodCallStmt(
         Expr<Position> receiver,
         Id<Position> methodName,
         List<Expr<Position>> args
@@ -417,7 +417,7 @@ public class ParserTest {
         return Break.of(PositionKiller.dummyPosition);
     }
 
-    public static KlassType<Position> klasstype(
+    public static KlassType<Position> klassType(
         Id<Position> name
     ) {
         return KlassType.of(PositionKiller.dummyPosition, name);
@@ -996,7 +996,9 @@ public class ParserTest {
         stmtErrorTestHelper(symbols);
     }
 
-    /* ASSIGNMENTS */
+	////////////////////////////////////////////////////////////////////////////
+	// Assignments
+	////////////////////////////////////////////////////////////////////////////
     // a = 5
     @Test
     public void asgnTest1() throws Exception {
@@ -1502,7 +1504,9 @@ public class ParserTest {
         stmtTestHelper(symbols, stmt);
     }
 
-
+	////////////////////////////////////////////////////////////////////////////
+	// Expressions
+	////////////////////////////////////////////////////////////////////////////
     private void binopHelper(BinOpCode s1) throws Exception {
         List<Symbol> symbols = Arrays.asList(
             sym(NUM, 1l),
@@ -2066,10 +2070,360 @@ public class ParserTest {
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+	// Basic OOP Expressions
+	////////////////////////////////////////////////////////////////////////////
+    // new C
+    @Test
+    public void simpleNewTest() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NEW),
+            sym(ID, "C")
+        );
+        Expr<Position> e = new_(id("C"));
+        exprTestHelper(symbols, e);
+    }
+
+    // null
+    @Test
+    public void simpleNullTest() throws Exception {
+        List<Symbol> symbols = l(sym(NULL));
+        Expr<Position> e = nullLiteral();
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f
+    @Test
+    public void simpleFieldAccessTest() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(id("x"), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f()
+    @Test
+    public void simpleMethodCallTest() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(id("x"), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+	// Field Access
+	////////////////////////////////////////////////////////////////////////////
+    // 1.f
+    @Test
+    public void fieldAccessTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NUM, 1L),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(numLiteral(1L), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // "foo".f
+    @Test
+    public void fieldAccessTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(STRING, "foo"),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(stringLiteral("foo"), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // true.f
+    @Test
+    public void fieldAccessTest3() throws Exception {
+        List<Symbol> symbols = l(
+            sym(TRUE),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(boolLiteral(true), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // foo().f
+    @Test
+    public void fieldAccessTest4() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(funcCall(id("foo"), l()), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // (1 + 1).f
+    @Test
+    public void fieldAccessTest5() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(PLUS),
+            sym(NUM, 2L),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(
+            binOp(BinOpCode.PLUS, numLiteral(1L), numLiteral(2L)),
+            id("f")
+        );
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f.f
+    @Test
+    public void fieldAccessTest6() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(
+            fieldAccess(id("x"), id("f")),
+            id("f")
+        );
+        exprTestHelper(symbols, e);
+    }
+
+    // null.f
+    @Test
+    public void fieldAccessTest7() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NULL),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(nullLiteral(), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // new C.f
+    @Test
+    public void fieldAccessTest8() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NEW),
+            sym(ID, "C"),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(new_(id("C")), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f().f
+    @Test
+    public void fieldAccessTest9() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(methodCall(id("x"), id("f"), l()), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+	// Method Call
+	////////////////////////////////////////////////////////////////////////////
+    // 1.f()
+    @Test
+    public void methodCallTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NUM, 1L),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(numLiteral(1L), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // "foo".f()
+    @Test
+    public void methodCallTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(STRING, "foo"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(stringLiteral("foo"), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // true.f()
+    @Test
+    public void methodCallTest3() throws Exception {
+        List<Symbol> symbols = l(
+            sym(TRUE),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(boolLiteral(true), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // foo().f()
+    @Test
+    public void methodCallTest4() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(funcCall(id("foo"), l()), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // (1 + 1).f()
+    @Test
+    public void methodCallTest5() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(PLUS),
+            sym(NUM, 2L),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(
+            binOp(BinOpCode.PLUS, numLiteral(1L), numLiteral(2L)),
+            id("f"),
+            l()
+        );
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f.f()
+    @Test
+    public void methodCallTest6() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(
+            fieldAccess(id("x"), id("f")),
+            id("f"),
+            l()
+        );
+        exprTestHelper(symbols, e);
+    }
+
+    // null.f()
+    @Test
+    public void methodCallTest7() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NULL),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(nullLiteral(), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // new C.f()
+    @Test
+    public void methodCallTest8() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NEW),
+            sym(ID, "C"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(new_(id("C")), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f().f()
+    @Test
+    public void methodCallTest9() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(methodCall(id("x"), id("f"), l()), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // x.f(1, 2, 3)
+    @Test
+    public void methodCallTest10() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(COMMA),
+            sym(NUM, 2L),
+            sym(COMMA),
+            sym(NUM, 3L),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(id("x"), id("f"), l(
+            numLiteral(1L),
+            numLiteral(2L),
+            numLiteral(3L)
+        ));
+        exprTestHelper(symbols, e);
+    }
+
 	//////////////////////////////////////////////////////////////////////////
 	// Testing Exceptions
 	/////////////////////////////////////////////////////////////////////////
-
 	// if (b) else _
 	@Test(expected=Exception.class)
 	public void ifElseErrorTest1() throws Exception {

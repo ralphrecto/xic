@@ -2248,6 +2248,38 @@ public class ParserTest {
         exprTestHelper(symbols, e);
     }
 
+    // x + y.f == x + (y.f)
+    @Test
+    public void fieldAccessTest10() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(PLUS),
+            sym(ID, "y"),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = plus(
+            id("x"),
+            fieldAccess(id("y"), id("f"))
+        );
+        exprTestHelper(symbols, e);
+    }
+
+    // x[0].f
+    @Test
+    public void fieldAccessTest11() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(LBRACKET),
+            sym(NUM, 0L),
+            sym(RBRACKET),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(index(id("x"), numLiteral(0L)), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Method Call
     ////////////////////////////////////////////////////////////////////////////
@@ -2418,6 +2450,25 @@ public class ParserTest {
             numLiteral(2L),
             numLiteral(3L)
         ));
+        exprTestHelper(symbols, e);
+    }
+
+    // x + y.f() == x + (y.f())
+    @Test
+    public void methodCallTest11() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(PLUS),
+            sym(ID, "y"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = plus(
+            id("x"),
+            methodCall(id("y"), id("f"), l())
+        );
         exprTestHelper(symbols, e);
     }
 

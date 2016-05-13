@@ -62,6 +62,9 @@ parser code {:
             if (content instanceof Decl<?>) {
                 Decl<Position> d = (Decl<Position>) content;
                 globals.add(d);
+            } else if (content instanceof DeclAsgn<?>) {
+                DeclAsgn<Position> d = (DeclAsgn<Position>) content;
+                globals.add(d);
             } else if (content instanceof Klass<?>) {
                 Klass<Position> k = (Klass<Position>) content;
                 classes.add(k);

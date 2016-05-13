@@ -22,15 +22,23 @@ public class ParserTest {
     ////////////////////////////////////////////////////////////////////////////
     @SuppressWarnings("deprecation")
     private static Program<Position> parsePos(List<Symbol> symbols) throws Exception {
-        MockLexer l = new MockLexer(symbols) ;
+        MockLexer l = new MockLexer(symbols);
         Parser p = new Parser(l);
         return p.parse().value();
     }
 
     @SuppressWarnings("deprecation")
     private static Program<Position> parse(List<Symbol> symbols) throws Exception {
-        MockLexer l = new MockLexer(symbols) ;
+        MockLexer l = new MockLexer(symbols);
         Parser p = new Parser(l);
+        Program<Position> prog = p.parse().value();
+        return PositionKiller.kill(prog);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static Program<Position> interfaceparse(List<Symbol> symbols) throws Exception {
+        MockLexer l = new MockLexer(symbols);
+        InterfaceParser p = new InterfaceParser(l);
         Program<Position> prog = p.parse().value();
         return PositionKiller.kill(prog);
     }
@@ -154,6 +162,16 @@ public class ParserTest {
     public void klassesTestHelper(List<Symbol> symbols, List<Klass<Position>> ks)
            throws Exception {
         assertEquals(program(l(), l(), ks, l()), parse(symbols));
+    }
+
+    public void globalTestHelper(List<Symbol> symbols, Global<Position> g)
+           throws Exception {
+        assertEquals(program(l(), l(g), l(), l()), parse(symbols));
+    }
+
+    public void globalsTestHelper(List<Symbol> symbols, List<Global<Position>> gs)
+           throws Exception {
+        assertEquals(program(l(), gs, l(), l()), parse(symbols));
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3139,6 +3157,57 @@ public class ParserTest {
             )
         );
         klassTestHelper(symbols, k);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Globals
+    /////////////////////////////////////////////////////////////////////////
+    // x: int
+    @Test
+    public void globalTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT)
+        );
+
+        Global<Position> g = decl(l(annotatedId(id("x"), num())));
+        globalTestHelper(symbols, g);
+    }
+
+    // x: int = 1
+    @Test
+    public void globalTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(EQ),
+            sym(NUM, 1L)
+        );
+
+        Global<Position> g = declAsgn(l(annotatedId(id("x"), num())), numLiteral(1L));
+        globalTestHelper(symbols, g);
+    }
+
+    // x: int
+    // y: bool
+    @Test
+    public void globalTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL)
+        );
+
+        List<Global<Position>> gs = l(
+            decl(l(annotatedId(id("x"), num()))),
+            decl(l(annotatedId(id("y"), bool())))
+        );
+        globalsTestHelper(symbols, gs);
     }
 
     //////////////////////////////////////////////////////////////////////////

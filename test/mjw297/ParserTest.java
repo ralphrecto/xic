@@ -2658,6 +2658,194 @@ public class ParserTest {
     }
 
     //////////////////////////////////////////////////////////////////////////
+    // Method Call Statments
+    /////////////////////////////////////////////////////////////////////////
+    // x.foo()
+    @Test
+    public void methodCallStmtTest0() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(id("x"), id("foo"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // 1.f()
+    @Test
+    public void methodCallStmtTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NUM, 1L),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(numLiteral(1L), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // "foo".f()
+    @Test
+    public void methodCallStmtTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(STRING, "foo"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(stringLiteral("foo"), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // true.f()
+    @Test
+    public void methodCallStmtTest3() throws Exception {
+        List<Symbol> symbols = l(
+            sym(TRUE),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(boolLiteral(true), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // foo().f()
+    @Test
+    public void methodCallStmtTest4() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(funcCall(id("foo"), l()), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // (1 + 1).f()
+    @Test
+    public void methodCallStmtTest5() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(PLUS),
+            sym(NUM, 2L),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(
+            binOp(BinOpCode.PLUS, numLiteral(1L), numLiteral(2L)),
+            id("f"),
+            l()
+        );
+        stmtTestHelper(symbols, s);
+    }
+
+    // x.f.f()
+    @Test
+    public void methodCallStmtTest6() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(
+            fieldAccess(id("x"), id("f")),
+            id("f"),
+            l()
+        );
+        stmtTestHelper(symbols, s);
+    }
+
+    // null.f()
+    @Test
+    public void methodCallStmtTest7() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NULL),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(nullLiteral(), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // new C.f()
+    @Test
+    public void methodCallStmtTest8() throws Exception {
+        List<Symbol> symbols = l(
+            sym(NEW),
+            sym(ID, "C"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(new_(id("C")), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // x.f().f()
+    @Test
+    public void methodCallStmtTest9() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(
+            methodCall(id("x"), id("f"), l()), id("f"), l());
+        stmtTestHelper(symbols, s);
+    }
+
+    // x.f(1, 2, 3)
+    @Test
+    public void methodCallStmtTest10() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(COMMA),
+            sym(NUM, 2L),
+            sym(COMMA),
+            sym(NUM, 3L),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(id("x"), id("f"), l(
+            numLiteral(1L),
+            numLiteral(2L),
+            numLiteral(3L)
+        ));
+        stmtTestHelper(symbols, s);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     // Testing Exceptions
     /////////////////////////////////////////////////////////////////////////
     // if (b) else _
@@ -2857,6 +3045,21 @@ public class ParserTest {
             sym(INT),
             sym(EQ),
             sym(NUM, 1L)
+        );
+
+        stmtErrorTestHelper(symbols);
+    }
+
+    // {}.foo()
+    @Test(expected=XicException.SyntaxException.class)
+    public void methodCallStmtErrorTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(DOT),
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN)
         );
 
         stmtErrorTestHelper(symbols);
@@ -3193,6 +3396,7 @@ public class ParserTest {
     // {{}
     // {1,,}
     // {,1,}
+    // new 1
     @Test
     public void invalidExprTest() throws Exception {
         List<List<Symbol>> ss = Arrays.asList(
@@ -3308,6 +3512,10 @@ public class ParserTest {
                 sym(COMMA),
                 sym(NUM, 1l),
                 sym(COMMA)
+            ),
+            Arrays.asList(
+                sym(NEW),
+                sym(NUM, 1l)
             )
         );
         for (List<Symbol> s : ss) {

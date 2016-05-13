@@ -2633,6 +2633,31 @@ public class ParserTest {
     }
 
     //////////////////////////////////////////////////////////////////////////
+    // Break
+    /////////////////////////////////////////////////////////////////////////
+    // break
+    @Test
+    public void breakTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(BREAK)
+        );
+        Stmt<Position> s = break_();
+        stmtTestHelper(symbols, s);
+    }
+
+    // break break break
+    @Test
+    public void breakTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(BREAK),
+            sym(BREAK),
+            sym(BREAK)
+        );
+        List<Stmt<Position>> ss = l(break_(), break_(), break_());
+        stmtsTestHelper(symbols, ss);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     // Testing Exceptions
     /////////////////////////////////////////////////////////////////////////
     // if (b) else _

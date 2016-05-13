@@ -416,6 +416,8 @@ stmt ::= full_decl_asgn:f
     {: RESULT = b; :}
     | method_call_stmt:m
     {: RESULT = m; :}
+    | BREAK:b
+    {: RESULT = Break.of(new Position(bleft, bright)); :}
     ;
 
 end_stmt ::=

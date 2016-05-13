@@ -2143,34 +2143,39 @@ public class ParserTest {
     }
 
     // foo(x: foo, y:bar): yolo, swag {}
-    // @Test
-    // public void classTypeTest1() throws Exception {
-        // List<Symbol> symbols = l(
-            // sym(ID, "foo"),
-            // sym(LPAREN),
-            // sym(ID, "x"),
-            // sym(COLON),
-            // sym(ID, "foo"),
-            // sym(COMMA),
-            // sym(ID, "y"),
-            // sym(COLON),
-            // sym(ID, "bar"),
-            // sym(RPAREN),
-            // sym(COLON),
-            // sym(ID, "yolo"),
-            // sym(COMMA),
-            // sym(ID, "swag"),
-            // sym(LBRACE),
-            // sym(RBRACE)
-        // )
+    @Test
+    public void classTypeTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(ID, "foo"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(ID, "bar"),
+            sym(RPAREN),
+            sym(COLON),
+            sym(ID, "yolo"),
+            sym(COMMA),
+            sym(ID, "swag"),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
 
-        // Program<Position> expected = program(
-            // l(),
-            // l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
-        // );
-        // assertEquals(expected, parse(symbols));
-        // exprs.put(syms, e);
-    // }
+        Program<Position> expected = program(
+            l(),
+            l(func(
+                id("foo"),
+                l(annotatedId(id("x"), klassType(id("foo"))),
+                  annotatedId(id("y"), klassType(id("bar")))),
+                l(klassType(id("yolo")), klassType(id("swag"))),
+                block(l(), Optional.empty())
+            ))
+        );
+        assertEquals(expected, parse(symbols));
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // MultiDecl

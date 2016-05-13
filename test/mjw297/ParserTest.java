@@ -3142,6 +3142,58 @@ public class ParserTest {
     }
 
     //////////////////////////////////////////////////////////////////////////
+    // Invalid Classes
+    /////////////////////////////////////////////////////////////////////////
+    // class A extends {}
+    @Test(expected=XicException.SyntaxException.class)
+    public void invalidClassTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(CLASS),
+            sym(ID, "A"),
+            sym(EXTENDS),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+        parse(symbols);
+    }
+
+    // class A extends B, C {}
+    @Test(expected=XicException.SyntaxException.class)
+    public void invalidClassTest2() throws Exception {
+        List<Symbol> symbols = l(
+            sym(CLASS),
+            sym(ID, "A"),
+            sym(EXTENDS),
+            sym(ID, "B"),
+            sym(COMMA),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+        parse(symbols);
+    }
+
+    // class A { x, y: int[1] }
+    @Test(expected=XicException.SyntaxException.class)
+    public void invalidClassTest3() throws Exception {
+        List<Symbol> symbols = l(
+            sym(CLASS),
+            sym(ID, "A"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(NUM, 1L),
+            sym(RBRACKET),
+            sym(RBRACE)
+        );
+        parse(symbols);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     // Testing Exceptions
     /////////////////////////////////////////////////////////////////////////
     // if (b) else _
@@ -3433,6 +3485,24 @@ public class ParserTest {
         );
         Expr<Position> e = id("dummy");
         exprTestHelper(symbols, e);
+    }
+
+    // foo(x, y: int) {}
+    @Test(expected=XicException.SyntaxException.class)
+    public void invalidFuncTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+        parse(symbols);
     }
 
     ////////////////////////////////////////////////////////////////////////////

@@ -264,7 +264,7 @@ public class ParserTest {
         List<Use<Position>> uses,
         List<Callable<Position>> fs
     ) {
-        return Program.of(PositionKiller.dummyPosition, uses, null, null, fs);
+        return Program.of(PositionKiller.dummyPosition, uses, l(), l(), fs);
     }
 
     public static Decl<Position> decl (
@@ -2117,6 +2117,56 @@ public class ParserTest {
         Expr<Position> e = methodCall(id("x"), id("f"), l());
         exprTestHelper(symbols, e);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Basic OOP Types
+    ////////////////////////////////////////////////////////////////////////////
+    // x:foo;
+    @Test
+    public void classTypeTest1() throws Exception {
+        List<Symbol> symbols = l(
+            sym(ID, "x"),
+            sym(COLON),
+            sym(ID, "foo")
+        );
+        Stmt<Position> s = decl(l(annotatedId(id("x"), klassType(id("foo")))));
+        stmtTestHelper(symbols, s);
+    }
+
+    // foo(x: foo, y:bar): yolo, swag {}
+    // @Test
+    // public void classTypeTest1() throws Exception {
+        // List<Symbol> symbols = l(
+            // sym(ID, "foo"),
+            // sym(LPAREN),
+            // sym(ID, "x"),
+            // sym(COLON),
+            // sym(ID, "foo"),
+            // sym(COMMA),
+            // sym(ID, "y"),
+            // sym(COLON),
+            // sym(ID, "bar"),
+            // sym(RPAREN),
+            // sym(COLON),
+            // sym(ID, "yolo"),
+            // sym(COMMA),
+            // sym(ID, "swag"),
+            // sym(LBRACE),
+            // sym(RBRACE)
+        // )
+
+        // Program<Position> expected = program(
+            // l(),
+            // l(proc(id("main"), l(), block(l(asgn(id("x"), e)), Optional.empty())))
+        // );
+        // assertEquals(expected, parse(symbols));
+        // exprs.put(syms, e);
+    // }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // MultiDecl
+    ////////////////////////////////////////////////////////////////////////////
+    // TODO
 
     ////////////////////////////////////////////////////////////////////////////
     // Field Access

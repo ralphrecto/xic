@@ -136,12 +136,11 @@ public class PositionKiller {
         }
         public Type<Position> visit(Array<Position> o) {
             Optional<Expr<Position>> size = o.size.map(e -> e.accept(new ExprKiller()));
-            Type<Position> t = o.t.accept(new TypeKiller());
+            Type<Position> t = o.t.accept(this);
             return Array.of(dummyPosition, t, size);
         }
         public Type<Position> visit(KlassType<Position> o) {
-            // TODO
-            return null;
+            return KlassType.of(dummyPosition, kill(o.name));
         }
     }
 
@@ -170,6 +169,20 @@ public class PositionKiller {
         }
     }
 
+    public static class GlobalKiller implements
+                        GlobalVisitor<Position, Global<Position>> {
+        public Global<Position> visit(Decl<Position> d) {
+            List<Var<Position>> vs =
+                Lists.transform(d.vs, v -> v.accept(new VarKiller()));
+            return Decl.of(dummyPosition, vs);
+        }
+        public Global<Position> visit(DeclAsgn<Position> d) {
+            List<Var<Position>> vs =
+                Lists.transform(d.vs, v -> v.accept(new VarKiller()));
+            return DeclAsgn.of(dummyPosition, vs, d.e.accept(new ExprKiller()));
+        }
+    }
+
     public static Id<Position> kill(Id<Position> i) {
         return Id.of(dummyPosition, i.x);
     }
@@ -178,11 +191,30 @@ public class PositionKiller {
         return Use.of(dummyPosition, kill(u.x));
     }
 
+    public static Klass<Position> kill(Klass<Position> k) {
+        AnnotatedVarKiller avk = new AnnotatedVarKiller();
+        CallableKiller ck = new CallableKiller();
+
+        Id<Position> name = kill(k.name);
+        Optional<Id<Position>> superclass = k.superclass.map(c -> kill(c));
+        List<AnnotatedId<Position>> fields = Lists.transform(k.fields, f -> {
+            AnnotatedVar<Position> av = f.accept(avk);
+            assert (av instanceof AnnotatedId<?>);
+            return (AnnotatedId<Position>) av;
+        });
+        List<Callable<Position>> methods = Lists.transform(k.methods, m -> m.accept(ck));
+        return Klass.of(dummyPosition, name, superclass, fields, methods);
+    }
+
     public static Program<Position> kill(Program<Position> p) {
         CallableKiller ck = new CallableKiller();
+        GlobalKiller gk = new GlobalKiller();
+
         List<Use<Position>> uses = Lists.transform(p.uses, PositionKiller::kill);
+        List<Global<Position>> globals = Lists.transform(p.globals, g -> g.accept(gk));
+        List<Klass<Position>> klasses = Lists.transform(p.classes, PositionKiller::kill);
         List<Callable<Position>> fs = Lists.transform(p.fs, c -> c.accept(ck));
-        // TODO
-        return Program.of(dummyPosition, uses, null, null, fs);
+
+        return Program.of(dummyPosition, uses, globals, klasses, fs);
     }
 }

@@ -146,6 +146,16 @@ public class ParserTest {
         assertEquals(program(l(), l(p)), parse(procSyms));
     }
 
+    public void klassTestHelper(List<Symbol> symbols, Klass<Position> k)
+           throws Exception {
+        assertEquals(program(l(), l(), l(k), l()), parse(symbols));
+    }
+
+    public void klassesTestHelper(List<Symbol> symbols, List<Klass<Position>> ks)
+           throws Exception {
+        assertEquals(program(l(), l(), ks, l()), parse(symbols));
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Abbreviations
     ////////////////////////////////////////////////////////////////////////////
@@ -2843,6 +2853,292 @@ public class ParserTest {
             numLiteral(3L)
         ));
         stmtTestHelper(symbols, s);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Classes
+    /////////////////////////////////////////////////////////////////////////
+    // class C {}
+    @Test
+    public void klassTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(id("C"), Optional.empty(), l(), l());
+        klassTestHelper(symbols, k);
+    }
+
+    // class C extends B {}
+    @Test
+    public void klassTest2() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(EXTENDS),
+            sym(ID, "B"),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(id("C"), Optional.of(id("B")), l(), l());
+        klassTestHelper(symbols, k);
+    }
+
+    // class C {x:int}
+    @Test
+    public void klassTest3() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.empty(),
+            l(annotatedId(id("x"), num())),
+            l()
+        );
+        klassTestHelper(symbols, k);
+    }
+
+    // class C {x:int y:bool}
+    @Test
+    public void klassTest4() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.empty(),
+            l(annotatedId(id("x"), num()), annotatedId(id("y"), bool())),
+            l()
+        );
+        klassTestHelper(symbols, k);
+    }
+
+    // class C {x, y: bool}
+    @Test
+    public void klassTest5() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.empty(),
+            l(annotatedId(id("x"), bool()), annotatedId(id("y"), bool())),
+            l()
+        );
+        klassTestHelper(symbols, k);
+    }
+
+    // class C { x:int foo() {} }
+    @Test
+    public void klassTest6() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.empty(),
+            l(annotatedId(id("x"), num())),
+            l(proc(id("foo"), l(), block(l(), Optional.empty())))
+        );
+        klassTestHelper(symbols, k);
+    }
+
+    // class C { x:int foo() : int {} }
+    @Test
+    public void klassTest7() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.empty(),
+            l(annotatedId(id("x"), num())),
+            l(func(id("foo"), l(), l(num()), block(l(), Optional.empty())))
+        );
+        klassTestHelper(symbols, k);
+    }
+
+    // class C extends B {
+    //     bar(x: int) : int {}
+    //     x, y: int
+    //     z: bool
+    //     bar(x: int) : int {}
+    //     a: int
+    //     foo() : int, bool {}
+    //     baz(x: int, y:bool) {}
+    //     b: int[]
+    // }
+    @Test
+    public void klassTest8() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(EXTENDS),
+            sym(ID, "B"),
+            sym(LBRACE),
+
+            sym(ID, "bar"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACE),
+            sym(RBRACE),
+
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(INT),
+
+            sym(ID, "z"),
+            sym(COLON),
+            sym(BOOL),
+
+            sym(ID, "bar"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACE),
+            sym(RBRACE),
+
+            sym(ID, "a"),
+            sym(COLON),
+            sym(INT),
+
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(BOOL),
+            sym(LBRACE),
+            sym(RBRACE),
+
+            sym(ID, "baz"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RPAREN),
+            sym(LBRACE),
+            sym(RBRACE),
+
+            sym(ID, "b"),
+            sym(COLON),
+            sym(INT),
+            sym(LBRACKET),
+            sym(RBRACKET),
+
+            sym(RBRACE)
+        );
+
+        Klass<Position> k = klass(
+            id("C"),
+            Optional.of(id("B")),
+            l(
+                annotatedId(id("x"), num()),
+                annotatedId(id("y"), num()),
+                annotatedId(id("z"), bool()),
+                annotatedId(id("a"), num()),
+                annotatedId(id("b"), array(num(), Optional.empty()))
+            ),
+            l(
+                func(
+                    id("bar"),
+                    l(annotatedId(id("x"), num())),
+                    l(num()),
+                    block(l(), Optional.empty())
+                ),
+                func(
+                    id("bar"),
+                    l(annotatedId(id("x"), num())),
+                    l(num()),
+                    block(l(), Optional.empty())
+                ),
+                func(
+                    id("foo"),
+                    l(),
+                    l(num(), bool()),
+                    block(l(), Optional.empty())
+                ),
+                proc(
+                    id("baz"),
+                    l(annotatedId(id("x"), num()), annotatedId(id("y"), bool())),
+                    block(l(), Optional.empty())
+                )
+            )
+        );
+        klassTestHelper(symbols, k);
     }
 
     //////////////////////////////////////////////////////////////////////////

@@ -127,8 +127,7 @@ terminal WHILE,     // while
          EXTENDS,   // extends
          NULL,      // null
          BREAK,     // break
-         NEW,       // new
-         THIS;      // this
+         NEW;       // new
 
 // Valued Terminals
 terminal String    STRING;  // "foo", "bar", ...,
@@ -446,8 +445,6 @@ expr_lhs_stmt ::= non_array_literal:l
     {: RESULT = c; :}
     | ID:id
     {: RESULT = Id.of(new Position(idleft, idright), id); :}
-    | THIS:t
-    {: RESULT = Id.of(new Position(tleft, tright), "this"); :}
     | expr_lhs_stmt:e DOT ID:fn
     {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
        RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);
@@ -713,8 +710,6 @@ non_literal_expr ::= binop:bop
     {: RESULT = c; :}
     | ID:id
     {: RESULT = Id.of(new Position(idleft, idright), id); :}
-    | THIS:t
-    {: RESULT = Id.of(new Position(tleft, tright), "this"); :}
     | expr:e DOT ID:fn
     {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
        RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);

@@ -75,8 +75,7 @@ terminal WHILE,     // while
          EXTENDS,   // extends
          NULL,      // null
          BREAK,     // break
-         NEW,       // new
-         THIS;      // this
+         NEW;       // new
 
 // Valued Terminals
 terminal String    STRING;  // "foo", "bar", ...,

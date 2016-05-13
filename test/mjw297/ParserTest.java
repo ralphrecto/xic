@@ -2380,6 +2380,19 @@ public class ParserTest {
         exprTestHelper(symbols, e);
     }
 
+    // {}.f
+    @Test
+    public void fieldAccessTest99() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(DOT),
+            sym(ID, "f")
+        );
+        Expr<Position> e = fieldAccess(arrayLiteral(l()), id("f"));
+        exprTestHelper(symbols, e);
+    }
+
     // x + y.f == x + (y.f)
     @Test
     public void fieldAccessTest10() throws Exception {
@@ -2559,6 +2572,21 @@ public class ParserTest {
             sym(RPAREN)
         );
         Expr<Position> e = methodCall(methodCall(id("x"), id("f"), l()), id("f"), l());
+        exprTestHelper(symbols, e);
+    }
+
+    // {}.f()
+    @Test
+    public void methodCallTest99() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(RPAREN)
+        );
+        Expr<Position> e = methodCall(arrayLiteral(l()), id("f"), l());
         exprTestHelper(symbols, e);
     }
 

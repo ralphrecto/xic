@@ -359,6 +359,70 @@ public class ParserTest {
         return ProcCall.of(PositionKiller.dummyPosition, f, args);
     }
 
+    public static Klass<Position> klass (
+        Id<Position> name,
+        Optional<Id<Position>> superclass,
+        List<AnnotatedId<Position>> fields,
+        List<Callable<Position>> methods
+    ) {
+        return Klass.of(PositionKiller.dummyPosition, name, superclass, fields,
+                        methods);
+    }
+
+    public static New<Position> new_(
+        Id<Position> c
+    ) {
+        return New.of(PositionKiller.dummyPosition, c);
+    }
+
+    public static FieldAccess<Position> fieldaccess(
+        Expr<Position> receiver,
+        Id<Position> field
+    ) {
+        return FieldAccess.of(PositionKiller.dummyPosition, receiver, field);
+    }
+
+    public static MethodCall<Position> methodcall(
+        Expr<Position> receiver,
+        Id<Position> methodName,
+        List<Expr<Position>> args
+    ) {
+        return MethodCall.of(PositionKiller.dummyPosition, receiver,
+                methodName, args);
+    }
+
+    public static NullLiteral<Position> nullliteral() {
+        return NullLiteral.of(PositionKiller.dummyPosition);
+    }
+
+    public static KlassDecl<Position> klassdecl(
+        Id<Position> name,
+        Optional<Id<Position>> superclass,
+        List<CallableDecl<Position>> methods
+    ) {
+        return KlassDecl.of(PositionKiller.dummyPosition, name, superclass,
+                methods);
+    }
+
+    public static MethodCallStmt<Position> methodcallstmt(
+        Expr<Position> receiver,
+        Id<Position> methodName,
+        List<Expr<Position>> args
+    ) {
+        return MethodCallStmt.of(PositionKiller.dummyPosition, receiver,
+                methodName, args);
+    }
+
+    public static Break<Position> break_() {
+        return Break.of(PositionKiller.dummyPosition);
+    }
+
+    public static KlassType<Position> klasstype(
+        Id<Position> name
+    ) {
+        return KlassType.of(PositionKiller.dummyPosition, name);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Simple Programs and Use Tests
     ////////////////////////////////////////////////////////////////////////////

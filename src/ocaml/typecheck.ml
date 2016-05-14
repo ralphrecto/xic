@@ -100,6 +100,25 @@ module Sigma = struct
 end
 open Sigma
 
+module KlassM = struct
+  type typ = 
+    | TInt
+    | TBool
+    | TArray of typ * Expr.t option
+    | TKlass of string
+  [@@deriving sexp]
+  type avar =
+    | AId of string * typ
+    | AUnderscore of typ
+  [@@deriving sexp]
+  type callable =
+    | Func of string * avar list * typ list * Stmt.t
+    | Proc of string * avar list * Stmt.t
+  [@@deriving sexp]
+  type t = Klass of string * string option * (string * typ) list * callable list
+  [@@deriving sexp]
+end
+
 module T = struct
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
@@ -178,6 +197,13 @@ module Context = struct
         | None -> c
       )
 end
+
+type contexts = {
+  vars          : context;
+  delta_m       : KlassM.t String.Map.t;
+  class_context : string option;
+  delta_i       : KlassM.t String.Map.t;
+}
 
 (******************************************************************************)
 (* helpers                                                                    *)

@@ -50,6 +50,22 @@ module Sigma: sig
     [@@deriving sexp]
 end
 
+module KlassM: sig
+  type typ = 
+    | TInt
+    | TBool
+    | TArray of typ * Expr.t option
+    | TKlass of string
+  type avar =
+    | AId of string * typ
+    | AUnderscore of typ
+  type callable =
+    | Func of string * avar list * typ list * Stmt.t
+    | Proc of string * avar list * Stmt.t
+  type t = Klass of string * string option * (string * typ) list * callable list
+  [@@deriving sexp]
+end
+
 module T: sig
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
@@ -104,6 +120,13 @@ module Context: sig
 
   val bind_all_avars: context -> avar list -> context
 end
+
+type contexts = {
+  vars          : context;
+  delta_m       : KlassM.t String.Map.t;
+  class_context : string option;
+  delta_i       : KlassM.t String.Map.t;
+}
 
 val expr_typecheck: context -> Pos.expr -> expr Error.result
 val typ_typecheck: context -> Pos.typ -> typ Error.result

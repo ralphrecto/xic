@@ -36,10 +36,10 @@ public class ParserTest {
     }
 
     @SuppressWarnings("deprecation")
-    private static Program<Position> interfaceparse(List<Symbol> symbols) throws Exception {
+    private static Interface<Position> interfaceparse(List<Symbol> symbols) throws Exception {
         MockLexer l = new MockLexer(symbols);
         InterfaceParser p = new InterfaceParser(l);
-        Program<Position> prog = p.parse().value();
+        Interface<Position> prog = p.parse().value();
         return PositionKiller.kill(prog);
     }
 

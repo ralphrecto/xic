@@ -206,6 +206,10 @@ public class PositionKiller {
         return Klass.of(dummyPosition, name, superclass, fields, methods);
     }
 
+    public static KlassDecl<Position> kill(KlassDecl<Position> k) {
+        // TODO
+    }
+
     public static Program<Position> kill(Program<Position> p) {
         CallableKiller ck = new CallableKiller();
         GlobalKiller gk = new GlobalKiller();
@@ -216,5 +220,17 @@ public class PositionKiller {
         List<Callable<Position>> fs = Lists.transform(p.fs, c -> c.accept(ck));
 
         return Program.of(dummyPosition, uses, globals, klasses, fs);
+    }
+
+
+    public static Interface<Position> kill(Interface<Position> p) {
+        CallableKiller ck = new CallableKiller();
+        GlobalKiller gk = new GlobalKiller();
+
+        List<Use<Position>> uses = Lists.transform(p.uses, PositionKiller::kill);
+        // List<Klass<Position>> klasses = Lists.transform(p.classes, PositionKiller::kill);
+        // List<Callable<Position>> fs = Lists.transform(p.fs, c -> c.accept(ck));
+
+        return Program.of(dummyPosition, uses, null, null);
     }
 }

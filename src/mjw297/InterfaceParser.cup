@@ -687,11 +687,11 @@ int_klass_contents ::=
     {: ArrayList<Object> kc = new ArrayList<Object>();
        RESULT = kc;
     :}
-    | klass_contents:kc int_func_decl:fd
+    | int_klass_contents:kc int_func_decl:fd
     {: kc.add(fd);
        RESULT = kc;
     :}
-    | klass_contents:kc int_proc_decl:pd
+    | int_klass_contents:kc int_proc_decl:pd
     {: kc.add(pd);
        RESULT = kc;
     :}
@@ -911,7 +911,7 @@ use_def_star ::=
 
 inter_content_star ::=
     {: RESULT = new ArrayList<>(); :}
-    inter_content_star:ic int_klass_decl:kc
+    | inter_content_star:ic int_klass_decl:kc
     {: ic.add(kc);
        RESULT = ic;
     :}

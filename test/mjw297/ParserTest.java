@@ -460,6 +460,29 @@ public class ParserTest {
         return KlassType.of(PositionKiller.dummyPosition, name);
     }
 
+    public static Interface<Position> interface_(
+        List<Use<Position>> uses,
+        List<KlassDecl<Position>> classes,
+        List<CallableDecl<Position>> fs
+    ) {
+        return Interface.of(PositionKiller.dummyPosition, uses, classes, fs);
+    }
+
+    public static FuncDecl<Position> funcDecl(
+        Id<Position> name,
+        List<AnnotatedVar<Position>> args,
+        List<Type<Position>> returnType
+    ) {
+        return FuncDecl.of(PositionKiller.dummyPosition, name, args, returnType);
+    }
+
+    public static ProcDecl<Position> procDecl(
+        Id<Position> name,
+        List<AnnotatedVar<Position>> args
+    ) {
+        return ProcDecl.of(PositionKiller.dummyPosition, name, args);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Simple Programs and Use Tests
     ////////////////////////////////////////////////////////////////////////////
@@ -3422,9 +3445,99 @@ public class ParserTest {
         assertEquals(p, parse(symbols));
     }
 
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+    // Interface
+    ////////////////////////////////////////////////////////////////////////////
+    // use foo
+    // use bar
+    //
+    // class B extends C {
+    //     foo()
+    //     bar(x: int, y: bool) : int
+    // }
+    //
+    // baz() : int, bool
+    //
+    // class D { }
+    @Test
+    public void interfaceTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(USE),
+            sym(ID, "foo"),
+            sym(USE),
+            sym(ID, "bar"),
+
+            sym(CLASS),
+            sym(ID, "B"),
+            sym(EXTENDS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(ID, "bar"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(RBRACE),
+
+            sym(ID, "baz"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(COLON),
+            sym(INT),
+            sym(COMMA),
+            sym(BOOL),
+
+            sym(CLASS),
+            sym(ID, "D"),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+
+        List<Use<Position>> uses = l(
+            use(id("foo")),
+            use(id("bar"))
+        );
+
+        List<KlassDecl<Position>> klasses = l(
+            klassDecl(
+                id("B"),
+                Optional.of(id("C")),
+                l(
+                    procDecl(id("foo"), l()),
+                    funcDecl(
+                        id("bar"),
+                        l(
+                            annotatedId(id("x"), num()),
+                            annotatedId(id("y"), bool())
+                        ),
+                        l(num())
+                    )
+                )
+            ),
+            klassDecl(id("D"), Optional.empty(), l())
+        );
+
+        List<CallableDecl<Position>> callables = l(
+            funcDecl(id("baz"), l(), l(num(), bool()))
+        );
+
+        Interface<Position> i = interface_(uses, klasses, callables);
+        assertEquals(i, interfaceparse(symbols));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     // Invalid Classes
-    /////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     // class A extends {}
     @Test(expected=XicException.SyntaxException.class)
     public void invalidClassTest1() throws Exception {

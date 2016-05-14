@@ -2873,6 +2873,55 @@ public class ParserTest {
         stmtTestHelper(symbols, s);
     }
 
+
+    // ({new C, new D, new E})[0].f(1, 2, 3)
+    @Test
+    public void methodCallStmtTest11() throws Exception {
+        List<Symbol> symbols = l(
+            sym(LPAREN),
+            sym(LBRACE),
+            sym(NEW),
+            sym(ID, "C"),
+            sym(COMMA),
+            sym(NEW),
+            sym(ID, "D"),
+            sym(COMMA),
+            sym(NEW),
+            sym(ID, "E"),
+            sym(RBRACE),
+            sym(RPAREN),
+            sym(LBRACKET),
+            sym(NUM, 0L),
+            sym(RBRACKET),
+            sym(DOT),
+            sym(ID, "f"),
+            sym(LPAREN),
+            sym(NUM, 1L),
+            sym(COMMA),
+            sym(NUM, 2L),
+            sym(COMMA),
+            sym(NUM, 3L),
+            sym(RPAREN)
+        );
+        Stmt<Position> s = methodCallStmt(
+          index(
+            arrayLiteral(Arrays.asList(
+              new_(id("C")),
+              new_(id("D")),
+              new_(id("E"))
+            )),
+            numLiteral(0L)
+          ),
+          id("f"),
+          l(
+            numLiteral(1L),
+            numLiteral(2L),
+            numLiteral(3L)
+          )
+        );
+        stmtTestHelper(symbols, s);
+    }
+
     //////////////////////////////////////////////////////////////////////////
     // Classes
     /////////////////////////////////////////////////////////////////////////

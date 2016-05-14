@@ -23,13 +23,113 @@ parser code {:
     public void unrecovered_syntax_error(Symbol sym) throws SyntaxException {
         throw new SyntaxException(sym.left, sym.right, SymUtil.symToLiteral(sym));
     }
-:}
 
+    @SuppressWarnings("unchecked")
+    public Klass<Position> genKlass(
+        Id<Position> name, Optional<Id<Position>> superclass,
+        ArrayList<Object> klassContents
+    ) throws SyntaxException {
+
+      List<AnnotatedId<Position>> fields = new ArrayList<>();
+      List<Callable<Position>> methods = new ArrayList<>();
+      for (Object content : klassContents) {
+           if (content instanceof AnnotatedVar<?>) {
+               AnnotatedId<Position> c = (AnnotatedId<Position>) content;
+               fields.add(c);
+           } else if ( content instanceof Func<?> || content instanceof Proc<?>) {
+               Callable<Position> c = (Callable<Position>) content;
+               methods.add(c);
+           } else {
+               report_fatal_error(
+                   "Class declarations can only include fields or methods",
+                   null
+               );
+           }
+      }
+
+      return Klass.of(name.a, name, superclass, fields, methods);
+    }
+
+    @SuppressWarnings("unchecked")
+    public KlassDecl<Position> genKlassInterface(
+        Id<Position> name, Optional<Id<Position>> superclass,
+        ArrayList<Object> klassInterfaceContents
+    ) throws SyntaxException {
+
+      List<CallableDecl<Position>> methods = new ArrayList<>();
+      for (Object content : klassInterfaceContents) {
+           if (content instanceof FuncDecl<?> || content instanceof ProcDecl<?>) {
+               CallableDecl<Position> c = (CallableDecl<Position>) content;
+               methods.add(c);
+           } else {
+               report_fatal_error(
+                   "Class declarations in interfaces can only include methods",
+                   null
+               );
+           }
+      }
+
+      return KlassDecl.of(name.a, name, superclass, methods);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Program<Position> genProgram(
+        Position p, List<Use<Position>> uses, List<Object> progContents
+    ) throws SyntaxException {
+
+        List<Global<Position>> globals = new ArrayList<>();
+        List<Klass<Position>> classes = new ArrayList<>();
+        List<Callable<Position>> calls = new ArrayList<>();
+        for (Object content: progContents) {
+            if (content instanceof Decl<?>) {
+                Decl<Position> d = (Decl<Position>) content;
+                globals.add(d);
+            } else if (content instanceof DeclAsgn<?>) {
+                DeclAsgn<Position> d = (DeclAsgn<Position>) content;
+                globals.add(d);
+            } else if (content instanceof Klass<?>) {
+                Klass<Position> k = (Klass<Position>) content;
+                classes.add(k);
+            } else if (content instanceof Callable<?>) {
+                Callable<Position> k = (Callable<Position>) content;
+                calls.add(k);
+            } else {
+               report_fatal_error(
+                   "Program can only include interface, global, class and function declarations",
+                   null
+               );
+            }
+        }
+        return Program.of(p, uses, globals, classes, calls);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Interface<Position> genInterface(
+        Position p, List<Use<Position>> uses, List<Object> interfaceContents
+    ) throws SyntaxException {
+        List<KlassDecl<Position>> classDecls = new ArrayList<>();
+        List<CallableDecl<Position>> callDecls = new ArrayList<>();
+        for (Object content : interfaceContents) {
+            if (content instanceof KlassDecl<?>) {
+                KlassDecl<Position> k = (KlassDecl<Position>) content;
+                classDecls.add(k);
+            } else if (content instanceof CallableDecl<?>) {
+                CallableDecl<Position> k = (CallableDecl<Position>) content;
+                callDecls.add(k);
+            } else {
+               report_fatal_error(
+                   "Interface can only include class and function declarations",
+                   null
+               );
+            }
+        }
+        return Interface.of(p, uses, classDecls, callDecls);
+    }
+:}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals
 ////////////////////////////////////////////////////////////////////////////////
-// Symbols
 terminal MINUS,      // -
          BANG,       // !
          STAR,       // *
@@ -120,14 +220,13 @@ terminal      BIG_NUM; // 9223372036854775808
 ////////////////////////////////////////////////////////////////////////////////
 // Nonterminals
 ////////////////////////////////////////////////////////////////////////////////
-
 // types and variables
 nonterminal Type<Position>
     base_type,
     type;
 
 nonterminal AnnotatedVar<Position>
-    avar;
+    single_avar;
 
 nonterminal Var<Position>
     var;
@@ -148,6 +247,7 @@ nonterminal Expr<Position>
 
 nonterminal Stmt<Position>
     full_decl,
+    full_decl_asgn,
     full_stmt,
     stmt,
     asgn,
@@ -161,11 +261,18 @@ nonterminal FuncCall<Position>
 nonterminal ProcCall<Position>
     proc_call;
 
+nonterminal Expr<Position>
+    expr_lhs_stmt;
+
+nonterminal MethodCallStmt<Position>
+    method_call_stmt;
+
 nonterminal ArrayList<Expr<Position>>
     args_call;
 
 // functions and procedures
 nonterminal ArrayList<AnnotatedVar<Position>>
+    multi_decl,
     args_decl;
 
 nonterminal ArrayList<Expr<Position>>
@@ -185,24 +292,29 @@ nonterminal CallableDecl<Position>
 nonterminal CallableDecl<Position>
     callable_decl;
 
+// classes
+nonterminal ArrayList<Object>
+    klass_contents,
+    int_klass_contents;
+
+nonterminal Klass<Position>
+    klass_decl;
+
+nonterminal KlassDecl<Position>
+    int_klass_decl;
+
 // programs
 nonterminal Use<Position>
     use_def;
 
-nonterminal Callable<Position>
-    func_def;
-
 nonterminal ArrayList<Use<Position>>
     use_def_star;
-
-nonterminal ArrayList<Callable<Position>>
-    func_def_plus;
 
 nonterminal ArrayList<CallableDecl<Position>>
     callable_decl_plus;
 
 nonterminal XiFile<Position>
-    prog;
+    inter;
 
 nonterminal Expr<Position>
     binop,
@@ -210,8 +322,10 @@ nonterminal Expr<Position>
 
 // expressions
 nonterminal Expr<Position>
-    expr,
-    literal;
+    non_array_literal,
+    array_literal,
+    non_literal_expr,
+    expr;
 
 nonterminal Expr<Position>
     index_contents;
@@ -222,12 +336,18 @@ nonterminal ArrayList<Expr<Position>>
     array_index_plus;
 
 // various lists
+nonterminal ArrayList<Object>
+    inter_content_star;
+
+nonterminal ArrayList<Id<Position>>
+    id_two_plus;
+
 nonterminal ArrayList<Expr<Position>>
     expr_star,
     expr_plus;
 
 nonterminal ArrayList<AnnotatedVar<Position>>
-    avar_plus;
+    single_avar_plus;
 
 nonterminal ArrayList<Var<Position>>
     var_plus;
@@ -241,7 +361,6 @@ nonterminal ArrayList<Stmt<Position>>
 ////////////////////////////////////////////////////////////////////////////////
 // Precedence
 ////////////////////////////////////////////////////////////////////////////////
-
 precedence nonassoc ID;
 precedence nonassoc ELSE;
 precedence nonassoc SEMICOLON;
@@ -254,20 +373,28 @@ precedence left GT, GTE, LT, LTE;
 precedence left PLUS, MINUS;
 precedence left STAR, DIV, MOD, HIGHMULT;
 precedence nonassoc BANG, UMINUS;
+precedence left DOT;
+precedence nonassoc NEW;
 precedence left LBRACKET, RBRACKET;
+precedence left LPAREN;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Grammar
 ////////////////////////////////////////////////////////////////////////////////
 
-start with prog;
+start with inter;
 
-// Types and variables --SH
+// Types and variables
 
 base_type ::= INT:i
     {: RESULT = Int.of(new Position(ileft, iright)); :}
     | BOOL:b
     {: RESULT = Bool.of(new Position(bleft, bright)); :}
+    | ID:id
+    {: Position pos = new Position(idleft, idright);
+       Id<Position> className = Id.of(pos, id);
+       RESULT = KlassType.of(pos, className);
+    :}
     ;
 
 type ::= base_type:bt
@@ -276,43 +403,54 @@ type ::= base_type:bt
     {: RESULT = Array.of(new Position(tleft, tright), t, Optional.empty()); :}
     ;
 
-avar ::= ID:id COLON type:t
+single_avar ::= ID:id COLON type:t
     {: Position p = new Position(idleft, idright);
-       RESULT = AnnotatedId.of(p, Id.of(p, id), t); :}
+       RESULT = AnnotatedId.of(p, Id.of(p, id), t);
+    :}
     | UNDERSCORE:u COLON type:t
     {: Position p = new Position(uleft, uright);
-       RESULT = AnnotatedUnderscore.of(p, Underscore.of(p), t); :}
+           RESULT = AnnotatedUnderscore.of(p, Underscore.of(p), t);
+    :}
     ;
 
-var ::= avar:av
-    {: RESULT = av; :}
+multi_decl ::= id_two_plus:itp COLON type:t
+    {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
+       for (Id<Position> idObj : itp){
+           AnnotatedId<Position> aId = AnnotatedId.of(idObj.a, idObj, t);
+           list.add(aId);
+       }
+       RESULT = list;
+    :}
+    ;
+
+var ::= single_avar:sa
+    {: RESULT = sa; :}
     | UNDERSCORE:u
     {: RESULT = Underscore.of(new Position(uleft, uright)); :}
     | ID:id COLON base_type:bt array_index_plus:e_lst
     {: Position p = new Position(idleft, idright);
        Position pArray = new Position(btleft, btright);
-       Expr<Position> first = e_lst.get(e_lst.size() - 1);
-       Type<Position> array_type = Array.of(
-            pArray,
-            bt,
-            first == null ? Optional.empty() : Optional.of(first)
+           Expr<Position> first = e_lst.get(e_lst.size() - 1);
+           Type<Position> array_type = Array.of(
+                pArray,
+                bt,
+                first == null ? Optional.empty() : Optional.of(first)
        );
-       for (int i = e_lst.size() - 2; i >= 0; i--) {
-           Expr<Position> current = e_lst.get(i);
+           for (int i = e_lst.size() - 2; i >= 0; i--) {
+               Expr<Position> current = e_lst.get(i);
            array_type = Array.of(
                 pArray,
                 array_type,
                 current == null ? Optional.empty() : Optional.of(current)
            );
-       }
-       RESULT = AnnotatedId.of(p, Id.of(p, id), array_type);
+           }
+           RESULT = AnnotatedId.of(p, Id.of(p, id), array_type);
     :}
     ;
 
+// Statements
 
-// Statements --RR
-
-stmt ::= full_decl:f
+stmt ::= full_decl_asgn:f
     {: RESULT = f; :}
     | asgn:a
     {: RESULT = a; :}
@@ -324,6 +462,10 @@ stmt ::= full_decl:f
     {: RESULT = c; :}
     | block:b
     {: RESULT = b; :}
+    | method_call_stmt:m
+    {: RESULT = m; :}
+    | BREAK:b
+    {: RESULT = Break.of(new Position(bleft, bright)); :}
     ;
 
 end_stmt ::=
@@ -332,6 +474,39 @@ end_stmt ::=
 
 full_stmt ::= stmt:s end_stmt
     {: RESULT = s; :};
+
+/* possible exprs on LHS of stmts. these are not all
+ * exprs because array literals and blocks both begin with {,
+ * so doing so introduces ambiguities in the grammar. */
+expr_lhs_stmt ::= non_array_literal:l
+    {: RESULT = l; :}
+    | expr_lhs_stmt:e1 num_array_index_plus:e_lst
+    {: Position p = new Position(e1left, e1right);
+       Expr<Position> exp = Index.of(p, e1, e_lst.get(0));
+       for (int i = 1; i < e_lst.size(); i++) {
+           exp = Index.of(p, exp, e_lst.get(i));
+       }
+       RESULT = exp;
+    :}
+    | LPAREN:l expr:e RPAREN
+    {: RESULT = e; :}
+    | func_call:c
+    {: RESULT = c; :}
+    | ID:id
+    {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    | expr_lhs_stmt:e DOT ID:fn
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);
+    :}
+    | expr_lhs_stmt:e DOT ID:fn args_call:args
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCall.of(new Position(eleft, argsright), e, field, args);
+    :}
+    | NEW:n ID:cn
+    {: Id<Position> className = Id.of(new Position(cnleft, cnright), cn);
+       RESULT = New.of(new Position(nleft, cnright), className);
+    :}
+    ;
 
 block ::= LBRACE:lb stmt_star:s RBRACE
     {: Position p = new Position(lbleft, lbright);
@@ -343,8 +518,19 @@ block ::= LBRACE:lb stmt_star:s RBRACE
        RESULT = Block.of(p, s, Optional.of(el), ret_p); :}
     ;
 
-full_decl ::= var_plus:v
+full_decl ::= multi_decl:md
+    {: ArrayList<Var<Position>> lst = new ArrayList<>();
+       for (AnnotatedVar<Position> mdObj : md){
+          lst.add((Var<Position>) mdObj);
+       }
+       RESULT = Decl.of(new Position(mdleft, mdright), lst);
+    :}
+    | var_plus:v
     {: RESULT = Decl.of(new Position(vleft, vright), v); :}
+    ;
+
+full_decl_asgn ::= full_decl:fd
+    {: RESULT = fd; :}
     | var_plus:v EQ expr:e
     {: RESULT = DeclAsgn.of(new Position(vleft, vright), v, e); :}
     ;
@@ -360,7 +546,7 @@ asgn_indexable ::= ID:i
 asgn ::= ID:i EQ expr:e
     {: Position p = new Position(ileft, iright);
        RESULT = Asgn.of(p, Id.of(p,i), e); :}
-    | asgn_indexable:a num_array_index_plus:idx EQ expr:e
+    | expr_lhs_stmt:a num_array_index_plus:idx EQ expr:e
     {: Position p = new Position(aleft, aright);
        Index<Position> index = Index.of(p, a, idx.get(0));
        for (int i = 1; i < idx.size(); i++){
@@ -410,12 +596,18 @@ proc_call ::= ID:i args_call:a
        RESULT = ProcCall.of(p, Id.of(p, i), a); :}
     ;
 
+method_call_stmt ::= expr_lhs_stmt:receiver DOT ID:fn args_call:args
+    {: Position pos = new Position(receiverleft, argsright);
+       Id<Position> methodName = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCallStmt.of(pos, receiver, methodName, args);
+    :}
+    ;
 
-// Functions and procedures --AM
+// Functions and procedures
 
 args_decl ::= LPAREN RPAREN
     {: RESULT = new ArrayList<AnnotatedVar<Position>>(); :}
-    | LPAREN avar_plus:a RPAREN
+    | LPAREN single_avar_plus:a RPAREN
     {: RESULT = a; :}
     ;
 
@@ -439,6 +631,44 @@ func_decl ::= ID:f args_decl:a COLON type_plus:t block:b
     ;
 
 
+// Classes
+
+klass_contents ::=
+    {: ArrayList<Object> kc = new ArrayList<Object>();
+       RESULT = kc;
+    :}
+    | klass_contents:kc single_avar_plus:sap
+    {: for (AnnotatedVar<Position> saObj : sap){
+           kc.add(saObj);
+       }
+       RESULT = kc;
+    :}
+    | klass_contents:kc multi_decl:md
+    {: for (AnnotatedVar<Position> mdObj : md){
+           kc.add(mdObj);
+       }
+       RESULT = kc;
+    :}
+    | klass_contents:kc func_decl:fd
+    {: kc.add(fd);
+       RESULT = kc;
+    :}
+    | klass_contents:kc proc_decl:pd
+    {: kc.add(pd);
+       RESULT = kc;
+    :}
+    ;
+
+klass_decl ::= CLASS ID:name LBRACE klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       RESULT = genKlass(nameObj, Optional.empty(), kc); :}
+    | CLASS ID:name EXTENDS ID:supern LBRACE klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       Id<Position> supernObj = Id.of(new Position(supernleft, supernright), supern);
+       RESULT = genKlass(nameObj, Optional.of(supernObj), kc); :}
+    ;
+
+
 // Interface files
 
 int_proc_decl ::= ID:i args_decl:a end_stmt
@@ -453,65 +683,55 @@ int_func_decl ::= ID:f args_decl:a COLON type_plus:t end_stmt
     :}
     ;
 
-callable_decl ::= int_proc_decl:p
-    {: RESULT = p; :}
-    | int_func_decl:f
-    {: RESULT = f; :}
+int_klass_contents ::=
+    {: ArrayList<Object> kc = new ArrayList<Object>();
+       RESULT = kc;
+    :}
+    | klass_contents:kc int_func_decl:fd
+    {: kc.add(fd);
+       RESULT = kc;
+    :}
+    | klass_contents:kc int_proc_decl:pd
+    {: kc.add(pd);
+       RESULT = kc;
+    :}
     ;
 
-callable_decl_plus ::= callable_decl:c
-    {: ArrayList<CallableDecl<Position>> cl = new ArrayList<>();
-       cl.add(c);
-       RESULT = cl; :}
-    | callable_decl_plus:cl callable_decl:c
-    {: cl.add(c);
-       RESULT = cl; :}
+int_klass_decl ::= CLASS ID:name LBRACE int_klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       RESULT = genKlassInterface(nameObj, Optional.empty(), kc);
+    :}
+    | CLASS ID:name EXTENDS ID:supern LBRACE int_klass_contents:kc RBRACE
+    {: Id<Position> nameObj = Id.of(new Position(nameleft, nameright), name);
+       Id<Position> supernObj = Id.of(new Position(supernleft, supernright), supern);
+       RESULT = genKlassInterface(nameObj, Optional.of(supernObj), kc);
+    :}
     ;
 
-// Programs (and Interfaces) --AM
+// Programs (and Interfaces)
 
 use_def ::= USE:u ID:x end_stmt
     {: Position p = new Position(uleft, uright);
        Position pId = new Position(xleft, xright);
-       RESULT = Use.of(p, Id.of(pId, x)); :}
-    ;
-
-func_def ::= func_decl:f
-    {: RESULT = f; :}
-    | proc_decl:p
-    {: RESULT = p; :}
-    ;
-
-use_def_star ::=
-    {: RESULT = new ArrayList<Use<Position>>(); :}
-    | use_def_star:us use_def:u
-    {: us.add(u);
-       RESULT = us;
+       RESULT = Use.of(p, Id.of(pId, x));
     :}
     ;
 
-func_def_plus ::= func_def:f
-    {: ArrayList<Callable<Position>> list = new ArrayList<>();
-       list.add(f);
-       RESULT = list;
-    :}
-    | func_def_plus:fs func_def:f
-    {: fs.add(f);
-       RESULT = fs;
-    :}
+inter ::= use_def_star:u inter_content_star:ic
+    {: RESULT = genInterface(new Position(uleft, icright), u, ic); :}
     ;
-
-prog ::= callable_decl_plus:cs
-    {: System.out.println("interface prog");
-       RESULT = Interface.of(new Position(csleft, csright), null /* TODO */, cs); :}
-    ;
-
 
 // Expressions --SH
 
-expr ::= literal:l
-    {: RESULT = l; :}
-    | binop:bop
+expr ::= non_array_literal:lit
+    {: RESULT = lit; :}
+    | array_literal:lit
+    {: RESULT = lit; :}
+    | non_literal_expr:e
+    {: RESULT = e; :}
+    ;
+
+non_literal_expr ::= binop:bop
     {: RESULT = bop; :}
     | unop:uop
     {: RESULT = uop; :}
@@ -531,6 +751,40 @@ expr ::= literal:l
     {: RESULT = c; :}
     | ID:id
     {: RESULT = Id.of(new Position(idleft, idright), id); :}
+    | expr:e DOT ID:fn
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = FieldAccess.of(new Position(eleft, fnright), e, field);
+    :}
+    | expr:e DOT ID:fn args_call:args
+    {: Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
+       RESULT = MethodCall.of(new Position(eleft, argsright), e, field, args);
+    :}
+    | NEW:n ID:cn
+    {: Id<Position> className = Id.of(new Position(cnleft, cnright), cn);
+       RESULT = New.of(new Position(nleft, cnright), className);
+    :}
+    ;
+
+non_array_literal ::= NUM:n
+    {: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
+    | MINUS:m BIG_NUM:n
+    {: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
+    | STRING:s
+    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
+    | CHAR:c
+    {: RESULT = CharLiteral.of(new Position(cleft, cright), c); :}
+    | TRUE:b
+    {: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
+    | FALSE:b
+    {: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
+    | NULL:n
+    {: RESULT = NullLiteral.of(new Position(nleft, nright)); :}
+    ;
+
+array_literal ::= LBRACE:l expr_star:e RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
+    | LBRACE:l expr_plus:e COMMA RBRACE
+    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
     ;
 
 empty_array_index_star ::=
@@ -544,10 +798,12 @@ empty_array_index_star ::=
 num_array_index_plus ::= LBRACKET expr:e RBRACKET
     {: ArrayList<Expr<Position>> list = new ArrayList<>();
        list.add(e);
-       RESULT = list; :}
+       RESULT = list;
+    :}
     | num_array_index_plus:e_lst LBRACKET expr:e RBRACKET
     {: e_lst.add(e);
-       RESULT = e_lst; :}
+       RESULT = e_lst;
+    :}
     ;
 
 index_contents ::=
@@ -559,7 +815,8 @@ index_contents ::=
 array_index_plus ::= LBRACKET index_contents:e RBRACKET
     {: ArrayList<Expr<Position>> indexList = new ArrayList<>();
        indexList.add(e);
-       RESULT = indexList; :}
+       RESULT = indexList;
+    :}
     | array_index_plus:a LBRACKET index_contents:e RBRACKET
     {: if (e != null && a.get(a.size() - 1) == null) {
            report_fatal_error(String.format(
@@ -573,79 +830,118 @@ array_index_plus ::= LBRACKET index_contents:e RBRACKET
     :}
     ;
 
-
-literal ::= NUM:n
-    {: RESULT = NumLiteral.of(new Position(nleft, nright), n); :}
-    | MINUS:m BIG_NUM:n
-    {: RESULT = NumLiteral.of(new Position(mleft, mright), Long.MIN_VALUE); :}
-    | STRING:s
-    {: RESULT = StringLiteral.of(new Position(sleft, sright), s); :}
-    | CHAR:c
-    {: RESULT = CharLiteral.of(new Position(cleft, cright), c); :}
-    | TRUE:b
-    {: RESULT = BoolLiteral.of(new Position(bleft, bright), true); :}
-    | FALSE:b
-    {: RESULT = BoolLiteral.of(new Position(bleft, bright), false); :}
-    | LBRACE:l expr_star:e RBRACE
-    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
-    | LBRACE:l expr_plus:e COMMA RBRACE
-    {: RESULT = ArrayLiteral.of(new Position(lleft, lright), e); :}
-    ;
-
 binop ::= expr:e1 MINUS expr:e2
     {: Position p = new Position(e1left, e2right);
-       RESULT = BinOp.of(p, BinOpCode.MINUS, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.MINUS, e1, e2);
+    :}
     | expr:e1 STAR expr:e2
     {: Position p = new Position(e1left, e2right);
-       RESULT = BinOp.of(p, BinOpCode.STAR, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.STAR, e1, e2);
+    :}
     | expr:e1 HIGHMULT expr:e2
     {: Position p = new Position(e1left, e2right);
-       RESULT = BinOp.of(p, BinOpCode.HIGHMULT, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.HIGHMULT, e1, e2);
+    :}
     | expr:e1 DIV expr:e2
     {: Position p = new Position(e1left, e2right);
-       RESULT = BinOp.of(p, BinOpCode.DIV, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.DIV, e1, e2);
+    :}
     | expr:e1 MOD expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.MOD, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.MOD, e1, e2);
+    :}
     | expr:e1 PLUS expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.PLUS, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.PLUS, e1, e2);
+    :}
     | expr:e1 LT expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.LT, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.LT, e1, e2);
+    :}
     | expr:e1 LTE expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.LTE, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.LTE, e1, e2);
+    :}
     | expr:e1 GTE expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.GTE, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.GTE, e1, e2);
+    :}
     | expr:e1 GT expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.GT, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.GT, e1, e2);
+    :}
     | expr:e1 EQEQ expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.EQEQ, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.EQEQ, e1, e2);
+    :}
     | expr:e1 NEQ expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.NEQ, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.NEQ, e1, e2);
+    :}
     | expr:e1 AMP expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.AMP, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.AMP, e1, e2);
+    :}
     | expr:e1 BAR expr:e2
     {: Position p = new Position(e1left, e1right);
-       RESULT = BinOp.of(p, BinOpCode.BAR, e1, e2); :}
+       RESULT = BinOp.of(p, BinOpCode.BAR, e1, e2);
+    :}
     ;
 
 unop ::= BANG:b expr:e
     {: Position p = new Position(bleft, bright);
-      RESULT = UnOp.of(p, UnOpCode.BANG, e); :} %prec UMINUS
+      RESULT = UnOp.of(p, UnOpCode.BANG, e);
+    :} %prec UMINUS
     | MINUS:u expr:e
     {: Position p = new Position(uleft, uright);
-       RESULT = UnOp.of(p, UnOpCode.UMINUS, e); :} %prec UMINUS
+       RESULT = UnOp.of(p, UnOpCode.UMINUS, e);
+    :} %prec UMINUS
     ;
 
 
-// Various lists --SH
+// Various lists
+
+use_def_star ::=
+    {: RESULT = new ArrayList<Use<Position>>(); :}
+    | use_def_star:us use_def:u
+    {: us.add(u);
+       RESULT = us;
+    :}
+    ;
+
+inter_content_star ::=
+    {: RESULT = new ArrayList<>(); :}
+    inter_content_star:ic int_klass_decl:kc
+    {: ic.add(kc);
+       RESULT = ic;
+    :}
+    | inter_content_star:ic int_func_decl:fc
+    {: ic.add(fc);
+       RESULT = ic;
+    :}
+    | inter_content_star:ic int_proc_decl:pc
+    {: ic.add(pc);
+       RESULT = ic;
+    :}
+    ;
+
+id_two_plus ::= ID:id1 COMMA ID:id2
+    {: ArrayList<Id<Position>> lst = new ArrayList<>();
+       Position p1 = new Position(id1left, id1right);
+       Id<Position> id1Obj = Id.of(p1, id1);
+       Position p2 = new Position(id2left, id2right);
+       Id<Position> id2Obj = Id.of(p2, id2);
+       lst.add(id1Obj);
+       lst.add(id2Obj);
+       RESULT = lst;
+    :}
+    | id_two_plus:itp COMMA ID:id
+    {: Position p = new Position(idleft, idright);
+       Id<Position> idObj = Id.of(p, id);
+       itp.add(idObj);
+       RESULT = itp;
+    :}
+    ;
 
 expr_star ::=
     {: RESULT = new ArrayList<Expr<Position>>(); :}
@@ -656,43 +952,51 @@ expr_star ::=
 expr_plus ::= expr:e
     {: ArrayList<Expr<Position>> list = new ArrayList<>();
        list.add(e);
-       RESULT = list; :}
+       RESULT = list;
+    :}
     | expr_plus:e_lst COMMA expr:e
     {: e_lst.add(e);
        RESULT = e_lst;
     :}
     ;
 
-avar_plus ::= avar:av
+single_avar_plus ::= single_avar:av
     {: ArrayList<AnnotatedVar<Position>> list = new ArrayList<>();
        list.add(av);
-       RESULT = list; :}
-    | avar_plus:a_lst COMMA avar:av
+       RESULT = list;
+    :}
+    | single_avar_plus:a_lst COMMA single_avar:av
     {: a_lst.add(av);
-       RESULT = a_lst; :}
+       RESULT = a_lst;
+    :}
     ;
 
 var_plus ::= var:v
     {: ArrayList<Var<Position>> list = new ArrayList<>();
        list.add(v);
-       RESULT = list; :}
+       RESULT = list;
+    :}
     | var_plus:v_lst COMMA var:v
     {: v_lst.add(v);
-       RESULT = v_lst; :}
+       RESULT = v_lst;
+    :}
     ;
 
 type_plus ::= type:t
     {: ArrayList<Type<Position>> list = new ArrayList<>();
        list.add(t);
-       RESULT = list; :}
+       RESULT = list;
+    :}
     | type_plus:t_lst COMMA type:t
     {: t_lst.add(t);
-       RESULT = t_lst; :}
+       RESULT = t_lst;
+    :}
     ;
 
 stmt_star ::=
     {: RESULT = new ArrayList<Stmt<Position>>(); :}
     | stmt_star:s_lst full_stmt:s
     {: s_lst.add(s);
-       RESULT = s_lst; :}
+       RESULT = s_lst;
+    :}
     ;

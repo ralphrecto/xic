@@ -703,6 +703,7 @@ public interface Ast {
     @ToString(includeFieldNames=false)
     public final class Interface<A> implements XiFile<A> {
         public final A a;
+        public final List<Use<A>> uses;
         public final List<KlassDecl<A>> classes;
         public final List<CallableDecl<A>> fs;
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }

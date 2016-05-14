@@ -22,6 +22,7 @@
 \newcommand{\tvar}[1]{\key{var}\ #1}
 \newcommand{\tret}[1]{\key{ret}\ #1}
 \newcommand{\tfn}[1]{\key{fn}\ #1}
+\newcommand{\tbrack}[1]{\key{[}#1\key{]}}
 
 \newcommand{\xlength}[1]{\meta{length(}#1\meta{)}}
 \newcommand{\xarr}[1]{\meta{\{}#1\meta{\}}}
@@ -43,6 +44,7 @@
 \newcommand{\conts}[1][]{\Gamma{#1}; \Delta_m; \Delta_i; \gamma; \lambda; \rho}
 \newcommand{\typed}[3][]{\conts[#1] \vdash \typ{#2}{#3}}
 \newcommand{\lval}[1]{#1\ \meta{lvalue}}
+\newcommand{\ok}{\meta{ok}}
 
 \begin{document}
 \maketitle
@@ -53,7 +55,6 @@
     \tau & ::= & \tint \\
          & |   & \tbool \\
          & |   & \tclass \\
-         & |   & \tarr{\tau} \\
          & |   & \tempty \\
          & |   & \tnull \\
          & |   & \tarr{\tau}
@@ -311,6 +312,34 @@
   {\typed{e.f}{\lval{\tau}}}
 \end{mathparpagebreakable}
 
+\subsection{Types}
+\begin{mathparpagebreakable}
+  \inferrule*
+  { }
+  {\typed{\tint}{\ok}}
+
+  \inferrule*
+  { }
+  {\typed{\tbool}{\ok}}
+
+  \inferrule*
+  { }
+  {\typed{\tempty}{\ok}}
+
+  \inferrule*
+  { }
+  {\typed{\tnull}{\ok}}
+
+  \inferrule*
+  {\tclass \in \dom(\Delta)}
+  {\typed{\tclass}{\ok}}
+
+  \inferrule*
+  {\typed{\tau}{\ok}}
+  {\typed{\tarr{\tau}}{\ok}}
+\end{mathparpagebreakable}
+
+
 \subsection{General Statements}
 \begin{mathparpagebreakable}
   \inferrule*
@@ -400,6 +429,43 @@
   {
     \typed{e_1 = e_2}{1,\Gamma}
   }
+
+  \inferrule*
+  {
+    \typed{\tau_i}{\ok} \\
+    x_i \notin \dom(\Gamma) \\
+    x_i \neq x_j \\
+    x_i \neq \meta{this} \\
+  }
+  {
+    \typed{\typ{x_1}{\tau_1}, \ldots, \typ{x_n}{\tau_n}}{1,\Gamma[x_i \mapsto \tau_i]}
+  }
+
+  \inferrule*
+  {
+    \typed{\tau}{\ok} \\
+    x \notin \dom(\Gamma) \\
+    x \neq \meta{this} \\
+    \typed{e_i}{\tint}
+  }
+  {
+    \typed{
+      \typ{x}{\tau\tbrack{e_1}\ldots\tbrack{e_n}\tbrack{\,}\ldots\tbrack{\,}}
+    }{
+      1,\Gamma[x \mapsto \tvar{\tau\tbrack{\,}\ldots\tbrack{\,}}]
+    }
+  }
+
+  \inferrule*
+  {
+    \typed{\typeof{d_i}}{\ok} \\
+    \typed{e}{(\tau_1, \ldots, \tau_n)} \\
+    \tau_i \subt \typeof(d_i) \\
+    \dom(\Gamma) \cap \varsof(d_i) = \emptyset \\
+    \set{\meta{this}} \cap \varsof(d_i) = \emptyset \\
+    \varsof{d_i} \cap \varsof(d_j) = \emptyset
+  }
+  {\typed{d_1, \ldots, d_n = e}{1,\Gamma[x \mapsto \tvar{\typeof(d_i)}]}}
 \end{mathparpagebreakable}
 
 \end{document}

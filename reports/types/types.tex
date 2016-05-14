@@ -6,6 +6,8 @@
 \usepackage{mathpartir}
 \usepackage{pervasives}
 
+\allowdisplaybreaks
+
 % keywords
 \newcommand{\meta}[1]{\textsf{#1}}
 \newcommand{\key}[1]{\texttt{#1}}
@@ -26,6 +28,11 @@
 \newcommand{\xindex}[2]{#1\meta{[}#2\meta{]}}
 \newcommand{\xnull}{\meta{null}}
 \newcommand{\xnew}[1]{\meta{new}\ #1}
+\newcommand{\xiif}[2]{\meta{if}(#1)\ #2}
+\newcommand{\xiifelse}[3]{\meta{if}(#1)\ #2 \ \meta{else}\ #3}
+\newcommand{\xiwhile}[2]{\meta{while}(#1)\ #2}
+\newcommand{\xibreak}{\meta{break}}
+\newcommand{\xireturn}{\meta{return}}
 
 % subtypes
 \newcommand{\asubt}{\leq_{a}}
@@ -33,12 +40,12 @@
 
 % typing
 \newcommand{\typ}[2]{#1\colon#2}
-\newcommand{\conts}{\Gamma; \Delta_m; \Delta_i; \gamma}
-\newcommand{\typed}[2]{\conts \vdash \typ{#1}{#2}}
+\newcommand{\conts}[1][]{\Gamma{#1}; \Delta_m; \Delta_i; \gamma; \lambda; \rho}
+\newcommand{\typed}[3][]{\conts[#1] \vdash \typ{#2}{#3}}
+\newcommand{\lval}[1]{#1\ \meta{lvalue}}
 
 \begin{document}
 \maketitle
-\footnotesize
 
 \section{Types}
 \[
@@ -65,7 +72,6 @@
   \qquad
   \begin{array}{rrl}
     \sigma & ::= & \tvar{\tau} \\
-           & |   & \tret{T} \\
            & |   & \tfn{T \to T'} \\
   \end{array}
 \]
@@ -74,11 +80,12 @@
   \item $\Gamma   : \meta{Var} \to \sigma$
   \item $\Delta_x : \meta{Class} \to \meta{Class}_\tau$
   \item $\gamma   : \meta{Class}$
+  \item $\lambda  : \set{\top, \bot}$
 \end{itemize}
 
 \section{Subtyping}
 \subsection{Array Subtyping}
-\begin{mathpar}
+\begin{mathparpagebreakable}
   \inferrule*
   { }
   {\tau \asubt \tau}
@@ -102,10 +109,10 @@
   \inferrule*
   {\tau_1 \asubt \tau_2 }
   {\tarr{\tau_1} \asubt \tarr{\tau_2}}
-\end{mathpar}
+\end{mathparpagebreakable}
 
 \subsection{General Subtyping}
-\begin{mathpar}
+\begin{mathparpagebreakable}
   \inferrule*
   {\tau_1 \asubt \tau_2}
   {\tau_1 \subt \tau_2}
@@ -117,10 +124,10 @@
   \inferrule*
   {\key{A} \subt \key{B} \\ \key{B} \subt \key{C}}
   {\key{A} \subt \key{C}}
-\end{mathpar}
+\end{mathparpagebreakable}
 
 \section{Expressions}
-\begin{mathpar}
+\begin{mathparpagebreakable}
   \inferrule*
   { }
   {\typed{n}{\tint}}
@@ -277,7 +284,122 @@
     ???
   }
   {\typed{e_1 \oplus e_2}{\tbool}}
-\end{mathpar}
+\end{mathparpagebreakable}
 
 \section{Statements}
+\subsection{lvalues}
+\begin{mathparpagebreakable}
+  \inferrule*
+  {
+    \Gamma(x) = \tvar{\tau} \\
+    x \neq \meta{this}
+  }
+  {\typed{x}{\lval{\tau}}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tarr{\tau}} \\
+    \typed{e_2}{\tint}
+  }
+  {\typed{\xindex{e_1}{e_2}}{\lval{\tau}}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta_m(\tclass)(f) = \tau
+  }
+  {\typed{e.f}{\lval{\tau}}}
+\end{mathparpagebreakable}
+
+\subsection{General Statements}
+\begin{mathparpagebreakable}
+  \inferrule*
+  {
+    \typed[]{s_1}{1,\Gamma_1} \\
+    \typed[_1]{s_2}{1,\Gamma_2} \\
+    \ldots \\
+    \typed[_{n-1}]{s_n}{R,\Gamma_n}
+  }
+  {\typed{\xarr{s_1; \ldots; s_n}}{R, \Gamma}}
+
+  \inferrule*
+  {
+    \typed{e}{\tbool} \\
+    \typed{s}{R, \Gamma'}
+  }
+  {\typed{\xiif{e}{s}}{1, \Gamma}}
+
+  \inferrule*
+  {
+    \typed{e}{\tbool} \\
+    \typed{s_1}{R_1, \Gamma_1} \\
+    \typed{s_2}{R_2, \Gamma_2}
+  }
+  {\typed{\xiifelse{e}{s_1}{s_2}}{\lub(R_1, R_2), \Gamma}}
+
+  \inferrule*
+  {
+    \typed{e}{\tbool} \\
+    \Gamma; \Delta_m; \Delta_i; \gamma; \top; \rho \vdash \typ{s}{R, \Gamma'}
+  }
+  {\typed{\xiwhile{e}{s}}{1, \Gamma}}
+
+  \inferrule*
+  { }
+  {\Gamma; \Delta_m; \Delta_i; \gamma; \top; \rho \vdash \typ{\xibreak}{0, \Gamma}}
+
+  \inferrule*
+  {\Gamma(f) = \tfn{\tunit \to \tunit}}
+  {\typed{f()}{1,\Gamma}}
+
+  \inferrule*
+  {
+    \Gamma(f) = \tfn{(\tau_1, \ldots, \tau_n) \to \tunit} \\
+    \typed{e_i}{\sigma_i} \\
+    \sigma_i \subt \tau_i
+  }
+  {\typed{f(e_1, \ldots, e_n)}{1,\Gamma}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta(\tclass)(f) = \tfn{\tunit \to \tunit}
+  }
+  {\typed{e.f()}{1,\Gamma}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta(\tclass)(f) = \tfn{(\tau_1, \ldots, \tau_n) \to \tunit} \\
+    \typed{e_i}{\sigma_i} \\
+    \sigma_i \subt \tau_i
+  }
+  {\typed{e.f(e_1, \ldots, e_n)}{1,\Gamma}}
+
+  \inferrule*
+  { }
+  {\Gamma;\Delta_m;\Delta_i;\gamma;\lambda;\tunit \vdash \typ{\xireturn}{0, \Gamma}}
+
+  \inferrule*
+  {
+    \typed{e_i}{\sigma_i} \\
+    \sigma_i \subt \tau_i
+  }
+  {
+    \Gamma;\Delta_m;\Delta_i;\gamma;\lambda;(\tau_1, \ldots, \tau_n)
+    \vdash
+    \typ{\xireturn\ (e_1, \ldots, e_n)}{0, \Gamma}
+  }
+
+  \inferrule*
+  {
+    \typed{e_1}{\lval{\tau_1}} \\
+    \typed{e_2}{\tau_2} \\
+    \tau_2 \subt \tau_1
+  }
+  {
+    \typed{e_1 = e_2}{1,\Gamma}
+  }
+\end{mathparpagebreakable}
+
 \end{document}

@@ -1,0 +1,274 @@
+\documentclass[landscape]{hw}
+\title{oXi Type System Specification}
+\author{\ }
+\date{\ }
+
+\usepackage{mathpartir}
+\usepackage{pervasives}
+
+% keywords
+\newcommand{\meta}[1]{\textsf{#1}}
+\newcommand{\key}[1]{\texttt{#1}}
+
+\newcommand{\tint}{\key{int}}
+\newcommand{\tbool}{\key{bool}}
+\newcommand{\tclass}{\key{C}}
+\newcommand{\tempty}{\key{empty}}
+\newcommand{\tnull}{\key{null}}
+\newcommand{\tarr}[1]{#1\key{[\,]}}
+\newcommand{\tunit}{\key{unit}}
+\newcommand{\tvar}[1]{\key{var}\ #1}
+\newcommand{\tret}[1]{\key{ret}\ #1}
+\newcommand{\tfn}[1]{\key{fn}\ #1}
+
+\newcommand{\xlength}[1]{\meta{length(}#1\meta{)}}
+\newcommand{\xarr}[1]{\meta{\{}#1\meta{\}}}
+\newcommand{\xindex}[2]{#1\meta{[}#2\meta{]}}
+\newcommand{\xnull}{\meta{null}}
+\newcommand{\xnew}[1]{\meta{new}\ #1}
+
+% subtypes
+\newcommand{\asubt}{\leq_{a}}
+\newcommand{\subt}{\leq}
+
+% typing
+\newcommand{\typ}[2]{#1\colon#2}
+\newcommand{\conts}{\Gamma; \Delta_m; \Delta_i; \gamma}
+\newcommand{\typed}[2]{\conts \vdash \typ{#1}{#2}}
+
+\begin{document}
+\maketitle
+\small
+
+\section{Types}
+\[
+  \begin{array}{rrl}
+    \tau & ::= & \tint \\
+         & |   & \tbool \\
+         & |   & \tclass \\
+         & |   & \tarr{\tau} \\
+         & |   & \tempty \\
+         & |   & \tnull \\
+         & |   & \tarr{\tau}
+  \end{array}
+  \qquad
+  \begin{array}{rrl}
+    T & ::= & \tau \\
+      & |   & \tunit \\
+      & |   & (\tau_1, \ldots, \tau_n)
+  \end{array}
+  \qquad
+  \begin{array}{rrl}
+    R & ::= & 0 \\
+      & |   & 1 \\
+  \end{array}
+  \qquad
+  \begin{array}{rrl}
+    \sigma & ::= & \tvar{\tau} \\
+           & |   & \tret{T} \\
+           & |   & \tfn{T \to T'} \\
+  \end{array}
+\]
+
+\begin{itemize}
+  \item $\Gamma   : \meta{Var} \to \sigma$
+  \item $\Delta_x : \meta{Class} \to \meta{Class}_\tau$
+  \item $\gamma   : \meta{Class}$
+\end{itemize}
+
+\section{Subtyping}
+\subsection{Array Subtyping}
+\begin{mathpar}
+  \inferrule*
+  { }
+  {\tau \asubt \tau}
+
+  \inferrule*
+  { }
+  {\tnull \asubt \tempty}
+
+  \inferrule*
+  { }
+  {\tnull \asubt \tarr{\tau}}
+
+  \inferrule*
+  { }
+  {\tnull \asubt \tclass}
+
+  \inferrule*
+  { }
+  {\tempty \asubt \tarr{\tau}}
+
+  \inferrule*
+  {\tau_1 \asubt \tau_2 }
+  {\tarr{\tau_1} \asubt \tarr{\tau_2}}
+\end{mathpar}
+
+\subsection{General Subtyping}
+\begin{mathpar}
+  \inferrule*
+  {\tau_1 \asubt \tau_2}
+  {\tau_1 \subt \tau_2}
+
+  \inferrule*
+  {\key{A extends B}}
+  {\key{A} \subt \key{B}}
+
+  \inferrule*
+  {\key{A} \subt \key{B} \\ \key{B} \subt \key{C}}
+  {\key{A} \subt \key{C}}
+\end{mathpar}
+
+\section{Expressions}
+\begin{mathpar}
+  \inferrule*
+  { }
+  {\typed{n}{\tint}}
+
+  \inferrule*
+  { }
+  {\typed{\meta{true}}{\tbool}}
+
+  \inferrule*
+  { }
+  {\typed{\meta{false}}{\tbool}}
+
+  \inferrule*
+  { }
+  {\typed{\meta{string}}{\tarr{\tint}}}
+
+  \inferrule*
+  { }
+  {\typed{\meta{char}}{\tint}}
+
+  \inferrule*
+  {\Gamma(x) = \tvar{\tau}}
+  {\typed{x}{\tau}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tint} \\
+    \typed{e_2}{\tint} \\
+    \oplus \in \set{\key{+}, \key{-}, \key{*}, \key{*>>}, \key{/}, \key{\%}}
+  }
+  {\typed{e_1 \oplus e_2}{\tint}}
+
+  \inferrule*
+  {\typed{e}{\tint}}
+  {\typed{\key{-}e}{\tint}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tint} \\
+    \typed{e_2}{\tint} \\
+    \oplus \in \set{\key{==}, \key{!=}, \key{<}, \key{<=}, \key{>}, \key{>=}}
+  }
+  {\typed{e_1 \oplus e_2}{\tbool}}
+
+  \inferrule*
+  {\typed{e}{\tbool}}
+  {\typed{\key{!}e}{\tbool}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tbool} \\
+    \typed{e_2}{\tbool} \\
+    \oplus \in \set{\key{==}, \key{!=}, \key{\&}, \key{|}}
+  }
+  {\typed{e_1 \oplus e_2}{\tbool}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tau} \\
+    \tempty \asubt \tau
+  }
+  {\typed{\xlength{e}}{\tint}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tau_1} \\
+    \typed{e_2}{\tau_2} \\
+    \tau_1 \asubt \tau_2 \lor \tau_2 \asubt \tau_1 \\
+    \oplus \in \set{\key{==}, \key{!=}}
+  }
+  {\typed{e_1 \oplus e_2}{\tbool}}
+
+  \inferrule*
+  { }
+  {\typed{\xarr{}}{\tempty}}
+
+  \inferrule*
+  {
+    \typed{e_i}{\tau_i} \\
+    \tau = \lub(\tau_1, \ldots, \tau_n)
+  }
+  {\typed{\xarr{e_1, \ldots, e_n}}{\tau}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tarr{\tau}} \\
+    \typed{e_2}{\tint} \\
+  }
+  {\typed{\xindex{e_1}{e_2}}{\tau}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\tau_1} \\
+    \typed{e_1}{\tau_2} \\
+    \tempty \asubt \tau_i \\
+    \tau = \lub(\tau_1, \tau_2)
+  }
+  {\typed{\xindex{e_1}{e_2}}{\tau}}
+
+  \inferrule*
+  {
+    \typed{f}{\tfn{\tunit \to T}} \\
+    T \neq \tunit
+  }
+  {\typed{f()}{T}}
+
+  \inferrule*
+  {
+    \typed{f}{\tfn{(\tau_1, \ldots, \tau_n) \to T}} \\
+    \typed{e_i}{\sigma_i} \\
+    \sigma_i \subt \tau_i \\
+    T \neq \tunit
+  }
+  {\typed{f(e_1, \ldots, e_n)}{T}}
+
+  \inferrule*
+  { }
+  {\typed{\xnull}{\tnull}}
+
+  \inferrule*
+  {\tclass \in \dom(\Delta_m)}
+  {\typed{\xnew{\meta{C}}}{\tclass}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta_m(\tclass)(f) = \tau
+  }
+  {\typed{e.f}{\tau}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta(\tclass)(f) = \tfn{\tunit \to T} \\
+    T \neq \tunit
+  }
+  {\typed{e.f()}{T}}
+
+  \inferrule*
+  {
+    \typed{e}{\tclass} \\
+    \Delta(\tclass)(f) = \tfn{(\tau_1, \ldots, \tau_n) \to T} \\
+    \typed{e_i}{\sigma_i} \\
+    \sigma_i \subt \tau_i \\
+    T \neq \tunit
+  }
+  {\typed{f(e_1, \ldots, e_n)}{T}}
+\end{mathpar}
+
+\section{Statements}
+\end{document}

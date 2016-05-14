@@ -101,7 +101,7 @@ end
 open Sigma
 
 module KlassM = struct
-  type typ = 
+  type typ =
     | TInt
     | TBool
     | TArray of typ * Expr.t option

@@ -3303,6 +3303,126 @@ public class ParserTest {
     }
 
     //////////////////////////////////////////////////////////////////////////
+    // Programs
+    /////////////////////////////////////////////////////////////////////////
+    // use foo
+    // use bar
+    //
+    // x:int = 1
+    //
+    // class C {
+    //     z:int
+    // }
+    //
+    // foo(x: int) : bool {}
+    //
+    // y:bool = true
+    //
+    // class D {
+    //     bar() {}
+    // }
+    //
+    // baz() {}
+    @Test
+    public void programTest1() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(USE),
+            sym(ID, "foo"),
+            sym(USE),
+            sym(ID, "bar"),
+
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(EQ),
+            sym(NUM, 1L),
+
+            sym(CLASS),
+            sym(ID, "C"),
+            sym(LBRACE),
+            sym(ID, "z"),
+            sym(COLON),
+            sym(INT),
+            sym(RBRACE),
+
+            sym(ID, "foo"),
+            sym(LPAREN),
+            sym(ID, "x"),
+            sym(COLON),
+            sym(INT),
+            sym(RPAREN),
+            sym(COLON),
+            sym(BOOL),
+            sym(LBRACE),
+            sym(RBRACE),
+
+            sym(ID, "y"),
+            sym(COLON),
+            sym(BOOL),
+            sym(EQ),
+            sym(TRUE),
+
+            sym(CLASS),
+            sym(ID, "D"),
+            sym(LBRACE),
+            sym(ID, "bar"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(LBRACE),
+            sym(RBRACE),
+            sym(RBRACE),
+
+            sym(ID, "baz"),
+            sym(LPAREN),
+            sym(RPAREN),
+            sym(LBRACE),
+            sym(RBRACE)
+        );
+
+        List<Use<Position>> uses = l(
+            use(id("foo")),
+            use(id("bar"))
+        );
+
+        List<Global<Position>> globals = l(
+            declAsgn(l(annotatedId(id("x"), num())), numLiteral(1L)),
+            declAsgn(l(annotatedId(id("y"), bool())), boolLiteral(true))
+        );
+
+        List<Klass<Position>> klasses = l(
+            klass(
+                id("C"),
+                Optional.empty(),
+                l(annotatedId(id("z"), num())),
+                l()
+            ),
+            klass(
+                id("D"),
+                Optional.empty(),
+                l(),
+                l(proc(id("bar"), l(), block(l(), Optional.empty())))
+            )
+        );
+
+        List<Callable<Position>> callables = l(
+            func(
+                id("foo"),
+                l(annotatedId(id("x"), num())),
+                l(bool()),
+                block(l(), Optional.empty())
+            ),
+            proc(
+                id("baz"),
+                l(),
+                block(l(), Optional.empty())
+            )
+        );
+
+        Program<Position> p = program(uses, globals, klasses, callables);
+        assertEquals(p, parse(symbols));
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     // Invalid Classes
     /////////////////////////////////////////////////////////////////////////
     // class A extends {}

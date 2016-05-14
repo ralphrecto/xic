@@ -157,7 +157,35 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.Klass<Position> p) {
+    public Void visit(Ast.Klass<Position> ks) {
+        startList();
+        posPrinter(ks.a);
+
+        startList();
+        printAtom("Klass");
+
+        rawIdPrinter(ks.name);
+
+        if (ks.superclass.isPresent()) {
+          startList();
+          printAtom("Some");
+          rawIdPrinter(ks.superclass.get());
+          endList();
+        } else {
+          printAtom("None");
+        }
+
+        startList();
+        ks.fields.forEach(t -> t.accept(this));
+        endList();
+
+        startList();
+        ks.methods.forEach(t -> t.accept(this));
+        endList();
+
+        endList();
+
+        endList();
         return null;
     }
 
@@ -486,8 +514,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.KlassType<Position> o) {
-        // TODO
+    public Void visit(Ast.KlassType<Position> kt) {
+        startList();
+        posPrinter(kt.a);
+
+        startList();
+        printAtom("KlassType");
+        rawIdPrinter(kt.name);
+        endList();
+
+        endList();
         return null;
     }
 
@@ -528,7 +564,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.New<Position> c) {
+    public Void visit(Ast.New<Position> n) {
+        startList();
+        posPrinter(n.a);
+
+        startList();
+        printAtom("New");
+        rawIdPrinter(n.c);
+        endList();
+
+        endList();
         return null;
     }
 
@@ -550,8 +595,15 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.Break<Position> c) {
-        // TODO: complete this
+    public Void visit(Ast.Break<Position> b) {
+        startList();
+        posPrinter(b.a);
+
+        startList();
+        printAtom("Break");
+        endList();
+
+        endList();
         return null;
     }
 
@@ -574,7 +626,31 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.KlassDecl<Position> p) {
+    public Void visit(Ast.KlassDecl<Position> ks) {
+        startList();
+        posPrinter(ks.a);
+
+        startList();
+        printAtom("KlassDecl");
+
+        rawIdPrinter(ks.name);
+
+        if (ks.superclass.isPresent()) {
+          startList();
+          printAtom("Some");
+          rawIdPrinter(ks.superclass.get());
+          endList();
+        } else {
+          printAtom("None");
+        }
+
+        startList();
+        ks.methods.forEach(t -> t.accept(this));
+        endList();
+
+        endList();
+
+        endList();
         return null;
     }
 
@@ -636,17 +712,58 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
     }
 
     public Void visit(Ast.MethodCallStmt<Position> m) {
-        // TODO
+        startList();
+        posPrinter(m.a);
+
+        startList();
+        printAtom("MethodCallStmt");
+
+        m.receiver.accept(this);
+
+        rawIdPrinter(m.methodName);
+
+        startList();
+        m.args.forEach(a -> a.accept(this));
+        endList();
+
+        endList();
+
+        endList();
         return null;
     }
 
     public Void visit(Ast.MethodCall<Position> m) {
-        // TODO
+        startList();
+        posPrinter(m.a);
+
+        startList();
+        printAtom("MethodCall");
+
+        m.receiver.accept(this);
+
+        rawIdPrinter(m.methodName);
+
+        startList();
+        m.args.forEach(a -> a.accept(this));
+        endList();
+
+        endList();
+
+        endList();
         return null;
     }
 
-    public Void visit(Ast.FieldAccess<Position> m) {
-        // TODO
+    public Void visit(Ast.FieldAccess<Position> f) {
+        startList();
+        posPrinter(f.a);
+
+        startList();
+        printAtom("FieldAccess");
+        f.receiver.accept(this);
+        rawIdPrinter(f.field);
+        endList();
+
+        endList();
         return null;
     }
 

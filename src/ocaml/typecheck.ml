@@ -118,6 +118,7 @@ module KlassM = struct
   type t = Klass of string * string option * (string * typ) list * callable list
   [@@deriving sexp]
 end
+open KlassM
 
 module T = struct
   type p = unit             [@@deriving sexp]
@@ -152,7 +153,7 @@ module Abbreviations = Ast.Abbreviate(D)
 
 let varsofavar av =
   match av with
-  | AId ((_,id), _) -> Some id
+  | Ast.S.AId ((_,id), _) -> Some id
   | _ -> None
 
 let varsofvar v =
@@ -163,8 +164,8 @@ let varsofvar v =
 
 let typeofavar av =
   match av with
-  | AId (_, t)
-  | AUnderscore t -> Expr.of_typ t
+  | Ast.S.AId (_, t)
+  | Ast.S.AUnderscore t -> Expr.of_typ t
 
 type context = Sigma.t String.Map.t
 module Context = struct
@@ -330,16 +331,16 @@ and expr_typecheck c (p, expr) =
 (******************************************************************************)
 let rec typ_typecheck c (p, t) =
   match t with
-  | TInt -> Ok (IntT, TInt)
-  | TBool -> Ok (BoolT, TBool)
-  | TArray (t, None) ->
+  | Ast.S.TInt -> Ok (IntT, Ast.S.TInt)
+  | Ast.S.TBool -> Ok (BoolT, Ast.S.TBool)
+  | Ast.S.TArray (t, None) ->
     typ_typecheck c t >>= fun t' ->
-    Ok (ArrayT (fst t'), TArray (t', None))
-  | TArray (t, Some e) -> begin
+    Ok (ArrayT (fst t'), Ast.S.TArray (t', None))
+  | Ast.S.TArray (t, Some e) -> begin
       typ_typecheck c t >>= fun t' ->
       expr_typecheck c e >>= fun e' ->
       match fst e' with
-      | IntT -> Ok (ArrayT (fst t'), TArray (t', Some e'))
+      | IntT -> Ok (ArrayT (fst t'), Ast.S.TArray (t', Some e'))
       | _ -> Error (p, "Array size is not an int")
     end
   | _ -> failwith "TODO"
@@ -349,8 +350,8 @@ let rec typ_typecheck c (p, t) =
 (******************************************************************************)
 let avar_typecheck c (_, a) =
   match a with
-  | AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', AId (((), x), t'))
-  | AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', AUnderscore t')
+  | Ast.S.AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', Ast.S.AId (((), x), t'))
+  | Ast.S.AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', Ast.S.AUnderscore t')
 
 (******************************************************************************)
 (* var                                                                        *)
@@ -610,7 +611,7 @@ Ensures parameters do not shadow and body is well-typed
 
 let snd_func_pass c (p, call) =
   match call with
-  | Func ((_,id), args, rets, s) ->
+  | Ast.S.Func ((_,id), args, rets, s) ->
     begin
       match args, rets with
       | [], [ret_typ] ->
@@ -620,7 +621,7 @@ let snd_func_pass c (p, call) =
           match stmt with
           | Zero, _ -> typ_typecheck c ret_typ >>= fun ret ->
             let call_type = (UnitT, ret_t) in
-            Ok (call_type, Func (((), id), [], [ret], stmt))
+            Ok (call_type, Ast.S.Func (((), id), [], [ret], stmt))
           | One, _ -> Error (p, no_return)
         end
       | [args'], [ret_typ] ->
@@ -632,7 +633,7 @@ let snd_func_pass c (p, call) =
           match fst stmt with
           | Zero -> typ_typecheck c' ret_typ >>= fun ret ->
             let call_type = (typeofavar (snd args'), ret_t) in
-            Ok (call_type, Func (((), id), avs, [ret], stmt))
+            Ok (call_type, Ast.S.Func (((), id), avs, [ret], stmt))
           | One -> Error (p, no_return)
         end
       | _::_, [ret_typ] ->
@@ -645,7 +646,7 @@ let snd_func_pass c (p, call) =
           | Zero -> typ_typecheck c' ret_typ >>= fun ret ->
             let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
             let call_type = (args_t, ret_t) in
-            Ok (call_type, Func (((), id), avs, [ret], stmt))
+            Ok (call_type, Ast.S.Func (((), id), avs, [ret], stmt))
           | One -> Error (p, no_return)
         end
       | [], _::_ ->
@@ -655,7 +656,7 @@ let snd_func_pass c (p, call) =
           match fst stmt with
           | Zero -> Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun ret_list ->
             let call_type = (UnitT, rets_t) in
-            Ok (call_type, Func (((), id), [], ret_list, stmt))
+            Ok (call_type, Ast.S.Func (((), id), [], ret_list, stmt))
           | One -> Error (p, no_return)
         end
       | [args'], _::_ ->
@@ -668,7 +669,7 @@ let snd_func_pass c (p, call) =
           | Zero -> Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
             let arg_t = typeofavar (snd args') in
             let call_type = (arg_t, rets_t) in
-            Ok (call_type, Func(((), id), avs, ret_list, stmt))
+            Ok (call_type, Ast.S.Func(((), id), avs, ret_list, stmt))
           | One -> Error (p, no_return)
         end
       | _::_, _::_ ->
@@ -681,32 +682,32 @@ let snd_func_pass c (p, call) =
           | Zero -> Result.all (List.map ~f:(typ_typecheck c') rets) >>= fun ret_list ->
             let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
             let call_type = (args_t, rets_t) in
-            Ok (call_type, Func(((), id), avs, ret_list, stmt))
+            Ok (call_type, Ast.S.Func(((), id), avs, ret_list, stmt))
           | One -> Error (p, no_return)
         end
       | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
-  | Proc ((_,id), args, s) ->
+  | Ast.S.Proc ((_,id), args, s) ->
     begin
       match args with
       | [] ->
         stmt_typecheck c UnitT s >>= fun stmt ->
         let call_type = (UnitT, UnitT) in
-        Ok (call_type, Proc(((), id), [], stmt))
+        Ok (call_type, Ast.S.Proc(((), id), [], stmt))
       | [arg_avar] ->
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
         let c' = Context.bind_all_avars c avs in
         stmt_typecheck c' UnitT s >>= fun stmt ->
         let arg_t = typeofavar (snd arg_avar) in
         let call_type = (arg_t, UnitT) in
-        Ok (call_type, Proc(((), id), avs, stmt))
+        Ok (call_type, Ast.S.Proc(((), id), avs, stmt))
       | _ ->
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
         let c' = Context.bind_all_avars c avs in
         stmt_typecheck c' UnitT s >>= fun stmt ->
         let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
         let call_type = (args_t, UnitT) in
-        Ok (call_type, Proc(((), id), avs, stmt))
+        Ok (call_type, Ast.S.Proc(((), id), avs, stmt))
     end
 
 let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.result =

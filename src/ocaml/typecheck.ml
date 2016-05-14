@@ -101,21 +101,12 @@ end
 open Sigma
 
 module KlassM = struct
-  type typ = 
-    | TInt
-    | TBool
-    | TArray of typ * Expr.t option
-    | TKlass of string
-  [@@deriving sexp]
-  type avar =
-    | AId of string * typ
-    | AUnderscore of typ
-  [@@deriving sexp]
-  type callable =
-    | Func of string * avar list * typ list * Stmt.t
-    | Proc of string * avar list * Stmt.t
-  [@@deriving sexp]
-  type t = Klass of string * string option * (string * typ) list * callable list
+  type t = {
+    name    : string;
+    super   : string option;
+    fields  : (string * Pos.typ) list;
+    methods : Pos.callable list;
+  }
   [@@deriving sexp]
 end
 open KlassM

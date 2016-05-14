@@ -51,18 +51,12 @@ module Sigma: sig
 end
 
 module KlassM: sig
-  type typ = 
-    | TInt
-    | TBool
-    | TArray of typ * Expr.t option
-    | TKlass of string
-  type avar =
-    | AId of string * typ
-    | AUnderscore of typ
-  type callable =
-    | Func of string * avar list * typ list * Stmt.t
-    | Proc of string * avar list * Stmt.t
-  type t = Klass of string * string option * (string * typ) list * callable list
+  type t = {
+    name    : string;
+    super   : string option;
+    fields  : (string * Pos.typ) list;
+    methods : Pos.callable list;
+  }
   [@@deriving sexp]
 end
 

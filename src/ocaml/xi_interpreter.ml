@@ -98,6 +98,7 @@ let rec bind_ids store ids =
               | _ -> failwith "bind_ids array size is not an int!!!"
             in
             Array (ref (populate_list store t' size))
+        | _ -> failwith "TODO"
       in
       if count > 0L then
         populate_list' t (Long.pred count) (filler::acc)
@@ -248,6 +249,7 @@ and eval_stmt (store: context) ((_,s): Typecheck.stmt) : context * value option 
         | "println", [Array vs] -> println (string_of_values !vs); (store, None)
         | _ -> failwith "shouldn't happen -- proccall function not delcared"
     end
+  | _ -> failwith "TODO"
 
 and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
   let open Long in
@@ -292,29 +294,34 @@ and eval_expr (c: context) ((t, e): Typecheck.expr) : value =
       | _ -> failwith "shouldn't happen -- length"
     end
   | FuncCall ((_, id), elist) ->
-    match String.Map.find c id with
-    | Some (Some (Function (params, body))) ->
-      let vals = List.map ~f:(eval_expr c) elist in
-      begin
-        match List.zip params vals with
-        | Some l ->
-          let c' = bind_ids_vals c l in
-          begin
-            match eval_stmt c' body with
-            | (_, Some ret) -> ret
-            | _ -> failwith "function has no return"
-          end
-        | None -> failwith "shouldn't happen -- funccall params and args don't match"
-      end
-    | Some _ -> failwith "shouldn't happen -- funccall not a function"
-    | None ->
-      let vals = List.map ~f:(eval_expr c) elist in
-      match id, vals with
-      | "unparseInt", [Int i] -> eval_expr c (t, String (unparseInt i))
-      | "parseInt", [Array vs] -> Int (parseInt (string_of_values (!vs)))
-      | "readln", [] -> eval_expr c (t, String (readln ()))
-      | "getchar", [] -> eval_expr c (t, Char (getchar ()))
-      | _ -> failwith "shouldn't happen -- funccall function not delcared"
+    begin
+      match String.Map.find c id with
+      | Some (Some (Function (params, body))) ->
+        let vals = List.map ~f:(eval_expr c) elist in
+        begin
+          match List.zip params vals with
+          | Some l ->
+            let c' = bind_ids_vals c l in
+            begin
+              match eval_stmt c' body with
+              | (_, Some ret) -> ret
+              | _ -> failwith "function has no return"
+            end
+          | None -> failwith "shouldn't happen -- funccall params and args don't match"
+        end
+      | Some _ -> failwith "shouldn't happen -- funccall not a function"
+      | None ->
+        begin
+          let vals = List.map ~f:(eval_expr c) elist in
+          match id, vals with
+          | "unparseInt", [Int i] -> eval_expr c (t, String (unparseInt i))
+          | "parseInt", [Array vs] -> Int (parseInt (string_of_values (!vs)))
+          | "readln", [] -> eval_expr c (t, String (readln ()))
+          | "getchar", [] -> eval_expr c (t, Char (getchar ()))
+          | _ -> failwith "shouldn't happen -- funccall function not delcared"
+        end
+    end
+    | _ -> failwith "TODO"
 
 and eval_binop e1 op e2 =
   let open Long in
@@ -359,7 +366,7 @@ let eval_callable (store: context) ((_, c): Typecheck.callable) : context =
     let args = List.map ~f:fst (ids_of_avars avars) in
     String.Map.add store ~key: id ~data: (Some (Function (args, stmt)))
 
-let eval_prog (store: context) ((_, Prog (_, calls)): Typecheck.prog) : context =
+let eval_prog (store: context) ((_, Prog (_, _, _, calls)): Typecheck.prog) : context =
   List.fold_left ~f: (fun store' call -> eval_callable store' call) ~init: store calls
 
 let get_main_val context : value option =

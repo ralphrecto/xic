@@ -14,7 +14,7 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
     | BinOp ((_, Int _), MOD, (_, Int 0L)) -> (t, e)
     | BinOp ((_, Int i1), MINUS, (_, Int i2)) -> (t, Int (sub i1 i2))
     | BinOp ((_, Int i1), STAR, (_, Int i2)) -> (t, Int (mul i1 i2))
-    | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) -> 
+    | BinOp ((_, Int i1), HIGHMULT, (_, Int i2)) ->
       let i1' = big_int_of_int64 i1 in
       let i2' = big_int_of_int64 i2 in
       let mult = mult_big_int i1' i2' in
@@ -58,7 +58,12 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
     | Bool _
     | String _
     | Char _
-    | Id _ -> (t, e) in
+    | Id _
+    | Null
+    | New _
+    | FieldAccess _
+    | MethodCall _ -> (t, e) in
+
   let rec fold_stmt ((ts, s): Typecheck.stmt) =
     match s with
     | DeclAsgn (varlist, e) -> (ts, DeclAsgn (varlist, fold_expr e))
@@ -93,6 +98,6 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
       (tc, Func (id, avars, typs, fold_stmt block))
     | Proc (id, avars, block) ->
       (tc, Proc (id, avars, fold_stmt block)) in
-  let (Prog (uses, callables)) = prog in
-  let prog' = (prog_type, Prog (uses, List.map ~f:fold_callable callables)) in
+  let (Prog (uses, globals, klasses, callables)) = prog in
+  let prog' = (prog_type, Prog (uses, globals, klasses, List.map ~f:fold_callable callables)) in
   FullProg (name, prog', interfaces)

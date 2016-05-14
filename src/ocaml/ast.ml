@@ -47,32 +47,47 @@ open Async.Std
 module S = struct
 
   (* top level terms *)
-  type ('p,'u,'c,'i,'a,'v,'s,'e,'t) full_prog =
+  type ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) full_prog =
       (* program name, prog, interfaces*)
-      FullProg of string * ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'c,'i,'a,'v,'s,'e,'t) interface list
+      FullProg of string * ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface list
 
-  and ('p,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('c,'i,'a,'v,'s,'e,'t) raw_interface
-  and ('c,'i,'a,'v,'s,'e,'t) raw_interface =
-      Interface of ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+  and ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface
+  and ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface =
+      Interface of ('u,'i) use list *
+                   ('k,'c,'i,'a,'v,'s,'e,'t) klass_decl list * ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+
+  and ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'g,'k,'c,'i,'a,'v,'s,'e,'t) raw_prog
+  and ('u,'k,'g,'c,'i,'a,'v,'s,'e,'t) raw_prog =
+    | Prog of ('u,'i) use list * ('g,'i,'a,'v,'e,'t) global list *
+              ('k,'c,'i,'a,'v,'s,'e,'t) klass list * ('c,'i,'a,'v,'s,'e,'t) callable list
+
+  and ('u,'i) use = 'u * 'i raw_use
+  and 'i raw_use =
+    | Use of 'i id
+
+  and ('g,'i,'a,'v,'e,'t) global = 'g * ('i,'a,'v,'e,'t) raw_global
+  and ('i,'a,'v,'e,'t) raw_global =
+    | Gdecl           of ('i,'a,'v,'e,'t) var list
+    | GdeclAsgn       of ('i,'a,'v,'e,'t) var list * ('i,'e) expr
+
+  and ('k,'c,'i,'a,'v,'s,'e,'t) klass = 'k * ('c,'i,'a,'v,'s,'e,'t) raw_klass
+  and ('c,'i,'a,'v,'s,'e,'t) raw_klass =
+    (* classname, optional superclass, fields, methods *)
+    | Klass of 'i id * 'i id option * ('i,'a,'e,'t) avar list * ('c,'i,'a,'v,'s,'e,'t) callable list
+
+  and ('k,'c,'i,'a,'v,'s,'e,'t) klass_decl = 'k * ('c,'i,'a,'v,'s,'e,'t) raw_klass_decl
+  and ('c,'i,'a,'v,'s,'e,'t) raw_klass_decl =
+    | KlassDecl of 'i id * 'i id option * ('c,'i,'a,'v,'s,'e,'t) callable list
+
+  and ('c,'i,'a,'v,'s,'e,'t) callable = 'c * ('i,'a,'v,'s,'e,'t) raw_callable
+  and ('i,'a,'v,'s,'e,'t) raw_callable =
+    | Func of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list * ('i,'a,'v,'s,'e,'t) stmt
+    | Proc of 'i id * ('i,'a,'e,'t) avar list * ('i,'a,'v,'s,'e,'t) stmt
 
   and ('c,'i,'a,'v,'s,'e,'t) callable_decl = 'c * ('i,'a,'v,'s,'e,'t) raw_callable_decl
   and ('i,'a,'v,'s,'e,'t) raw_callable_decl =
     | FuncDecl of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list
     | ProcDecl of 'i id * ('i,'a,'e,'t) avar list
-
-  and ('p,'u,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog
-  and ('u,'c,'i,'a,'v,'s,'e,'t) raw_prog =
-    | Prog of ('u,'i) use list * ('c,'i,'a,'v,'s,'e,'t) callable list
-
-  and ('u, 'i) use = 'u * 'i raw_use
-  and 'i raw_use =
-    | Use of 'i id
-
-  and ('c,'i,'a,'v,'s,'e,'t) callable = 'c * ('i,'a,'v,'s,'e,'t) raw_callable
-  and ('i,'a,'v,'s,'e,'t) raw_callable =
-    | Func of 'i id * ('i,'a,'e,'t) avar list * ('i,'e,'t) typ list *
-              ('i,'a,'v,'s,'e,'t) stmt
-    | Proc of 'i id * ('i,'a,'e,'t) avar list * ('i,'a,'v,'s,'e,'t) stmt
 
   (* identifiers, variables, and annotated variables *)
   and 'i id = 'i * string
@@ -90,15 +105,17 @@ module S = struct
   (* statements *)
   and ('i,'a,'v,'s,'e,'t) stmt = 's * ('i,'a,'v,'s,'e,'t) raw_stmt
   and ('i,'a,'v,'s,'e,'t) raw_stmt =
-    | Decl     of ('i,'a,'v,'e,'t) var list
-    | DeclAsgn of ('i,'a,'v,'e,'t) var list * ('i,'e) expr
-    | Asgn     of ('i,'e) expr * ('i,'e) expr
-    | Block    of ('i,'a,'v,'s,'e,'t) stmt list
-    | Return   of ('i,'e) expr list
-    | If       of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
-    | IfElse   of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt * ('i,'a,'v,'s,'e,'t) stmt
-    | While    of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
-    | ProcCall of 'i id * ('i,'e) expr list
+    | Break
+    | Decl           of ('i,'a,'v,'e,'t) var list
+    | DeclAsgn       of ('i,'a,'v,'e,'t) var list * ('i,'e) expr
+    | Asgn           of ('i,'e) expr * ('i,'e) expr
+    | Block          of ('i,'a,'v,'s,'e,'t) stmt list
+    | Return         of ('i,'e) expr list
+    | If             of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
+    | IfElse         of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt * ('i,'a,'v,'s,'e,'t) stmt
+    | While          of ('i,'e) expr * ('i,'a,'v,'s,'e,'t) stmt
+    | ProcCall       of 'i id * ('i,'e) expr list
+    | MethodCallStmt of ('i,'e) expr * 'i id * ('i,'e) expr list
 
   (* expressions *)
   and binop_code =
@@ -123,17 +140,21 @@ module S = struct
 
   and ('i,'e) expr = 'e * ('i,'e) raw_expr
   and ('i,'e) raw_expr =
-    | Int      of Int64.t
-    | Bool     of bool
-    | String   of string
-    | Char     of char
-    | Array    of ('i,'e) expr list
-    | Id       of 'i id
-    | BinOp    of ('i,'e) expr * binop_code * ('i,'e) expr
-    | UnOp     of unop_code * ('i,'e) expr
-    | Index    of ('i,'e) expr * ('i,'e) expr
-    | Length   of ('i,'e) expr
-    | FuncCall of 'i id * ('i,'e) expr list
+    | Null
+    | Int         of Int64.t
+    | Bool        of bool
+    | String      of string
+    | Char        of char
+    | Array       of ('i,'e) expr list
+    | Id          of 'i id
+    | BinOp       of ('i,'e) expr * binop_code * ('i,'e) expr
+    | UnOp        of unop_code * ('i,'e) expr
+    | Index       of ('i,'e) expr * ('i,'e) expr
+    | Length      of ('i,'e) expr
+    | FuncCall    of 'i id * ('i,'e) expr list
+    | New         of 'i id
+    | FieldAccess of ('i,'e) expr * 'i id
+    | MethodCall  of ('i,'e) expr * 'i id * ('i,'e) expr list
 
   (* types *)
   and ('i,'e,'t) typ = 't * ('i,'e,'t) raw_typ
@@ -141,6 +162,7 @@ module S = struct
     | TInt
     | TBool
     | TArray of ('i,'e,'t) typ * ('i,'e) expr option
+    | TKlass of 'i id
     [@@deriving sexp]
 end
 
@@ -182,6 +204,7 @@ let rec string_of_expr (_, e) : string =
   | S.Index (a, i) -> sprintf "%s[%s]" (soe a) (soe i)
   | S.Length e -> sprintf "length(%s)" (soe e)
   | S.FuncCall ((_, f), args) -> sprintf "%s(%s)" f (Util.commas (List.map ~f:soe args))
+  | _ -> failwith "TODO"
 
 let rec string_of_typ (_, t) : string =
   let sot = string_of_typ in
@@ -190,6 +213,7 @@ let rec string_of_typ (_, t) : string =
   | S.TBool -> "bool"
   | S.TArray (t, None) -> sprintf "%s[]" (sot t)
   | S.TArray (t, Some e) -> sprintf "%s[%s]" (sot t) (string_of_expr e)
+  | _ -> failwith "TODO"
 
 let string_of_avar (_, a) : string =
   match a with
@@ -215,10 +239,13 @@ let rec string_of_stmt (_, s) : string =
   | S.While (e, s) -> sprintf "while(%s) %s" (string_of_expr e) (sos s)
   | S.ProcCall ((_, p), args) ->
     sprintf "%s(%s)" p (Util.commas (List.map ~f:string_of_expr args))
+  | _ -> failwith "TODO"
 
 module type TAGS = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]
+  type g [@@deriving sexp]
+  type k [@@deriving sexp]
   type c [@@deriving sexp]
   type i [@@deriving sexp]
   type a [@@deriving sexp]
@@ -230,18 +257,20 @@ end
 
 module Make(T: TAGS) = struct
   open T
-  type full_prog     = (p,u,c,i,a,v,s,e,t) S.full_prog     [@@deriving sexp]
-  type interface     = (p,  c,i,a,v,s,e,t) S.interface     [@@deriving sexp]
-  type callable_decl = (    c,i,a,v,s,e,t) S.callable_decl [@@deriving sexp]
-  type prog          = (p,u,c,i,a,v,s,e,t) S.prog          [@@deriving sexp]
-  type use           = (  u,  i          ) S.use           [@@deriving sexp]
-  type callable      = (    c,i,a,v,s,e,t) S.callable      [@@deriving sexp]
-  type id            =        i            S.id            [@@deriving sexp]
-  type avar          = (      i,a,    e,t) S.avar          [@@deriving sexp]
-  type var           = (      i,a,v,  e,t) S.var           [@@deriving sexp]
-  type stmt          = (      i,a,v,s,e,t) S.stmt          [@@deriving sexp]
-  type expr          = (      i,      e  ) S.expr          [@@deriving sexp]
-  type typ           = (      i,      e,t) S.typ           [@@deriving sexp]
+  type full_prog     = (p,u,g,k,c,i,a,v,s,e,t) S.full_prog     [@@deriving sexp]
+  type interface     = (p,u,  k,c,i,a,v,s,e,t) S.interface     [@@deriving sexp]
+  type prog          = (p,u,g,k,c,i,a,v,s,e,t) S.prog          [@@deriving sexp]
+  type use           = (  u,      i          ) S.use           [@@deriving sexp]
+  type global        = (    g,    i,a,v,  e,t) S.global        [@@deriving sexp]
+  type klass         = (      k,c,i,a,v,s,e,t) S.klass         [@@deriving sexp]
+  type callable      = (        c,i,a,v,s,e,t) S.callable      [@@deriving sexp]
+  type callable_decl = (        c,i,a,v,s,e,t) S.callable_decl [@@deriving sexp]
+  type id            =            i            S.id            [@@deriving sexp]
+  type avar          = (          i,a,    e,t) S.avar          [@@deriving sexp]
+  type var           = (          i,a,v,  e,t) S.var           [@@deriving sexp]
+  type stmt          = (          i,a,v,s,e,t) S.stmt          [@@deriving sexp]
+  type expr          = (          i,      e  ) S.expr          [@@deriving sexp]
+  type typ           = (          i,      e,t) S.typ           [@@deriving sexp]
 end
 
 (* Often times, you want to construct an AST term without really caring about
@@ -283,6 +312,8 @@ end
 module type DUMMIES = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]
+  type g [@@deriving sexp]
+  type k [@@deriving sexp]
   type c [@@deriving sexp]
   type i [@@deriving sexp]
   type a [@@deriving sexp]
@@ -293,6 +324,8 @@ module type DUMMIES = sig
 
   val dummy_p: p
   val dummy_u: u
+  val dummy_g: g
+  val dummy_k: k
   val dummy_c: c
   val dummy_i: i
   val dummy_a: a
@@ -309,8 +342,14 @@ module Abbreviate(D: DUMMIES) = struct
 
   let fullprog name prog ilist = FullProg (name, prog, ilist)
 
-  let prog uses calls = (dummy_p, Prog (uses, calls))
-  let interface dlist = (dummy_p, Interface dlist)
+  let prog uses globals classes calls = (dummy_p, Prog (uses, globals, classes, calls))
+  let interface ulist klist dlist = (dummy_p, Interface (ulist, klist, dlist))
+
+  let gdecl vs = (dummy_s, Gdecl vs)
+  let gdeclasgn vs es = (dummy_s, GdeclAsgn (vs, es))
+
+  let klass name super fields methods = (dummy_p, Klass (name, super, fields, methods))
+  let klassdecl name super methods = (dummy_p, KlassDecl (name, super, methods))
 
   let funcdecl f args typs = (dummy_c, FuncDecl ((raw_id f), args, typs))
   let procdecl f args = (dummy_c, ProcDecl ((raw_id f), args))
@@ -335,6 +374,8 @@ module Abbreviate(D: DUMMIES) = struct
   let ifelse e t f = (dummy_s, IfElse (e, t, f))
   let while_ e s = (dummy_s, While (e, s))
   let proccall f args = (dummy_s, ProcCall ((raw_id f), args))
+  let methodcallstmt t i args = (dummy_s, MethodCallStmt (t, i, args))
+  let break () = (dummy_s, Break)
 
   let int i = (dummy_e, Int i)
   let bool b = (dummy_e, Bool b)
@@ -345,6 +386,9 @@ module Abbreviate(D: DUMMIES) = struct
   let index a i = (dummy_e, Index (a, i))
   let length e = (dummy_e, Length e)
   let funccall f args = (dummy_e, FuncCall ((raw_id f), args))
+  let fieldaccess this i = (dummy_e, FieldAccess (this, i))
+  let methodcall this i args = (dummy_e, MethodCall (this, i, args))
+  let null () = (dummy_e, Null)
 
   let tint = (dummy_t, TInt)
   let tbool = (dummy_t, TBool)

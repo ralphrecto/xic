@@ -214,7 +214,7 @@ let main opts flags () : unit Deferred.t =
 
       let f (filename, (Ast.S.FullProg (name, _, _) as ast)) =
         match typecheck opts ast with
-        | Ok (Ast.S.FullProg (_, (_, Ast.S.Prog (_, callables)), _)) ->
+        | Ok (Ast.S.FullProg (_, (_, Ast.S.Prog (_, _, _, callables)), _)) ->
             let names = Ir_util.mangled_to_name callables in
             let ok = function
               | Ok o -> o

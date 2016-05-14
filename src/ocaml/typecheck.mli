@@ -53,6 +53,8 @@ end
 module T: sig
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
+  type g = unit             [@@deriving sexp] (*TODO*)
+  type k = unit             [@@deriving sexp] (*TODO*)
   type c = Expr.t * Expr.t  [@@deriving sexp]
   type i = unit             [@@deriving sexp]
   type a = Expr.t           [@@deriving sexp]
@@ -67,6 +69,8 @@ module D: sig
   include (module type of T)
   val dummy_p: p
   val dummy_u: u
+  val dummy_g: g
+  val dummy_k: k
   val dummy_c: c
   val dummy_i: i
   val dummy_a: a

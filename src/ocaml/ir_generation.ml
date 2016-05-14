@@ -233,6 +233,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
     let args_ir =
       List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm)::acc) ~init:[] in
     Call (Name name, args_ir)
+  | _ -> failwith "TODO"
 
 and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_label f_label =
   match e with
@@ -264,6 +265,7 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
       match t' with
       | TInt | TBool -> const 0
       | TArray _ -> gen_decl_help callnames (at', t')
+      | _ -> failwith "TODO"
     in
     let array_size =
       match index with
@@ -316,6 +318,7 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) : Ir.expr =
         ]),
       loc_tmp$(1)
     )
+  | _ -> failwith "TODO"
 
 and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
   match s with
@@ -428,6 +431,7 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
       | Some s -> s
       | None -> failwith "impossible: calling unknown function" in
     Exp (Call (Name name, List.map ~f:(gen_expr callnames) args))
+  | _ -> failwith "TODO"
 
 and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
   let (_, args, body) =
@@ -454,10 +458,10 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) =
   (abi_callable_name c, Seq(moves @ [gen_stmt callnames body]), typ)
 
 and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog) =
-  let Ast.S.Prog (_, callables) = program in
+  let Ast.S.Prog (_, _, _, callables) = program in
   let int_callables =
    List.fold_left
-     ~f:(fun acc ((_, Interface clist): Typecheck.interface) -> clist @ acc)
+     ~f:(fun acc ((_, Interface (_, _, clist)): Typecheck.interface) -> clist @ acc)
      ~init:[] interfaces in
   let int_callnames = abi_callable_decl_names int_callables in
   let prog_callnames = abi_callable_names callables in

@@ -48,6 +48,7 @@ module Expr = struct
     | TInt -> IntT
     | TBool -> BoolT
     | TArray (t, _) -> ArrayT (of_typ t)
+    | _ -> failwith "TODO"
 
   let rec (<=) a b =
     match a, b with
@@ -102,6 +103,8 @@ open Sigma
 module T = struct
   type p = unit             [@@deriving sexp]
   type u = unit             [@@deriving sexp]
+  type g = unit             [@@deriving sexp]
+  type k = unit             [@@deriving sexp]
   type c = Expr.t * Expr.t  [@@deriving sexp]
   type i = unit             [@@deriving sexp]
   type a = Expr.t           [@@deriving sexp]
@@ -116,6 +119,8 @@ module D = struct
   include T
   let dummy_p = ()
   let dummy_u = ()
+  let dummy_g = ()
+  let dummy_k = ()
   let dummy_c = (EmptyArray, EmptyArray)
   let dummy_i = ()
   let dummy_a = EmptyArray
@@ -292,6 +297,7 @@ and expr_typecheck c (p, expr) =
         exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
         Ok (t2, FuncCall (((), f), args'))
     end
+  | _ -> failwith "TODO"
 
 (******************************************************************************)
 (* typ                                                                        *)
@@ -310,6 +316,7 @@ let rec typ_typecheck c (p, t) =
       | IntT -> Ok (ArrayT (fst t'), TArray (t', Some e'))
       | _ -> Error (p, "Array size is not an int")
     end
+  | _ -> failwith "TODO"
 
 (******************************************************************************)
 (* avar                                                                       *)
@@ -470,6 +477,7 @@ let stmt_typecheck c rho s =
           >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), Context.bind_all_vars c vs')
         | _, _ -> err "Invalid declassign"
       end
+    | _ -> failwith "TODO"
   in
 
   (c, rho) |- s >>| fst
@@ -545,7 +553,7 @@ let func_typecheck (c: context) ((p, call): Pos.callable) =
   func_decl_typecheck c (p, call')
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
-  let interface_map_fold (_, Interface l) =
+  let interface_map_fold (_, Interface (_, _, l)) =
     let func_decl_fold acc e =
       acc >>= fun g -> func_decl_typecheck g e in
     List.fold_left ~init:(Ok Context.empty) ~f:func_decl_fold l in
@@ -695,14 +703,15 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     Ok ((tuple_or_nah args_t, UnitT), ProcDecl (((), id), args'))
 
 let interface_typecheck
-  ((_, Interface callable_decls): Pos.interface) : interface Error.result =
+  ((_, Interface (_, _, callable_decls)): Pos.interface) : interface Error.result =
   Result.all (List.map ~f:callable_decl_typecheck callable_decls) >>= fun decls' ->
-  Ok ((), Interface decls')
+  (* TODO MUST CHANGE!!! RIGHT NOW RETURNING EMPTY LIST FOR CLASSES AND USES *)
+    Ok ((), Interface ([], [], decls'))
 
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (FullProg (name, (_, Prog(uses, funcs)), interfaces)) =
+let prog_typecheck (FullProg (name, (_, Prog(uses, _, _, funcs)), interfaces)) =
   fst_func_pass funcs interfaces >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =
@@ -711,4 +720,5 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, funcs)), interfaces)) =
   in
   let use_list = List.map ~f: use_typecheck uses in
   Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
-  Ok (FullProg (name, ((), Prog (use_list, func_list)), interfaces'))
+  (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS *)
+  Ok (FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces'))

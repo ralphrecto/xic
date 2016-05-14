@@ -3241,6 +3241,7 @@ public class ParserTest {
 
     // x: int
     // y: bool
+    // z: bool[1]
     @Test
     public void globalTest3() throws Exception {
         List<Symbol> symbols = Arrays.asList(
@@ -3249,12 +3250,54 @@ public class ParserTest {
             sym(INT),
             sym(ID, "y"),
             sym(COLON),
-            sym(BOOL)
+            sym(BOOL),
+            sym(ID, "z"),
+            sym(COLON),
+            sym(BOOL),
+            sym(LBRACKET),
+            sym(NUM, 1L),
+            sym(RBRACKET)
         );
 
         List<Global<Position>> gs = l(
             decl(l(annotatedId(id("x"), num()))),
-            decl(l(annotatedId(id("y"), bool())))
+            decl(l(annotatedId(id("y"), bool()))),
+            decl(l(annotatedId(id("z"), array(bool(), Optional.of(numLiteral(1L))))))
+        );
+        globalsTestHelper(symbols, gs);
+    }
+
+    // a: int = 1
+    // x, y, z: int
+    // b: bool = true
+    @Test
+    public void globalTest4() throws Exception {
+        List<Symbol> symbols = Arrays.asList(
+            sym(ID, "a"),
+            sym(COLON),
+            sym(INT),
+            sym(EQ),
+            sym(NUM, 1L),
+            sym(ID, "x"),
+            sym(COMMA),
+            sym(ID, "y"),
+            sym(COMMA),
+            sym(ID, "z"),
+            sym(COLON),
+            sym(INT),
+            sym(ID, "b"),
+            sym(COLON),
+            sym(BOOL),
+            sym(EQ),
+            sym(TRUE)
+        );
+
+        List<Global<Position>> gs = l(
+            declAsgn(l(annotatedId(id("a"), num())), numLiteral(1L)),
+            decl(l(annotatedId(id("x"), num()),
+                   annotatedId(id("y"), num()),
+                   annotatedId(id("z"), num()))),
+            declAsgn(l(annotatedId(id("b"), bool())), boolLiteral(true))
         );
         globalsTestHelper(symbols, gs);
     }

@@ -169,6 +169,24 @@ public class PositionKiller {
         }
     }
 
+    public static class CallableDeclKiller implements
+                        CallableDeclVisitor<Position, CallableDecl<Position>> {
+
+        public CallableDecl<Position> visit(FuncDecl<Position> f) {
+            List<AnnotatedVar<Position>> args =
+                Lists.transform(f.args, a -> a.accept(new AnnotatedVarKiller()));
+            List<Type<Position>> retType =
+                Lists.transform(f.returnType, t -> t.accept(new TypeKiller()));
+            return FuncDecl.of(dummyPosition, kill(f.name), args, retType);
+        }
+
+        public CallableDecl<Position> visit(ProcDecl<Position> p) {
+            List<AnnotatedVar<Position>> args =
+                Lists.transform(p.args, a -> a.accept(new AnnotatedVarKiller()));
+            return ProcDecl.of(dummyPosition, p.name, args);
+        }
+    }
+
     public static class GlobalKiller implements
                         GlobalVisitor<Position, Global<Position>> {
         public Global<Position> visit(Decl<Position> d) {
@@ -207,7 +225,13 @@ public class PositionKiller {
     }
 
     public static KlassDecl<Position> kill(KlassDecl<Position> k) {
-        // TODO
+        AnnotatedVarKiller avk = new AnnotatedVarKiller();
+        CallableDeclKiller ck = new CallableDeclKiller();
+
+        Id<Position> name = kill(k.name);
+        Optional<Id<Position>> superclass = k.superclass.map(c -> kill(c));
+        List<CallableDecl<Position>> methods = Lists.transform(k.methods, m -> m.accept(ck));
+        return KlassDecl.of(dummyPosition, name, superclass, methods);
     }
 
     public static Program<Position> kill(Program<Position> p) {
@@ -224,13 +248,12 @@ public class PositionKiller {
 
 
     public static Interface<Position> kill(Interface<Position> p) {
-        CallableKiller ck = new CallableKiller();
-        GlobalKiller gk = new GlobalKiller();
+        CallableDeclKiller ck = new CallableDeclKiller();
 
         List<Use<Position>> uses = Lists.transform(p.uses, PositionKiller::kill);
-        // List<Klass<Position>> klasses = Lists.transform(p.classes, PositionKiller::kill);
-        // List<Callable<Position>> fs = Lists.transform(p.fs, c -> c.accept(ck));
+        List<KlassDecl<Position>> klassDecls = Lists.transform(p.classes, PositionKiller::kill);
+        List<CallableDecl<Position>> funcDecls = Lists.transform(p.fs, c -> c.accept(ck));
 
-        return Program.of(dummyPosition, uses, null, null);
+        return Interface.of(dummyPosition, uses, klassDecls, funcDecls);
     }
 }

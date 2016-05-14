@@ -37,8 +37,9 @@ public interface Ast {
     public interface Var<A> extends Node<A> {
         public <R> R accept(VarVisitor<A, R> v);
     }
-
-    public interface CallableDecl<A> extends Node<A> { }
+    public interface CallableDecl<A> extends Node<A> {
+        public <R> R accept(CallableDeclVisitor<A, R> v);
+    }
     public interface XiFile<A> extends Node<A> { }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -119,6 +120,11 @@ public interface Ast {
     public interface CallableVisitor<A, R> {
         public R visit(Func<A> f);
         public R visit(Proc<A> p);
+    }
+
+    public interface CallableDeclVisitor<A, R> {
+        public R visit(FuncDecl<A> f);
+        public R visit(ProcDecl<A> p);
     }
 
     public interface ExprVisitor<A, R> {
@@ -674,6 +680,7 @@ public interface Ast {
         public final Id<A> name;
         public final List<AnnotatedVar<A>> args;
         public final List<Type<A>> returnType;
+        public <R> R accept(CallableDeclVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 
@@ -684,6 +691,7 @@ public interface Ast {
         public final A a;
         public final Id<A> name;
         public final List<AnnotatedVar<A>> args;
+        public <R> R accept(CallableDeclVisitor<A, R> v) { return v.visit(this); }
         public <R> R accept(NodeVisitor<A, R> v) { return v.visit(this); }
     }
 

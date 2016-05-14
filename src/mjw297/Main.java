@@ -11,14 +11,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Iterables;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -292,7 +288,7 @@ public class Main {
         printError(kind, filename, "" + line, "" + col, msg);
     }
 
-    void writeParseError(XicException e, String filename, String outputFilename) {
+    private void writeParseError(XicException e, String filename, String outputFilename) {
         String kind = e.type == ErrorType.LEXING ? "Lexical" : "Syntactic";
         printError(
             kind, filename, e.row, e.column, e.getMessage()
@@ -300,6 +296,54 @@ public class Main {
         writeToFile(outputFilename, String.format(
             "%d:%d %s", e.row, e.column, e.getMessage()
         ));
+    }
+
+    private Interface<Position> parseInterface(Use<Position> use) throws XicException {
+      String interName = use.x.x + ".ixi";
+      XiSource interfaceFile = XiSource.create(libPath, interName);
+      Parsed parsed = Actions.parseInterface(interfaceFile.reader);
+
+      if (parsed.inter.isPresent()) {
+        return parsed.inter.get();
+      } else {
+        throw new XicException.XiUseException(
+          interName, -1, -1,
+          parsed.exception.get().getMessage()
+        );
+      }
+    }
+
+    private List<Interface<Position>> parseInterfaces(List<Use<Position>> uses) throws XicException {
+        List<Interface<Position>> interfaces = new ArrayList<>();
+        for (Use<Position> use : uses) {
+            interfaces.add(parseInterface(use));
+        }
+        return interfaces;
+    }
+
+    /* Perform a BFS through uses of interface files. Take initial uses from program. */
+    private List<Interface<Position>> useTraverse(List<Use<Position>> initUses) throws XicException {
+        List<Tuple<String, Interface<Position>>> init = Util.zip(
+            Lists.transform(initUses, u -> u.x.x),
+            parseInterfaces(initUses)
+        );
+        Queue<Tuple<String, Interface<Position>>> queue =
+            (Queue<Tuple<String, Interface<Position>>>) new LinkedList<> (init);
+        List<Interface<Position>> retList = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+
+        Tuple<String, Interface<Position>> current = null;
+        while (!queue.isEmpty()) {
+            current = queue.poll();
+            visited.add(current.fst);
+            retList.add(current.snd);
+            for (Use<Position> use : current.snd.uses) {
+                if (!visited.contains(use.x.x)) {
+                    queue.add(Tuple.of(use.x.x, parseInterface(use)));
+                }
+            }
+        }
+        return retList;
     }
 
     private Tuple<
@@ -322,41 +366,14 @@ public class Main {
                 return Tuple.of(source, Either.right(parsed.exception.get()));
             } else {
                 Program<Position> prog = parsed.prog.get();
-
-                List<Tuple<Use<Position>, XiSource>> useFiles = Util.zip(
-                    prog.uses,
-                    XiSource.createMany(
-                        libPath,
-                        Lists.transform(prog.uses, u -> u.x.x + ".ixi")
-                    )
-                );
-
-                List<Tuple<Use<Position>, Parsed>> parsedUseFiles = Lists.transform(useFiles,
-                    u -> Tuple.of(u.fst, Actions.parseInterface(u.snd.reader))
-                );
-
-                Optional<XiUseException> useError = Optional.empty();
-                List<Interface<Position>> interfaces = new ArrayList<>();
-                for (Tuple<Use<Position>, Parsed> t : parsedUseFiles) {
-                    if (t.snd.inter.isPresent()) {
-                        interfaces.add(t.snd.inter.get());
-                    } else {
-                        useError = Optional.of(new XicException.XiUseException(
-                            t.fst.x.x,
-                            t.fst.a.row,
-                            t.fst.a.col,
-                            t.snd.exception.get().getMessage()
-                        ));
-                        break;
-                    }
-                }
-                if (useError.isPresent()) {
-                    return Tuple.of(source, Either.right(useError.get()));
-                } else {
+                try {
+                    List<Interface<Position>> interfaces = useTraverse(prog.uses);
                     return Tuple.of(
                         source,
                         Either.left(FullProgram.of(prog.a, source.filename, prog, interfaces))
                     );
+                } catch (XicException e) {
+                    return Tuple.of(source, Either.right(e));
                 }
             }
         });

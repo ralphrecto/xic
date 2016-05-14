@@ -38,7 +38,7 @@
 
 \begin{document}
 \maketitle
-\small
+\footnotesize
 
 \section{Types}
 \[
@@ -268,6 +268,15 @@
     T \neq \tunit
   }
   {\typed{f(e_1, \ldots, e_n)}{T}}
+
+  \inferrule*
+  {
+    \typed{e_1}{\key{A}} \\
+    \typed{e_2}{\key{B}} \\
+    \oplus \in \set{\key{==}, \key{!=}} \\
+    ???
+  }
+  {\typed{e_1 \oplus e_2}{\tbool}}
 \end{mathpar}
 
 \section{Statements}

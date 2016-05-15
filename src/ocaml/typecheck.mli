@@ -54,7 +54,7 @@ module KlassM: sig
   type t = {
     name    : string;
     super   : string option;
-    fields  : (string * Pos.typ) list;
+    fields  : Pos.typ String.Map.t;
     methods : Pos.callable list;
   }
   [@@deriving sexp]

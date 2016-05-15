@@ -32,6 +32,7 @@ module Expr = struct
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
+    | KlassT of string
     [@@deriving sexp, compare]
 
   let rec to_string t =
@@ -42,13 +43,14 @@ module Expr = struct
     | ArrayT t' -> sprintf "[%s]" (to_string t')
     | TupleT ts -> sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:to_string ts))
     | EmptyArray -> "{}"
+    | KlassT name -> sprintf "%s" name
 
   let rec of_typ (_, t) =
     match t with
     | TInt -> IntT
     | TBool -> BoolT
     | TArray (t, _) -> ArrayT (of_typ t)
-    | _ -> failwith "TODO"
+    | TKlass name -> KlassT name
 
   let rec (<=) a b =
     match a, b with
@@ -322,27 +324,27 @@ and expr_typecheck c (p, expr) =
 (******************************************************************************)
 let rec typ_typecheck c (p, t) =
   match t with
-  | Ast.S.TInt -> Ok (IntT, Ast.S.TInt)
-  | Ast.S.TBool -> Ok (BoolT, Ast.S.TBool)
-  | Ast.S.TArray (t, None) ->
+  | TInt -> Ok (IntT, TInt)
+  | TBool -> Ok (BoolT, TBool)
+  | TArray (t, None) ->
     typ_typecheck c t >>= fun t' ->
-    Ok (ArrayT (fst t'), Ast.S.TArray (t', None))
-  | Ast.S.TArray (t, Some e) -> begin
+    Ok (ArrayT (fst t'), TArray (t', None))
+  | TArray (t, Some e) -> begin
       typ_typecheck c t >>= fun t' ->
       expr_typecheck c e >>= fun e' ->
       match fst e' with
-      | IntT -> Ok (ArrayT (fst t'), Ast.S.TArray (t', Some e'))
+      | IntT -> Ok (ArrayT (fst t'), TArray (t', Some e'))
       | _ -> Error (p, "Array size is not an int")
     end
-  | _ -> failwith "TODO"
+  | TKlass name -> Ok (KlassT name, TKlass name)
 
 (******************************************************************************)
 (* avar                                                                       *)
 (******************************************************************************)
 let avar_typecheck c (_, a) =
   match a with
-  | Ast.S.AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', Ast.S.AId (((), x), t'))
-  | Ast.S.AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', Ast.S.AUnderscore t')
+  | AId ((_, x), t) -> typ_typecheck c t >>= fun t' -> Ok (fst t', AId (((), x), t'))
+  | AUnderscore t -> typ_typecheck c t >>= fun t' -> Ok (fst t', AUnderscore t')
 
 (******************************************************************************)
 (* var                                                                        *)
@@ -356,36 +358,38 @@ let var_typecheck c (_, v) =
 (* stmt                                                                       *)
 (******************************************************************************)
 (* see Expr.eqs *)
+(* Checks that the avars are disjoint and have not been declared before. *) 
 let avars_typecheck (p: Pos.pos)
-    (c: context)
+    (c: contexts)
     (avs: Pos.avar list)
     (dup_var: string)
     (bound_var: string)
   : avar list Error.result =
   let xs = List.filter_map ~f:varsofavar (List.map ~f:snd avs) in
   let disjoint = not (List.contains_dup xs) in
-  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c x)) in
+  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.vars x)) in
   match disjoint, unbound with
   | true, true -> Result.all (List.map ~f:(avar_typecheck c) avs)
   | false, _ -> Error (p, dup_var)
   | true, false -> Error (p, bound_var)
 
+(* Checks that the vars are disjoint and have not been declared before. *) 
 let vars_typecheck (p: Pos.pos)
-    (c: context)
+    (c: contexts)
     (vs: Pos.var list)
     (dup_var: string)
     (bound_var: string)
   : var list Error.result =
   let xs = List.filter_map ~f:varsofvar (List.map ~f:snd vs) in
   let disjoint = not (List.contains_dup xs) in
-  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c x)) in
+  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.vars x)) in
   match disjoint, unbound with
   | true, true -> Result.all (List.map ~f:(var_typecheck c) vs)
   | false, _ -> Error (p, dup_var)
   | true, false -> Error (p, bound_var)
 
 let stmt_typecheck c rho s =
-  let rec (|-) (c, rho) (p, s) : (stmt * context) Error.result =
+  let rec (|-) (c, rho) (p, s) : (stmt * contexts) Error.result =
     let err s = Error (p, s) in
     match s with
     | Block ss -> begin

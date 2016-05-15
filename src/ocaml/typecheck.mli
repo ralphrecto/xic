@@ -54,7 +54,7 @@ module KlassM: sig
   type t = {
     name    : string;
     super   : string option;
-    fields  : (string * Pos.typ) list;
+    fields  : Pos.typ String.Map.t;
     methods : Pos.callable list;
   }
   [@@deriving sexp]
@@ -112,6 +112,10 @@ module Context: sig
    * `t`. underscores and annotated underscores are ignored. *)
   val bind_all_vars: context -> var list -> context
 
+  (* Same as bind_all_vars, but errors out if there are any underscores or
+   * annotated underscores. *)
+  val bind_all_vars_no_underscore: context -> Pos.var list -> context Error.result
+
   val bind_all_avars: context -> avar list -> context
 end
 
@@ -132,5 +136,8 @@ val func_typecheck: context -> Pos.callable -> context Error.result
 val fst_func_pass: Pos.callable list -> Pos.interface list -> context Error.result
 val snd_func_pass: context -> Pos.callable -> callable Error.result
 val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
+
 val interface_typecheck : Pos.interface -> interface Error.result
+val fst_global_pass : contexts -> Pos.global list -> contexts Error.result
+val fst_klass_pass : contexts -> Pos.klass list -> contexts Error.result
 val prog_typecheck: Pos.full_prog -> full_prog Error.result

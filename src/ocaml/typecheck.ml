@@ -9,20 +9,26 @@ module Error = struct
   type 'a result = ('a, t) Result.t
 end
 
-let num_f_args     = "Incorrect number of function arguments"
-let typ_f_args     = "Ill typed function arguments"
-let num_p_args     = "Incorrect number of procedure arguments"
-let typ_p_args     = "Ill typed procedure arguments"
-let num_ret_args   = "Incorrect number of return expressions"
-let typ_ret_args   = "Ill typed return expressions"
-let unbound_var x  = sprintf "Unbound variable %s" x
-let unbound_call x = sprintf "Unbound callable %s" x
-let dup_var_decl   = "Duplicate variable declaration"
-let bound_var_decl = "Cannot rebind variable"
-let num_decl_vars  = "Incorrect number of variables in declassign"
-let typ_decl_vars  = "Ill typed variable declassign"
-let dup_func_decl x = sprintf "Function %s has already been declared" x
-let no_return = "Function is missing return"
+let num_f_args       = "Incorrect number of function arguments"
+let typ_f_args       = "Ill typed function arguments"
+let num_p_args       = "Incorrect number of procedure arguments"
+let typ_p_args       = "Ill typed procedure arguments"
+let num_ret_args     = "Incorrect number of return expressions"
+let typ_ret_args     = "Ill typed return expressions"
+let unbound_var x    = sprintf "Unbound variable %s" x
+let unbound_call x   = sprintf "Unbound callable %s" x
+let dup_global_decl  = "Duplicate global variable declaration"
+let dup_var_decl     = "Duplicate variable declaration"
+let dup_field_decl   = "Duplicate field declaration"
+let dup_method_decl  = "Duplicate method declaration"
+let field_shadow     = "Field declaration shadows global variable"
+let field_this       = "Invalid field name \"this\""
+let field_underscore = "Field name must be declared"
+let bound_var_decl   = "Cannot rebind variable"
+let num_decl_vars    = "Incorrect number of variables in declassign"
+let typ_decl_vars    = "Ill typed variable declassign"
+let dup_func_decl x  = sprintf "Function %s has already been declared" x
+let no_return        = "Function is missing return"
 
 module Expr = struct
   type t =
@@ -106,7 +112,7 @@ module KlassM = struct
   type t = {
     name    : string;
     super   : string option;
-    fields  : (string * Pos.typ) list;
+    fields  : Pos.typ String.Map.t;
     methods : Pos.callable list;
   }
   [@@deriving sexp]
@@ -155,10 +161,20 @@ let varsofvar v =
   | AVar (_, AUnderscore _)
   | Underscore -> None
 
+let varsofvars vs =
+  List.map ~f:(fun x -> varsofvar (snd x)) vs
+  |> List.filter ~f:is_some
+  |> List.map ~f:(function | Some x -> x | None -> failwith "can't happen")
+
 let typeofavar av =
   match av with
   | Ast.S.AId (_, t)
   | Ast.S.AUnderscore t -> Expr.of_typ t
+
+let ids_of_callables (_, c) =
+  match c with
+  | Func (i, _, _, _)
+  | Proc (i, _, _) -> i
 
 type context = Sigma.t String.Map.t
 module Context = struct
@@ -183,6 +199,16 @@ module Context = struct
         | Some x -> bind c x (Var (fst v))
         | None -> c
       )
+
+  let bind_all_vars_no_underscore c vs =
+    let (>>=) = Result.(>>=) in
+    List.fold_left vs ~init:(Ok c) ~f:(fun c ((p, v): Pos.var) ->
+      c >>= fun c ->
+      match v with
+      | AVar (_, AId ((_, x), t)) -> Ok (bind c x (Var (Expr.of_typ t)))
+      | AVar (_, AUnderscore _)
+      | Underscore -> Error (p, "unexpected underscore!")
+    )
 
   let bind_all_avars c avs =
     List.fold_left avs ~init:c ~f:(fun c av ->
@@ -476,17 +502,6 @@ let stmt_typecheck c rho s =
         Ok ((One, Decl vs'), Context.bind_all_vars c vs')
       end
     | DeclAsgn (vs, e) -> begin
-        (*
-        (* COMPILERS IS FUN! *)
-        begin
-          match vs, e with
-          | [(_, Underscore)], (_, FuncCall _)
-          | [(_, AVar (_, AUnderscore _))], (_, FuncCall _) -> Ok ()
-          | [(_, Underscore)], _
-          | [(_, AVar (_, AUnderscore _))], _ -> Error (p, "Function call expected")
-          | _ -> Ok ()
-        end >>= fun () ->
-        *)
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
         expr_typecheck c e >>= fun e' ->
         match vs', fst e' with
@@ -549,24 +564,24 @@ let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
-                  | ProcDecl ((_, id), args) ->
-                    begin
-                      if Context.mem c id then
-                        Error (p, dup_func_decl id)
-                      else
-                        match args with
-                        |[] ->
-                          let c' = Context.add c ~key:id ~data:(Function (UnitT, UnitT)) in
-                          Ok c'
-                        |[arg_avar] ->
-                          let arg_t = avar_to_expr_t arg_avar in
-                          let c' = Context.add c ~key:id ~data:(Function (arg_t, UnitT)) in
-                          Ok c'
-                        |_::_ ->
-                          let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-                          let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
-                          Ok c'
-                    end
+    | ProcDecl ((_, id), args) ->
+      begin
+        if Context.mem c id then
+          Error (p, dup_func_decl id)
+        else
+          match args with
+          |[] ->
+            let c' = Context.add c ~key:id ~data:(Function (UnitT, UnitT)) in
+            Ok c'
+          |[arg_avar] ->
+            let arg_t = avar_to_expr_t arg_avar in
+            let c' = Context.add c ~key:id ~data:(Function (arg_t, UnitT)) in
+            Ok c'
+          |_::_ ->
+            let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
+            let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
+            Ok c'
+      end
 
 let func_typecheck (c: context) ((p, call): Pos.callable) =
   let call' = match call with
@@ -603,7 +618,6 @@ TODO: should the position of the errors be more accurate? i.e. the actual
  position of the arg that was already defined
 Ensures parameters do not shadow and body is well-typed
 *)
-
 let snd_func_pass c (p, call) =
   match call with
   | Ast.S.Func ((_,id), args, rets, s) ->
@@ -724,6 +738,9 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     let args_t = List.map ~f:avar_to_expr_t args in
     Ok ((tuple_or_nah args_t, UnitT), ProcDecl (((), id), args'))
 
+(******************************************************************************)
+(* interfaces                                                                 *)
+(******************************************************************************)
 let interface_typecheck
   ((_, Interface (_, _, callable_decls)): Pos.interface) : interface Error.result =
   Result.all (List.map ~f:callable_decl_typecheck callable_decls) >>= fun decls' ->
@@ -731,9 +748,71 @@ let interface_typecheck
     Ok ((), Interface ([], [], decls'))
 
 (******************************************************************************)
+(* globals                                                                    *)
+(******************************************************************************)
+let fst_global_pass contexts globals =
+  let init = Ok ([], Context.empty) in
+  List.fold_left globals ~init ~f:(fun acc (_, g) ->
+    acc >>= fun (ids, c) ->
+    match g with
+    | Gdecl vlist
+    | GdeclAsgn (vlist, _) ->
+        (Context.bind_all_vars_no_underscore c vlist) >>= fun c ->
+        Ok (ids @ (varsofvars vlist), c)
+  ) >>= fun (ids, new_vars) ->
+  if not (List.contains_dup ids)
+    then Ok ({contexts with vars = new_vars})
+    else Error ((-1, -1), dup_global_decl)
+
+(******************************************************************************)
+(* klasses                                                                    *)
+(******************************************************************************)
+let fst_klass_pass contexts klasses =
+  let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
+    acc >>= fun contexts' ->
+    let get_field acc (_, f) =
+      acc >>= fun (ids, field_acc) ->
+      match f with
+        | AUnderscore _ -> Error (p, field_underscore)
+        | AId ((_, id), t) -> Ok (id::ids, String.Map.add field_acc ~key:id ~data:t)
+    in
+    List.fold_left ~f:get_field ~init:(Ok ([], String.Map.empty)) fields >>= fun (ids, fields') ->
+    let has_this = not ((List.filter ~f:(fun x -> x = "this") ids) = []) in
+    let shadow_global =
+      let globals = String.Map.keys contexts'.vars in
+      not ((List.filter ~f:(fun x -> List.exists globals ~f:(fun y -> y = x)) ids) = [])
+    in
+    let has_dup = List.contains_dup ids in
+    match has_this, shadow_global, has_dup with
+    | true, _, _ -> Error (p, field_this)
+    | _, true, _ -> Error (p, field_shadow)
+    | _, _, true -> Error (p, dup_field_decl)
+    | _ ->
+      let method_names = List.map ~f:ids_of_callables methods in
+      if List.contains_dup method_names then Error (p, dup_method_decl)
+      else
+        let klass =
+          match super with
+          | Some (_, s) -> {name = k; super = Some s; fields = fields'; methods}
+          | None  -> {name = k; super = None; fields = fields'; methods}
+        in
+        let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass in
+        Ok ({contexts' with delta_m = delta_m'})
+  in
+  List.fold_left ~f:update_klass ~init:(Ok contexts) klasses
+
+(******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (FullProg (name, (_, Prog(uses, _, _, funcs)), interfaces)) =
+let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
+  let empty_contexts =
+    {vars = String.Map.empty;
+     delta_m = String.Map.empty;
+     class_context = None;
+     delta_i = String.Map.empty}
+  in
+  fst_global_pass empty_contexts globals >>= fun contexts1 ->
+  fst_klass_pass contexts1 klasses >>= fun _ ->
   fst_func_pass funcs interfaces >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =

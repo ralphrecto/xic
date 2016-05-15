@@ -198,6 +198,16 @@ module Context = struct
         | None -> c
       )
 
+  let bind_all_vars_no_underscore c vs =
+    let (>>=) = Result.(>>=) in
+    List.fold_left vs ~init:(Ok c) ~f:(fun c ((p, v): Pos.var) ->
+      c >>= fun c ->
+      match v with
+      | AVar (_, AId ((_, x), t)) -> Ok (bind c x (Var (Expr.of_typ t)))
+      | AVar (_, AUnderscore _)
+      | Underscore -> Error (p, "unexpected underscore!")
+    )
+
   let bind_all_avars c avs =
     List.fold_left avs ~init:c ~f:(fun c av ->
         match varsofavar (snd av) with
@@ -737,14 +747,18 @@ let interface_typecheck
 (* globals                                                                    *)
 (******************************************************************************)
 let fst_global_pass contexts globals =
-  let update_vars (ids, c) (_, g) =
+  let init = Ok ([], Context.empty) in
+  List.fold_left globals ~init ~f:(fun acc (_, g) ->
+    acc >>= fun (ids, c) ->
     match g with
     | Gdecl vlist
-    | GdeclAsgn (vlist, _) -> (ids @ (varsofvars vlist), Context.bind_all_vars c vlist)
-  in
-  let (ids, new_vars) = List.fold_left ~f:update_vars ~init:([], String.Map.empty) globals in
-  if not (List.contains_dup ids) then Ok ({contexts with vars = new_vars})
-  else Error ((-1,-1), dup_global_decl)
+    | GdeclAsgn (vlist, _) ->
+        (Context.bind_all_vars_no_underscore c vlist) >>= fun c ->
+        Ok (ids @ (varsofvars vlist), c)
+  ) >>= fun (ids, new_vars) ->
+  if not (List.contains_dup ids)
+    then Ok ({contexts with vars = new_vars})
+    else Error ((-1, -1), dup_global_decl)
 
 (******************************************************************************)
 (* klasses                                                                    *)
@@ -752,18 +766,11 @@ let fst_global_pass contexts globals =
 let fst_klass_pass contexts klasses =
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->
-    let is_underscore var =
-      match var with
-      | Underscore
-      | AVar (_, AUnderscore _) -> true
-      | _ -> false
-    in
     let get_field acc (_, f) =
       acc >>= fun (ids, field_acc) ->
       match f with
         | AUnderscore _ -> Error (p, field_underscore)
         | AId ((_, id), t) -> Ok (id::ids, String.Map.add field_acc ~key:id ~data:t)
-      | _ -> failwith "cannot happen"
     in
     List.fold_left ~f:get_field ~init:(Ok ([], String.Map.empty)) fields >>= fun (ids, fields') ->
     let has_this = not ((List.filter ~f:(fun x -> x = "this") ids) = []) in

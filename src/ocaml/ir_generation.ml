@@ -329,7 +329,11 @@ and gen_stmt (callnames: string String.Map.t) ((_, s): Typecheck.stmt) =
         match x with
         | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
           Move (Temp idstr, gen_decl_help callnames (at, TArray (t, i))) :: seq
-        | _ -> seq in
+        | AVar (_, AId ((_, idstr), (_, (TInt | TBool | TKlass _)))) ->
+          (Move (Temp idstr, Const 0L))::seq
+        | AVar (_, AUnderscore _)
+        | Underscore -> seq
+      in
       Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
     end
   | DeclAsgn ([(_,v)], exp) ->

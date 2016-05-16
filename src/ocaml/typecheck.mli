@@ -59,6 +59,12 @@ module Sigma: sig
     [@@deriving sexp]
 end
 
+module Eta: sig
+  type t =
+    | Var of Expr.t
+  [@@deriving sexp]
+end
+
 module KlassM: sig
   type t = {
     name    : string;
@@ -102,6 +108,7 @@ end
 module Abbreviations: (module type of Ast.Abbreviate(D))
 
 type context = Sigma.t String.Map.t
+type global_context = Eta.t String.Map.t
 module Context: sig
   include (module type of String.Map)
 
@@ -129,7 +136,8 @@ module Context: sig
 end
 
 type contexts = {
-  vars          : context;
+  locals        : context;
+  globals       : global_context;
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;

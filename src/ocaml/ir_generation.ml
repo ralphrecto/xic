@@ -233,6 +233,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
     let args_ir =
       List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm)::acc) ~init:[] in
     Call (Name name, args_ir)
+  | Null -> Const 0L
   | _ -> failwith "TODO"
 
 and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_label f_label =

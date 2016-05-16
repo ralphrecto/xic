@@ -14,15 +14,23 @@ module Expr: sig
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
+    | NullT
     | KlassT of string
     [@@deriving sexp, compare]
+
+  type subtyping = t -> t -> bool
 
   val to_string: t -> string
   val of_typ: Pos.typ -> t
 
-  (* subtype and supertype relation *)
-  val (<=): t -> t -> bool
-  val (>=): t -> t -> bool
+  val array_subtyping : subtyping
+
+  (* takes a map from class name -> superclass name *)
+  val make_subtype_rel : string String.Map.t -> subtyping
+
+  val comparable : subtyping -> t -> t -> bool
+
+  val type_max : subtyping -> Pos.pos -> t -> t -> t Error.result
 
   (* `eqs p xs ys num type` checks that
    *
@@ -31,7 +39,7 @@ module Expr: sig
    *
    * If (1) fails, `Error (p, num)` is returned. If (2) fails, `Error (p,
    * type)` is returned. *)
-  val eqs: Pos.pos -> t list -> t list -> string -> string -> unit Error.result
+  val eqs: subtyping -> Pos.pos -> t list -> t list -> string -> string -> unit Error.result
 end
 
 module Stmt: sig
@@ -125,6 +133,8 @@ type contexts = {
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
+  (* subtyping relation, including class hierarchy *)
+  subtype       : Expr.t -> Expr.t -> bool;
 }
 
 val expr_typecheck: contexts -> Pos.expr -> expr Error.result

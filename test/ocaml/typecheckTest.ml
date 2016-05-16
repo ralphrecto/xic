@@ -16,6 +16,7 @@ let empty = {
   delta_m       = String.Map.empty;
   class_context = None;
   delta_i       = String.Map.empty;
+  subtype       = (fun _ _ -> false);
 }
 
 let gam (xs: (string * Sigma.t) list) =

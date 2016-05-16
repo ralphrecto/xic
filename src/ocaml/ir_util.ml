@@ -11,8 +11,9 @@ let rec abi_type_name (is_arg: bool) (e: Typecheck.Expr.t) = match e with
     let open List in
     let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:(abi_type_name is_arg) tlist) in
     "t" ^ (string_of_int (length tlist)) ^ tnames
+  | KlassT _ -> failwith "ir_util:abi_type_name implement KlassT name"
   | EmptyArray -> failwith "impossible"
-  | KlassT _ -> failwith "TODO"
+  | NullT -> failwith "impossible"
 
 let abi_function_name =
   let f c = if c = '_' then "__" else String.of_char c in

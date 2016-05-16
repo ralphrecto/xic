@@ -38,8 +38,11 @@ module Expr = struct
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
+    | NullT
     | KlassT of string
     [@@deriving sexp, compare]
+
+  type subtyping = t -> t -> bool
 
   let rec to_string t =
     match t with
@@ -49,7 +52,8 @@ module Expr = struct
     | ArrayT t' -> sprintf "[%s]" (to_string t')
     | TupleT ts -> sprintf "(%s)" (String.concat ~sep:", " (List.map ~f:to_string ts))
     | EmptyArray -> "{}"
-    | KlassT name -> sprintf "%s" name
+    | KlassT name -> sprintf "class %s" name
+    | NullT -> "null"
 
   let rec of_typ (_, t) =
     match t with
@@ -58,25 +62,39 @@ module Expr = struct
     | TArray (t, _) -> ArrayT (of_typ t)
     | TKlass (_, name) -> KlassT name
 
-  let rec (<=) a b =
-    match a, b with
-    | _, UnitT -> true
-    | EmptyArray, ArrayT _ -> true (* TODO: is this right? *)
-    | ArrayT t1, ArrayT t2 -> t1 <= t2
-    | _ -> a = b
+  let rec array_subtyping : subtyping =
+    fun t1 t2 ->
+    match t1, t2 with
+    | NullT, EmptyArray
+    | NullT, ArrayT _
+    | NullT, KlassT _
+    | EmptyArray, ArrayT _ -> true
+    | ArrayT t1', ArrayT t2' -> array_subtyping t1' t2'
+    | _ -> false
 
-  let (>=) a b =
-    b <= a
+  (* classmap is a map from class name -> superclass name *)
+  let make_subtype_rel (classmap : string String.Map.t) : subtyping =
+    let rec class_subtype (c1 : string) (c2 : string) : bool =
+      match String.Map.find classmap c1 with
+      | _ when c1 = c2 -> true
+      | Some super ->
+          if super = c2 then true else
+          class_subtype super c2
+      | None -> false in
+    fun t1 t2 ->
+      match t1, t2 with
+      | KlassT c1, KlassT c2 -> class_subtype c1 c2
+      | _ -> array_subtyping t1 t2
 
-  let comparable t1 t2 =
+  let comparable (( <= ) : subtyping) (t1 : t) (t2 : t) =
     t1 <= t2 || t2 <= t1
 
-  let type_max p t1 t2 : t Error.result =
+  let type_max (( <= ) : subtyping) (p : Pos.pos) (t1 : t) (t2 : t) =
     if t1 <= t2 then Ok t2
     else if t2 <= t1 then Ok t1
     else Error (p, "Incomparable types")
 
-  let eqs p xs ys unequal_num mistyped =
+  let eqs (( <= ) : subtyping) p xs ys unequal_num mistyped =
     match List.zip xs ys with
     | Some zipped ->
       if List.for_all ~f:(fun (x, y) -> y <= x) zipped
@@ -223,6 +241,8 @@ type contexts = {
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
+  (* subtyping relation, including class hierarchy *)
+  subtype       : Expr.t -> Expr.t -> bool;
 }
 
 (******************************************************************************)
@@ -246,10 +266,10 @@ let rec exprs_typecheck (p: Pos.pos)
     (mistyped: string)
   : expr list Error.result =
   Result.all (List.map ~f:(expr_typecheck c) args) >>= fun args' ->
-  Expr.eqs p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
+  Expr.eqs c.subtype p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
   Ok args'
 
-and expr_typecheck c (p, expr) =
+and expr_typecheck (c : contexts) (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
   | Bool b -> Ok (BoolT, Bool b)
@@ -260,7 +280,7 @@ and expr_typecheck c (p, expr) =
   | Array (e::es) -> begin
       expr_typecheck c e >>= fun (t, e) ->
       Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-      let f acc (t1, _) = acc >>= type_max p t1 in
+      let f acc (t1, _) = acc >>= type_max c.subtype p t1 in
       match List.fold_left es ~f ~init:(Ok t) with
       | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
       | Error _ -> Error (p, "Array elements have different types")
@@ -274,13 +294,13 @@ and expr_typecheck c (p, expr) =
       | IntT, IntT, (MINUS|STAR|HIGHMULT|DIV|MOD) -> Ok (IntT, e)
       | IntT, IntT, (LT|LTE|GTE|GT|EQEQ|NEQ) -> Ok (BoolT, e)
       | BoolT, BoolT, (AMP|BAR|EQEQ|NEQ) -> Ok (BoolT, e)
-      | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when comparable t1 t2 -> Ok (BoolT, e)
+      | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when comparable array_subtyping t1 t2 -> Ok (BoolT, e)
       | EmptyArray, ArrayT _, (EQEQ|NEQ)
       | ArrayT _, EmptyArray, (EQEQ|NEQ)
       | EmptyArray, EmptyArray, (EQEQ|NEQ) -> Ok (BoolT, e)
       | IntT, IntT, PLUS -> Ok (IntT, e)
-      | ArrayT t1, ArrayT t2, PLUS when comparable t1 t2 ->
-        type_max p t1 t2 >>= fun max_t -> Ok (ArrayT max_t, e)
+      | ArrayT t1, ArrayT t2, PLUS when comparable array_subtyping t1 t2 ->
+        type_max c.subtype p t1 t2 >>= fun max_t -> Ok (ArrayT max_t, e)
       | ArrayT t, EmptyArray, PLUS
       | EmptyArray, ArrayT t, PLUS -> Ok (ArrayT t, e)
       | EmptyArray, EmptyArray, PLUS -> Ok (EmptyArray, e)
@@ -385,7 +405,7 @@ let var_typecheck c (_, v) =
 (* stmt                                                                       *)
 (******************************************************************************)
 (* see Expr.eqs *)
-(* Checks that the avars are disjoint and have not been declared before. *) 
+(* Checks that the avars are disjoint and have not been declared before. *)
 let avars_typecheck (p: Pos.pos)
     (c: contexts)
     (avs: Pos.avar list)
@@ -400,7 +420,7 @@ let avars_typecheck (p: Pos.pos)
   | false, _ -> Error (p, dup_var)
   | true, false -> Error (p, bound_var)
 
-(* Checks that the vars are disjoint and have not been declared before. *) 
+(* Checks that the vars are disjoint and have not been declared before. *)
 let vars_typecheck (p: Pos.pos)
     (c: contexts)
     (vs: Pos.var list)
@@ -415,7 +435,7 @@ let vars_typecheck (p: Pos.pos)
   | false, _ -> Error (p, dup_var)
   | true, false -> Error (p, bound_var)
 
-let stmt_typecheck c rho s =
+let stmt_typecheck (c : contexts) rho s =
   let rec (|-) (c, rho) (p, s) : (stmt * contexts) Error.result =
     let err s = Error (p, s) in
     match s with
@@ -490,7 +510,7 @@ let stmt_typecheck c rho s =
         | Index (_, _) ->
           expr_typecheck c l >>= fun l' ->
           expr_typecheck c r >>= fun r' ->
-          if fst l' >= fst r'
+          if fst r' <= fst l'
           then Ok ((One, Asgn (l', r')), c)
           else
             let ls = Expr.to_string (fst l') in
@@ -508,10 +528,10 @@ let stmt_typecheck c rho s =
         match vs', fst e' with
         | _, TupleT ets' ->
           let vts' = List.map ~f:fst vs' in
-          Expr.eqs p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
+          Expr.eqs c.subtype p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
           Ok ((One, DeclAsgn (vs', e')), {c with vars = Context.bind_all_vars c.vars vs'})
         | [v'], _ ->
-          Expr.eqs p [fst v'] [fst e'] num_decl_vars typ_decl_vars
+          Expr.eqs c.subtype p [fst v'] [fst e'] num_decl_vars typ_decl_vars
           >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), {c with vars = Context.bind_all_vars c.vars vs'})
         | _, _ -> err "Invalid declassign"
       end
@@ -597,6 +617,7 @@ let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface l
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
+    subtype       = (fun _ _ -> false);
   } in
   let interface_map_fold (_, Interface (_, _, l)) =
     let func_decl_fold acc e =
@@ -734,10 +755,11 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     | _::_ -> TupleT l
     | [] -> UnitT in
   let empty_contexts = {
-    vars          = Context.empty; 
+    vars          = Context.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
+    subtype       = (fun _ _ -> false);
   } in
   match c with
   | FuncDecl ((_, id), args, rets) ->
@@ -823,7 +845,8 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
     vars = Context.empty;
     delta_m = String.Map.empty;
     class_context = None;
-    delta_i = String.Map.empty
+    delta_i = String.Map.empty;
+    subtype = (fun _ _ -> false);
   } in
   fst_global_pass empty_contexts globals >>= fun contexts1 ->
   fst_klass_pass contexts1 klasses >>= fun _ ->

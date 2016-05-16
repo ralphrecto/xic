@@ -60,13 +60,43 @@ module Sigma: sig
 end
 
 module KlassM: sig
+  (*
+   * class B {
+   *     x: int
+   *     y: int[]
+   *     foo(z: int) : bool
+   *     bar()
+   * }
+   *
+   * class A extends B {
+   *     b: B
+   *     foo(z: int) : bool
+   *     baz(c: bool[])
+   * }
+   *
+   * {
+   *     name: "B";
+   *     super: None;
+   *     fields: [(x, int); (y, int)];
+   *     methods: [foo(z: int) : bool; bar()];
+   *     overrides: [];
+   * }
+   *
+   * {
+   *     name: "A";
+   *     super: Some "B";
+   *     fields: [(b, B)];
+   *     methods: [baz(c: bool[])];
+   *     overrides: [foo(z: int) : bool];
+   * }
+   *)
   type t = {
-    name    : string;
-    super   : string option;
-    fields  : Pos.typ String.Map.t;
-    methods : Pos.callable list;
-  }
-  [@@deriving sexp]
+    name      : string;
+    super     : string option;
+    fields    : (string * Pos.typ) list;
+    methods   : Pos.callable_decl list;
+    overrides : Pos.callable_decl list;
+  } [@@deriving sexp]
 end
 
 module T: sig

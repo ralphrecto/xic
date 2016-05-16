@@ -14,6 +14,7 @@ module Expr: sig
     | ArrayT of t
     | TupleT of t list (* len >= 2 *)
     | EmptyArray
+    | KlassT of string
     [@@deriving sexp, compare]
 
   val to_string: t -> string
@@ -126,15 +127,15 @@ type contexts = {
   delta_i       : KlassM.t String.Map.t;
 }
 
-val expr_typecheck: context -> Pos.expr -> expr Error.result
-val typ_typecheck: context -> Pos.typ -> typ Error.result
-val avar_typecheck: context -> Pos.avar -> avar Error.result
-val var_typecheck: context -> Pos.var -> var Error.result
-val stmt_typecheck: context -> Expr.t -> Pos.stmt -> stmt Error.result
-val func_decl_typecheck: context -> Pos.callable_decl -> context Error.result
-val func_typecheck: context -> Pos.callable -> context Error.result
-val fst_func_pass: Pos.callable list -> Pos.interface list -> context Error.result
-val snd_func_pass: context -> Pos.callable -> callable Error.result
+val expr_typecheck: contexts -> Pos.expr -> expr Error.result
+val typ_typecheck: contexts -> Pos.typ -> typ Error.result
+val avar_typecheck: contexts -> Pos.avar -> avar Error.result
+val var_typecheck: contexts -> Pos.var -> var Error.result
+val stmt_typecheck: contexts -> Expr.t -> Pos.stmt -> stmt Error.result
+val func_decl_typecheck: contexts -> Pos.callable_decl -> contexts Error.result
+val func_typecheck: contexts -> Pos.callable -> contexts Error.result
+val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.result
+val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
 
 val interface_typecheck : Pos.interface -> interface Error.result

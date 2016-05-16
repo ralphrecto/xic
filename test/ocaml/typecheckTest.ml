@@ -11,9 +11,15 @@ let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
 (* Context helpers *)
-let empty = Context.empty
+let empty = {
+  vars          = Context.empty;
+  delta_m       = String.Map.empty;
+  class_context = None;
+  delta_i       = String.Map.empty;
+}
+
 let gam (xs: (string * Sigma.t) list) =
-  Context.of_alist_exn xs
+  {empty with vars = Context.of_alist_exn xs}
 
 let vars (vs: (string * Expr.t) list) =
   gam (List.map vs ~f:(fun (v, t) -> (v, Var t)))
@@ -224,7 +230,7 @@ let (|-) c e = (c, e)
 
 module TestExpr = struct
   (* If <: is subtype, then =: is equal type. *)
-  let (=:) ((c, e): context * Pos.expr) (t: Expr.t) : unit =
+  let (=:) ((c, e): contexts * Pos.expr) (t: Expr.t) : unit =
     match expr_typecheck c e with
     | Ok e' -> begin
       let t' = fst e' in
@@ -238,7 +244,7 @@ module TestExpr = struct
         assert_true false
     end
 
-  let (=/=) (c: context) (e: Pos.expr) : unit =
+  let (=/=) (c: contexts) (e: Pos.expr) : unit =
     match expr_typecheck c e with
     | Ok e' -> begin
         printf ">>> %s : %s; expected error\n" (Ast.string_of_expr e') (to_string (fst e'));
@@ -248,14 +254,14 @@ module TestExpr = struct
 end
 
 module TestCallable = struct
-	let (=:) ((c, e): context * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
+	let (=:) ((c, e): contexts * Pos.callable) (func_t: Expr.t * Expr.t) : unit =
 		let b = is_ok (func_typecheck c e >>= fun gamma ->
 									 match snd_func_pass gamma e with
 									 | Ok (t, _) -> Ok (assert_equal t func_t)
 									 | Error (p, s) -> printf "%s" s;  Error (p, s)) in
 		assert_true b
 
-  let (=/=) (c: context) (e: Pos.callable) : unit =
+  let (=/=) (c: contexts) (e: Pos.callable) : unit =
     begin
       func_typecheck c e >>= fun gamma ->
 			snd_func_pass gamma e
@@ -281,7 +287,7 @@ module TestProg = struct
 end
 
 module TestStmt = struct
-  let (=:) (((c, r), s): (context * Expr.t) * Pos.stmt) (t: Stmt.t) : unit =
+  let (=:) (((c, r), s): (contexts * Expr.t) * Pos.stmt) (t: Stmt.t) : unit =
     match stmt_typecheck c r s with
     | Ok s' -> begin
       let t' = fst s' in
@@ -301,7 +307,7 @@ module TestStmt = struct
         assert_true false
     end
 
-  let (=/=) ((c, r): (context * Expr.t)) (s: Pos.stmt) : unit =
+  let (=/=) ((c, r): (contexts * Expr.t)) (s: Pos.stmt) : unit =
     match stmt_typecheck c r s with
     | Ok s' -> begin
         printf ">>> %s : %s; expected error\n"
@@ -972,7 +978,7 @@ let test_stmt _ =
     (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint (Some one))); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
     (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint None)); avar(aid "x" (tarray tint (Some one)))] (funccall "u2iaia" []);
 
-    let g = Context.bind fgam "x" (Var IntT) in
+    let g = {empty with vars = Context.bind fgam.vars "x" (Var IntT)} in
     (g, UnitT) =/= declasgn [avar(aid "x" tint); avar(aid "y" tbool)] (funccall "u2ib" []);
     (g, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (funccall "u2bi" []);
     (g, UnitT) =/= declasgn [avar(aid "y" tint); avar(aid "x" tint)] (funccall "u2ii" []);
@@ -1604,8 +1610,8 @@ let test_callable _ =
 	empty =/= (proc "f" [] (proccall "y" []));
 
 	(* non-empty context *)
-	let f_binded = Context.bind empty "f" (Function (IntT, IntT)) in
-	let g_binded = Context.bind empty "g" (Function (UnitT, UnitT)) in
+	let f_binded = {empty with vars = Context.bind Context.empty "f" (Function (IntT, IntT))} in
+	let g_binded = {empty with vars = Context.bind Context.empty "g" (Function (UnitT, UnitT))} in
 
 	(* dup func bind *)
 	f_binded =/= (func "f" [aid "x" tint] [tint] (return [id "x"]));

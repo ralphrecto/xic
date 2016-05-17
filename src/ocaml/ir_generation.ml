@@ -512,13 +512,10 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
     String.Map.add callable_map ~key:concat_name ~data:concat_func_decl in
   let open Filename in
   let program_name = name |> chop_extension |> basename in
-  (program_name, callable_map)
+  {comp_unit=(program_name, callable_map); contexts=ctxt}
 
-type filename = string
-type globals = Typecheck.global list
-
-let global_name filename =
-  sprintf "_I_globalinit_%s" filename
+let global_name =
+  "_I_globalinit"
 
 let global_ir (globals: Typecheck.global list) ctxt =
   let initializers = List.filter_map globals ~f:(fun (_, g) ->
@@ -529,9 +526,9 @@ let global_ir (globals: Typecheck.global list) ctxt =
   ) in
   gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
 
-let global_func_decl filename globals ctxt =
+let global_func_decl globals ctxt =
   (
-    global_name filename,
+    global_name,
     global_ir globals ctxt,
     (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
   )

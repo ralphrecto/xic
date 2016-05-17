@@ -1001,14 +1001,14 @@ type allocator = ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
 type eater = ?debug:bool ->
              allocator ->
              Typecheck.full_prog ->
-             Ir.comp_unit ->
+             Ir.irgen_info ->
              Asm.asm_prog
 
-let eat_comp_unit
+let eat_irgen_info
     (eat_func_decl: (Ir.func_decl, Asm.abstract_asm list) without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ((_, func_decls): Ir.comp_unit)
+    ({comp_unit=(_, func_decls); _}: Ir.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
   let decl_list = String.Map.data func_decls in
   let fun_asm : Asm.abstract_asm list list =
@@ -1023,12 +1023,12 @@ let munch_func_decl
   : Asm.abstract_asm list =
   eat_func_decl munch_stmt ~debug fcontexts func_decl
 
-let munch_comp_unit
+let munch_irgen_info
     ?(debug=false)
     (fcontexts: func_contexts)
-    (comp_unit: Ir.comp_unit)
+    (irgen_info: Ir.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
-  eat_comp_unit munch_func_decl ~debug fcontexts comp_unit
+  eat_irgen_info munch_func_decl ~debug fcontexts irgen_info
 
 let chomp_func_decl
   ?(debug=false)
@@ -1036,28 +1036,28 @@ let chomp_func_decl
   (func_decl: Ir.func_decl) =
   eat_func_decl chomp_stmt ~debug fcontexts func_decl
 
-let chomp_comp_unit
+let chomp_irgen_info
     ?(debug=false)
     (fcontexts: func_contexts)
-    (comp_unit: Ir.comp_unit)
+    (irgen_info: Ir.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
-  eat_comp_unit chomp_func_decl ~debug fcontexts comp_unit
+  eat_irgen_info chomp_func_decl ~debug fcontexts irgen_info
 
 let asm_eat
   (a: allocator)
-  (eat_comp_unit: (Ir.comp_unit, Asm.asm list * (Asm.abstract_asm list list)) without_fcontext)
+  (eat_irgen_info: (Ir.irgen_info, Asm.asm list * (Asm.abstract_asm list list)) without_fcontext)
   ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
-  (comp_unit : Ir.comp_unit) : Asm.asm list =
+  (irgen_info : Ir.irgen_info) : Asm.asm list =
   let callable_decls =
     let f acc (_, Ast.S.Interface (_, _, cdlist)) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
-  let func_contexts = get_context_map callable_decls comp_unit in
-  let directives, munched_funcs = eat_comp_unit ~debug func_contexts comp_unit in
+  let func_contexts = get_context_map callable_decls irgen_info.comp_unit in
+  let directives, munched_funcs = eat_irgen_info ~debug func_contexts irgen_info in
   directives @ (List.concat_map ~f:(a ~debug) munched_funcs)
 
 let asm_munch ?(debug=false) a typed_prog ir_prog =
-  asm_eat a munch_comp_unit ~debug typed_prog ir_prog
+  asm_eat a munch_irgen_info ~debug typed_prog ir_prog
 
 let asm_chomp ?(debug=false) a typed_prog ir_prog =
-  asm_eat a chomp_comp_unit ~debug typed_prog ir_prog
+  asm_eat a chomp_irgen_info ~debug typed_prog ir_prog

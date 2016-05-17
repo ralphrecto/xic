@@ -50,6 +50,11 @@ and func_decl = string * stmt * (Expr.t * Expr.t)
 and comp_unit = string * func_decl String.Map.t
     [@@deriving sexp, compare]
 
+type irgen_info = {
+  comp_unit: comp_unit;
+  contexts: Typecheck.contexts;
+}
+
 (* abbreviations *)
 module Abbreviations = struct
   let call f args = Call (f, args)

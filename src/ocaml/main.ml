@@ -48,7 +48,7 @@ type flags = {
 } [@@deriving sexp]
 
 type opts = {
-  acf : Typecheck.full_prog -> Typecheck.full_prog;
+  acf : Typecheck.typecheck_info -> Typecheck.typecheck_info;
   icf : Ir.comp_unit -> Ir.comp_unit;
   cp  : Ir.comp_unit -> Ir.comp_unit;
   pre : Ir.comp_unit -> Ir.comp_unit;
@@ -108,40 +108,40 @@ let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t =
 (* ************************************************************************** *)
 type 'a modef = opts -> Pos.full_prog -> 'a Error.result
 
-let typecheck : Typecheck.full_prog modef = fun {acf; _} ast ->
-  Result.(prog_typecheck ast >>| fun info -> acf info.prog)
+let typecheck : Typecheck.typecheck_info modef = fun {acf; _} ast ->
+  Result.(prog_typecheck ast >>| acf)
 
-let nolower : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; _} as opts) ast ->
-  Result.(typecheck opts ast >>| (icf $ gen_comp_unit)) *)
+let nolower : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
+  Result.(typecheck opts ast >>| fun info -> (icf $ (gen_comp_unit info.prog)) info.ctxts)
 
-let lower : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; cp; pre; _} as opts) ast ->
-  Result.(typecheck opts ast >>| (pre $ cp $ icf $ lower_comp_unit $ gen_comp_unit)) *)
+let lower : Ir.comp_unit modef = fun ({icf; cp; pre; _} as opts) ast ->
+  Result.(typecheck opts ast >>| fun info -> (pre $ cp $ icf $ lower_comp_unit $ (gen_comp_unit info.prog)) info.ctxts)
 
-let irgen : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; _} as opts) ast ->
+let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
   Result.(
-    typecheck opts ast >>| (
-      icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $ gen_comp_unit
-    )
-  ) *)
+    typecheck opts ast >>| fun info -> (
+      icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $ (gen_comp_unit info.prog)
+    ) info.ctxts
+  )
 
-let optir_initial : Ir.comp_unit modef = failwith "TODO" (* fun opts ast ->
+let optir_initial : Ir.comp_unit modef = fun opts ast ->
   Result.(
-    typecheck opts ast >>| (block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit)
-  ) *)
+    typecheck opts ast >>| fun info -> (block_reorder_comp_unit $ lower_comp_unit $ (gen_comp_unit info.prog)) info.ctxts
+  )
 
-let optir_final : Ir.comp_unit modef = failwith "TODO" (* fun ({cp; pre; icf; _} as opts) ast ->
+let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
   Result.(
-    typecheck opts ast >>| (
+    typecheck opts ast >>| fun info -> (
       cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
-      gen_comp_unit
-    )
-  ) *)
+      (gen_comp_unit info.prog)
+    ) info.ctxts
+  )
 
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
   Result.(
-    typecheck opts ast >>= fun typed_prog ->
+    typecheck opts ast >>= fun info ->
     irgen opts ast >>| fun ir_prog ->
-    is ~debug reg typed_prog ir_prog
+    is ~debug reg info.prog ir_prog
   )
 
 (* ************************************************************************** *)
@@ -150,7 +150,8 @@ let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast -
 let typed_strf (_: 'a) : string =
   "Valid Xi Program"
 
-let typed_debug_strf (Ast.S.FullProg (_, prog, _): Typecheck.full_prog) : string =
+let typed_debug_strf (typechecking_info : Typecheck.typecheck_info) : string =
+  let Ast.S.FullProg (_, prog, _) = typechecking_info.prog in
   prog |> Typecheck.sexp_of_prog |> Sexp.to_string
 
 let ir_strf : Ir.comp_unit -> string =
@@ -214,7 +215,8 @@ let main opts flags () : unit Deferred.t =
 
       let f (filename, (Ast.S.FullProg (name, _, _) as ast)) =
         match typecheck opts ast with
-        | Ok (Ast.S.FullProg (_, (_, Ast.S.Prog (_, _, _, callables)), _)) ->
+        | Ok ({prog; _}) ->
+            let Ast.S.FullProg (_, (_, Ast.S.Prog (_, _, _, callables)), _) = prog in
             let names = Ir_util.mangled_to_name callables in
             let ok = function
               | Ok o -> o

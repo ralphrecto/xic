@@ -4,7 +4,8 @@ open Async.Std
 open Ast.S
 open Typecheck
 
-let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typecheck.full_prog) =
+let ast_constant_folding typechecking_info : Typecheck.typecheck_info =
+  let FullProg (name, (prog_type, prog), interfaces) = typechecking_info.prog in
   let rec fold_expr ((t, e): Typecheck.expr) =
     let open Long in
     let open Big_int in
@@ -100,4 +101,4 @@ let ast_constant_folding (FullProg (name, (prog_type, prog), interfaces): Typech
       (tc, Proc (id, avars, fold_stmt block)) in
   let (Prog (uses, globals, klasses, callables)) = prog in
   let prog' = (prog_type, Prog (uses, globals, klasses, List.map ~f:fold_callable callables)) in
-  FullProg (name, prog', interfaces)
+  { typechecking_info with prog = FullProg (name, prog', interfaces) }

@@ -4,4 +4,4 @@ open Async.Std
 open Ast
 open Typecheck
 
-val ast_constant_folding: Typecheck.full_prog -> Typecheck.full_prog
+val ast_constant_folding: Typecheck.typecheck_info -> Typecheck.typecheck_info

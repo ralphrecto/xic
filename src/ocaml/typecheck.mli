@@ -284,7 +284,7 @@ val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.res
 val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
 
-val interface_typecheck : Pos.interface -> interface Error.result
+val interfaces_typecheck : Pos.interface list -> (interface list) Error.result
 
 (**
  * The global pass checks that the following conditions hold:

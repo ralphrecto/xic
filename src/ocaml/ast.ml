@@ -78,7 +78,7 @@ module S = struct
 
   and ('k,'c,'i,'a,'v,'s,'e,'t) klass_decl = 'k * ('c,'i,'a,'v,'s,'e,'t) raw_klass_decl
   and ('c,'i,'a,'v,'s,'e,'t) raw_klass_decl =
-    | KlassDecl of 'i id * 'i id option * ('c,'i,'a,'v,'s,'e,'t) callable list
+    | KlassDecl of 'i id * 'i id option * ('c,'i,'a,'v,'s,'e,'t) callable_decl list
 
   and ('c,'i,'a,'v,'s,'e,'t) callable = 'c * ('i,'a,'v,'s,'e,'t) raw_callable
   and ('i,'a,'v,'s,'e,'t) raw_callable =

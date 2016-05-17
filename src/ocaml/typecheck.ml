@@ -32,6 +32,7 @@ let no_return        = "Function is missing return"
 let global_und       = "Global variable is underscore"
 let non_const_global = "Global expression is not a constant"
 let cyclic_globals   = "Global dependency graph has cycles"
+let undeclared_class c = sprintf "class %s not declared" c
 
 module Expr = struct
   type t =
@@ -231,7 +232,7 @@ let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
     tuplefy avars_t, tuplefy ret_types
   | ProcDecl (_, avars) ->
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
-    tuplefy avars_t, UnitT
+    tup lefy avars_t, UnitT
 
 type context = Sigma.t String.Map.t
 type global_context = String.Set.t
@@ -894,11 +895,118 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
 (******************************************************************************)
 (* interfaces                                                                 *)
 (******************************************************************************)
-let interface_typecheck
-  ((_, Interface (name, _, _, callable_decls)): Pos.interface) : interface Error.result =
-  Result.all (List.map ~f:callable_decl_typecheck callable_decls) >>= fun decls' ->
-  (* TODO MUST CHANGE!!! RIGHT NOW RETURNING EMPTY LIST FOR CLASSES AND USES *)
-    Ok ((), Interface (name, [], [], decls'))
+type inter_ctx = {
+  name        : string;
+  uses        : String.Set.t;
+  class_decls : Pos.klass_decl String.Map.t;
+  func_decls  : Pos.callable_decl String.Map.t;
+}
+
+let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) : KlassM.t =
+  let super' =
+    match super with
+    | None -> None
+    | Some (_, id) -> Some id in
+  { name;
+    super = super';
+    fields = [];
+    methods = fdecls;
+    overrides = []; }
+
+let klass_decl_map (klass_decls : Pos.klass_decl list) : KlassM.t String.Map.t =
+  let f acc kd =
+    let (_, KlassDecl ((_, key), _, _, _)) = kd in
+    String.Map.add acc ~key ~data:(kdecl_to_klassm kd) in
+  List.fold_left ~f ~init:String.Map.empty klass_decls
+
+let ctx_of_interface ((p, interface): Pos.interface) : inter_ctx Error.result =
+  let Interface (name, uses, cdecls, fdecls) = interface in
+  (* misc. helpers *)
+  let dup_func fname =
+    sprintf "function %s declared multiple times in interface %s" fname name in
+  let dup_class cname =
+    sprintf "class %s declared multiple times in interface %s" cname name in
+  let func_decls =
+    let f fdecl = function
+      | FuncDecl ((_, id), _, _)
+      | ProcDecl ((_, id), _) -> (id, fdecl) in
+    List.map ~f fdecls |> String.Map.of_alist |> function
+      | `Ok map -> map
+      | `Duplicate_key k -> Error (p, dup_func k) in
+  let class_decls =
+    let f (KlassDecl ((_, id), _, _)) = (id, cdecl) in
+    List.map ~f cdecls |> String.Map.of_alist |> function
+      | `Ok map -> map
+      | `Duplicate_key k -> Error (p, dup_class k) in
+  func_decls >>= fun func_decls' ->
+  class_decls >>= fun class_decls' ->
+  Ok {
+    name;
+    uses = List.map ~f:(fun (_, Use (_, id)) -> id) uses |> String.Set.of_list;
+    class_decls';
+    func_decls';
+  }
+
+(* see klassdecl_ok *)
+let call_decl_typecheck (c : contexts) (p, func_decl) : callable_decl Error.result =
+  match func_decl with
+  | FuncDecl ((_, id), avars, typs) ->
+    avars_typecheck p c avars dup_var_decl bound_var_decl >>= fun avars' ->
+    List.map ~f:(typ_typecheck c) typs |> Result.all >>= fun typs' ->
+    Ok (typeof_callable (p, func_decl), FuncDecl (((), id), avars', typs'))
+  | ProcDecl ((_, id), avars) ->
+    avars_typecheck p c avars dup_var_decl bound_var_decl >>= fun avars' ->
+    Ok (typeof_callable (p, func_decl), ProcDecl (((), id), avars'))
+
+(* check that all classes used by the decl is in the given set *)
+let klassdecl_typecheck (c : contexts) kdecl : klass_decl Error.result =
+  let (p, KlassDecl ((_, id), super, fdecls)) = kdecl in
+  let super_ok =
+    match super with
+    | None -> Ok None
+    | Some (_, id) ->
+        if String.mem c.delta_m id || String.mem c.delta_i id then
+          Ok (Some ((), id))
+        else Error (p, undeclared_class id) in
+  super_ok >>= fun super' ->
+  List.map ~f:(call_decl_typecheck c) fdecls |> Result.all >>= fun fdecls' ->
+  Ok ((), KlassDecl ((), id), super', fdecls)
+
+let contexts_of_interface (ctxmap : inter_ctx String.Map.t) (interface : Pos.interface) =
+  let (_, Interface (name, uses, kdecls, fdecls)) = interface in
+  let neighbors = List.map ~f:(fun (_, Use (_, id)) -> id) uses in
+  let neighbor_kdecls =
+    let f acc neighbor =
+      match String.Map.find ctx_map neighbor with
+      | None -> acc
+      | Some { class_decls; _ } ->
+          String.Map.data class_decls :: acc in
+    List.dedup @@ List.fold_left ~f ~init:empty neighbors in
+  { empty_contexts with
+    delta_m = klass_decl_map kdecls;
+    delta_i = klass_decl_map neighbor_kdecls; }
+
+(* make sure that the types used by the interface are available *)
+let interface_typecheck (c : contexts) (interface : Pos.interface) : interface Error.result =
+  let (_, Interface (name, uses, kdecls, fdecls)) = interface in
+  List.map ~f:(klassdecl_typecheck c) kdecls |> Result.all >>= fun kdecls' ->
+  List.map ~f:(call_decl_typecheck c) fdecls |> Result.all >>= fun fdecls' ->
+  let uses' = List.map ~f:(fun (_, Use (_, id)) -> ((), Use ((), id))) uses in
+  Ok ((), Interface (name, uses', kdecls', fdecls'))
+
+let interfaces_typecheck (interfaces: Pos.interface list) : (interface list) Error.result =
+  List.map ~f:ctx_of_interface interfaces |> Result.all >>= fun inter_ctxs ->
+  let name_ctx_pairs = List.map ~f:(fun ctx -> (ctx.name, ctx)) inter_ctxs in
+  let raw_ctx_map =
+    match String.Map.of_alist name_ctx_pairs with
+    | `Ok map -> Ok map
+    | `Duplicate_key k ->
+        Error ((-1, -1), sprintf "duplicate interface %s" k) in
+  raw_ctx_map >>= fun ctx_map ->
+  let f interface =
+    let c = contexts_of_interface ctx_map interface in
+    interface_typecheck c interface in
+  List.map ~f interfaces |> Result.all
 
 (******************************************************************************)
 (* globals                                                                    *)
@@ -930,7 +1038,7 @@ let global_graph globals =
     match t with
     | TInt
     | TBool
-    | TKlass _ 
+    | TKlass _
     | TArray (_, None) -> vars
     | TArray (t', Some e) -> vars_of_type t' (vars_of_expr e vars)
   in
@@ -1136,7 +1244,7 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
     | Use (_, id) -> ((), Use ((), id))
   in
   let use_list = List.map ~f: use_typecheck uses in
-  Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
+  interfaces_typecheck interfaces >>= fun interfaces' ->
   (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
            ALSO CHANGE EMPTY CONTEXTS *)
   Ok ({

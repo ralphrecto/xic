@@ -124,8 +124,11 @@ let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
 type callnames = string String.Map.t
 
 type irgen_info = {
-  comp_unit : Ir.comp_unit;
-  contexts  : Typecheck.contexts;
+  comp_unit  : Ir.comp_unit;
+  contexts   : Typecheck.contexts;
+  non_global : string -> bool;
+  bss        : string list;
+  ctors      : string list;
 }
 
 (******************************************************************************)
@@ -576,9 +579,39 @@ and gen_comp_unit fp contexts =
   let callable_map = String.Map.add callable_map
     ~key:global_name ~data:(global_func_decl globals contexts) in
 
+  (* non globals *)
+  (* TODO:
+   *   - classinit
+   *   - methods *)
+  let non_global s =
+    s = concat_name || s = global_name
+  in
+
+  (* bss *)
+  (* TODO:
+   *   - class sizes
+   *   - class dispatch vectors *)
+  let globals = String.Set.to_list contexts.globals in
+  let bss = List.map globals ~f:(fun x ->
+    match Typecheck.Context.find_exn contexts.locals x with
+    | Typecheck.Sigma.Var t -> global_temp x t
+    | Typecheck.Sigma.Function _ -> failwith "impossible: global not in gamma"
+  ) in
+
+  (* ctors *)
+  (* TODO:
+   *   - class initialization *)
+  let ctors = [global_name] in
+
   let open Filename in
   let program_name = name |> chop_extension |> basename in
-  {comp_unit=(program_name, callable_map); contexts}
+  {
+    comp_unit=(program_name, callable_map);
+    contexts;
+    non_global;
+    bss;
+    ctors;
+  }
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

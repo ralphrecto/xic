@@ -1025,27 +1025,27 @@ let eat_irgen_info
     (eat_func_decl: (Ir.func_decl, Asm.abstract_asm list) without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ({comp_unit=(_, func_decls); contexts}: IrG.irgen_info)
+    (info: IrG.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
+
+  (* asm list for each decl *)
+  let (_, func_decls) = info.comp_unit in
   let decl_list = String.Map.data func_decls in
-  let fun_asm : Asm.abstract_asm list list =
-    List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
+  let decl_asms = List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
 
-  let bsss = List.map (String.Set.to_list contexts.globals) ~f:(fun x ->
-    match Typecheck.Context.find_exn contexts.locals x with
-    | Var t -> Directive ("lcomm", [Ir_generation.global_temp x t; "64"])
-    | Function _ -> failwith "impossible: bsss"
-  ) in
-  let bsss = (Directive ("bss", []))::bsss in
+  (* bss *)
+  let bss = List.map info.bss ~f:(fun s -> Directive ("lcomm", [s; "64"])) in
+  let bss = Directive ("bss", [])::bss in
 
-  let ctors = [
-    Directive ("section", [".ctors"]);
+  (* ctors *)
+  let ctors = List.concat_map info.ctors ~f:(fun s -> [
     Directive ("align", ["4"]);
-    Directive ("quad", [Ir_generation.global_name]);
-  ] in
+    Directive ("quad", [s]);
+  ]) in
+  let ctors = Directive ("section", [".ctors"])::ctors in
 
-  let directives = bsss @ ctors @ [Directive ("text", [])] in
-  directives, fun_asm
+  let directives = bss @ ctors @ [Directive ("text", [])] in
+  (directives, decl_asms)
 
 let munch_func_decl
   ?(debug=false)

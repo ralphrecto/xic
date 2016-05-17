@@ -51,8 +51,8 @@ type opts = {
   reg : Tiling.allocator;
 }
 
-let lift f {comp_unit; contexts} =
-  {comp_unit=f comp_unit; contexts}
+let lift f ({comp_unit; _} as c) =
+  {c with comp_unit=f comp_unit}
 
 let opts_of_flags ({acf; icf; cp; pre; is; reg; _}: flags) : opts =
   {

@@ -52,8 +52,17 @@ val malloc_word : int -> Ir.expr
 type callnames = string String.Map.t
 
 type irgen_info = {
-  comp_unit : Ir.comp_unit;
-  contexts  : Typecheck.contexts;
+  comp_unit  : Ir.comp_unit;
+  contexts   : Typecheck.contexts;
+
+  (* predicate specifying which function names should not be made .global *)
+  non_global : string -> bool;
+
+  (* symbols to put in .bss section *)
+  bss        : string list;
+
+  (* symbols to put in .ctors section *)
+  ctors      : string list;
 }
 
 (* array concatenation is a pseudo-function *)

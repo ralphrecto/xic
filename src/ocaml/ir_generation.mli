@@ -47,7 +47,9 @@ val concat_name      : string
 val concat_ir        : Ir.stmt
 val concat_func_decl : Ir.func_decl
 
-(* global initialization is a psuedo-function *)
+(* Generates global initialization code. global_ir assumes that all multiple
+ * declarations and multiple declaration assigments have been flattened into
+ * singelton lists. *)
 type filename = string
 type globals = Typecheck.global list
 val global_name      : filename -> string

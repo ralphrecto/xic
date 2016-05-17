@@ -29,6 +29,7 @@ let num_decl_vars    = "Incorrect number of variables in declassign"
 let typ_decl_vars    = "Ill typed variable declassign"
 let dup_func_decl x  = sprintf "Function %s has already been declared" x
 let no_return        = "Function is missing return"
+let global_und       = "Global variable is underscore"
 
 module Expr = struct
   type t =
@@ -173,11 +174,20 @@ let varsofavar av =
   | Ast.S.AId ((_,id), _) -> Some id
   | _ -> None
 
+let is_underscore v =
+  match v with
+  | AVar (_, AId _) -> false
+  | AVar (_, AUnderscore _)
+  | Underscore -> true
+
 let varsofvar v =
   match v with
   | AVar (_, AId  ((_, x), _)) -> Some x
   | AVar (_, AUnderscore _)
   | Underscore -> None
+
+let has_underscore vs =
+  List.exists (List.map vs ~f:snd) ~f:is_underscore
 
 let varsofvars vs =
   List.map ~f:(fun x -> varsofvar (snd x)) vs
@@ -258,8 +268,18 @@ type contexts = {
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
-  (* subtyping relation, including class hierarchy *)
+  typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
+}
+
+let empty_contexts = {
+  locals        = Context.empty;
+  globals       = String.Set.empty;
+  delta_m       = String.Map.empty;
+  class_context = None;
+  delta_i       = String.Map.empty;
+  typed_globals = [];
+  subtype       = (fun _ _ -> false);
 }
 
 type typecheck_info = {
@@ -691,14 +711,6 @@ let func_typecheck (c: contexts) ((p, call): Pos.callable) =
   func_decl_typecheck c (p, call')
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
   let interface_map_fold (_, Interface (_, _, l)) =
     let func_decl_fold acc e =
       acc >>= fun g -> func_decl_typecheck g e in
@@ -834,14 +846,6 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     | [hd] -> hd
     | _::_ -> TupleT l
     | [] -> UnitT in
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
   match c with
   | FuncDecl ((_, id), args, rets) ->
     Result.all (List.map ~f:(avar_typecheck empty_contexts) args) >>= fun args' ->
@@ -895,7 +899,32 @@ let global_graph globals =
     | _ -> failwith "impossible: global_graph"
   )
 
-let fst_global_pass contexts globals =
+let global_pass contexts globals =
+  let check b s g =
+    if b
+      then Ok g
+      else Error ((-1, -1), s)
+  in
+
+  (* (1) *)
+  let no_underscores = List.for_all globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs
+    | GdeclAsgn (vs, _) -> not (has_underscore vs)
+  ) in
+  check no_underscores global_und globals >>= fun globals ->
+
+  (* (2) *)
+  let ids = List.map globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs
+    | GdeclAsgn (vs, _) -> varsofvars vs
+  ) in
+  let no_duplicates = not (List.contains_dup ids) in
+  check no_duplicates dup_global_decl globals >>= fun globals ->
+
+  (* (3) *)
+
   let init = Ok ([], Context.empty) in
   List.fold_left globals ~init ~f:(fun acc (_, g) ->
     acc >>= fun (ids, c) ->
@@ -981,16 +1010,8 @@ let fst_klass_pass _contexts _klasses =
 (* prog                                                                       *)
 (******************************************************************************)
 let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
-  fst_global_pass empty_contexts globals >>= fun contexts1 ->
-  fst_klass_pass contexts1 klasses >>= fun _ ->
+  fst_klass_pass empty_contexts klasses >>= fun contexts ->
+  global_pass contexts globals >>= fun _ ->
   fst_func_pass funcs interfaces >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =

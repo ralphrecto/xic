@@ -53,8 +53,9 @@ module S = struct
 
   and ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface
   and ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface =
-      Interface of ('u,'i) use list *
-                   ('k,'c,'i,'a,'v,'s,'e,'t) klass_decl list * ('c,'i,'a,'v,'s,'e,'t) callable_decl list
+      Interface of string * ('u,'i) use list *
+        ('k,'c,'i,'a,'v,'s,'e,'t) klass_decl list *
+        ('c,'i,'a,'v,'s,'e,'t) callable_decl list
 
   and ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'g,'k,'c,'i,'a,'v,'s,'e,'t) raw_prog
   and ('u,'k,'g,'c,'i,'a,'v,'s,'e,'t) raw_prog =
@@ -343,7 +344,7 @@ module Abbreviate(D: DUMMIES) = struct
   let fullprog name prog ilist = FullProg (name, prog, ilist)
 
   let prog uses globals classes calls = (dummy_p, Prog (uses, globals, classes, calls))
-  let interface ulist klist dlist = (dummy_p, Interface (ulist, klist, dlist))
+  let interface name ulist klist dlist = (dummy_p, Interface (name, ulist, klist, dlist))
 
   let gdecl vs = (dummy_s, Gdecl vs)
   let gdeclasgn vs es = (dummy_s, GdeclAsgn (vs, es))

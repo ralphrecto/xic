@@ -494,7 +494,7 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let Ast.S.Prog (_, _, _, callables) = program in
   let int_callables =
    List.fold_left
-     ~f:(fun acc ((_, Interface (_, _, clist)): Typecheck.interface) -> clist @ acc)
+     ~f:(fun acc ((_, Interface (_, _, _, clist)): Typecheck.interface) -> clist @ acc)
      ~init:[] interfaces in
   let int_callnames = abi_callable_decl_names int_callables in
   let prog_callnames = abi_callable_names callables in

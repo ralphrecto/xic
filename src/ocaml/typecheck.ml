@@ -743,7 +743,7 @@ let func_typecheck (c: contexts) ((p, call): Pos.callable) =
   func_decl_typecheck c (p, call')
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
-  let interface_map_fold (_, Interface (_, _, l)) =
+  let interface_map_fold (_, Interface (_, _, _, l)) =
     let func_decl_fold acc e =
       acc >>= fun g -> func_decl_typecheck g e in
     List.fold_left ~init:(Ok empty_contexts) ~f:func_decl_fold l in
@@ -895,10 +895,10 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
 (* interfaces                                                                 *)
 (******************************************************************************)
 let interface_typecheck
-  ((_, Interface (_, _, callable_decls)): Pos.interface) : interface Error.result =
+  ((_, Interface (name, _, _, callable_decls)): Pos.interface) : interface Error.result =
   Result.all (List.map ~f:callable_decl_typecheck callable_decls) >>= fun decls' ->
   (* TODO MUST CHANGE!!! RIGHT NOW RETURNING EMPTY LIST FOR CLASSES AND USES *)
-    Ok ((), Interface ([], [], decls'))
+    Ok ((), Interface (name, [], [], decls'))
 
 (******************************************************************************)
 (* globals                                                                    *)

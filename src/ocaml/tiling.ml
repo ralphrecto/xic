@@ -1062,7 +1062,7 @@ let asm_eat
   (FullProg (_, _, interfaces): Typecheck.full_prog)
   (irgen_info : Ir.irgen_info) : Asm.asm list =
   let callable_decls =
-    let f acc (_, Ast.S.Interface (_, _, cdlist)) = cdlist @ acc in
+    let f acc (_, Ast.S.Interface (_, _, _, cdlist)) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in
   let func_contexts = get_context_map callable_decls irgen_info.comp_unit in
   let directives, munched_funcs = eat_irgen_info ~debug func_contexts irgen_info in

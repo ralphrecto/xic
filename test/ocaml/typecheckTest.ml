@@ -1736,18 +1736,18 @@ let test_prog _ =
 													 f_ii2i; f_ii2ii; f_ii2iii; f_iii2i; f_iii2ii; f_iii2iii;
 													 p_u2u; p_i2u; p_ii2u; p_iii2u] in
 
-        let everything_inter = interface [] [] [fd_u2i; fd_u2ii; fd_u2iii; fd_i2i; fd_i2ii; fd_i2iii;
+        let everything_inter = interface "" [] [] [fd_u2i; fd_u2ii; fd_u2iii; fd_i2i; fd_i2ii; fd_i2iii;
 													 fd_ii2i; fd_ii2ii; fd_ii2iii; fd_iii2i; fd_iii2ii; fd_iii2iii;
 													 pd_u2u; pd_i2u; pd_ii2u; pd_iii2u] in
 
-        let diff_everything_inter = interface []
+        let diff_everything_inter = interface "" []
                                               []
                                               [diff_fd_u2i; diff_fd_u2ii; diff_fd_u2iii; diff_fd_i2i;
 																				 diff_fd_i2ii; diff_fd_i2iii; diff_fd_ii2i; diff_fd_ii2ii;
 																				 diff_fd_ii2iii; diff_fd_iii2i; diff_fd_iii2ii; diff_fd_iii2iii;
 													 							 diff_pd_u2u; diff_pd_i2u; diff_pd_ii2u; diff_pd_iii2u] in
 
-        let wrong_everything_inter = interface []
+        let wrong_everything_inter = interface "" []
                                                []
                                                [wrong_fd_u2i; wrong_fd_u2ii; wrong_fd_u2iii; wrong_fd_i2i;
 																				 wrong_fd_i2ii; wrong_fd_i2iii; wrong_fd_ii2i; wrong_fd_ii2ii;

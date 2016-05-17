@@ -49,7 +49,9 @@ module S = struct
   (* top level terms *)
   type ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) full_prog =
       (* program name, prog, interfaces*)
-      FullProg of string * ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog * ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface list
+      FullProg of string *
+                  ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog *
+                  ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface list
 
   and ('p,'u,'k,'c,'i,'a,'v,'s,'e,'t) interface = 'p * ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface
   and ('u,'k,'c,'i,'a,'v,'s,'e,'t) raw_interface =
@@ -59,8 +61,10 @@ module S = struct
 
   and ('p,'u,'g,'k,'c,'i,'a,'v,'s,'e,'t) prog = 'p * ('u,'g,'k,'c,'i,'a,'v,'s,'e,'t) raw_prog
   and ('u,'k,'g,'c,'i,'a,'v,'s,'e,'t) raw_prog =
-    | Prog of ('u,'i) use list * ('g,'i,'a,'v,'e,'t) global list *
-              ('k,'c,'i,'a,'v,'s,'e,'t) klass list * ('c,'i,'a,'v,'s,'e,'t) callable list
+    | Prog of ('u,'i) use list *
+              ('g,'i,'a,'v,'e,'t) global list *
+              ('k,'c,'i,'a,'v,'s,'e,'t) klass list *
+              ('c,'i,'a,'v,'s,'e,'t) callable list
 
   and ('u,'i) use = 'u * 'i raw_use
   and 'i raw_use =

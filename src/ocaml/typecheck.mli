@@ -24,6 +24,7 @@ module Expr: sig
   val of_typ: Pos.typ -> t
 
   val array_subtyping : subtyping
+  val subtype : subtyping
 
   (* takes a map from class name -> superclass name *)
   val make_subtype_rel : string String.Map.t -> subtyping
@@ -290,9 +291,10 @@ val interface_typecheck : Pos.interface -> interface Error.result
  * The global pass checks that the following conditions hold:
  *   (1) There are no underscores
  *   (2) There are no duplicate global names
- *   (3) If a global is uninit or initialized to constants or to other globals
- *   (4) The global dependency graph is acyclic
- *   (5) All the types mentioned by the globals are ok
+ *   (3) No global is named "this"
+ *   (4) If a global is uninit or initialized to constants or to other globals
+ *   (5) The global dependency graph is acyclic
+ *   (6) All the types mentioned by the globals are ok
  * If all these conditions are met, a new contexts is returned in which
  *   (a) gamma is populated with the globals
  *   (b) globals is populated with the set of all global identifiers

@@ -109,33 +109,33 @@ let get_asts (astfiles: string list) : (Pos.full_prog list) Deferred.t =
 type 'a modef = opts -> Pos.full_prog -> 'a Error.result
 
 let typecheck : Typecheck.full_prog modef = fun {acf; _} ast ->
-  Result.(prog_typecheck ast >>| acf)
+  Result.(prog_typecheck ast >>| fun info -> acf info.prog)
 
-let nolower : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
-  Result.(typecheck opts ast >>| (icf $ gen_comp_unit))
+let nolower : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; _} as opts) ast ->
+  Result.(typecheck opts ast >>| (icf $ gen_comp_unit)) *)
 
-let lower : Ir.comp_unit modef = fun ({icf; cp; pre; _} as opts) ast ->
-  Result.(typecheck opts ast >>| (pre $ cp $ icf $ lower_comp_unit $ gen_comp_unit))
+let lower : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; cp; pre; _} as opts) ast ->
+  Result.(typecheck opts ast >>| (pre $ cp $ icf $ lower_comp_unit $ gen_comp_unit)) *)
 
-let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
+let irgen : Ir.comp_unit modef = failwith "TODO" (* fun ({icf; _} as opts) ast ->
   Result.(
     typecheck opts ast >>| (
       icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $ gen_comp_unit
     )
-  )
+  ) *)
 
-let optir_initial : Ir.comp_unit modef = fun opts ast ->
+let optir_initial : Ir.comp_unit modef = failwith "TODO" (* fun opts ast ->
   Result.(
     typecheck opts ast >>| (block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit)
-  )
+  ) *)
 
-let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
+let optir_final : Ir.comp_unit modef = failwith "TODO" (* fun ({cp; pre; icf; _} as opts) ast ->
   Result.(
     typecheck opts ast >>| (
       cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
       gen_comp_unit
     )
-  )
+  ) *)
 
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
   Result.(

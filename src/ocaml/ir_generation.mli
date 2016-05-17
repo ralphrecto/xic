@@ -35,13 +35,13 @@ module FreshRetReg : Fresh.S
 val malloc_word : int -> Ir.expr
 
 (* Xi AST -> IR AST *)
-val gen_expr : string String.Map.t -> Typecheck.expr -> Ir.expr
+val gen_expr : string String.Map.t -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
 (* the control translation for booleans from lecture notes
  * boolean -> true label -> false label -> resulting jumps *)
-val gen_control : string String.Map.t -> Typecheck.expr -> string -> string -> Ir.stmt
-val gen_stmt : string String.Map.t -> Typecheck.stmt -> Ir.stmt
-val gen_func_decl : string String.Map.t -> Typecheck.callable -> Ir.func_decl
-val gen_comp_unit : Typecheck.full_prog -> Ir.comp_unit
+val gen_control : string String.Map.t -> Typecheck.expr -> string -> string -> Typecheck.contexts -> Ir.stmt
+val gen_stmt : string String.Map.t -> Typecheck.stmt -> Typecheck.contexts -> Ir.stmt
+val gen_func_decl : string String.Map.t -> Typecheck.callable -> Typecheck.contexts -> Ir.func_decl
+val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> Ir.comp_unit
 
 (* IR lowering *)
 val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr

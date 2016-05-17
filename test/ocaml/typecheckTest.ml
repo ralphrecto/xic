@@ -13,7 +13,7 @@ let (>>|) = Result.(>>|)
 (* Context helpers *)
 let empty = {
   locals        = Context.empty;
-  globals       = String.Map.empty;
+  globals       = String.Set.empty;
   delta_m       = String.Map.empty;
   class_context = None;
   delta_i       = String.Map.empty;

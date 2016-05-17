@@ -126,12 +126,6 @@ module Sigma = struct
 end
 open Sigma
 
-module Eta = struct
-  type t =
-    | Var of Expr.t
-  [@@deriving sexp]
-end
-
 module KlassM = struct
   type t = {
     name      : string;
@@ -201,7 +195,7 @@ let _ids_of_callables (_, c) =
   | Proc (i, _, _) -> i
 
 type context = Sigma.t String.Map.t
-type global_context = Eta.t String.Map.t
+type global_context = String.Set.t
 module Context = struct
   include String.Map
 
@@ -251,6 +245,11 @@ type contexts = {
   delta_i       : KlassM.t String.Map.t;
   (* subtyping relation, including class hierarchy *)
   subtype       : Expr.t -> Expr.t -> bool;
+}
+
+type typecheck_info = {
+  prog  : full_prog; 
+  ctxts : contexts;
 }
 
 (******************************************************************************)
@@ -622,7 +621,7 @@ let func_typecheck (c: contexts) ((p, call): Pos.callable) =
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
   let empty_contexts = {
     locals        = Context.empty;
-    globals       = String.Map.empty;
+    globals       = String.Set.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
@@ -765,7 +764,7 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     | [] -> UnitT in
   let empty_contexts = {
     locals        = Context.empty;
-    globals       = String.Map.empty;
+    globals       = String.Set.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
@@ -856,7 +855,7 @@ let fst_klass_pass _contexts _klasses =
 let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
   let empty_contexts = {
     locals        = Context.empty;
-    globals       = String.Map.empty;
+    globals       = String.Set.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
@@ -872,5 +871,9 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
   in
   let use_list = List.map ~f: use_typecheck uses in
   Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
-  (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS *)
-  Ok (FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces'))
+  (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS 
+           ALSO CHANGE EMPTY CONTEXTS *)
+  Ok ({
+    prog  = FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces');
+    ctxts = empty_contexts;
+  })

@@ -59,12 +59,6 @@ module Sigma: sig
     [@@deriving sexp]
 end
 
-module Eta: sig
-  type t =
-    | Var of Expr.t
-  [@@deriving sexp]
-end
-
 module KlassM: sig
   (*
    * class B {
@@ -138,7 +132,7 @@ end
 module Abbreviations: (module type of Ast.Abbreviate(D))
 
 type context = Sigma.t String.Map.t
-type global_context = Eta.t String.Map.t
+type global_context = String.Set.t
 module Context: sig
   include (module type of String.Map)
 
@@ -175,6 +169,11 @@ type contexts = {
   subtype       : Expr.t -> Expr.t -> bool;
 }
 
+type typecheck_info = {
+  prog  : full_prog;
+  ctxts : contexts;
+}
+
 val expr_typecheck: contexts -> Pos.expr -> expr Error.result
 val typ_typecheck: contexts -> Pos.typ -> typ Error.result
 val avar_typecheck: contexts -> Pos.avar -> avar Error.result
@@ -189,4 +188,4 @@ val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
 val interface_typecheck : Pos.interface -> interface Error.result
 val fst_global_pass : contexts -> Pos.global list -> contexts Error.result
 val fst_klass_pass : contexts -> Pos.klass list -> contexts Error.result
-val prog_typecheck: Pos.full_prog -> full_prog Error.result
+val prog_typecheck: Pos.full_prog -> typecheck_info Error.result

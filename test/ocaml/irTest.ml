@@ -182,6 +182,15 @@ let test_ir_expr _ =
 
   Ir_gen.reset_fresh_temp ();
 
+  let empty : Typecheck.contexts = {
+    locals = Typecheck.Context.empty;
+    globals = String.Set.empty;
+    delta_m = String.Map.empty;
+    class_context = None;
+    delta_i = String.Map.empty;
+    subtype = fun _ _ -> true;
+  } in
+
   (* Ir exprs *)
   let zero = const 0L in
   let one  = const 1L in
@@ -206,37 +215,36 @@ let test_ir_expr _ =
   let binop12t = ibinop onet PLUS twot in
 
   (* Ints, Bools, and Chars tests *)
-  zero === gen_expr callnames zerot;
-  one  === gen_expr callnames onet;
-  two  === gen_expr callnames twot;
-  tru  === gen_expr callnames trut;
-  fls  === gen_expr callnames flst;
+  zero === gen_expr callnames zerot empty;
+  one  === gen_expr callnames onet empty;
+  two  === gen_expr callnames twot empty;
+  tru  === gen_expr callnames trut empty;
+  fls  === gen_expr callnames flst empty;
 
   (* Id tests *)
-  (* TODO: are there any interesting cases? *)
-  x === gen_expr callnames (id "x" IntT);
-  y === gen_expr callnames (id "y" BoolT);
+  x === gen_expr callnames (id "x" IntT) empty;
+  y === gen_expr callnames (id "y" BoolT) empty;
 
-  x =/= gen_expr callnames (id "y" IntT);
+  x =/= gen_expr callnames (id "y" IntT) empty;
 
   (* Ir.BinOp tests *)
-  binop00 === gen_expr callnames binop00t;
-  binop12  === gen_expr callnames binop12t;
-  Ir.BinOp (binop12, SUB, binop12)  === gen_expr callnames (ibinop binop12t MINUS binop12t);
-  Ir.BinOp (binop00, SUB, binop12)  === gen_expr callnames (ibinop binop00t MINUS binop12t);
+  binop00 === gen_expr callnames binop00t empty;
+  binop12  === gen_expr callnames binop12t empty;
+  Ir.BinOp (binop12, SUB, binop12)  === gen_expr callnames (ibinop binop12t MINUS binop12t) empty;
+  Ir.BinOp (binop00, SUB, binop12)  === gen_expr callnames (ibinop binop00t MINUS binop12t) empty;
   Ir.BinOp (Ir.BinOp (tru, AND, fls), OR, Ir.BinOp (fls, OR, fls))
     ===
-    gen_expr callnames (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst));
+    gen_expr callnames (bbinop (bbinop trut AMP flst) BAR (bbinop flst BAR flst)) empty;
 
-  Ir.BinOp (one, ADD, two)  =/= gen_expr callnames (ibinop twot PLUS onet);
-  Ir.BinOp (one, ADD, zero) =/= gen_expr callnames (bbinop onet BAR twot);
+  Ir.BinOp (one, ADD, two)  =/= gen_expr callnames (ibinop twot PLUS onet) empty;
+  Ir.BinOp (one, ADD, zero) =/= gen_expr callnames (bbinop onet BAR twot) empty;
 
   (* UnOp tests *)
-  unopminus zero === gen_expr callnames (iunop zerot);
-  unopminus one  === gen_expr callnames (iunop onet);
-  unopminus two  === gen_expr callnames (iunop twot);
-  unopnot tru    === gen_expr callnames (bunop trut);
-  unopnot fls    === gen_expr callnames (bunop flst);
+  unopminus zero === gen_expr callnames (iunop zerot) empty;
+  unopminus one  === gen_expr callnames (iunop onet) empty;
+  unopminus two  === gen_expr callnames (iunop twot) empty;
+  unopnot tru    === gen_expr callnames (bunop trut) empty;
+  unopnot fls    === gen_expr callnames (bunop flst) empty;
 
   (* Array tests *)
   Ir_gen.reset_fresh_temp ();
@@ -248,7 +256,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames earr;
+  gen_expr callnames earr empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -260,7 +268,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (iarr [zerot]);
+  gen_expr callnames (iarr [zerot]) empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -273,7 +281,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (iarr [zerot; onet]);
+  gen_expr callnames (iarr [zerot; onet]) empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -287,7 +295,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (iarr [zerot; onet; twot]);
+  gen_expr callnames (iarr [zerot; onet; twot]) empty;
 
   (* [[]] *)
   Ir_gen.reset_fresh_temp ();
@@ -307,7 +315,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr []]);
+  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr []]) empty;
 
   (* [[], [], [1,2]] *)
   Ir_gen.reset_fresh_temp ();
@@ -345,7 +353,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]);
+  gen_expr callnames (arr (ArrayT (ArrayT IntT)) [iarr[]; iarr[]; iarr[onet;twot]]) empty;
 
   (* String Tests *)
   Ir_gen.reset_fresh_temp ();
@@ -357,7 +365,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (EmptyArray, String "");
+  gen_expr callnames (EmptyArray, String "") empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -369,7 +377,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (EmptyArray, String "A");
+  gen_expr callnames (EmptyArray, String "A") empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -388,7 +396,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (ArrayT IntT, String "OCaml <3");
+  gen_expr callnames (ArrayT IntT, String "OCaml <3") empty;
 
   Ir_gen.reset_fresh_temp ();
   eseq
@@ -403,7 +411,7 @@ let test_ir_expr _ =
     ))
     (Ir.BinOp (Temp (Ir_gen.temp 0), ADD, word))
   ===
-  gen_expr callnames (ArrayT IntT, String "    ");
+  gen_expr callnames (ArrayT IntT, String "    ") empty;
 
   (* Array Indexing tests *)
 
@@ -414,33 +422,43 @@ let test_ir_expr _ =
   ()
 
 let test_ir_stmt _ =
-	let open StmtEq in
-	let open Long in
+  let open StmtEq in
+  let open Long in
   let open Ir in
   let open Ir_generation in
+  let empty : Typecheck.contexts = {
+    locals = Typecheck.Context.empty;
+    globals = String.Set.empty;
+    delta_m = String.Map.empty;
+    class_context = None;
+    delta_i = String.Map.empty;
+    subtype = fun _ _ -> true;
+  } in
 
-	(* Vars *)
-	let create_int_avar (id : string) : Typecheck.avar =
-		(IntT, AId (((), id), (IntT, TInt)))
-	in
-
-	let create_int_var (id : string) : Typecheck.var =
-		(IntT, AVar (create_int_avar id))
-	in
-
-	let create_bool_var (id : string) : Typecheck.var =
-		(BoolT, AVar (create_int_avar id))
-	in
-
-	(* Decl tests *)
-
-	(* ints *)
-	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "hello"]));
-	Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"]));
-
-	(* bools *)
-	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"]));
-	Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"]))
+  (* Vars *)
+  let create_int_avar (id : string) : Typecheck.avar =
+  	(IntT, AId (((), id), (IntT, TInt)))
+  in
+  
+  let create_int_var (id : string) : Typecheck.var =
+  	(IntT, AVar (create_int_avar id))
+  in
+  
+  let create_bool_var (id : string) : Typecheck.var =
+  	(BoolT, AVar (create_int_avar id))
+  in
+  
+  (* Decl tests *)
+  
+  (* ints *)
+  Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "hello"])) empty;
+  Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"])) empty;
+  
+  (* bools *)
+  Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"])) empty;
+  Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"])) empty;
+  
+  ()
 
 let test_lower_expr _ =
   let open PairEq in

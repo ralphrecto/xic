@@ -1158,6 +1158,6 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
   (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
            ALSO CHANGE EMPTY CONTEXTS *)
   Ok ({
-    prog  = FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces');
-    ctxts = empty_contexts;
+    prog  = FullProg (name, ((), Prog (use_list, gamma.typed_globals, [], func_list)), interfaces');
+    ctxts = gamma;
   })

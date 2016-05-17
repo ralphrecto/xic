@@ -368,8 +368,8 @@ let rec munch_expr
             (* moving passed arguments as callee into vars *)
             let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
             (new_tmp, [movq (Asm.callee_arg_op i') (Reg (Fake new_tmp))])
-        | None, None, Some x ->
-            (new_tmp, [movq (Mem (Global x)) (Reg (Fake new_tmp))])
+        | None, None, Some _ ->
+            (new_tmp, [movq (Mem (Global str)) (Reg (Fake new_tmp))])
         | None, None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
         | None,   Some _, Some _
         | Some _, None,   Some _
@@ -469,7 +469,7 @@ and munch_stmt
         (* moving return values to _RETi before returning *)
         match FreshRetReg.get n, FreshGlobal.get_str n with
         | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
-        | None, Some x -> Mem (Global x)
+        | None, Some _ -> Mem (Global n)
         | None, None -> Reg (Fake n)
         | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
       in
@@ -1032,7 +1032,7 @@ let eat_irgen_info
     | Var t -> Directive ("lcomm", [Ir_generation.global_temp x t; "64"])
     | Function _ -> failwith "impossible: bsss"
   ) in
-  let bsss = (Directive (".bss", []))::bsss in
+  let bsss = (Directive ("bss", []))::bsss in
 
   let ctors = [
     Directive ("section", [".ctors"]);
@@ -1040,7 +1040,7 @@ let eat_irgen_info
     Directive ("quad", [Ir_generation.global_name]);
   ] in
 
-  let directives = bsss @ [Directive ("text", [])] @ ctors in
+  let directives = bsss @ ctors @ [Directive ("text", [])] in
   directives, fun_asm
 
 let munch_func_decl

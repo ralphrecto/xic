@@ -45,13 +45,14 @@ type 'reg mem =
   | Base    of const option * 'reg                 (* (%rax),        $8(%rax)        *)
   | Off     of const option * 'reg * scale         (* (,%rax,4),     $8(,%rax,4)     *)
   | BaseOff of const option * 'reg * 'reg * scale  (* (%rax,%rbx,4), $8(%rax,%rbx,4) *)
+  | Global  of string                              (* FOO(%rip)                      *)
 [@@deriving sexp, compare]
 
 type 'reg operand =
-  | Label of label
-  | Reg   of 'reg
-  | Const of const
-  | Mem   of 'reg mem
+  | Label  of label
+  | Reg    of 'reg
+  | Const  of const
+  | Mem    of 'reg mem
 [@@deriving sexp, compare]
 
 type 'reg asm_template =

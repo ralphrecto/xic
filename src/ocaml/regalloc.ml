@@ -1340,6 +1340,7 @@ let translate_operand
   | Mem (Off (c, reg, s)) -> Mem (Off (c, get_real_reg tctx regctx reg, s))
   | Mem (BaseOff (c, reg1, reg2, s)) ->
       Mem (BaseOff (c, get_real_reg tctx regctx reg1, get_real_reg tctx regctx reg2, s))
+  | Mem (Global s) -> Mem (Global s)
   | Label l -> Label l
   | Const c -> Const c
 
@@ -1395,6 +1396,7 @@ let spill_allocate ?(debug=false)
           | Mem (Base (n, base)) -> Mem (Base (n, f base))
           | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
           | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
+          | Mem (Global s) -> Mem (Global s)
           | Label l -> Label l
           | Const c -> Const c
         ))

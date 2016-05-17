@@ -618,9 +618,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         startList();
         posPrinter(b.a);
 
-        startList();
         printAtom("Break");
-        endList();
 
         endList();
         return null;

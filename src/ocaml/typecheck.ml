@@ -30,6 +30,7 @@ let typ_decl_vars    = "Ill typed variable declassign"
 let dup_func_decl x  = sprintf "Function %s has already been declared" x
 let no_return        = "Function is missing return"
 let global_und       = "Global variable is underscore"
+let non_const_global = "Global expression is not a constant"
 
 module Expr = struct
   type t =
@@ -930,15 +931,53 @@ let global_pass contexts globals =
   check no_underscores global_und globals >>= fun globals ->
 
   (* (2) *)
-  let ids = List.map globals ~f:(fun (_, g) ->
+  let ids = List.concat_map globals ~f:(fun (_, g) ->
     match g with
     | Gdecl vs
     | GdeclAsgn (vs, _) -> varsofvars vs
   ) in
   let no_duplicates = not (List.contains_dup ids) in
+  let global_ids = String.Set.of_list ids in
   check no_duplicates dup_global_decl globals >>= fun globals ->
 
   (* (3) *)
+  let rec expr_ok (_, e) =
+    let cog = expr_ok in
+    match e with
+    | Null | Int _ | Bool _ | String _ | Char _ -> true
+    | FuncCall _ | New _ | FieldAccess _ | MethodCall _ -> false
+    | Array es -> List.for_all es ~f:cog
+    | Id (_, x) -> String.Set.mem global_ids x
+    | BinOp (lhs, _, rhs) -> cog lhs && cog rhs
+    | UnOp (_, e) -> cog e
+    | Index (a, i) -> cog a && cog i
+    | Length e -> cog e
+  in
+
+  let rec type_ok (_, t) =
+    match t with
+    | TInt
+    | TBool
+    | TKlass _ -> true
+    | TArray (t, None) -> type_ok t
+    | TArray (t, Some e) -> type_ok t && expr_ok e
+  in
+
+  let var_ok ((_, v): Pos.var) =
+    match v with
+    | AVar (_, AId (_, t)) -> type_ok t
+    | AVar (_, AUnderscore _) -> failwith "assertion: var_ok AUnderscore"
+    | Underscore  -> failwith "assertion: var_ok Underscore"
+  in
+
+  let globals_ok = List.for_all globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs -> List.for_all vs ~f:var_ok
+    | GdeclAsgn (vs, e) -> List.for_all vs ~f:var_ok && expr_ok e
+  ) in
+  check globals_ok dup_global_decl globals >>= fun globals ->
+
+  (* (4) *)
 
   let init = Ok ([], Context.empty) in
   List.fold_left globals ~init ~f:(fun acc (_, g) ->

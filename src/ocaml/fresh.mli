@@ -44,19 +44,15 @@ module type Name = sig
 end
 
 module type S = sig
-  val gen   : int  -> string
-  val fresh : unit -> string
-  val reset : unit -> unit
-  val get   : string -> int option
-end
-
-module type S2 = sig
-  val gen : string -> string
-  val get : string -> string option
+  val fresh   : unit   -> string
+  val reset   : unit   -> unit
+  val gen     : int    -> string
+  val get     : string -> int option
+  val gen_str : string -> string
+  val get_str : string -> string option
 end
 
 module Make(N: Name): S
-module MakeGlobal(N: Name): S2
 
 (* Tiling fresh modules *)
 module FreshReg    : S

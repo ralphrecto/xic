@@ -5,38 +5,37 @@ module type Name = sig
 end
 
 module type S = sig
-  val gen   : int  -> string
-  val fresh : unit -> string
-  val reset : unit -> unit
-  val get   : string -> int option
-end
-
-module type S2 = sig
-  val gen : string -> string
-  val get : string -> string option
+  val fresh   : unit   -> string
+  val reset   : unit   -> unit
+  val gen     : int    -> string
+  val get     : string -> int option
+  val gen_str : string -> string
+  val get_str : string -> string option
 end
 
 module Make(N: Name) = struct
   let n = ref 0
-  let gen n = N.name ^ (string_of_int n)
-  let fresh () = gen (Util.get_and_incr n)
-  let reset () = n := 0
+
+  let gen n =
+    N.name ^ (string_of_int n)
 
   let get s =
     if String.is_prefix s ~prefix:N.name then
       Util.int_of_string (String.drop_prefix s (String.length N.name))
     else None
-end
 
-module MakeGlobal(N: Name) = struct
-  let gen s = N.name ^ s
-  let get s =
+  let gen_str s =
+    N.name ^ s
+
+  let get_str s =
     if String.is_prefix s ~prefix:N.name then
       Some (String.drop_prefix s (String.length N.name))
     else
       None
-end
 
+  let fresh () = gen (Util.get_and_incr n)
+  let reset () = n := 0
+end
 
 (* Tiling fresh modules *)
 module FreshReg    = Make(struct let name = "_asmreg" end)

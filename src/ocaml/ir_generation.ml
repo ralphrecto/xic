@@ -508,11 +508,14 @@ let global_name filename =
   sprintf "_I_globalinit_%s" filename
 
 let global_ir (globals: Typecheck.global list) ctxt =
-  let initializers = List.map globals ~f:(fun (_, g) ->
+  (* Global variables are placed in the .bss section, so we only need to
+   * initialize decl assignments. All other variables are default initialized
+   * to 0. *)
+  let initializers = List.filter_map globals ~f:(fun (_, g) ->
     let open Ast.S in
     match g with
-    | S.Gdecl vs -> (Stmt.One, S.Decl vs)
-    | S.GdeclAsgn (vs, e) -> (Stmt.One, S.DeclAsgn (vs, e))
+    | S.Gdecl _ -> None
+    | S.GdeclAsgn (vs, e) -> Some (Stmt.One, S.DeclAsgn (vs, e))
   ) in
   gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
 

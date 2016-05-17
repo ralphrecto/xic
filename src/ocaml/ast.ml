@@ -264,6 +264,7 @@ module Make(T: TAGS) = struct
   type use           = (  u,      i          ) S.use           [@@deriving sexp]
   type global        = (    g,    i,a,v,  e,t) S.global        [@@deriving sexp]
   type klass         = (      k,c,i,a,v,s,e,t) S.klass         [@@deriving sexp]
+  type klass_decl    = (      k,c,i,a,v,s,e,t) S.klass_decl    [@@deriving sexp]
   type callable      = (        c,i,a,v,s,e,t) S.callable      [@@deriving sexp]
   type callable_decl = (        c,i,a,v,s,e,t) S.callable_decl [@@deriving sexp]
   type id            =            i            S.id            [@@deriving sexp]

@@ -232,7 +232,7 @@ let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
     tuplefy avars_t, tuplefy ret_types
   | ProcDecl (_, avars) ->
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
-    tup lefy avars_t, UnitT
+    tuplefy avars_t, UnitT
 
 type context = Sigma.t String.Map.t
 type global_context = String.Set.t
@@ -915,7 +915,7 @@ let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) : KlassM.t =
 
 let klass_decl_map (klass_decls : Pos.klass_decl list) : KlassM.t String.Map.t =
   let f acc kd =
-    let (_, KlassDecl ((_, key), _, _, _)) = kd in
+    let (_, KlassDecl ((_, key), _, _)) = kd in
     String.Map.add acc ~key ~data:(kdecl_to_klassm kd) in
   List.fold_left ~f ~init:String.Map.empty klass_decls
 
@@ -927,24 +927,27 @@ let ctx_of_interface ((p, interface): Pos.interface) : inter_ctx Error.result =
   let dup_class cname =
     sprintf "class %s declared multiple times in interface %s" cname name in
   let func_decls =
-    let f fdecl = function
-      | FuncDecl ((_, id), _, _)
-      | ProcDecl ((_, id), _) -> (id, fdecl) in
+    let f fdecl =
+      match fdecl with
+      | (_, FuncDecl ((_, id), _, _))
+      | (_, ProcDecl ((_, id), _)) -> (id, fdecl) in
     List.map ~f fdecls |> String.Map.of_alist |> function
-      | `Ok map -> map
+      | `Ok map -> Ok map
       | `Duplicate_key k -> Error (p, dup_func k) in
   let class_decls =
-    let f (KlassDecl ((_, id), _, _)) = (id, cdecl) in
+    let f cdecl =
+      let (_, (KlassDecl ((_, id), _, _))) = cdecl in
+      (id, cdecl) in
     List.map ~f cdecls |> String.Map.of_alist |> function
-      | `Ok map -> map
+      | `Ok map -> Ok map
       | `Duplicate_key k -> Error (p, dup_class k) in
   func_decls >>= fun func_decls' ->
   class_decls >>= fun class_decls' ->
   Ok {
     name;
     uses = List.map ~f:(fun (_, Use (_, id)) -> id) uses |> String.Set.of_list;
-    class_decls';
-    func_decls';
+    class_decls = class_decls';
+    func_decls = func_decls';
   }
 
 (* see klassdecl_ok *)
@@ -965,23 +968,23 @@ let klassdecl_typecheck (c : contexts) kdecl : klass_decl Error.result =
     match super with
     | None -> Ok None
     | Some (_, id) ->
-        if String.mem c.delta_m id || String.mem c.delta_i id then
+        if String.Map.mem c.delta_m id || String.Map.mem c.delta_i id then
           Ok (Some ((), id))
         else Error (p, undeclared_class id) in
   super_ok >>= fun super' ->
   List.map ~f:(call_decl_typecheck c) fdecls |> Result.all >>= fun fdecls' ->
-  Ok ((), KlassDecl ((), id), super', fdecls)
+  Ok ((), KlassDecl (((), id), super', fdecls'))
 
 let contexts_of_interface (ctxmap : inter_ctx String.Map.t) (interface : Pos.interface) =
-  let (_, Interface (name, uses, kdecls, fdecls)) = interface in
+  let (_, Interface (_, uses, kdecls, _)) = interface in
   let neighbors = List.map ~f:(fun (_, Use (_, id)) -> id) uses in
   let neighbor_kdecls =
     let f acc neighbor =
-      match String.Map.find ctx_map neighbor with
+      match String.Map.find ctxmap neighbor with
       | None -> acc
       | Some { class_decls; _ } ->
-          String.Map.data class_decls :: acc in
-    List.dedup @@ List.fold_left ~f ~init:empty neighbors in
+          String.Map.data class_decls @ acc in
+    List.dedup (List.fold_left ~f ~init:[] neighbors) in
   { empty_contexts with
     delta_m = klass_decl_map kdecls;
     delta_i = klass_decl_map neighbor_kdecls; }

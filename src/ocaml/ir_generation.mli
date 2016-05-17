@@ -26,25 +26,36 @@ val string_of_blocks : block list -> string
  * Temp and Label respectively. Internally, fresh temps are generated as temp
  * 0, temp 1, temp 2, etc. The same goes for fresh labels. Moreover, we expose
  * a way to reset the fresh temp and fresh label counts to make testing easier.
-*)
+ *)
+module FreshTemp   : Fresh.S (* __temp  *)
+module FreshLabel  : Fresh.S (* __label *)
+module FreshArgReg : Fresh.S (* _ARG    *)
+module FreshRetReg : Fresh.S (* _RET    *)
+module FreshGlobal : Fresh.S (* _I_g_   *)
+
 val temp  : int -> string
 val label : int -> string
 val reset_fresh_temp : unit -> unit
 val reset_fresh_label : unit -> unit
+val global_temp : string -> Typecheck.Expr.t -> string
 
-module FreshTemp   : Fresh.S
-module FreshArgReg : Fresh.S
-module FreshRetReg : Fresh.S
-module FreshGlobal : Fresh.S
-
+(******************************************************************************)
+(* Helpers                                                                    *)
+(******************************************************************************)
 (* Mallocs n words *)
 val malloc_word : int -> Ir.expr
-
-val global_temp : string -> Typecheck.Expr.t -> string
 
 (******************************************************************************)
 (* Code Generation                                                            *)
 (******************************************************************************)
+(* a mapping from function names to their mangled names *)
+type callnames = string String.Map.t
+
+type irgen_info = {
+  comp_unit : Ir.comp_unit;
+  contexts  : Typecheck.contexts;
+}
+
 (* array concatenation is a pseudo-function *)
 val concat_name      : string
 val concat_ir        : Ir.stmt
@@ -52,13 +63,10 @@ val concat_func_decl : Ir.func_decl
 
 (* Generates global initialization code. global_ir assumes that all multiple
  * declarations and multiple declaration assigments have been flattened into
- * singelton lists. *)
+ * singleton lists. *)
 val global_name      : string
 val global_ir        : Typecheck.global list -> Typecheck.contexts -> Ir.stmt
 val global_func_decl : Typecheck.global list -> Typecheck.contexts -> Ir.func_decl
-
-(* a mapping from function names to their mangled names *)
-type callnames = string String.Map.t
 
 val gen_expr      : callnames -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
 (* the control translation for booleans from lecture notes
@@ -66,7 +74,7 @@ val gen_expr      : callnames -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
 val gen_control   : callnames -> Typecheck.expr -> string -> string -> Typecheck.contexts -> Ir.stmt
 val gen_stmt      : callnames -> Typecheck.stmt -> Typecheck.contexts -> Ir.stmt
 val gen_func_decl : callnames -> Typecheck.callable -> Typecheck.contexts -> Ir.func_decl
-val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> Ir.irgen_info
+val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> irgen_info
 
 (******************************************************************************)
 (* Lowering                                                                   *)

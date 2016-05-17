@@ -12,12 +12,7 @@ open Tiling
 open Printf
 open Xi_interpreter
 
-module TodoRemoveThis_ItsOnlyUsedToBuildCfg = Cfg
-module TodoRemoveThis_ItsOnlyUsedToBuildDataflow = Dataflow
-module TodoRemoveThis_ItsOnlyUsedToBuildRegalloc = Regalloc
-module TodoRemoveThis_ItsOnlyUsedToBuildTranslate = Translate
-module TodoRemoveThis_ItsOnlyUsedToBuildPre = Pre
-module TodoRemoveThis_ItsOnlyUsedToBuildCcp = Ccp
+module IrG = Ir_generation
 
 (* ************************************************************************** *)
 (* types                                                                      *)
@@ -49,9 +44,9 @@ type flags = {
 
 type opts = {
   acf : Typecheck.typecheck_info -> Typecheck.typecheck_info;
-  icf : Ir.irgen_info -> Ir.irgen_info;
-  cp  : Ir.irgen_info -> Ir.irgen_info;
-  pre : Ir.irgen_info -> Ir.irgen_info;
+  icf : IrG.irgen_info -> IrG.irgen_info;
+  cp  : IrG.irgen_info -> IrG.irgen_info;
+  pre : IrG.irgen_info -> IrG.irgen_info;
   is  : Tiling.eater;
   reg : Tiling.allocator;
 }
@@ -114,10 +109,10 @@ type 'a modef = opts -> Pos.full_prog -> 'a Error.result
 let typecheck : Typecheck.typecheck_info modef = fun {acf; _} ast ->
   Result.(prog_typecheck ast >>| acf)
 
-let nolower : Ir.irgen_info modef = fun ({icf; _} as opts) ast ->
+let nolower : IrG.irgen_info modef = fun ({icf; _} as opts) ast ->
   Result.(typecheck opts ast >>| fun info -> icf (gen_comp_unit info.prog info.ctxts))
 
-let lower : Ir.irgen_info modef = fun ({icf; cp; pre; _} as opts) ast ->
+let lower : IrG.irgen_info modef = fun ({icf; cp; pre; _} as opts) ast ->
   Result.(typecheck opts ast >>| fun info -> (
       pre $
       cp $
@@ -127,7 +122,7 @@ let lower : Ir.irgen_info modef = fun ({icf; cp; pre; _} as opts) ast ->
     ) info.ctxts
   )
 
-let irgen : Ir.irgen_info modef = fun ({icf; _} as opts) ast ->
+let irgen : IrG.irgen_info modef = fun ({icf; _} as opts) ast ->
   Result.(
     typecheck opts ast >>| fun info -> (
       icf $
@@ -139,7 +134,7 @@ let irgen : Ir.irgen_info modef = fun ({icf; _} as opts) ast ->
     ) info.ctxts
   )
 
-let optir_initial : Ir.irgen_info modef = fun opts ast ->
+let optir_initial : IrG.irgen_info modef = fun opts ast ->
   Result.(
     typecheck opts ast >>| fun info -> (
       (lift block_reorder_comp_unit) $
@@ -148,7 +143,7 @@ let optir_initial : Ir.irgen_info modef = fun opts ast ->
     ) info.ctxts
   )
 
-let optir_final : Ir.irgen_info modef = fun ({cp; pre; icf; _} as opts) ast ->
+let optir_final : IrG.irgen_info modef = fun ({cp; pre; icf; _} as opts) ast ->
   Result.(
     typecheck opts ast >>| fun info -> (
       cp $
@@ -179,7 +174,7 @@ let typed_debug_strf (typechecking_info : Typecheck.typecheck_info) : string =
   let Ast.S.FullProg (_, prog, _) = typechecking_info.prog in
   prog |> Typecheck.sexp_of_prog |> Sexp.to_string
 
-let ir_strf ({comp_unit; _}: Ir.irgen_info) : string =
+let ir_strf ({comp_unit; _}: IrG.irgen_info) : string =
   sexp_of_comp_unit comp_unit
 
 let asm_strf : Asm.asm list -> string =

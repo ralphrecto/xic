@@ -1,6 +1,8 @@
 open Core.Std
 open Func_context
 
+module IrG = Ir_generation
+
 (* variable used for implicit 0th argument *)
 val ret_ptr_reg : Asm.abstract_reg
 
@@ -73,13 +75,13 @@ type ('input, 'output) without_fcontext =
 val munch_expr      : (Ir.expr, Asm.fake * Asm.abstract_asm list) with_fcontext
 val munch_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
 val munch_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
-val munch_irgen_info : (Ir.irgen_info, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
+val munch_irgen_info : (IrG.irgen_info, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
 
 (* Maximal munch tiling algorithm with good tiles. *)
 val chomp_expr      : (Ir.expr, Asm.abstract_reg * Asm.abstract_asm list) with_fcontext
 val chomp_stmt      : (Ir.stmt, Asm.abstract_asm list) with_fcontext
 val chomp_func_decl : (Ir.func_decl, Asm.abstract_asm list) without_fcontext
-val chomp_irgen_info : (Ir.irgen_info, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
+val chomp_irgen_info : (IrG.irgen_info, (Asm.asm list * (Asm.abstract_asm list list))) without_fcontext
 
 (* Naive register allocation.
  *
@@ -124,7 +126,7 @@ type allocator = ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
 type eater = ?debug:bool ->
              allocator ->
              Typecheck.full_prog ->
-             Ir.irgen_info ->
+             IrG.irgen_info ->
              Asm.asm_prog
 val asm_munch : eater
 val asm_chomp : eater

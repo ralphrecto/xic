@@ -6,6 +6,8 @@ open Typecheck
 open Regalloc
 open Fresh
 
+module IrG = Ir_generation
+
 let ret_ptr_reg   = Fake "_asmretptr"
 
 type ('input, 'output) with_fcontext =
@@ -1016,14 +1018,14 @@ type allocator = ?debug:bool -> Asm.abstract_asm list -> Asm.asm list
 type eater = ?debug:bool ->
              allocator ->
              Typecheck.full_prog ->
-             Ir.irgen_info ->
+             IrG.irgen_info ->
              Asm.asm_prog
 
 let eat_irgen_info
     (eat_func_decl: (Ir.func_decl, Asm.abstract_asm list) without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ({comp_unit=(_, func_decls); contexts}: Ir.irgen_info)
+    ({comp_unit=(_, func_decls); contexts}: IrG.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
   let decl_list = String.Map.data func_decls in
   let fun_asm : Asm.abstract_asm list list =
@@ -1055,7 +1057,7 @@ let munch_func_decl
 let munch_irgen_info
     ?(debug=false)
     (fcontexts: func_contexts)
-    (irgen_info: Ir.irgen_info)
+    (irgen_info: IrG.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
   eat_irgen_info munch_func_decl ~debug fcontexts irgen_info
 
@@ -1068,16 +1070,16 @@ let chomp_func_decl
 let chomp_irgen_info
     ?(debug=false)
     (fcontexts: func_contexts)
-    (irgen_info: Ir.irgen_info)
+    (irgen_info: IrG.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
   eat_irgen_info chomp_func_decl ~debug fcontexts irgen_info
 
 let asm_eat
   (a: allocator)
-  (eat_irgen_info: (Ir.irgen_info, Asm.asm list * (Asm.abstract_asm list list)) without_fcontext)
+  (eat_irgen_info: (IrG.irgen_info, Asm.asm list * (Asm.abstract_asm list list)) without_fcontext)
   ?(debug=false)
   (FullProg (_, _, interfaces): Typecheck.full_prog)
-  (irgen_info : Ir.irgen_info) : Asm.asm list =
+  (irgen_info : IrG.irgen_info) : Asm.asm list =
   let callable_decls =
     let f acc (_, Ast.S.Interface (_, _, _, cdlist)) = cdlist @ acc in
     List.fold_left ~f ~init:[] interfaces in

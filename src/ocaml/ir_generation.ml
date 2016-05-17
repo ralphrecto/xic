@@ -6,6 +6,9 @@ open Ir_util
 open Ast
 open Typecheck
 
+(******************************************************************************)
+(* Control Flow Graphs                                                        *)
+(******************************************************************************)
 type node = Node of string * string list
 type graph = node list
 type block = Block of string * Ir.stmt list
@@ -30,10 +33,10 @@ let string_of_blocks bs =
   "\n" ^ (String.concat ~sep:"\n" (List.map ~f:string_of_block bs)) ^ "\n"
 
 (******************************************************************************)
-(* Naming Helpers                                                             *)
+(* Naming                                                                     *)
 (******************************************************************************)
-module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
-module FreshLabel = Fresh.Make(struct let name = "__label" end)
+module FreshTemp   = Fresh.Make(struct let name = "__temp" end)
+module FreshLabel  = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
 module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
 module FreshGlobal = Fresh.Make(struct let name = "_I_g_" end)
@@ -59,16 +62,17 @@ let global_temp (x: string) (t: Typecheck.Expr.t) =
   FreshGlobal.gen_str (x ^ "_" ^ (Ir_util.abi_type_name false t))
 
 (******************************************************************************)
-(* IR Generation                                                              *)
+(* Helpers                                                                    *)
 (******************************************************************************)
-let not_expr e = BinOp (BinOp (e, ADD, Const 1L), MOD, Const 2L)
+(* not_expr e = e + 1 % 2 *)
+let not_expr (e: Ir.expr) : Ir.expr =
+  BinOp (BinOp (e, ADD, Const 1L), MOD, Const 2L)
 
 let out_of_bounds_proc = "_I_outOfBounds_p"
 
 let const (n: int) =
   Const (Int64.of_int n)
 
-(* Number of bytes in a word in memory *)
 let word_size = 8
 
 let word = const word_size
@@ -99,22 +103,36 @@ let ( $$ ) (x: Ir.expr) (y: Ir.expr) =
 
 let ir_of_ast_binop (b_code : Ast.S.binop_code) : binop_code =
   match b_code with
-  | MINUS    -> SUB
-  | STAR     -> MUL
-  | HIGHMULT -> HMUL
-  | DIV      -> DIV
-  | MOD      -> MOD
-  | PLUS     -> ADD
-  | LT       -> LT
-  | LTE      -> LEQ
-  | GTE      -> GEQ
-  | GT       -> GT
-  | EQEQ     -> EQ
-  | NEQ      -> NEQ
-  | AMP      -> AND
-  | BAR      -> OR
+  | Ast.S.MINUS    -> SUB
+  | Ast.S.STAR     -> MUL
+  | Ast.S.HIGHMULT -> HMUL
+  | Ast.S.DIV      -> DIV
+  | Ast.S.MOD      -> MOD
+  | Ast.S.PLUS     -> ADD
+  | Ast.S.LT       -> LT
+  | Ast.S.LTE      -> LEQ
+  | Ast.S.GTE      -> GEQ
+  | Ast.S.GT       -> GT
+  | Ast.S.EQEQ     -> EQ
+  | Ast.S.NEQ      -> NEQ
+  | Ast.S.AMP      -> AND
+  | Ast.S.BAR      -> OR
 
+(******************************************************************************)
+(* Types                                                                      *)
+(******************************************************************************)
+type callnames = string String.Map.t
+
+type irgen_info = {
+  comp_unit : Ir.comp_unit;
+  contexts  : Typecheck.contexts;
+}
+
+(******************************************************************************)
+(* Concat                                                                     *)
+(******************************************************************************)
 let concat_name = "__concat"
+
 let concat_ir =
   let open Ir.Abbreviations in
   let open Ir.Infix in
@@ -177,8 +195,9 @@ let concat_ir =
 let concat_func_decl =
   (concat_name, concat_ir, (Typecheck.Expr.EmptyArray, Typecheck.Expr.EmptyArray))
 
-type callnames = string String.Map.t
-
+(******************************************************************************)
+(* gen_expr                                                                   *)
+(******************************************************************************)
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt =
   match e with
   | Int i -> Const i
@@ -252,6 +271,9 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
   | Null -> Const 0L
   | _ -> failwith "TODO"
 
+(******************************************************************************)
+(* gen_control                                                                *)
+(******************************************************************************)
 and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_label f_label ctxt =
   match e with
   | Bool true -> Jump (Name t_label)
@@ -273,6 +295,9 @@ and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_labe
   | UnOp (BANG, e1) -> gen_control callnames e1 f_label t_label ctxt
   | _ -> CJump (gen_expr callnames (t, e) ctxt, t_label, f_label)
 
+(******************************************************************************)
+(* gen_stmt                                                                   *)
+(******************************************************************************)
 and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr =
   let incr_ir e = (BinOp (e, ADD, const 1)) in
   match t with
@@ -473,6 +498,9 @@ and gen_stmt callnames s ctxt =
   in
   help callnames s None
 
+(******************************************************************************)
+(* gen_func_decl                                                              *)
+(******************************************************************************)
 and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) ctxt =
   let (_, args, body) =
     match c with
@@ -497,6 +525,9 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) ctxt 
   let (typ, _) = c in
   (abi_callable_name c, Seq(moves @ [gen_stmt callnames body ctxt]), typ)
 
+(******************************************************************************)
+(* global                                                                     *)
+(******************************************************************************)
 and global_name =
   "_I_globalinit"
 
@@ -516,6 +547,9 @@ and global_func_decl globals ctxt =
     (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
   )
 
+(******************************************************************************)
+(* gen_comp_unit                                                              *)
+(******************************************************************************)
 and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog) ctxt =
   let Ast.S.Prog (_, globals, _, callables) = program in
   let int_callables =
@@ -547,7 +581,6 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
 (******************************************************************************)
 (* Lowering IR                                                                *)
 (******************************************************************************)
-
 let rec lower_expr e =
   match e with
   | BinOp (e1, binop, e2) ->

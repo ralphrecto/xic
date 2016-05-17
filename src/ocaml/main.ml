@@ -49,19 +49,22 @@ type flags = {
 
 type opts = {
   acf : Typecheck.typecheck_info -> Typecheck.typecheck_info;
-  icf : Ir.comp_unit -> Ir.comp_unit;
-  cp  : Ir.comp_unit -> Ir.comp_unit;
-  pre : Ir.comp_unit -> Ir.comp_unit;
+  icf : Ir.irgen_info -> Ir.irgen_info;
+  cp  : Ir.irgen_info -> Ir.irgen_info;
+  pre : Ir.irgen_info -> Ir.irgen_info;
   is  : Tiling.eater;
   reg : Tiling.allocator;
 }
 
+let lift f {comp_unit; contexts} =
+  {comp_unit=f comp_unit; contexts}
+
 let opts_of_flags ({acf; icf; cp; pre; is; reg; _}: flags) : opts =
   {
     acf = (if acf then Ast_optimization.ast_constant_folding else fun x -> x);
-    icf = (if icf then Ir_generation.ir_constant_folding else fun x -> x);
-    cp  = (if cp  then Ccp.ccp_comp_unit else fun x -> x);
-    pre = (if pre then Pre.pre_comp_unit else fun x -> x);
+    icf = (if icf then lift Ir_generation.ir_constant_folding else fun x -> x);
+    cp  = (if cp  then lift Ccp.ccp_comp_unit else fun x -> x);
+    pre = (if pre then lift Pre.pre_comp_unit else fun x -> x);
     is  = (if is  then Tiling.asm_chomp else Tiling.asm_munch);
     reg = (if reg then Regalloc.reg_alloc else Tiling.register_allocate);
   }
@@ -111,28 +114,50 @@ type 'a modef = opts -> Pos.full_prog -> 'a Error.result
 let typecheck : Typecheck.typecheck_info modef = fun {acf; _} ast ->
   Result.(prog_typecheck ast >>| acf)
 
-let nolower : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
-  Result.(typecheck opts ast >>| fun info -> (icf $ (gen_comp_unit info.prog)) info.ctxts)
+let nolower : Ir.irgen_info modef = fun ({icf; _} as opts) ast ->
+  Result.(typecheck opts ast >>| fun info -> icf (gen_comp_unit info.prog info.ctxts))
 
-let lower : Ir.comp_unit modef = fun ({icf; cp; pre; _} as opts) ast ->
-  Result.(typecheck opts ast >>| fun info -> (pre $ cp $ icf $ lower_comp_unit $ (gen_comp_unit info.prog)) info.ctxts)
-
-let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
-  Result.(
-    typecheck opts ast >>| fun info -> (
-      icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $ (gen_comp_unit info.prog)
+let lower : Ir.irgen_info modef = fun ({icf; cp; pre; _} as opts) ast ->
+  Result.(typecheck opts ast >>| fun info -> (
+      pre $
+      cp $
+      icf $
+      (lift lower_comp_unit) $
+      (gen_comp_unit info.prog)
     ) info.ctxts
   )
 
-let optir_initial : Ir.comp_unit modef = fun opts ast ->
-  Result.(
-    typecheck opts ast >>| fun info -> (block_reorder_comp_unit $ lower_comp_unit $ (gen_comp_unit info.prog)) info.ctxts
-  )
-
-let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
+let irgen : Ir.irgen_info modef = fun ({icf; _} as opts) ast ->
   Result.(
     typecheck opts ast >>| fun info -> (
-      cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
+      icf $
+      (lift block_reorder_comp_unit) $
+      icf $
+      (lift lower_comp_unit) $
+      icf $
+      (gen_comp_unit info.prog)
+    ) info.ctxts
+  )
+
+let optir_initial : Ir.irgen_info modef = fun opts ast ->
+  Result.(
+    typecheck opts ast >>| fun info -> (
+      (lift block_reorder_comp_unit) $
+      (lift lower_comp_unit) $
+      (gen_comp_unit info.prog)
+    ) info.ctxts
+  )
+
+let optir_final : Ir.irgen_info modef = fun ({cp; pre; icf; _} as opts) ast ->
+  Result.(
+    typecheck opts ast >>| fun info -> (
+      cp $
+      pre $
+      icf $
+      (lift block_reorder_comp_unit) $
+      icf $
+      (lift lower_comp_unit) $
+      icf $
       (gen_comp_unit info.prog)
     ) info.ctxts
   )
@@ -140,8 +165,8 @@ let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
   Result.(
     typecheck opts ast >>= fun info ->
-    irgen opts ast >>| fun ir_prog ->
-    is ~debug reg info.prog ir_prog
+    irgen opts ast >>| fun irgen_info ->
+    is ~debug reg info.prog irgen_info
   )
 
 (* ************************************************************************** *)
@@ -154,8 +179,8 @@ let typed_debug_strf (typechecking_info : Typecheck.typecheck_info) : string =
   let Ast.S.FullProg (_, prog, _) = typechecking_info.prog in
   prog |> Typecheck.sexp_of_prog |> Sexp.to_string
 
-let ir_strf : Ir.comp_unit -> string =
-  sexp_of_comp_unit
+let ir_strf ({comp_unit; _}: Ir.irgen_info) : string =
+  sexp_of_comp_unit comp_unit
 
 let asm_strf : Asm.asm list -> string =
   string_of_asms
@@ -227,13 +252,13 @@ let main opts flags () : unit Deferred.t =
 
             let initial =
               if flags.optcfg_initial
-                then cfg_initial (ok (optir_initial opts ast))
+                then cfg_initial (ok (optir_initial opts ast)).comp_unit
                 else return ()
             in
 
             let final =
               if flags.optcfg_final
-                then cfg_final (ok (optir_final opts ast))
+                then cfg_final (ok (optir_final opts ast)).comp_unit
                 else return ()
             in
 

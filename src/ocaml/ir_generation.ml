@@ -384,7 +384,7 @@ and gen_stmt callnames s ctxt =
     | Asgn ((_, lhs), fullrhs) ->
       begin
         match lhs with
-        | Id (_, idstr) -> 
+        | Id (_, idstr) ->
           if String.Set.mem ctxt.globals idstr then
             Seq [
               Move (Temp (global_temp idstr), gen_expr callnames fullrhs ctxt);
@@ -512,29 +512,23 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
     String.Map.add callable_map ~key:concat_name ~data:concat_func_decl in
   let open Filename in
   let program_name = name |> chop_extension |> basename in
-  (program_name, callable_map)
+  {comp_unit=(program_name, callable_map); contexts=ctxt}
 
-type filename = string
-type globals = Typecheck.global list
-
-let global_name filename =
-  sprintf "_I_globalinit_%s" filename
+let global_name =
+  "_I_globalinit"
 
 let global_ir (globals: Typecheck.global list) ctxt =
-  (* Global variables are placed in the .bss section, so we only need to
-   * initialize decl assignments. All other variables are default initialized
-   * to 0. *)
   let initializers = List.filter_map globals ~f:(fun (_, g) ->
     let open Ast.S in
     match g with
-    | S.Gdecl _ -> None
+    | S.Gdecl vs -> Some (Stmt.One, S.Decl vs)
     | S.GdeclAsgn (vs, e) -> Some (Stmt.One, S.DeclAsgn (vs, e))
   ) in
   gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
 
-let global_func_decl filename globals ctxt =
+let global_func_decl globals ctxt =
   (
-    global_name filename,
+    global_name,
     global_ir globals ctxt,
     (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
   )

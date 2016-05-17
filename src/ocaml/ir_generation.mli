@@ -50,11 +50,9 @@ val concat_func_decl : Ir.func_decl
 (* Generates global initialization code. global_ir assumes that all multiple
  * declarations and multiple declaration assigments have been flattened into
  * singelton lists. *)
-type filename = string
-type globals = Typecheck.global list
-val global_name      : filename -> string
-val global_ir        : globals -> Typecheck.contexts -> Ir.stmt
-val global_func_decl : filename -> globals -> Typecheck.contexts -> Ir.func_decl
+val global_name      : string
+val global_ir        : Typecheck.global list -> Typecheck.contexts -> Ir.stmt
+val global_func_decl : Typecheck.global list -> Typecheck.contexts -> Ir.func_decl
 
 (* a mapping from function names to their mangled names *)
 type callnames = string String.Map.t
@@ -65,7 +63,7 @@ val gen_expr      : callnames -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
 val gen_control   : callnames -> Typecheck.expr -> string -> string -> Typecheck.contexts -> Ir.stmt
 val gen_stmt      : callnames -> Typecheck.stmt -> Typecheck.contexts -> Ir.stmt
 val gen_func_decl : callnames -> Typecheck.callable -> Typecheck.contexts -> Ir.func_decl
-val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> Ir.comp_unit
+val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> Ir.irgen_info
 
 (******************************************************************************)
 (* Lowering                                                                   *)

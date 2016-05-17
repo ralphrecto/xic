@@ -11,6 +11,11 @@ module type S = sig
   val get   : string -> int option
 end
 
+module type S2 = sig
+  val gen : string -> string
+  val get : string -> string option
+end
+
 module Make(N: Name) = struct
   let n = ref 0
   let gen n = N.name ^ (string_of_int n)
@@ -18,10 +23,20 @@ module Make(N: Name) = struct
   let reset () = n := 0
 
   let get s =
-    if String.is_prefix s ~prefix:N.name
-      then Util.int_of_string (String.drop_prefix s (String.length N.name))
-      else None
+    if String.is_prefix s ~prefix:N.name then
+      Util.int_of_string (String.drop_prefix s (String.length N.name))
+    else None
 end
+
+module MakeGlobal(N: Name) = struct
+  let gen s = N.name ^ s
+  let get s =
+    if String.is_prefix s ~prefix:N.name then
+      Some (String.drop_prefix s (String.length N.name))
+    else
+      None
+end
+
 
 (* Tiling fresh modules *)
 module FreshReg    = Make(struct let name = "_asmreg" end)

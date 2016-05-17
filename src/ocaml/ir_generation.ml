@@ -36,6 +36,7 @@ module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
 module FreshLabel = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
 module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
+module FreshGlobal = Fresh.MakeGlobal(struct let name = "_GLOBAL" end)
 
 
 let temp             = FreshTemp.gen
@@ -53,6 +54,9 @@ let retreg = FreshRetReg.gen
 (* name for ith arg register; use for passing
  * argument values into func calls *)
 let argreg = FreshArgReg.gen
+
+(* name for global variable *)
+let global_temp = FreshGlobal.gen
 
 (******************************************************************************)
 (* IR Generation                                                              *)
@@ -200,7 +204,11 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
     )
   | Id (_, id) -> begin
     if String.Set.mem ctxt.globals id then
-      failwith "TODO"
+      let global_tmp = Temp (global_temp id) in
+      ESeq (
+        Move (global_tmp, Temp id),
+        global_tmp
+      )
     else Temp id
   end
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
@@ -376,7 +384,12 @@ and gen_stmt callnames s ctxt =
     | Asgn ((_, lhs), fullrhs) ->
       begin
         match lhs with
-        | Id (_, idstr) -> Move (Temp idstr, gen_expr callnames fullrhs ctxt)
+        | Id (_, idstr) -> 
+          if String.Set.mem ctxt.globals idstr then
+            Seq [
+              Move (Temp (global_temp idstr), gen_expr callnames fullrhs ctxt);
+            ]
+          else Move (Temp idstr, gen_expr callnames fullrhs ctxt)
         | Index (arr, i) ->
           let index = gen_expr callnames i ctxt in
           let addr = gen_expr callnames arr ctxt in

@@ -50,7 +50,13 @@ module type S = sig
   val get   : string -> int option
 end
 
+module type S2 = sig
+  val gen : string -> string
+  val get : string -> string option
+end
+
 module Make(N: Name): S
+module MakeGlobal(N: Name): S2
 
 (* Tiling fresh modules *)
 module FreshReg    : S

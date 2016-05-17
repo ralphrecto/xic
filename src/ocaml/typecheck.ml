@@ -418,8 +418,8 @@ and expr_typecheck (c : contexts) (p, expr) =
       | Some typ ->
           Ok (of_typ typ, FieldAccess (receiver', ((), fname)))
   end
-  | MethodCall (receiver, (_, mname), args) -> begin
-      expr_typecheck c receiver >>= fun receiver' ->
+      | MethodCall (receiver, (_, mname), args) -> begin
+        expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
       find_callable klass_info.methods mname |> function
       | None ->
@@ -447,7 +447,11 @@ let rec typ_typecheck c (p, t) =
       | IntT -> Ok (ArrayT (fst t'), TArray (t', Some e'))
       | _ -> Error (p, "Array size is not an int")
     end
-  | TKlass (_, name) -> Ok (KlassT name, TKlass ((), name))
+  | TKlass (_, name) ->
+      if String.Map.mem c.delta_m name || String.Map.mem c.delta_i name then
+        Ok (KlassT name, TKlass ((), name))
+      else
+        Error (p, sprintf "class %s not defined" name)
 
 (******************************************************************************)
 (* avar                                                                       *)
@@ -499,7 +503,18 @@ let vars_typecheck (p: Pos.pos)
   | false, _ -> Error (p, dup_var)
   | true, false -> Error (p, bound_var)
 
+(* lvalue determines expressions that are assignable *)
+let lvalue (c : contexts) ((p, e) : Pos.expr) : expr Error.result =
+  expr_typecheck c (p, e) >>= fun typed_e ->
+  match typed_e with
+  | (_, Id (_, id)) when id <> "this" -> Ok typed_e
+  | (_, Index _)
+  | (_, FieldAccess _) -> Ok typed_e
+  | _ -> Error (p, "Trying to assign to invalid expr")
+
 let stmt_typecheck (c : contexts) rho s =
+  (* TODO: remove this *)
+  let _ = lvalue in
   let rec (|-) (c, rho) (p, s) : (stmt * contexts) Error.result =
     let err s = Error (p, s) in
     match s with

@@ -352,17 +352,8 @@ let find_callable (clist : Pos.callable_decl list) (name : string) =
     | ProcDecl ((_, fname), _) -> fname = name in
   List.find ~f clist
 
-let disjoint_merge a b =
-  String.Map.merge a b ~f:(fun ~key v ->
-    ignore key;
-    match v with
-    | `Left  v -> Some v
-    | `Right v -> Some v
-    | `Both _ -> failwith "disjoint_merge: merge not disjoint"
-  )
-
 let methods ~delta_m ~delta_i c =
-  let delta = disjoint_merge delta_m delta_i in
+  let delta = Util.disjoint_merge delta_m delta_i in
   if not (String.Map.mem delta c) then
     failwith (sprintf "methods: class %s not in delta" c)
   else

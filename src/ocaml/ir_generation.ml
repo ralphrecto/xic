@@ -550,33 +550,35 @@ and global_func_decl globals ctxt =
 (******************************************************************************)
 (* gen_comp_unit                                                              *)
 (******************************************************************************)
-and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog) ctxt =
-  let Ast.S.Prog (_, globals, _, callables) = program in
-  let int_callables =
-   List.fold_left
-     ~f:(fun acc ((_, Interface (_, _, _, clist)): Typecheck.interface) -> clist @ acc)
-     ~init:[] interfaces in
+and gen_comp_unit fp contexts =
+  let S.FullProg (name, (_, program), interfaces) = fp in
+  let S.Prog (_, globals, _, callables) = program in
+
+  (* callable name -> mangled callable name *)
+  let f (_, S.Interface (_, _, _, cs)) = cs in
+  let int_callables = List.concat_map interfaces ~f in
   let int_callnames = abi_callable_decl_names int_callables in
   let prog_callnames = abi_callable_names callables in
-  let callnames =
-    String.Map.fold
-      ~f:(fun ~key ~data acc -> String.Map.add ~key ~data acc)
-      ~init:int_callnames
-      prog_callnames in
-  let f = fun callable -> gen_func_decl callnames callable ctxt in
-  let gen_callables = List.map ~f callables in
-  let f map (cname, block, typ) =
-    String.Map.add map ~key:cname ~data:(cname, block, typ) in
+  let callnames = Util.disjoint_merge int_callnames prog_callnames in
 
-  let callable_map = List.fold_left ~f ~init:String.Map.empty gen_callables in
+  (* mangled callable name -> func_decl *)
+  let gen_callables = List.map callables ~f:(fun callable ->
+    let (name, _, _) as gen = gen_func_decl callnames callable contexts in
+    (name, gen)
+  ) in
+  let callable_map = String.Map.of_alist_exn gen_callables in
+
+  (* concat *)
   let callable_map = String.Map.add callable_map
     ~key:concat_name ~data:concat_func_decl in
+
+  (* global initialization *)
   let callable_map = String.Map.add callable_map
-    ~key:global_name ~data:(global_func_decl globals ctxt) in
+    ~key:global_name ~data:(global_func_decl globals contexts) in
 
   let open Filename in
   let program_name = name |> chop_extension |> basename in
-  {comp_unit=(program_name, callable_map); contexts=ctxt}
+  {comp_unit=(program_name, callable_map); contexts}
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

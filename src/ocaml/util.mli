@@ -44,3 +44,8 @@ val string_of_list : ?short:bool -> 'a list -> f:('a -> string) -> string
 val string_of_set  : ?short:bool -> ('a, _) Set.t -> f:('a -> string) -> string
 val string_of_map  : ?short:bool -> ('k, 'v, _) Map.t ->
                      k:('k -> string) -> v:('v -> string) -> string
+
+(* Combines two maps with disjoint keys. *)
+val disjoint_merge : ('k, 'v, 'cmp) Map.t ->
+                     ('k, 'v, 'cmp) Map.t ->
+                     ('k, 'v, 'cmp) Map.t

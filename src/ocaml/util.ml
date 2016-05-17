@@ -68,3 +68,12 @@ let string_of_map ?(short=false) m ~k ~v =
     )
   |> String.concat ~sep:(if short then "," else ",\n")
   |> fun s -> sprintf "{\n%s\n}" s
+
+let disjoint_merge a b =
+  Map.merge a b ~f:(fun ~key v ->
+    ignore key;
+    match v with
+    | `Left  v -> Some v
+    | `Right v -> Some v
+    | `Both _ -> failwith "disjoint_merge: merge not disjoint"
+  )

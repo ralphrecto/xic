@@ -194,6 +194,21 @@ let ids_of_callables (_, c) =
   | Func (i, _, _, _)
   | Proc (i, _, _) -> i
 
+let typeof_callable ((_, c) : Pos.callable) : Expr.t * Expr.t =
+  let tuplefy (tl : Expr.t list) =
+    match tl with
+    | [] -> UnitT
+    | [t] -> t
+    | _ :: _ :: _ -> TupleT tl in
+  match c with
+  | Func (_, avars, raw_rettypes, _) ->
+    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
+    let ret_types = List.map ~f:of_typ raw_rettypes in
+    tuplefy avars_t, tuplefy ret_types
+  | Proc (_, avars, _) ->
+    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
+    tuplefy avars_t, UnitT
+
 type context = Sigma.t String.Map.t
 module Context = struct
   include String.Map
@@ -254,6 +269,22 @@ type contexts = {
 let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
+let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
+  match typ with
+  | KlassT classname -> begin
+      String.Map.find c.delta_m classname |> function
+      | None -> Error (pos, sprintf "Class %s not declared in module" classname)
+      | Some kl_info -> Ok kl_info
+  end
+  | _ -> Error (pos, "Not an object expression")
+
+let find_callable (clist : Pos.callable list) (name : string) : Pos.callable option =
+  let f (_, c) =
+    match c with
+    | Func ((_, fname), _, _, _)
+    | Proc ((_, fname), _, _) -> fname = name in
+  List.find ~f clist
+
 (******************************************************************************)
 (* expr                                                                       *)
 (******************************************************************************)
@@ -269,6 +300,34 @@ let rec exprs_typecheck (p: Pos.pos)
   Expr.eqs c.subtype p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
   Ok args'
 
+and call_helper (c : contexts) p argtype rettype args : expr list Error.result =
+  match argtype, rettype, args with
+  (* proc *)
+  | _, UnitT, _ -> Error (p, "Using proc call as an expr")
+  (* impossible types / invariant failures *)
+  | EmptyArray, _, _
+  | _, EmptyArray, _ ->
+    Error (p, "Typechecking: invariant failure (FuncCall empty array)")
+  (* no args *)
+  | UnitT, _, _::_ -> Error (p, "Giving args to a function with no params")
+  | UnitT, _, [] -> Ok []
+  (* one arg *)
+  | (IntT | BoolT | ArrayT _ | NullT | KlassT _ ), _, _ when List.length args <> 1 ->
+    Error (p, num_f_args)
+  | (IntT | BoolT | ArrayT _ | NullT | KlassT _ ) as t1, _, [arg] ->
+    exprs_typecheck p c [t1] [arg] num_f_args typ_f_args >>= fun args' ->
+    Ok args'
+  (* multiple args *)
+  | TupleT argtypes, _, _ -> begin
+    if List.length argtypes <> List.length args then
+      Error (p, num_f_args)
+    else
+      exprs_typecheck p c argtypes args num_f_args typ_f_args >>= fun args' ->
+      Ok args'
+  end
+  | _ -> Error (p, "Invalid arguments to call")
+
+
 and expr_typecheck (c : contexts) (p, expr) =
   match expr with
   | Int i -> Ok (IntT, Int i)
@@ -277,13 +336,13 @@ and expr_typecheck (c : contexts) (p, expr) =
   | String s -> Ok (ArrayT IntT, String s)
   | Char c -> Ok (IntT, Char c)
   | Array [] -> Ok (EmptyArray, Array [])
-  | Array (e::es) -> begin
+  | Array (e :: es) -> begin
       expr_typecheck c e >>= fun (t, e) ->
       Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-      let f acc (t1, _) = acc >>= type_max c.subtype p t1 in
+      let f acc (t1, _) = acc >>= type_max array_subtyping p t1 in
       match List.fold_left es ~f ~init:(Ok t) with
       | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
-      | Error _ -> Error (p, "Array elements have different types")
+      | Error _ -> Error (p, "Array elements must have invariant types")
     end
   | Id (_, s) -> Context.var p c.vars s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
@@ -294,17 +353,18 @@ and expr_typecheck (c : contexts) (p, expr) =
       | IntT, IntT, (MINUS|STAR|HIGHMULT|DIV|MOD) -> Ok (IntT, e)
       | IntT, IntT, (LT|LTE|GTE|GT|EQEQ|NEQ) -> Ok (BoolT, e)
       | BoolT, BoolT, (AMP|BAR|EQEQ|NEQ) -> Ok (BoolT, e)
-      | ArrayT t1, ArrayT t2, (EQEQ|NEQ) when comparable array_subtyping t1 t2 -> Ok (BoolT, e)
-      | EmptyArray, ArrayT _, (EQEQ|NEQ)
-      | ArrayT _, EmptyArray, (EQEQ|NEQ)
-      | EmptyArray, EmptyArray, (EQEQ|NEQ) -> Ok (BoolT, e)
       | IntT, IntT, PLUS -> Ok (IntT, e)
+      (* array equality *)
+      | _, _, (EQEQ|NEQ) when comparable array_subtyping lt rt -> Ok (BoolT, e)
+
+      (* TODO: array concat *)
       | ArrayT t1, ArrayT t2, PLUS when comparable array_subtyping t1 t2 ->
         type_max c.subtype p t1 t2 >>= fun max_t -> Ok (ArrayT max_t, e)
       | ArrayT t, EmptyArray, PLUS
       | EmptyArray, ArrayT t, PLUS -> Ok (ArrayT t, e)
       | EmptyArray, EmptyArray, PLUS -> Ok (EmptyArray, e)
       | _ ->
+        (* TODO: handle equality over objects *)
         let binop_str = Ast.string_of_binop_code opcode in
         Error (p, Printf.sprintf "Wrong operand types for %s" binop_str)
     end
@@ -324,8 +384,8 @@ and expr_typecheck (c : contexts) (p, expr) =
       match at, it with
       | ArrayT t, IntT -> Ok (t, Index ((at, a), (it, i)))
       | EmptyArray, IntT -> Error (p, "Indexing into empty array")
+      | NullT, IntT -> Error (p, "Indexing into null array")
       | _, IntT -> Error (p, "Indexing into non-array value")
-      | (ArrayT _ | EmptyArray), _ -> Error (p, "Non-integer index")
       | _ -> Error (p, "Invalid types for indexing expr")
     end
   | Length e -> begin
@@ -333,38 +393,40 @@ and expr_typecheck (c : contexts) (p, expr) =
       match t with
       | ArrayT _
       | EmptyArray -> Ok (IntT, Length (t, e))
+      | NullT -> Error (p, "Calling length() on null expr")
       | _ -> Error (p, "Using length() on a non-array expr")
     end
-  | FuncCall ((_, f), args) -> begin
-      Context.func p c.vars f >>= fun (a, b) ->
-      match (a, b), args with
-      (* proc *)
-      | (_, UnitT), _ -> Error (p, "Using proc call as an expr")
+  | FuncCall ((_, f), args) ->
+      Context.func p c.vars f >>= fun (argtype, rettype) ->
+      call_helper c p argtype rettype args >>= fun args' ->
+      Ok (rettype, FuncCall (((), f), args'))
+  | Null -> Ok (NullT, Null)
+  | New (_, classname) ->
+      if String.Map.mem c.delta_m classname then
+        Ok (KlassT classname, New ((), classname))
+      else
+        Error (p, sprintf "Class %s not declared in module" classname)
+  | FieldAccess (receiver, (_, fname)) -> begin
+      expr_typecheck c receiver >>= fun receiver' ->
+      get_klass_info c receiver' p >>= fun klass_info ->
+      String.Map.find klass_info.fields fname |> function
+      | None ->
+          Error (p, sprintf "Class %s does not have field %s" klass_info.name fname)
+      | Some typ ->
+          Ok (of_typ typ, FieldAccess (receiver', ((), fname)))
+  end
+  | MethodCall (receiver, (_, mname), args) -> begin
+      expr_typecheck c receiver >>= fun receiver' ->
+      get_klass_info c receiver' p >>= fun klass_info ->
+      find_callable klass_info.methods mname |> function
+      | None ->
+          Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
+      | Some callable ->
+          let argtype, rettype = typeof_callable callable in
+          call_helper c p argtype rettype args >>= fun args' ->
+          Ok (rettype, MethodCall (receiver', ((), mname), args'))
+  end
 
-      (* impossible types *)
-      | (EmptyArray, _), _
-      | (_, EmptyArray), _ -> Error (p, "Using proc call as an expr")
-
-      (* no args *)
-      | (UnitT, _), _::_ -> Error (p, "Giving args to a function with no params")
-      | (UnitT, t), [] -> Ok (t, FuncCall (((), f), []))
-
-      (* one arg *)
-      | ((IntT | BoolT | ArrayT _), _), []
-      | ((IntT | BoolT | ArrayT _), _), _::_::_ -> Error (p, num_f_args)
-      | ((IntT | BoolT | ArrayT _) as t1, t2), [arg] ->
-        exprs_typecheck p c [t1] [arg] num_f_args typ_f_args >>= fun args' ->
-        Ok (t2, FuncCall (((), f), args'))
-
-      (* multiple args *)
-      | (TupleT _, _), []
-      | (TupleT _, _), [_] -> Error (p, num_f_args)
-      | (TupleT t1, t2), args ->
-        exprs_typecheck p c t1 args num_f_args typ_f_args >>= fun args' ->
-        Ok (t2, FuncCall (((), f), args'))
-      | _ -> failwith "TODO: add KlassT cases"
-    end
-  | _ -> failwith "TODO"
 
 (******************************************************************************)
 (* typ                                                                        *)

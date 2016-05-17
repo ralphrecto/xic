@@ -991,9 +991,11 @@ and chomp_stmt
     begin
       let dest =
         (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n with
-        | Some i -> Asm.callee_ret_op ret_ptr_reg i
-        | None -> Reg (Fake n)
+        match FreshRetReg.get n, FreshGlobal.get_str n with
+        | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
+        | None, Some _ -> Mem (Global n)
+        | None, None -> Reg (Fake n)
+        | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
       in
       let new_tmp = Reg (Fake (FreshReg.fresh ())) in
       let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in

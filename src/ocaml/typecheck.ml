@@ -19,11 +19,11 @@ let unbound_var x    = sprintf "Unbound variable %s" x
 let unbound_call x   = sprintf "Unbound callable %s" x
 let dup_global_decl  = "Duplicate global variable declaration"
 let dup_var_decl     = "Duplicate variable declaration"
-let dup_field_decl   = "Duplicate field declaration"
-let dup_method_decl  = "Duplicate method declaration"
-let field_shadow     = "Field declaration shadows global variable"
-let field_this       = "Invalid field name \"this\""
-let field_underscore = "Field name must be declared"
+let _dup_field_decl   = "Duplicate field declaration"
+let _dup_method_decl  = "Duplicate method declaration"
+let _field_shadow     = "Field declaration shadows global variable"
+let _field_this       = "Invalid field name \"this\""
+let _field_underscore = "Field name must be declared"
 let bound_var_decl   = "Cannot rebind variable"
 let num_decl_vars    = "Incorrect number of variables in declassign"
 let typ_decl_vars    = "Ill typed variable declassign"
@@ -134,12 +134,12 @@ end
 
 module KlassM = struct
   type t = {
-    name    : string;
-    super   : string option;
-    fields  : Pos.typ String.Map.t;
-    methods : Pos.callable list;
-  }
-  [@@deriving sexp]
+    name      : string;
+    super     : string option;
+    fields    : (string * Pos.typ) list;
+    methods   : Pos.callable_decl list;
+    overrides : Pos.callable_decl list;
+  } [@@deriving sexp]
 end
 open KlassM
 
@@ -195,7 +195,7 @@ let typeofavar av =
   | Ast.S.AId (_, t)
   | Ast.S.AUnderscore t -> Expr.of_typ t
 
-let ids_of_callables (_, c) =
+let _ids_of_callables (_, c) =
   match c with
   | Func (i, _, _, _)
   | Proc (i, _, _) -> i
@@ -813,7 +813,9 @@ let fst_global_pass contexts globals =
 (******************************************************************************)
 (* klasses                                                                    *)
 (******************************************************************************)
-let fst_klass_pass contexts klasses =
+let fst_klass_pass _contexts _klasses =
+  failwith "TODO: update with new class types"
+  (*
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->
     let get_field acc (_, f) =
@@ -846,6 +848,7 @@ let fst_klass_pass contexts klasses =
         Ok ({contexts' with delta_m = delta_m'})
   in
   List.fold_left ~f:update_klass ~init:(Ok contexts) klasses
+  *)
 
 (******************************************************************************)
 (* prog                                                                       *)

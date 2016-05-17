@@ -975,7 +975,7 @@ let global_pass contexts globals =
     | Gdecl vs -> List.for_all vs ~f:var_ok
     | GdeclAsgn (vs, e) -> List.for_all vs ~f:var_ok && expr_ok e
   ) in
-  check globals_ok dup_global_decl globals >>= fun globals ->
+  check globals_ok non_const_global globals >>= fun globals ->
 
   (* (4) *)
 

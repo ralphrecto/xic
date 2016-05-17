@@ -31,6 +31,7 @@ let dup_func_decl x  = sprintf "Function %s has already been declared" x
 let no_return        = "Function is missing return"
 let global_und       = "Global variable is underscore"
 let non_const_global = "Global expression is not a constant"
+let cyclic_globals   = "Global dependency graph has cycles"
 
 module Expr = struct
   type t =
@@ -257,14 +258,12 @@ module Context = struct
         | None -> c
       )
 
-  let bind_all_vars_no_underscore c vs =
-    let (>>=) = Result.(>>=) in
-    List.fold_left vs ~init:(Ok c) ~f:(fun c ((p, v): Pos.var) ->
-      c >>= fun c ->
+  let bind_all_pos_vars c vs =
+    List.fold_left vs ~init:c ~f:(fun c ((_, v): Pos.var) ->
       match v with
-      | AVar (_, AId ((_, x), t)) -> Ok (bind c x (Var (Expr.of_typ t)))
+      | AVar (_, AId ((_, x), t)) -> bind c x (Var (Expr.of_typ t))
       | AVar (_, AUnderscore _)
-      | Underscore -> Error (p, "unexpected underscore!")
+      | Underscore -> c
     )
 
   let bind_all_avars c avs =
@@ -660,6 +659,19 @@ let stmt_typecheck (c : contexts) rho s =
 
   (c, rho) |- s >>| fst
 
+let global_typecheck contexts (a, g) =
+  match g with
+  | Gdecl vs -> begin
+    stmt_typecheck contexts UnitT (a, Decl vs) >>= function
+    | (_, Decl vs) -> Ok ((), Gdecl vs)
+    | _ -> failwith "impossible : global_typecheck Gdecl"
+  end
+  | GdeclAsgn (vs, e) -> begin
+    stmt_typecheck contexts UnitT (a, DeclAsgn (vs, e)) >>= function
+    | (_, DeclAsgn (vs, e)) -> Ok ((), GdeclAsgn (vs, e))
+    | _ -> failwith "impossible : global_typecheck GdeclAsgn"
+  end
+
 (******************************************************************************)
 (* callables                                                                  *)
 (******************************************************************************)
@@ -979,22 +991,38 @@ let global_pass contexts globals =
     | Gdecl vs -> List.for_all vs ~f:var_ok
     | GdeclAsgn (vs, e) -> List.for_all vs ~f:var_ok && expr_ok e
   ) in
-  check globals_ok non_const_global globals >>= fun globals ->
+  check globals_ok non_const_global globals >>= fun _ ->
+
+  (* flatten globals *)
+  let globals = List.concat_map globals ~f:(fun (p, g) ->
+    match g with
+    | Gdecl vs -> List.map vs ~f:(fun v -> (p, Gdecl [v]))
+    | GdeclAsgn (vs, e) -> List.map vs ~f:(fun v -> (p, GdeclAsgn ([v], e)))
+  ) in
 
   (* (4) *)
+  let ggraph = global_graph globals in
+  let module GlobalTraverse = Graph.Traverse.Dfs(GlobalGraph) in
+  let no_cycles = GlobalTraverse.has_cycle ggraph in
+  check no_cycles cyclic_globals globals >>= fun _ ->
 
-  let init = Ok ([], Context.empty) in
-  List.fold_left globals ~init ~f:(fun acc (_, g) ->
-    acc >>= fun (ids, c) ->
+  (* topo sort globals *)
+  let module GlobalTopo = Graph.Topological.Make(GlobalGraph) in
+  let globals = List.rev (GlobalTopo.fold (fun g a -> g::a) ggraph []) in
+
+  (* update gamma *)
+  let gamma' = List.fold_left globals ~init:contexts.locals ~f:(fun c (_, g) ->
     match g with
-    | Gdecl vlist
-    | GdeclAsgn (vlist, _) ->
-        (Context.bind_all_vars_no_underscore c vlist) >>= fun c ->
-        Ok (ids @ (varsofvars vlist), c)
-  ) >>= fun (ids, new_vars) ->
-  if not (List.contains_dup ids)
-    then Ok ({contexts with locals = new_vars})
-    else Error ((-1, -1), dup_global_decl)
+    | Gdecl vs
+    | GdeclAsgn (vs, _) -> (Context.bind_all_pos_vars c vs)
+  ) in
+  let contexts = {contexts with locals=gamma'} in
+
+  (* (5) *)
+  let typed_globals = List.map globals ~f:(fun g -> global_typecheck contexts g) in
+  Result.all typed_globals >>= fun typed_globals ->
+
+  Ok {contexts with globals=global_ids; typed_globals}
 
 (******************************************************************************)
 (* klasses                                                                    *)

@@ -154,7 +154,7 @@ module Context: sig
 
   (* Same as bind_all_vars, but errors out if there are any underscores or
    * annotated underscores. *)
-  val bind_all_vars_no_underscore: context -> Pos.var list -> context Error.result
+  val bind_all_pos_vars: context -> Pos.var list -> context
 
   val bind_all_avars: context -> avar list -> context
 end
@@ -277,6 +277,7 @@ val typ_typecheck: contexts -> Pos.typ -> typ Error.result
 val avar_typecheck: contexts -> Pos.avar -> avar Error.result
 val var_typecheck: contexts -> Pos.var -> var Error.result
 val stmt_typecheck: contexts -> Expr.t -> Pos.stmt -> stmt Error.result
+val global_typecheck: contexts -> Pos.global -> global Error.result
 val func_decl_typecheck: contexts -> Pos.callable_decl -> contexts Error.result
 val func_typecheck: contexts -> Pos.callable -> contexts Error.result
 val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.result

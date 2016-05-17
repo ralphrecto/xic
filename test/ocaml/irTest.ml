@@ -182,16 +182,7 @@ let test_ir_expr _ =
 
   Ir_gen.reset_fresh_temp ();
 
-  let empty : Typecheck.contexts = {
-    locals        = Typecheck.Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    typed_globals = [];
-    subtype       = (fun _ _ -> false);
-    inloop        = false;
-  } in
+  let empty = Typecheck.empty_contexts in
 
   (* Ir exprs *)
   let zero = const 0L in
@@ -428,16 +419,7 @@ let test_ir_stmt _ =
   let open Long in
   let open Ir in
   let open Ir_generation in
-  let empty : Typecheck.contexts = {
-    locals        = Typecheck.Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    typed_globals = [];
-    subtype       = (fun _ _ -> false);
-    inloop        = false;
-  } in
+  let empty = Typecheck.empty_contexts in
 
   (* Vars *)
   let create_int_avar (id : string) : Typecheck.avar =

@@ -276,6 +276,19 @@ module Make(T: TAGS) = struct
   type stmt          = (          i,a,v,s,e,t) S.stmt          [@@deriving sexp]
   type expr          = (          i,      e  ) S.expr          [@@deriving sexp]
   type typ           = (          i,      e,t) S.typ           [@@deriving sexp]
+
+  type raw_interface     = (  u,  k,c,i,a,v,s,e,t) S.raw_interface     [@@deriving sexp]
+  type raw_prog          = (  u,g,k,c,i,a,v,s,e,t) S.raw_prog          [@@deriving sexp]
+  type raw_use           = (          i          ) S.raw_use           [@@deriving sexp]
+  type raw_global        = (          i,a,v,  e,t) S.raw_global        [@@deriving sexp]
+  type raw_klass         = (        c,i,a,v,s,e,t) S.raw_klass         [@@deriving sexp]
+  type raw_callable      = (          i,a,v,s,e,t) S.raw_callable      [@@deriving sexp]
+  type raw_callable_decl = (          i,a,v,s,e,t) S.raw_callable_decl [@@deriving sexp]
+  type raw_avar          = (          i,      e,t) S.raw_avar          [@@deriving sexp]
+  type raw_var           = (          i,a,    e,t) S.raw_var           [@@deriving sexp]
+  type raw_stmt          = (          i,a,v,s,e,t) S.raw_stmt          [@@deriving sexp]
+  type raw_expr          = (          i,      e  ) S.raw_expr          [@@deriving sexp]
+  type raw_typ           = (          i,      e,t) S.raw_typ           [@@deriving sexp]
 end
 
 (* Often times, you want to construct an AST term without really caring about

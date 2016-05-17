@@ -179,7 +179,10 @@ type contexts = {
  * `class_graph ks` constructs the class hierarchy for the classes in ks. More
  * precisely, it constructs a graph with one vertex for each k in ks and an
  * edge from vertex u to vertex v if v extends u. If ks are well-typed, then
- * this graph will also be a tree. For example, the classes in this code:
+ * this graph will also be a tree. It is an invariant that no two classes in ks
+ * have the same name!
+ *
+ * For example, the classes in this code:
  *
  *     class A {}
  *     class B extends A {}

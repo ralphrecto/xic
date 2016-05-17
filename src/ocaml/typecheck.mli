@@ -223,6 +223,52 @@ end
 module KlassGraph : module type of Graph.Persistent.Digraph.Concrete(KlassVertex)
 val class_graph : Pos.klass list -> KlassGraph.t
 
+(**
+ * `global_graph gs` constructs a global dependency graph. More precisely, it
+ * constructs a graph with one vertex for each g in gs and an edge from vertex
+ * u to vertex v if v depends on u. If gs are well-typed, then this graph will
+ * also be acyclic. It is an invariant that no two globals in gs have the same
+ * name!
+ *
+ * For example, the globals in this code:
+ *
+ *     A: int
+ *     B: int = A
+ *     C: int = A
+ *     D: int = B
+ *     E: int
+ *
+ * will generate the following tree with arrows going downwards:
+ *
+ *       A     E
+ *      / \
+ *     B   C
+ *     |
+ *     D
+ *
+ * Whereas the globals in this code:
+ *
+ *     A: int = B
+ *     B: int = C
+ *     C: int = D
+ *     D: int = A
+ *
+ * will generate this graph:
+ *
+ *     A <--- B
+ *     |      ▲
+ *     ▼      |
+ *     D ---> C
+ *)
+module GlobalVertex : sig
+  type t = Pos.global
+  val compare : t -> t -> int
+  val hash    : t -> int
+  val equal   : t -> t -> bool
+end
+module GlobalGraph : module type of Graph.Persistent.Digraph.Concrete(GlobalVertex)
+val global_graph : Pos.global list -> GlobalGraph.t
+
 val expr_typecheck: contexts -> Pos.expr -> expr Error.result
 val typ_typecheck: contexts -> Pos.typ -> typ Error.result
 val avar_typecheck: contexts -> Pos.avar -> avar Error.result

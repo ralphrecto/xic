@@ -263,7 +263,7 @@ type contexts = {
 }
 
 type typecheck_info = {
-  prog  : full_prog; 
+  prog  : full_prog;
   ctxts : contexts;
 }
 
@@ -867,6 +867,34 @@ let interface_typecheck
 (******************************************************************************)
 (* globals                                                                    *)
 (******************************************************************************)
+module GlobalVertex = struct
+  type t = Pos.global
+  let compare = Pervasives.compare
+  let hash    = Hashtbl.hash
+  let equal   = (=)
+end
+module GlobalGraph = Graph.Persistent.Digraph.Concrete(GlobalVertex)
+
+let global_graph globals =
+  let global_alist = List.map globals ~f:(fun g ->
+    match g with
+    | (_, Gdecl [(_, AVar (_, AId ((_, id), _)))])
+    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, id), _)))], _)) -> (id, g)
+    | _ -> failwith "assertion: global_graph got ill-formed globals"
+  ) in
+  let global_index = String.Map.of_alist_exn global_alist in
+
+  List.fold_left globals ~init:GlobalGraph.empty ~f:(fun g global ->
+    let g = GlobalGraph.add_vertex g global in
+
+    match global with
+    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, _), _)))], (_, Id (_, x)))) ->
+        GlobalGraph.add_edge g (String.Map.find_exn global_index x) global
+    | (_, Gdecl [(_, AVar (_, AId ((_, _), _)))])
+    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, _), _)))], _)) -> g
+    | _ -> failwith "impossible: global_graph"
+  )
+
 let fst_global_pass contexts globals =
   let init = Ok ([], Context.empty) in
   List.fold_left globals ~init ~f:(fun acc (_, g) ->
@@ -971,7 +999,7 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
   in
   let use_list = List.map ~f: use_typecheck uses in
   Result.all (List.map ~f:interface_typecheck interfaces) >>= fun interfaces' ->
-  (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS 
+  (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
            ALSO CHANGE EMPTY CONTEXTS *)
   Ok ({
     prog  = FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces');

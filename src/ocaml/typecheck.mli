@@ -59,14 +59,50 @@ module Sigma: sig
     [@@deriving sexp]
 end
 
-module KlassM: sig
-  type t = {
-    name    : string;
-    super   : string option;
-    fields  : Pos.typ String.Map.t;
-    methods : Pos.callable list;
-  }
+module Eta: sig
+  type t =
+    | Var of Expr.t
   [@@deriving sexp]
+end
+
+module KlassM: sig
+  (*
+   * class B {
+   *     x: int
+   *     y: int[]
+   *     foo(z: int) : bool
+   *     bar()
+   * }
+   *
+   * class A extends B {
+   *     b: B
+   *     foo(z: int) : bool
+   *     baz(c: bool[])
+   * }
+   *
+   * {
+   *     name: "B";
+   *     super: None;
+   *     fields: [(x, int); (y, int)];
+   *     methods: [foo(z: int) : bool; bar()];
+   *     overrides: [];
+   * }
+   *
+   * {
+   *     name: "A";
+   *     super: Some "B";
+   *     fields: [(b, B)];
+   *     methods: [baz(c: bool[])];
+   *     overrides: [foo(z: int) : bool];
+   * }
+   *)
+  type t = {
+    name      : string;
+    super     : string option;
+    fields    : (string * Pos.typ) list;
+    methods   : Pos.callable_decl list;
+    overrides : Pos.callable_decl list;
+  } [@@deriving sexp]
 end
 
 module T: sig
@@ -102,6 +138,7 @@ end
 module Abbreviations: (module type of Ast.Abbreviate(D))
 
 type context = Sigma.t String.Map.t
+type global_context = Eta.t String.Map.t
 module Context: sig
   include (module type of String.Map)
 
@@ -129,13 +166,63 @@ module Context: sig
 end
 
 type contexts = {
-  vars          : context;
+  locals        : context;
+  globals       : global_context;
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
   (* subtyping relation, including class hierarchy *)
   subtype       : Expr.t -> Expr.t -> bool;
 }
+
+(**
+ * `class_graph ks` constructs the class hierarchy for the classes in ks. More
+ * precisely, it constructs a graph with one vertex for each k in ks and an
+ * edge from vertex u to vertex v if v extends u. If ks are well-typed, then
+ * this graph will also be a tree. It is an invariant that no two classes in ks
+ * have the same name!
+ *
+ * For example, the classes in this code:
+ *
+ *     class A {}
+ *     class B extends A {}
+ *     class C extends A {}
+ *     class D extends B {}
+ *     class E {}
+ *
+ * will generate the following tree with arrows going downwards:
+ *
+ *       A     E
+ *      / \
+ *     B   C
+ *     |
+ *     D
+ *
+ * Whereas the classes in this code:
+ *
+ *     class A extends B {}
+ *     class B extends C {}
+ *     class C extends D {}
+ *     class D extends A {}
+ *
+ * will generate this graph:
+ *
+ *     A <--- B
+ *     |      ▲
+ *     ▼      |
+ *     D ---> C
+ *
+ * The class graph is useful for a couple of things. For example, it can be
+ * checked for cycles or it can be topologically sorted.
+ *)
+module KlassVertex : sig
+  type t = Pos.klass
+  val compare : t -> t -> int
+  val hash    : t -> int
+  val equal   : t -> t -> bool
+end
+module KlassGraph : module type of Graph.Persistent.Digraph.Concrete(KlassVertex)
+val class_graph : Pos.klass list -> KlassGraph.t
 
 val expr_typecheck: contexts -> Pos.expr -> expr Error.result
 val typ_typecheck: contexts -> Pos.typ -> typ Error.result

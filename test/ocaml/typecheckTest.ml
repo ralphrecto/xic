@@ -12,7 +12,8 @@ let (>>|) = Result.(>>|)
 
 (* Context helpers *)
 let empty = {
-  vars          = Context.empty;
+  locals        = Context.empty;
+  globals       = String.Map.empty;
   delta_m       = String.Map.empty;
   class_context = None;
   delta_i       = String.Map.empty;
@@ -20,7 +21,7 @@ let empty = {
 }
 
 let gam (xs: (string * Sigma.t) list) =
-  {empty with vars = Context.of_alist_exn xs}
+  {empty with locals = Context.of_alist_exn xs}
 
 let vars (vs: (string * Expr.t) list) =
   gam (List.map vs ~f:(fun (v, t) -> (v, Var t)))
@@ -979,7 +980,7 @@ let test_stmt _ =
     (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint (Some one))); avar(aid "x" (tarray tint None))] (funccall "u2iaia" []);
     (fgam, UnitT) =/= declasgn [avar(aid "x" (tarray tint None)); avar(aid "x" (tarray tint (Some one)))] (funccall "u2iaia" []);
 
-    let g = {empty with vars = Context.bind fgam.vars "x" (Var IntT)} in
+    let g = {empty with locals = Context.bind fgam.locals "x" (Var IntT)} in
     (g, UnitT) =/= declasgn [avar(aid "x" tint); avar(aid "y" tbool)] (funccall "u2ib" []);
     (g, UnitT) =/= declasgn [avar(aid "y" tbool); avar(aid "x" tint)] (funccall "u2bi" []);
     (g, UnitT) =/= declasgn [avar(aid "y" tint); avar(aid "x" tint)] (funccall "u2ii" []);
@@ -1611,8 +1612,8 @@ let test_callable _ =
 	empty =/= (proc "f" [] (proccall "y" []));
 
 	(* non-empty context *)
-	let f_binded = {empty with vars = Context.bind Context.empty "f" (Function (IntT, IntT))} in
-	let g_binded = {empty with vars = Context.bind Context.empty "g" (Function (UnitT, UnitT))} in
+	let f_binded = {empty with locals = Context.bind Context.empty "f" (Function (IntT, IntT))} in
+	let g_binded = {empty with locals = Context.bind Context.empty "g" (Function (UnitT, UnitT))} in
 
 	(* dup func bind *)
 	f_binded =/= (func "f" [aid "x" tint] [tint] (return [id "x"]));

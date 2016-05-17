@@ -19,11 +19,11 @@ let unbound_var x    = sprintf "Unbound variable %s" x
 let unbound_call x   = sprintf "Unbound callable %s" x
 let dup_global_decl  = "Duplicate global variable declaration"
 let dup_var_decl     = "Duplicate variable declaration"
-let dup_field_decl   = "Duplicate field declaration"
-let dup_method_decl  = "Duplicate method declaration"
-let field_shadow     = "Field declaration shadows global variable"
-let field_this       = "Invalid field name \"this\""
-let field_underscore = "Field name must be declared"
+let _dup_field_decl   = "Duplicate field declaration"
+let _dup_method_decl  = "Duplicate method declaration"
+let _field_shadow     = "Field declaration shadows global variable"
+let _field_this       = "Invalid field name \"this\""
+let _field_underscore = "Field name must be declared"
 let bound_var_decl   = "Cannot rebind variable"
 let num_decl_vars    = "Incorrect number of variables in declassign"
 let typ_decl_vars    = "Ill typed variable declassign"
@@ -126,14 +126,20 @@ module Sigma = struct
 end
 open Sigma
 
+module Eta = struct
+  type t =
+    | Var of Expr.t
+  [@@deriving sexp]
+end
+
 module KlassM = struct
   type t = {
-    name    : string;
-    super   : string option;
-    fields  : Pos.typ String.Map.t;
-    methods : Pos.callable list;
-  }
-  [@@deriving sexp]
+    name      : string;
+    super     : string option;
+    fields    : (string * Pos.typ) list;
+    methods   : Pos.callable_decl list;
+    overrides : Pos.callable_decl list;
+  } [@@deriving sexp]
 end
 open KlassM
 
@@ -189,27 +195,28 @@ let typeofavar av =
   | Ast.S.AId (_, t)
   | Ast.S.AUnderscore t -> Expr.of_typ t
 
-let ids_of_callables (_, c) =
+let _ids_of_callables (_, c) =
   match c with
   | Func (i, _, _, _)
   | Proc (i, _, _) -> i
 
-let typeof_callable ((_, c) : Pos.callable) : Expr.t * Expr.t =
+let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
   let tuplefy (tl : Expr.t list) =
     match tl with
     | [] -> UnitT
     | [t] -> t
     | _ :: _ :: _ -> TupleT tl in
   match c with
-  | Func (_, avars, raw_rettypes, _) ->
+  | FuncDecl (_, avars, raw_rettypes) ->
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
     let ret_types = List.map ~f:of_typ raw_rettypes in
     tuplefy avars_t, tuplefy ret_types
-  | Proc (_, avars, _) ->
+  | ProcDecl (_, avars) ->
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
     tuplefy avars_t, UnitT
 
 type context = Sigma.t String.Map.t
+type global_context = Eta.t String.Map.t
 module Context = struct
   include String.Map
 
@@ -252,7 +259,8 @@ module Context = struct
 end
 
 type contexts = {
-  vars          : context;
+  locals        : context;
+  globals       : global_context;
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
@@ -278,11 +286,11 @@ let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   end
   | _ -> Error (pos, "Not an object expression")
 
-let find_callable (clist : Pos.callable list) (name : string) : Pos.callable option =
+let find_callable (clist : Pos.callable_decl list) (name : string) =
   let f (_, c) =
     match c with
-    | Func ((_, fname), _, _, _)
-    | Proc ((_, fname), _, _) -> fname = name in
+    | FuncDecl ((_, fname), _, _)
+    | ProcDecl ((_, fname), _) -> fname = name in
   List.find ~f clist
 
 (******************************************************************************)
@@ -344,7 +352,7 @@ and expr_typecheck (c : contexts) (p, expr) =
       | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
       | Error _ -> Error (p, "Array elements must have invariant types")
     end
-  | Id (_, s) -> Context.var p c.vars s >>= fun typ -> Ok (typ, Id ((), s))
+  | Id (_, s) -> Context.var p c.locals s >>= fun typ -> Ok (typ, Id ((), s))
   | BinOp (l, opcode, r) -> begin
       expr_typecheck c l >>= fun (lt, l) ->
       expr_typecheck c r >>= fun (rt, r) ->
@@ -397,7 +405,7 @@ and expr_typecheck (c : contexts) (p, expr) =
       | _ -> Error (p, "Using length() on a non-array expr")
     end
   | FuncCall ((_, f), args) ->
-      Context.func p c.vars f >>= fun (argtype, rettype) ->
+      Context.func p c.locals f >>= fun (argtype, rettype) ->
       call_helper c p argtype rettype args >>= fun args' ->
       Ok (rettype, FuncCall (((), f), args'))
   | Null -> Ok (NullT, Null)
@@ -409,7 +417,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | FieldAccess (receiver, (_, fname)) -> begin
       expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
-      String.Map.find klass_info.fields fname |> function
+      List.Assoc.find klass_info.fields fname |> function
       | None ->
           Error (p, sprintf "Class %s does not have field %s" klass_info.name fname)
       | Some typ ->
@@ -426,7 +434,6 @@ and expr_typecheck (c : contexts) (p, expr) =
           call_helper c p argtype rettype args >>= fun args' ->
           Ok (rettype, MethodCall (receiver', ((), mname), args'))
   end
-
 
 (******************************************************************************)
 (* typ                                                                        *)
@@ -476,7 +483,7 @@ let avars_typecheck (p: Pos.pos)
   : avar list Error.result =
   let xs = List.filter_map ~f:varsofavar (List.map ~f:snd avs) in
   let disjoint = not (List.contains_dup xs) in
-  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.vars x)) in
+  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.locals x)) in
   match disjoint, unbound with
   | true, true -> Result.all (List.map ~f:(avar_typecheck c) avs)
   | false, _ -> Error (p, dup_var)
@@ -491,7 +498,7 @@ let vars_typecheck (p: Pos.pos)
   : var list Error.result =
   let xs = List.filter_map ~f:varsofvar (List.map ~f:snd vs) in
   let disjoint = not (List.contains_dup xs) in
-  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.vars x)) in
+  let unbound = List.for_all xs ~f:(fun x -> not (Context.mem c.locals x)) in
   match disjoint, unbound with
   | true, true -> Result.all (List.map ~f:(var_typecheck c) vs)
   | false, _ -> Error (p, dup_var)
@@ -542,7 +549,7 @@ let stmt_typecheck (c : contexts) rho s =
         | _ -> err "While conditional not a boolean."
       end
     | ProcCall ((_, f), args) -> begin
-        Context.func p c.vars f >>= fun (a, b) ->
+        Context.func p c.locals f >>= fun (a, b) ->
         match (a, b), args with
         | (UnitT, _), _::_ -> Error (p, "Giving args to a proc with no params")
         | (UnitT, UnitT), [] -> Ok ((One, ProcCall (((), f), [])), c)
@@ -582,7 +589,7 @@ let stmt_typecheck (c : contexts) rho s =
       end
     | Decl vs -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
-        Ok ((One, Decl vs'), {c with vars = Context.bind_all_vars c.vars vs'})
+        Ok ((One, Decl vs'), {c with locals = Context.bind_all_vars c.locals vs'})
       end
     | DeclAsgn (vs, e) -> begin
         vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
@@ -591,10 +598,10 @@ let stmt_typecheck (c : contexts) rho s =
         | _, TupleT ets' ->
           let vts' = List.map ~f:fst vs' in
           Expr.eqs c.subtype p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
-          Ok ((One, DeclAsgn (vs', e')), {c with vars = Context.bind_all_vars c.vars vs'})
+          Ok ((One, DeclAsgn (vs', e')), {c with locals = Context.bind_all_vars c.locals vs'})
         | [v'], _ ->
           Expr.eqs c.subtype p [fst v'] [fst e'] num_decl_vars typ_decl_vars
-          >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), {c with vars = Context.bind_all_vars c.vars vs'})
+          >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), {c with locals = Context.bind_all_vars c.locals vs'})
         | _, _ -> err "Invalid declassign"
       end
     | Break -> failwith "TODO"
@@ -614,56 +621,56 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
 let func_decl_typecheck (c: contexts) ((p, call): Pos.callable_decl) =
   match call with | FuncDecl ((_, id), args, rets) ->
     begin
-      if Context.mem c.vars id then
+      if Context.mem c.locals id then
         Error (p, dup_func_decl id)
       else
         match args, rets with
         | [], [ret_typ] ->
           let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (UnitT, ret_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, ret_t))} in
           Ok c'
         | [arg_avar], [ret_typ] ->
           let arg_t = avar_to_expr_t arg_avar in
           let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (arg_t, ret_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, ret_t))} in
           Ok c'
         | _::_, [ret_typ] ->
           let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
           let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (args_t, ret_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, ret_t))} in
           Ok c'
         | [], _::_ ->
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (UnitT, rets_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, rets_t))} in
           Ok c'
         | [arg_avar], _::_ ->
           let arg_t = avar_to_expr_t arg_avar in
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (arg_t, rets_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, rets_t))} in
           Ok c'
         | _::_, _::_ ->
           let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
           let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (args_t, rets_t))} in
+          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, rets_t))} in
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
     | ProcDecl ((_, id), args) ->
       begin
-        if Context.mem c.vars id then
+        if Context.mem c.locals id then
           Error (p, dup_func_decl id)
         else
           match args with
           |[] ->
-            let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (UnitT, UnitT))} in
+            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, UnitT))} in
             Ok c'
           |[arg_avar] ->
             let arg_t = avar_to_expr_t arg_avar in
-            let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (arg_t, UnitT))} in
+            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, UnitT))} in
             Ok c'
           |_::_ ->
             let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-            let c' = {c with vars = Context.add c.vars ~key:id ~data:(Function (args_t, UnitT))} in
+            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, UnitT))} in
             Ok c'
       end
 
@@ -675,7 +682,8 @@ let func_typecheck (c: contexts) ((p, call): Pos.callable) =
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
   let empty_contexts = {
-    vars          = Context.empty;
+    locals        = Context.empty;
+    globals       = String.Map.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
@@ -695,13 +703,13 @@ let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface l
   let context_fold big_context next_context =
     let context_union ~key ~data unified_res =
       unified_res >>= fun unified ->
-      match String.Map.find unified.vars key with
+      match String.Map.find unified.locals key with
       | Some data' ->
         if data' = data then Ok unified
         else
           Error ((-1, -1), sprintf "function %s has inconsistent type declarations" key)
-      | None -> Ok {unified with vars = (Context.bind unified.vars key data)} in
-    String.Map.fold ~init:big_context ~f:context_union next_context.vars in
+      | None -> Ok {unified with locals = (Context.bind unified.locals key data)} in
+    String.Map.fold ~init:big_context ~f:context_union next_context.locals in
   List.fold_left ~init:(Ok empty_contexts) ~f:context_fold contexts
 
 (*
@@ -727,7 +735,7 @@ let snd_func_pass c (p, call) =
       | [args'], [ret_typ] ->
         let ret_t = Expr.of_typ ret_typ in
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' ret_t s >>= fun stmt ->
         begin
           match fst stmt with
@@ -739,7 +747,7 @@ let snd_func_pass c (p, call) =
       | _::_, [ret_typ] ->
         let ret_t = Expr.of_typ ret_typ in
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' ret_t s >>= fun stmt ->
         begin
           match fst stmt with
@@ -762,7 +770,7 @@ let snd_func_pass c (p, call) =
       | [args'], _::_ ->
         let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' rets_t s >>= fun stmt ->
         begin
           match fst stmt with
@@ -775,7 +783,7 @@ let snd_func_pass c (p, call) =
       | _::_, _::_ ->
         let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' rets_t s >>= fun stmt ->
         begin
           match fst stmt with
@@ -796,14 +804,14 @@ let snd_func_pass c (p, call) =
         Ok (call_type, Ast.S.Proc(((), id), [], stmt))
       | [arg_avar] ->
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' UnitT s >>= fun stmt ->
         let arg_t = typeofavar (snd arg_avar) in
         let call_type = (arg_t, UnitT) in
         Ok (call_type, Ast.S.Proc(((), id), avs, stmt))
       | _ ->
         avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avs ->
-        let c' = {c with vars = Context.bind_all_avars c.vars avs} in
+        let c' = {c with locals = Context.bind_all_avars c.locals avs} in
         stmt_typecheck c' UnitT s >>= fun stmt ->
         let args_t = TupleT (List.map ~f:(fun e -> typeofavar (snd e)) args) in
         let call_type = (args_t, UnitT) in
@@ -817,7 +825,8 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     | _::_ -> TupleT l
     | [] -> UnitT in
   let empty_contexts = {
-    vars          = Context.empty;
+    locals        = Context.empty;
+    globals       = String.Map.empty;
     delta_m       = String.Map.empty;
     class_context = None;
     delta_i       = String.Map.empty;
@@ -859,13 +868,43 @@ let fst_global_pass contexts globals =
         Ok (ids @ (varsofvars vlist), c)
   ) >>= fun (ids, new_vars) ->
   if not (List.contains_dup ids)
-    then Ok ({contexts with vars = new_vars})
+    then Ok ({contexts with locals = new_vars})
     else Error ((-1, -1), dup_global_decl)
 
 (******************************************************************************)
 (* klasses                                                                    *)
 (******************************************************************************)
-let fst_klass_pass contexts klasses =
+module KlassVertex = struct
+  type t = Pos.klass
+  let compare = Pervasives.compare
+  let hash    = Hashtbl.hash
+  let equal   = (=)
+end
+
+module KlassGraph = Graph.Persistent.Digraph.Concrete(KlassVertex)
+
+let class_graph klasses =
+  let klass_alist = List.map klasses ~f:(fun k ->
+    match k with
+    | (_, Klass ((_, name), _, _, _)) -> (name, k)
+  ) in
+  let klass_index = String.Map.of_alist_exn klass_alist in
+
+  List.fold_left klasses ~init:KlassGraph.empty ~f:(fun g k ->
+    let g = KlassGraph.add_vertex g k in
+
+    let super =
+      match k with
+      | (_, Klass (_, super, _, _)) -> super
+    in
+    match super with
+    | Some (_, s) -> KlassGraph.add_edge g (String.Map.find_exn klass_index s) k
+    | None -> g
+  )
+
+let fst_klass_pass _contexts _klasses =
+  failwith "TODO"
+  (*
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->
     let get_field acc (_, f) =
@@ -877,7 +916,7 @@ let fst_klass_pass contexts klasses =
     List.fold_left ~f:get_field ~init:(Ok ([], String.Map.empty)) fields >>= fun (ids, fields') ->
     let has_this = not ((List.filter ~f:(fun x -> x = "this") ids) = []) in
     let shadow_global =
-      let globals = String.Map.keys contexts'.vars in
+      let globals = String.Map.keys contexts'.locals in
       not ((List.filter ~f:(fun x -> List.exists globals ~f:(fun y -> y = x)) ids) = [])
     in
     let has_dup = List.contains_dup ids in
@@ -898,17 +937,19 @@ let fst_klass_pass contexts klasses =
         Ok ({contexts' with delta_m = delta_m'})
   in
   List.fold_left ~f:update_klass ~init:(Ok contexts) klasses
+  *)
 
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
 let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
   let empty_contexts = {
-    vars = Context.empty;
-    delta_m = String.Map.empty;
+    locals        = Context.empty;
+    globals       = String.Map.empty;
+    delta_m       = String.Map.empty;
     class_context = None;
-    delta_i = String.Map.empty;
-    subtype = (fun _ _ -> false);
+    delta_i       = String.Map.empty;
+    subtype       = (fun _ _ -> false);
   } in
   fst_global_pass empty_contexts globals >>= fun contexts1 ->
   fst_klass_pass contexts1 klasses >>= fun _ ->

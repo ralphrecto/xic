@@ -173,6 +173,8 @@ let concat_ir =
 let concat_func_decl =
   (concat_name, concat_ir, (Typecheck.Expr.EmptyArray, Typecheck.Expr.EmptyArray))
 
+type callnames = string String.Map.t
+
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) =
   match e with
   | Int i -> Const i
@@ -493,6 +495,27 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let program_name = name |> chop_extension |> basename in
   (program_name, callable_map)
 
+type filename = string
+type globals = Typecheck.global list
+
+let global_name filename =
+  sprintf "_I_globalinit_%s" filename
+
+let global_ir (globals: Typecheck.global list) =
+  let initializers = List.map globals ~f:(fun (_, g) ->
+    let open Ast.S in
+    match g with
+    | S.Gdecl vs -> (Stmt.One, S.Decl vs)
+    | S.GdeclAsgn (vs, e) -> (Stmt.One, S.DeclAsgn (vs, e))
+  ) in
+  gen_stmt String.Map.empty (Stmt.One, S.Block initializers)
+
+let global_func_decl filename globals =
+  (
+    global_name filename,
+    global_ir globals,
+    (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
+  )
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

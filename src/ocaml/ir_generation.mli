@@ -2,6 +2,9 @@ module Long = Int64
 open Core.Std
 open Async.Std
 
+(******************************************************************************)
+(* Control Flow Graphs                                                        *)
+(******************************************************************************)
 (* label * adjacent nodes *)
 type node = Node of string * string list
 type graph = node list
@@ -13,7 +16,9 @@ val string_of_graph  : graph -> string
 val string_of_block  : block -> string
 val string_of_blocks : block list -> string
 
-(* naming *)
+(******************************************************************************)
+(* Naming                                                                     *)
+(******************************************************************************)
 (* The implementation of certain functions, like lowering, generate fresh temps
  * and labels. To make testing easier, it's nice if fresh temps and labels are
  * generated in a simple and consistent way. The way we accomplish this is by
@@ -34,22 +39,43 @@ module FreshRetReg : Fresh.S
 (* Mallocs n words *)
 val malloc_word : int -> Ir.expr
 
-(* Xi AST -> IR AST *)
-val gen_expr : string String.Map.t -> Typecheck.expr -> Ir.expr
+(******************************************************************************)
+(* Code Generation                                                            *)
+(******************************************************************************)
+(* array concatenation is a pseudo-function *)
+val concat_name      : string
+val concat_ir        : Ir.stmt
+val concat_func_decl : Ir.func_decl
+
+(* global initialization is a psuedo-function *)
+type filename = string
+type globals = Typecheck.global list
+val global_name      : filename -> string
+val global_ir        : globals -> Ir.stmt
+val global_func_decl : filename -> globals -> Ir.func_decl
+
+(* a mapping from function names to their mangled names *)
+type callnames = string String.Map.t
+
+val gen_expr      : callnames -> Typecheck.expr -> Ir.expr
 (* the control translation for booleans from lecture notes
  * boolean -> true label -> false label -> resulting jumps *)
-val gen_control : string String.Map.t -> Typecheck.expr -> string -> string -> Ir.stmt
-val gen_stmt : string String.Map.t -> Typecheck.stmt -> Ir.stmt
-val gen_func_decl : string String.Map.t -> Typecheck.callable -> Ir.func_decl
+val gen_control   : callnames -> Typecheck.expr -> string -> string -> Ir.stmt
+val gen_stmt      : callnames -> Typecheck.stmt -> Ir.stmt
+val gen_func_decl : callnames -> Typecheck.callable -> Ir.func_decl
 val gen_comp_unit : Typecheck.full_prog -> Ir.comp_unit
 
-(* IR lowering *)
+(******************************************************************************)
+(* Lowering                                                                   *)
+(******************************************************************************)
 val lower_expr : Ir.expr -> Ir.stmt list * Ir.expr
 val lower_stmt : Ir.stmt -> Ir.stmt list
 val lower_func_decl : Ir.func_decl -> Ir.func_decl
 val lower_comp_unit : Ir.comp_unit -> Ir.comp_unit
 
-(* Basic block reordering *)
+(******************************************************************************)
+(* Basic Block Reordering                                                     *)
+(******************************************************************************)
 (* `gen_block ss` chunks ss into blocks. The contents of the blocks are
  * reversed to make inspecting the last element of the block easier, and the
  * labels at the beginning of each block are pulled from the stmt list into the
@@ -104,5 +130,7 @@ val block_reorder_func_decl : Ir.func_decl -> Ir.func_decl
 (* comp_unit block reordering *)
 val block_reorder_comp_unit : Ir.comp_unit -> Ir.comp_unit
 
-(* Constant folding @ IR level *)
+(******************************************************************************)
+(* Constant Folding                                                           *)
+(******************************************************************************)
 val ir_constant_folding : Ir.comp_unit -> Ir.comp_unit

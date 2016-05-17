@@ -167,6 +167,7 @@ type contexts = {
   delta_i       : KlassM.t String.Map.t;
   typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
+  inloop        : bool;
 }
 
 val empty_contexts : contexts

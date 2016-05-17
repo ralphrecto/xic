@@ -283,6 +283,7 @@ type contexts = {
   delta_i       : KlassM.t String.Map.t;
   typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
+  inloop        : bool;
 }
 
 let empty_contexts = {
@@ -293,6 +294,7 @@ let empty_contexts = {
   delta_i       = String.Map.empty;
   typed_globals = [];
   subtype       = (fun _ _ -> false);
+  inloop        = false;
 }
 
 type typecheck_info = {
@@ -568,7 +570,7 @@ let stmt_typecheck (c : contexts) rho s =
       end
     | While (b, s) -> begin
         expr_typecheck c b >>= fun b' ->
-        (c, rho) |- s >>= fun (s', _) ->
+        ({c with inloop = true}, rho) |- s >>= fun (s', _) ->
         match fst b'  with
         | BoolT -> Ok ((One, While (b', s')), c)
         | _ -> err "While conditional not a boolean."
@@ -651,7 +653,9 @@ let stmt_typecheck (c : contexts) rho s =
             Ok ((One, MethodCallStmt (receiver', ((), mname), args')), c)
         end
     end
-    | Break -> failwith "TODO"
+    | Break ->
+        if c.inloop then Ok ((Zero, Break), c)
+        else err "break not within loop"
   in
 
   (c, rho) |- s >>| fst

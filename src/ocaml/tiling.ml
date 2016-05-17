@@ -510,7 +510,11 @@ let eat_func_decl
   let body_asm = eat_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
-  let directives = [globl fname; align 4] in
+  let directives =
+    if fname = Ir_generation.global_name
+      then [align 4]
+      else [globl fname; align 4]
+  in
   let label = [Lab fname] in
 
   (* Building function prologue

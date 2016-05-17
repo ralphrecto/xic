@@ -9,7 +9,8 @@ import mjw297.Ast.AnnotatedVar;
 import mjw297.Ast.Underscore;
 
 class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
-    PrintWriter printer;
+    private PrintWriter printer;
+    private boolean printingGlobals = false;
 
     SExpJaneStreetOut(OutputStream o) {
         this.printer = new PrintWriter(o);
@@ -334,6 +335,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         endList();
 
         startList();
+        printingGlobals = true;
+        p.globals.forEach((g -> g.accept(this)));
+        printingGlobals = false;
+        endList();
+
+        startList();
+        p.classes.forEach((k -> k.accept(this)));
+        endList();
+
+        startList();
         p.fs.forEach(f -> f.accept(this));
         endList();
 
@@ -346,7 +357,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         startList();
         posPrinter(d.a);
         startList();
-        printAtom("Decl");
+        if (printingGlobals) {
+            printAtom("Gdecl");
+        } else {
+            printAtom("Decl");
+        }
 
         startList();
         SExpVar varVisitor = new SExpVar(this);
@@ -363,7 +378,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         startList();
         posPrinter(d.a);
         startList();
-        printAtom("DeclAsgn");
+        if (printingGlobals) {
+            printAtom("GdeclAsgn");
+        } else {
+            printAtom("DeclAsgn");
+        }
 
         startList();
         SExpVar varVisitor = new SExpVar(this);
@@ -599,9 +618,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         startList();
         posPrinter(b.a);
 
-        startList();
         printAtom("Break");
-        endList();
 
         endList();
         return null;
@@ -683,6 +700,16 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
 
         startList();
         printAtom("Interface");
+
+        printAtom("TODO:RalphFixThisToBeAnActualString");
+
+        startList();
+        i.uses.forEach(u -> u.accept(this));
+        endList();
+
+        startList();
+        i.classes.forEach(c -> c.accept(this));
+        endList();
 
         startList();
         i.fs.forEach(f -> f.accept(this));

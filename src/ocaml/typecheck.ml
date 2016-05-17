@@ -2,7 +2,7 @@ open Core.Std
 open Ast.S
 
 (******************************************************************************)
-(* Types                                                                      *)
+(* Error                                                                      *)
 (******************************************************************************)
 module Error = struct
   type t = Pos.pos * string
@@ -33,7 +33,11 @@ let global_und       = "Global variable is underscore"
 let non_const_global = "Global expression is not a constant"
 let cyclic_globals   = "Global dependency graph has cycles"
 let undeclared_class c = sprintf "class %s not declared" c
+let this_var         = "Invalid use of variable 'this'"
 
+(******************************************************************************)
+(* Ast                                                                        *)
+(******************************************************************************)
 module Expr = struct
   type t =
     | IntT
@@ -44,7 +48,7 @@ module Expr = struct
     | EmptyArray
     | NullT
     | KlassT of string
-    [@@deriving sexp, compare]
+  [@@deriving sexp, compare]
 
   type subtyping = t -> t -> bool
 
@@ -74,7 +78,7 @@ module Expr = struct
     | NullT, KlassT _
     | EmptyArray, ArrayT _ -> true
     | ArrayT t1', ArrayT t2' -> array_subtyping t1' t2'
-    | _ -> false
+    | _ -> t1 = t2
 
   (* classmap is a map from class name -> superclass name *)
   let make_subtype_rel (classmap : string String.Map.t) : subtyping =
@@ -92,6 +96,19 @@ module Expr = struct
 
   let comparable (( <= ) : subtyping) (t1 : t) (t2 : t) =
     t1 <= t2 || t2 <= t1
+
+  let rec subtype t1 t2 =
+    if array_subtyping t1 t2 then
+      true
+    else
+      match t1, t2 with
+      | _, UnitT -> true
+      | TupleT t1s, TupleT t2s -> begin
+          match List.zip t1s t2s with
+          | Some ts -> List.for_all ts ~f:(fun (t1, t2) -> subtype t1 t2)
+          | None -> false
+      end
+      | _ -> false
 
   let type_max (( <= ) : subtyping) (p : Pos.pos) (t1 : t) (t2 : t) =
     if t1 <= t2 then Ok t2
@@ -112,7 +129,7 @@ module Stmt = struct
   type t =
     | One
     | Zero
-    [@@deriving sexp]
+  [@@deriving sexp]
 
   let lub a b =
     match a, b with
@@ -121,25 +138,6 @@ module Stmt = struct
     | Zero, Zero -> Zero
 end
 open Stmt
-
-module Sigma = struct
-  type t =
-    | Var of Expr.t
-    | Function of Expr.t * Expr.t
-    [@@deriving sexp]
-end
-open Sigma
-
-module KlassM = struct
-  type t = {
-    name      : string;
-    super     : string option;
-    fields    : (string * Pos.typ) list;
-    methods   : Pos.callable_decl list;
-    overrides : Pos.callable_decl list;
-  } [@@deriving sexp]
-end
-open KlassM
 
 module T = struct
   type p = unit             [@@deriving sexp]
@@ -219,6 +217,11 @@ let _ids_of_callables (_, c) =
   | Func (i, _, _, _)
   | Proc (i, _, _) -> i
 
+let id_of_callable_decl ((_, c): Pos.callable_decl) =
+  match c with
+  | FuncDecl ((_, i),_,_)
+  | ProcDecl ((_, i),_) -> i
+
 let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
   let tuplefy (tl : Expr.t list) =
     match tl with
@@ -234,8 +237,30 @@ let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
     tuplefy avars_t, UnitT
 
+(******************************************************************************)
+(* Contexts                                                                   *)
+(******************************************************************************)
+module Sigma = struct
+  type t =
+    | Var of Expr.t
+    | Function of Expr.t * Expr.t
+    [@@deriving sexp]
+end
+open Sigma
+
+module KlassM = struct
+  type t = {
+    name      : string;
+    super     : string option;
+    fields    : (string * Pos.typ) list;
+    methods   : Pos.callable_decl list;
+    overrides : Pos.callable_decl list;
+  } [@@deriving sexp]
+end
+open KlassM
+
 type context = Sigma.t String.Map.t
-type global_context = String.Set.t
+
 module Context = struct
   include String.Map
 
@@ -254,10 +279,10 @@ module Context = struct
 
   let bind_all_vars c vs =
     List.fold_left vs ~init:c ~f:(fun c v ->
-        match varsofvar (snd v) with
-        | Some x -> bind c x (Var (fst v))
-        | None -> c
-      )
+      match varsofvar (snd v) with
+      | Some x -> bind c x (Var (fst v))
+      | None -> c
+    )
 
   let bind_all_pos_vars c vs =
     List.fold_left vs ~init:c ~f:(fun c ((_, v): Pos.var) ->
@@ -269,32 +294,32 @@ module Context = struct
 
   let bind_all_avars c avs =
     List.fold_left avs ~init:c ~f:(fun c av ->
-        match varsofavar (snd av) with
-        | Some x -> bind c x (Var (fst av))
-        | None -> c
-      )
+      match varsofavar (snd av) with
+      | Some x -> bind c x (Var (fst av))
+      | None -> c
+    )
 end
 
 type contexts = {
   locals        : context;
-  globals       : global_context;
   delta_m       : KlassM.t String.Map.t;
-  class_context : string option;
   delta_i       : KlassM.t String.Map.t;
+  class_context : string option;
+  inloop        : bool;
+  globals       : String.Set.t;
   typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
-  inloop        : bool;
 }
 
 let empty_contexts = {
   locals        = Context.empty;
-  globals       = String.Set.empty;
   delta_m       = String.Map.empty;
-  class_context = None;
   delta_i       = String.Map.empty;
-  typed_globals = [];
-  subtype       = (fun _ _ -> false);
+  class_context = None;
   inloop        = false;
+  globals       = String.Set.empty;
+  typed_globals = [];
+  subtype       = Expr.subtype;
 }
 
 type typecheck_info = {
@@ -303,7 +328,7 @@ type typecheck_info = {
 }
 
 (******************************************************************************)
-(* helpers                                                                    *)
+(* Helpers                                                                    *)
 (******************************************************************************)
 (* Ok and Error constructors are defined in Core.Std. If we open Result, we get
  * shadowed constructor warnings. We manually "open" map and bind to avoid the
@@ -326,6 +351,29 @@ let find_callable (clist : Pos.callable_decl list) (name : string) =
     | FuncDecl ((_, fname), _, _)
     | ProcDecl ((_, fname), _) -> fname = name in
   List.find ~f clist
+
+let disjoint_merge a b =
+  String.Map.merge a b ~f:(fun ~key v ->
+    ignore key;
+    match v with
+    | `Left  v -> Some v
+    | `Right v -> Some v
+    | `Both _ -> failwith "disjoint_merge: merge not disjoint"
+  )
+
+let methods ~delta_m ~delta_i c =
+  let delta = disjoint_merge delta_m delta_i in
+  if not (String.Map.mem delta c) then
+    failwith (sprintf "methods: class %s not in delta" c)
+  else
+    let rec help c =
+      let {super; methods; _} = String.Map.find_exn delta c in
+      let methods = List.map methods ~f:id_of_callable_decl in
+      match super with
+      | Some s -> (help s) @ methods
+      | None -> methods
+    in
+    help c
 
 (******************************************************************************)
 (* expr                                                                       *)
@@ -660,18 +708,18 @@ let stmt_typecheck (c : contexts) rho s =
 
   (c, rho) |- s >>| fst
 
-let global_typecheck contexts (a, g) =
+let global_typecheck (contexts: contexts) ((p, g): Pos.global) : global Error.result =
   match g with
-  | Gdecl vs -> begin
-    stmt_typecheck contexts UnitT (a, Decl vs) >>= function
-    | (_, Decl vs) -> Ok ((), Gdecl vs)
-    | _ -> failwith "impossible : global_typecheck Gdecl"
-  end
-  | GdeclAsgn (vs, e) -> begin
-    stmt_typecheck contexts UnitT (a, DeclAsgn (vs, e)) >>= function
-    | (_, DeclAsgn (vs, e)) -> Ok ((), GdeclAsgn (vs, e))
-    | _ -> failwith "impossible : global_typecheck GdeclAsgn"
-  end
+  | Gdecl [(_, AVar (_, AId ((_, id), typ)))] ->
+      typ_typecheck contexts typ >>= fun typ' ->
+      Ok ((), Gdecl [(fst typ', AVar (fst typ', AId (((), id), typ')))])
+  | GdeclAsgn ([(_, AVar (_, AId ((_, id), typ)))], e) ->
+    typ_typecheck contexts typ >>= fun typ' ->
+    expr_typecheck contexts e >>= fun e' ->
+    let (<=) = contexts.subtype in
+    Expr.eqs (<=) p [fst typ'] [fst e'] num_decl_vars typ_decl_vars >>= fun () ->
+    Ok ((), GdeclAsgn ([(fst typ', AVar (fst typ', AId (((), id), typ')))], e'))
+  | _ -> failwith "assertion: global_typecheck ill-formed globals"
 
 (******************************************************************************)
 (* callables                                                                  *)
@@ -1099,6 +1147,10 @@ let global_pass contexts globals =
   check no_duplicates dup_global_decl globals >>= fun globals ->
 
   (* (3) *)
+  let no_this = not (String.Set.mem global_ids "this") in
+  check no_this this_var globals >>= fun globals ->
+
+  (* (4) *)
   let rec expr_ok (_, e) =
     let cog = expr_ok in
     match e with
@@ -1142,10 +1194,10 @@ let global_pass contexts globals =
     | GdeclAsgn (vs, e) -> List.map vs ~f:(fun v -> (p, GdeclAsgn ([v], e)))
   ) in
 
-  (* (4) *)
+  (* (5) *)
   let ggraph = global_graph globals in
   let module GlobalTraverse = Graph.Traverse.Dfs(GlobalGraph) in
-  let no_cycles = GlobalTraverse.has_cycle ggraph in
+  let no_cycles = not (GlobalTraverse.has_cycle ggraph) in
   check no_cycles cyclic_globals globals >>= fun _ ->
 
   (* topo sort globals *)
@@ -1160,7 +1212,7 @@ let global_pass contexts globals =
   ) in
   let contexts = {contexts with locals=gamma'} in
 
-  (* (5) *)
+  (* (6) *)
   let typed_globals = List.map globals ~f:(fun g -> global_typecheck contexts g) in
   Result.all typed_globals >>= fun typed_globals ->
 
@@ -1197,8 +1249,8 @@ let class_graph klasses =
     | None -> g
   )
 
-let fst_klass_pass _contexts _klasses =
-  failwith "TODO"
+let fst_klass_pass contexts _klasses =
+  Ok contexts
   (*
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->
@@ -1237,10 +1289,12 @@ let fst_klass_pass _contexts _klasses =
 (******************************************************************************)
 (* prog                                                                       *)
 (******************************************************************************)
-let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
-  fst_klass_pass empty_contexts klasses >>= fun contexts ->
-  global_pass contexts globals >>= fun _ ->
-  fst_func_pass funcs interfaces >>= fun gamma ->
+let prog_typecheck p =
+  let FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces) = p in
+
+  fst_func_pass funcs interfaces >>= fun contexts ->
+  fst_klass_pass contexts klasses >>= fun contexts ->
+  global_pass contexts globals >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =
     match snd use with
@@ -1251,6 +1305,6 @@ let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), in
   (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
            ALSO CHANGE EMPTY CONTEXTS *)
   Ok ({
-    prog  = FullProg (name, ((), Prog (use_list, [], [], func_list)), interfaces');
-    ctxts = empty_contexts;
+    prog  = FullProg (name, ((), Prog (use_list, gamma.typed_globals, [], func_list)), interfaces');
+    ctxts = gamma;
   })

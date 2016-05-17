@@ -45,6 +45,7 @@ let register_allocate ?(debug=false) asms =
           | Mem (Base (n, base)) -> Mem (Base (n, f base))
           | Mem (Off (n, off, scale)) -> Mem (Off (n, f off, scale))
           | Mem (BaseOff (n, base, off, scale)) -> Mem (BaseOff (n, f base, f off, scale))
+          | Mem (Global s) -> Mem (Global s)
           | Label l -> Label l
           | Const c -> Const c
         ))
@@ -359,16 +360,22 @@ let rec munch_expr
         (e_reg, e_asm @ [movq (Mem (Base (None, (Fake e_reg)))) (Reg (Fake e_reg))])
     | Ir.Temp str -> begin
         let new_tmp = FreshReg.fresh () in
-        match FreshRetReg.get str, FreshArgReg.get str with
-        | Some i, None ->
+        match FreshRetReg.get str, FreshArgReg.get str, FreshGlobal.get_str str with
+        | Some i, None, None ->
             (* moving rets from callee return *)
             (FreshAsmRet.gen i, [])
-        | None, Some i ->
+        | None, Some i, None ->
             (* moving passed arguments as callee into vars *)
             let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
             (new_tmp, [movq (Asm.callee_arg_op i') (Reg (Fake new_tmp))])
-        | None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
-        | Some _, Some _ -> failwith "impossible: reg can't be ret and arg"
+        | None, None, Some _ ->
+            (new_tmp, [movq (Mem (Global str)) (Reg (Fake new_tmp))])
+        | None, None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
+        | None,   Some _, Some _
+        | Some _, None,   Some _
+        | Some _, Some _, None
+        | Some _, Some _, Some _ ->
+            failwith "impossible: reg can only be on of ret, arg, or global"
     end
     | Ir.Call (Ir.Name (fname), arglist) -> begin
         (* save caller-saved registers *)
@@ -460,9 +467,11 @@ and munch_stmt
     | Ir.Move (Ir.Temp n, e) -> begin
       let dest =
         (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n with
-        | Some i -> Asm.callee_ret_op ret_ptr_reg i
-        | None -> Reg (Fake n)
+        match FreshRetReg.get n, FreshGlobal.get_str n with
+        | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
+        | None, Some _ -> Mem (Global n)
+        | None, None -> Reg (Fake n)
+        | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
       in
       let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
       e_lst @ [movq (Reg (Fake e_reg)) dest]
@@ -501,7 +510,11 @@ let eat_func_decl
   let body_asm = eat_stmt curr_ctx fcontexts stmt in
   let num_temps = List.length (fakes_of_asms body_asm) in
 
-  let directives = [globl fname; align 4] in
+  let directives =
+    if fname = Ir_generation.global_name
+      then [align 4]
+      else [globl fname; align 4]
+  in
   let label = [Lab fname] in
 
   (* Building function prologue
@@ -978,9 +991,11 @@ and chomp_stmt
     begin
       let dest =
         (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n with
-        | Some i -> Asm.callee_ret_op ret_ptr_reg i
-        | None -> Reg (Fake n)
+        match FreshRetReg.get n, FreshGlobal.get_str n with
+        | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
+        | None, Some _ -> Mem (Global n)
+        | None, None -> Reg (Fake n)
+        | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
       in
       let new_tmp = Reg (Fake (FreshReg.fresh ())) in
       let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in
@@ -1015,9 +1030,11 @@ let eat_irgen_info
     List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
 
   let bsss = List.map (String.Set.to_list contexts.globals) ~f:(fun x ->
-    Directive ("lcomm", [x; "64"])
+    match Typecheck.Context.find_exn contexts.locals x with
+    | Var t -> Directive ("lcomm", [Ir_generation.global_temp x t; "64"])
+    | Function _ -> failwith "impossible: bsss"
   ) in
-  let bsss = (Directive (".bss", []))::bsss in
+  let bsss = (Directive ("bss", []))::bsss in
 
   let ctors = [
     Directive ("section", [".ctors"]);
@@ -1025,7 +1042,7 @@ let eat_irgen_info
     Directive ("quad", [Ir_generation.global_name]);
   ] in
 
-  let directives = bsss @ [Directive ("text", [])] @ ctors in
+  let directives = bsss @ ctors @ [Directive ("text", [])] in
   directives, fun_asm
 
 let munch_func_decl

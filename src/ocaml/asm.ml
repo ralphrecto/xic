@@ -44,6 +44,7 @@ type 'reg mem =
   | Base    of const option * 'reg
   | Off     of const option * 'reg * scale
   | BaseOff of const option * 'reg * 'reg * scale
+  | Global  of string
 [@@deriving sexp, compare]
 
 type 'reg operand =
@@ -300,6 +301,7 @@ let string_of_mem f mem =
   | Off (Some n, o, s) -> sprintf "%s(,%s,%s)" (somc n) (f o) (sos s)
   | BaseOff (None, b, o, s) -> sprintf "(%s,%s,%s)" (f b) (f o) (sos s)
   | BaseOff (Some n, b, o, s) -> sprintf "%s(%s,%s,%s)" (somc n) (f b) (f o) (sos s)
+  | Global s -> sprintf "%s(%%rip)" s
 
 let string_of_operand f o =
   match o with
@@ -346,6 +348,7 @@ let fakes_of_operand o =
   | Mem (Base (_, r)) -> fakes_of_reg r
   | Mem (Off (_, r, _)) -> fakes_of_reg r
   | Mem (BaseOff (_, r1, r2, _)) -> fakes_of_regs [r1; r2]
+  | Mem (Global _)
   | Label _
   | Const _ -> []
 
@@ -368,6 +371,7 @@ let regs_of_operand o =
   | Mem (Base (_, r)) -> [r]
   | Mem (Off (_, r, _)) -> [r]
   | Mem (BaseOff (_, r1, r2, _)) -> [r1; r2]
+  | Mem (Global _)
   | Label _
   | Const _ -> []
 

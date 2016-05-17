@@ -36,8 +36,7 @@ module FreshTemp  = Fresh.Make(struct let name = "__temp" end)
 module FreshLabel = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
 module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
-module FreshGlobal = Fresh.MakeGlobal(struct let name = "_GLOBAL" end)
-
+module FreshGlobal = Fresh.Make(struct let name = "_I_g_" end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -56,7 +55,8 @@ let retreg = FreshRetReg.gen
 let argreg = FreshArgReg.gen
 
 (* name for global variable *)
-let global_temp = FreshGlobal.gen
+let global_temp (x: string) (t: Typecheck.Expr.t) =
+  FreshGlobal.gen_str (x ^ "_" ^ (Ir_util.abi_type_name false t))
 
 (******************************************************************************)
 (* IR Generation                                                              *)
@@ -204,12 +204,14 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
     )
   | Id (_, id) -> begin
     if String.Set.mem ctxt.globals id then
-      let global_tmp = Temp (global_temp id) in
+      let global_tmp = Temp (global_temp id t) in
+      let fresh_tmp = Temp (fresh_temp ()) in
       ESeq (
-        Move (global_tmp, Temp id),
-        global_tmp
+        Move (fresh_tmp, global_tmp),
+        fresh_tmp
       )
-    else Temp id
+    else
+      Temp id
   end
   | BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
@@ -337,26 +339,33 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr 
 
 and gen_stmt callnames s ctxt =
   let rec help callnames ((_, s): Typecheck.stmt) (break_label: string option) =
+    let make_id id t =
+      if String.Set.mem ctxt.globals id
+        then global_temp id t
+        else id
+    in
+
     match s with
     | Decl varlist ->
+
       begin
         let gen_var_decls ((_, x): Typecheck.var) seq =
           match x with
-          | AVar (_, AId ((_, idstr), (at, TArray (t, i)))) ->
-            Move (Temp idstr, gen_decl_help callnames (at, TArray (t, i)) ctxt) :: seq
-          | AVar (_, AId ((_, idstr), (_, (TInt | TBool | TKlass _)))) ->
-            (Move (Temp idstr, Const 0L))::seq
+          | AVar (t', AId ((_, idstr), (at, TArray (t, i)))) ->
+            Move (Temp (make_id idstr t'), gen_decl_help callnames (at, TArray (t, i)) ctxt) :: seq
+          | AVar (t, AId ((_, idstr), (_, (TInt | TBool | TKlass _)))) ->
+            (Move (Temp (make_id idstr t), Const 0L))::seq
           | AVar (_, AUnderscore _)
           | Underscore -> seq
         in
         Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
       end
-    | DeclAsgn ([(_,v)], exp) ->
+    | DeclAsgn ([(t, v)], exp) ->
       begin
         match v with
         | AVar (_, AId (var_id, _)) ->
           let (_, var_id') = var_id in
-          Move (Temp var_id', gen_expr callnames exp ctxt)
+          Move (Temp (make_id var_id' t), gen_expr callnames exp ctxt)
         | AVar _ | Underscore ->
           Exp (gen_expr callnames exp ctxt)
       end
@@ -381,15 +390,13 @@ and gen_stmt callnames s ctxt =
       Seq (ret_seq)
     | DeclAsgn (_::_, _) -> failwith "impossible"
     | DeclAsgn ([], _) -> failwith "impossible"
-    | Asgn ((_, lhs), fullrhs) ->
+    | Asgn ((t, lhs), fullrhs) ->
       begin
         match lhs with
         | Id (_, idstr) ->
-          if String.Set.mem ctxt.globals idstr then
-            Seq [
-              Move (Temp (global_temp idstr), gen_expr callnames fullrhs ctxt);
-            ]
-          else Move (Temp idstr, gen_expr callnames fullrhs ctxt)
+          if String.Set.mem ctxt.globals idstr
+            then Move (Temp (global_temp idstr t), gen_expr callnames fullrhs ctxt)
+            else Move (Temp idstr, gen_expr callnames fullrhs ctxt)
         | Index (arr, i) ->
           let index = gen_expr callnames i ctxt in
           let addr = gen_expr callnames arr ctxt in
@@ -490,8 +497,27 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) ctxt 
   let (typ, _) = c in
   (abi_callable_name c, Seq(moves @ [gen_stmt callnames body ctxt]), typ)
 
+and global_name =
+  "_I_globalinit"
+
+and global_ir (globals: Typecheck.global list) ctxt =
+  let initializers = List.filter_map globals ~f:(fun (_, g) ->
+    let open Ast.S in
+    match g with
+    | S.Gdecl vs -> Some (Stmt.One, S.Decl vs)
+    | S.GdeclAsgn (vs, e) -> Some (Stmt.One, S.DeclAsgn (vs, e))
+  ) in
+  gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
+
+and global_func_decl globals ctxt =
+  (
+    global_name,
+    global_ir globals ctxt,
+    (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
+  )
+
 and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog) ctxt =
-  let Ast.S.Prog (_, _, _, callables) = program in
+  let Ast.S.Prog (_, globals, _, callables) = program in
   let int_callables =
    List.fold_left
      ~f:(fun acc ((_, Interface (_, _, _, clist)): Typecheck.interface) -> clist @ acc)
@@ -507,31 +533,16 @@ and gen_comp_unit (FullProg(name, (_, program), interfaces): Typecheck.full_prog
   let gen_callables = List.map ~f callables in
   let f map (cname, block, typ) =
     String.Map.add map ~key:cname ~data:(cname, block, typ) in
+
   let callable_map = List.fold_left ~f ~init:String.Map.empty gen_callables in
-  let callable_map =
-    String.Map.add callable_map ~key:concat_name ~data:concat_func_decl in
+  let callable_map = String.Map.add callable_map
+    ~key:concat_name ~data:concat_func_decl in
+  let callable_map = String.Map.add callable_map
+    ~key:global_name ~data:(global_func_decl globals ctxt) in
+
   let open Filename in
   let program_name = name |> chop_extension |> basename in
   {comp_unit=(program_name, callable_map); contexts=ctxt}
-
-let global_name =
-  "_I_globalinit"
-
-let global_ir (globals: Typecheck.global list) ctxt =
-  let initializers = List.filter_map globals ~f:(fun (_, g) ->
-    let open Ast.S in
-    match g with
-    | S.Gdecl vs -> Some (Stmt.One, S.Decl vs)
-    | S.GdeclAsgn (vs, e) -> Some (Stmt.One, S.DeclAsgn (vs, e))
-  ) in
-  gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
-
-let global_func_decl globals ctxt =
-  (
-    global_name,
-    global_ir globals ctxt,
-    (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
-  )
 
 (******************************************************************************)
 (* Lowering IR                                                                *)

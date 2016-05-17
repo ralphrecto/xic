@@ -174,6 +174,55 @@ type typecheck_info = {
   ctxts : contexts;
 }
 
+(**
+ * `class_graph ks` constructs the class hierarchy for the classes in ks. More
+ * precisely, it constructs a graph with one vertex for each k in ks and an
+ * edge from vertex u to vertex v if v extends u. If ks are well-typed, then
+ * this graph will also be a tree. It is an invariant that no two classes in ks
+ * have the same name!
+ *
+ * For example, the classes in this code:
+ *
+ *     class A {}
+ *     class B extends A {}
+ *     class C extends A {}
+ *     class D extends B {}
+ *     class E {}
+ *
+ * will generate the following tree with arrows going downwards:
+ *
+ *       A     E
+ *      / \
+ *     B   C
+ *     |
+ *     D
+ *
+ * Whereas the classes in this code:
+ *
+ *     class A extends B {}
+ *     class B extends C {}
+ *     class C extends D {}
+ *     class D extends A {}
+ *
+ * will generate this graph:
+ *
+ *     A <--- B
+ *     |      ▲
+ *     ▼      |
+ *     D ---> C
+ *
+ * The class graph is useful for a couple of things. For example, it can be
+ * checked for cycles or it can be topologically sorted.
+ *)
+module KlassVertex : sig
+  type t = Pos.klass
+  val compare : t -> t -> int
+  val hash    : t -> int
+  val equal   : t -> t -> bool
+end
+module KlassGraph : module type of Graph.Persistent.Digraph.Concrete(KlassVertex)
+val class_graph : Pos.klass list -> KlassGraph.t
+
 val expr_typecheck: contexts -> Pos.expr -> expr Error.result
 val typ_typecheck: contexts -> Pos.typ -> typ Error.result
 val avar_typecheck: contexts -> Pos.avar -> avar Error.result

@@ -359,16 +359,22 @@ let rec munch_expr
         (e_reg, e_asm @ [movq (Mem (Base (None, (Fake e_reg)))) (Reg (Fake e_reg))])
     | Ir.Temp str -> begin
         let new_tmp = FreshReg.fresh () in
-        match FreshRetReg.get str, FreshArgReg.get str with
-        | Some i, None ->
+        match FreshRetReg.get str, FreshArgReg.get str, FreshGlobal.get_str str with
+        | Some i, None, None ->
             (* moving rets from callee return *)
             (FreshAsmRet.gen i, [])
-        | None, Some i ->
+        | None, Some i, None ->
             (* moving passed arguments as callee into vars *)
             let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
             (new_tmp, [movq (Asm.callee_arg_op i') (Reg (Fake new_tmp))])
-        | None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
-        | Some _, Some _ -> failwith "impossible: reg can't be ret and arg"
+        | None, None, Some _x ->
+            failwith "A"
+        | None, None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
+        | None,   Some _, Some _
+        | Some _, None,   Some _
+        | Some _, Some _, None
+        | Some _, Some _, Some _ ->
+            failwith "impossible: reg can only be on of ret, arg, or global"
     end
     | Ir.Call (Ir.Name (fname), arglist) -> begin
         (* save caller-saved registers *)

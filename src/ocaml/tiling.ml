@@ -1024,7 +1024,9 @@ let eat_irgen_info
     List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
 
   let bsss = List.map (String.Set.to_list contexts.globals) ~f:(fun x ->
-    Directive ("lcomm", [x; "64"])
+    match Typecheck.Context.find_exn contexts.locals x with
+    | Var t -> Directive ("lcomm", [Ir_generation.global_temp x t; "64"])
+    | Function _ -> failwith "impossible: bsss"
   ) in
   let bsss = (Directive (".bss", []))::bsss in
 

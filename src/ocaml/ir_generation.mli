@@ -40,6 +40,8 @@ module FreshGlobal : Fresh.S
 (* Mallocs n words *)
 val malloc_word : int -> Ir.expr
 
+val global_temp : string -> Typecheck.Expr.t -> string
+
 (******************************************************************************)
 (* Code Generation                                                            *)
 (******************************************************************************)

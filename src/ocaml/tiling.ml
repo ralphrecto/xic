@@ -1008,12 +1008,24 @@ let eat_irgen_info
     (eat_func_decl: (Ir.func_decl, Asm.abstract_asm list) without_fcontext)
     ?(debug=false)
     (fcontexts: func_contexts)
-    ({comp_unit=(_, func_decls); _}: Ir.irgen_info)
+    ({comp_unit=(_, func_decls); contexts}: Ir.irgen_info)
     : Asm.asm list * (Asm.abstract_asm list list) =
   let decl_list = String.Map.data func_decls in
   let fun_asm : Asm.abstract_asm list list =
     List.map ~f:(eat_func_decl ~debug fcontexts) decl_list in
-  let directives : Asm.asm list = [Directive ("text", [])] in
+
+  let bsss = List.map (String.Set.to_list contexts.globals) ~f:(fun x ->
+    Directive ("lcomm", [x; "64"])
+  ) in
+  let bsss = (Directive (".bss", []))::bsss in
+
+  let ctors = [
+    Directive ("section", [".ctors"]);
+    Directive ("align", ["4"]);
+    Directive ("quad", [Ir_generation.global_name]);
+  ] in
+
+  let directives = bsss @ [Directive ("text", [])] @ ctors in
   directives, fun_asm
 
 let munch_func_decl

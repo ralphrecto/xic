@@ -11,14 +11,7 @@ let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
 (* Context helpers *)
-let empty = {
-  locals        = Context.empty;
-  globals       = String.Set.empty;
-  delta_m       = String.Map.empty;
-  class_context = None;
-  delta_i       = String.Map.empty;
-  subtype       = (fun _ _ -> false);
-}
+let empty = Typecheck.empty_contexts
 
 let gam (xs: (string * Sigma.t) list) =
   {empty with locals = Context.of_alist_exn xs}

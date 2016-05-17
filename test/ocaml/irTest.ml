@@ -183,12 +183,14 @@ let test_ir_expr _ =
   Ir_gen.reset_fresh_temp ();
 
   let empty : Typecheck.contexts = {
-    locals = Typecheck.Context.empty;
-    globals = String.Set.empty;
-    delta_m = String.Map.empty;
+    locals        = Typecheck.Context.empty;
+    globals       = String.Set.empty;
+    delta_m       = String.Map.empty;
     class_context = None;
-    delta_i = String.Map.empty;
-    subtype = fun _ _ -> true;
+    delta_i       = String.Map.empty;
+    typed_globals = [];
+    subtype       = (fun _ _ -> false);
+    inloop        = false;
   } in
 
   (* Ir exprs *)
@@ -427,37 +429,39 @@ let test_ir_stmt _ =
   let open Ir in
   let open Ir_generation in
   let empty : Typecheck.contexts = {
-    locals = Typecheck.Context.empty;
-    globals = String.Set.empty;
-    delta_m = String.Map.empty;
+    locals        = Typecheck.Context.empty;
+    globals       = String.Set.empty;
+    delta_m       = String.Map.empty;
     class_context = None;
-    delta_i = String.Map.empty;
-    subtype = fun _ _ -> true;
+    delta_i       = String.Map.empty;
+    typed_globals = [];
+    subtype       = (fun _ _ -> false);
+    inloop        = false;
   } in
 
   (* Vars *)
   let create_int_avar (id : string) : Typecheck.avar =
   	(IntT, AId (((), id), (IntT, TInt)))
   in
-  
+
   let create_int_var (id : string) : Typecheck.var =
   	(IntT, AVar (create_int_avar id))
   in
-  
+
   let create_bool_var (id : string) : Typecheck.var =
   	(BoolT, AVar (create_int_avar id))
   in
-  
+
   (* Decl tests *)
-  
+
   (* ints *)
   Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "hello"])) empty;
   Seq [] === gen_stmt callnames ((Zero, Decl [create_int_var "1"; create_int_var "2"; create_int_var "3"; create_int_var "4"])) empty;
-  
+
   (* bools *)
   Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "hello"])) empty;
   Seq [] === gen_stmt callnames ((Zero, Decl [create_bool_var "1"; create_bool_var "2"; create_bool_var "3"; create_bool_var "4"])) empty;
-  
+
   ()
 
 let test_lower_expr _ =

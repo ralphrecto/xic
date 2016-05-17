@@ -29,6 +29,8 @@ let num_decl_vars    = "Incorrect number of variables in declassign"
 let typ_decl_vars    = "Ill typed variable declassign"
 let dup_func_decl x  = sprintf "Function %s has already been declared" x
 let no_return        = "Function is missing return"
+let global_und       = "Global variable is underscore"
+let non_const_global = "Global expression is not a constant"
 
 module Expr = struct
   type t =
@@ -173,11 +175,20 @@ let varsofavar av =
   | Ast.S.AId ((_,id), _) -> Some id
   | _ -> None
 
+let is_underscore v =
+  match v with
+  | AVar (_, AId _) -> false
+  | AVar (_, AUnderscore _)
+  | Underscore -> true
+
 let varsofvar v =
   match v with
   | AVar (_, AId  ((_, x), _)) -> Some x
   | AVar (_, AUnderscore _)
   | Underscore -> None
+
+let has_underscore vs =
+  List.exists (List.map vs ~f:snd) ~f:is_underscore
 
 let varsofvars vs =
   List.map ~f:(fun x -> varsofvar (snd x)) vs
@@ -188,6 +199,18 @@ let typeofavar av =
   match av with
   | Ast.S.AId (_, t)
   | Ast.S.AUnderscore t -> Expr.of_typ t
+
+let postypeofavar av =
+  match av with
+  | Ast.S.AId (_, t)
+  | Ast.S.AUnderscore t -> t
+
+let typesofvars vs =
+  let f acc (_, v) =
+    match v with
+    | AVar (_, avar) -> postypeofavar avar :: acc
+    | _ -> acc in
+  List.fold_left ~f ~init:[] vs
 
 let _ids_of_callables (_, c) =
   match c with
@@ -258,8 +281,20 @@ type contexts = {
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
-  (* subtyping relation, including class hierarchy *)
+  typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
+  inloop        : bool;
+}
+
+let empty_contexts = {
+  locals        = Context.empty;
+  globals       = String.Set.empty;
+  delta_m       = String.Map.empty;
+  class_context = None;
+  delta_i       = String.Map.empty;
+  typed_globals = [];
+  subtype       = (fun _ _ -> false);
+  inloop        = false;
 }
 
 type typecheck_info = {
@@ -307,33 +342,11 @@ let rec exprs_typecheck (p: Pos.pos)
   Expr.eqs c.subtype p ts (List.map ~f:fst args') unequal_num mistyped >>= fun () ->
   Ok args'
 
-and call_helper (c : contexts) p argtype rettype args : expr list Error.result =
-  match argtype, rettype, args with
-  (* proc *)
-  | _, UnitT, _ -> Error (p, "Using proc call as an expr")
-  (* impossible types / invariant failures *)
-  | EmptyArray, _, _
-  | _, EmptyArray, _ ->
-    Error (p, "Typechecking: invariant failure (FuncCall empty array)")
-  (* no args *)
-  | UnitT, _, _::_ -> Error (p, "Giving args to a function with no params")
-  | UnitT, _, [] -> Ok []
-  (* one arg *)
-  | (IntT | BoolT | ArrayT _ | NullT | KlassT _ ), _, _ when List.length args <> 1 ->
-    Error (p, num_f_args)
-  | (IntT | BoolT | ArrayT _ | NullT | KlassT _ ) as t1, _, [arg] ->
-    exprs_typecheck p c [t1] [arg] num_f_args typ_f_args >>= fun args' ->
-    Ok args'
-  (* multiple args *)
-  | TupleT argtypes, _, _ -> begin
-    if List.length argtypes <> List.length args then
-      Error (p, num_f_args)
-    else
-      exprs_typecheck p c argtypes args num_f_args typ_f_args >>= fun args' ->
-      Ok args'
-  end
-  | _ -> Error (p, "Invalid arguments to call")
-
+and expr_call_helper (c : contexts) p argtype rettype args : expr list Error.result =
+  match argtype, rettype with
+  | _, UnitT -> Error (p, "Using proc call as an expr")
+  | TupleT tl, _ -> exprs_typecheck p c tl args num_f_args typ_f_args
+  | _ -> exprs_typecheck p c [argtype] args num_f_args typ_f_args
 
 and expr_typecheck (c : contexts) (p, expr) =
   match expr with
@@ -401,7 +414,7 @@ and expr_typecheck (c : contexts) (p, expr) =
     end
   | FuncCall ((_, f), args) ->
       Context.func p c.locals f >>= fun (argtype, rettype) ->
-      call_helper c p argtype rettype args >>= fun args' ->
+      expr_call_helper c p argtype rettype args >>= fun args' ->
       Ok (rettype, FuncCall (((), f), args'))
   | Null -> Ok (NullT, Null)
   | New (_, classname) ->
@@ -418,15 +431,15 @@ and expr_typecheck (c : contexts) (p, expr) =
       | Some typ ->
           Ok (of_typ typ, FieldAccess (receiver', ((), fname)))
   end
-      | MethodCall (receiver, (_, mname), args) -> begin
-        expr_typecheck c receiver >>= fun receiver' ->
+  | MethodCall (receiver, (_, mname), args) -> begin
+      expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
       find_callable klass_info.methods mname |> function
       | None ->
           Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
       | Some callable ->
           let argtype, rettype = typeof_callable callable in
-          call_helper c p argtype rettype args >>= fun args' ->
+          expr_call_helper c p argtype rettype args >>= fun args' ->
           Ok (rettype, MethodCall (receiver', ((), mname), args'))
   end
 
@@ -512,9 +525,13 @@ let lvalue (c : contexts) ((p, e) : Pos.expr) : expr Error.result =
   | (_, FieldAccess _) -> Ok typed_e
   | _ -> Error (p, "Trying to assign to invalid expr")
 
+let stmt_call_helper (c : contexts) p argtype rettype args : expr list Error.result =
+  match argtype, rettype with
+  | TupleT tl, UnitT -> exprs_typecheck p c tl args num_f_args typ_f_args
+  | _, UnitT -> exprs_typecheck p c [argtype] args num_f_args typ_f_args
+  | _ -> Error (p, "method call stmt returns a value")
+
 let stmt_typecheck (c : contexts) rho s =
-  (* TODO: remove this *)
-  let _ = lvalue in
   let rec (|-) (c, rho) (p, s) : (stmt * contexts) Error.result =
     let err s = Error (p, s) in
     match s with
@@ -553,7 +570,7 @@ let stmt_typecheck (c : contexts) rho s =
       end
     | While (b, s) -> begin
         expr_typecheck c b >>= fun b' ->
-        (c, rho) |- s >>= fun (s', _) ->
+        ({c with inloop = true}, rho) |- s >>= fun (s', _) ->
         match fst b'  with
         | BoolT -> Ok ((One, While (b', s')), c)
         | _ -> err "While conditional not a boolean."
@@ -561,11 +578,14 @@ let stmt_typecheck (c : contexts) rho s =
     | ProcCall ((_, f), args) -> begin
         Context.func p c.locals f >>= fun (a, b) ->
         match (a, b), args with
+        (* no args *)
         | (UnitT, _), _::_ -> Error (p, "Giving args to a proc with no params")
         | (UnitT, UnitT), [] -> Ok ((One, ProcCall (((), f), [])), c)
+        (* multiple args *)
         | (TupleT arg_types, UnitT), _::_::_ ->
           exprs_typecheck p c arg_types args num_p_args typ_p_args >>= fun args' ->
           Ok ((One, ProcCall (((), f), args')), c)
+        (* single args *)
         | (arg_t, UnitT), [arg] ->
           exprs_typecheck p c [arg_t] [arg] num_p_args typ_p_args >>= fun args' ->
           Ok ((One, ProcCall (((), f), args')), c)
@@ -587,7 +607,7 @@ let stmt_typecheck (c : contexts) rho s =
         match snd l with
         | Id (_, _)
         | Index (_, _) ->
-          expr_typecheck c l >>= fun l' ->
+          lvalue c l >>= fun l' ->
           expr_typecheck c r >>= fun r' ->
           if fst r' <= fst l'
           then Ok ((One, Asgn (l', r')), c)
@@ -598,24 +618,44 @@ let stmt_typecheck (c : contexts) rho s =
         | _ -> err "Invalid left-hand side of assignment"
       end
     | Decl vs -> begin
-        vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
-        Ok ((One, Decl vs'), {c with locals = Context.bind_all_vars c.locals vs'})
+        if List.mem (varsofvars vs) "this" then
+          err "cannot declare variable with name 'this'"
+        else
+          vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
+          Ok ((One, Decl vs'), {c with locals = Context.bind_all_vars c.locals vs'})
       end
     | DeclAsgn (vs, e) -> begin
-        vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
-        expr_typecheck c e >>= fun e' ->
-        match vs', fst e' with
-        | _, TupleT ets' ->
-          let vts' = List.map ~f:fst vs' in
-          Expr.eqs c.subtype p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
-          Ok ((One, DeclAsgn (vs', e')), {c with locals = Context.bind_all_vars c.locals vs'})
-        | [v'], _ ->
-          Expr.eqs c.subtype p [fst v'] [fst e'] num_decl_vars typ_decl_vars
-          >>= fun () -> Ok ((One, DeclAsgn ([v'], e')), {c with locals = Context.bind_all_vars c.locals vs'})
-        | _, _ -> err "Invalid declassign"
+        if List.mem (varsofvars vs) "this" then
+          err "cannot declare variable with name 'this'"
+        else
+          List.map ~f:(typ_typecheck c) (typesofvars vs) |> Result.all >>= fun _ ->
+          vars_typecheck p c vs dup_var_decl bound_var_decl >>= fun vs' ->
+          expr_typecheck c e >>= fun e' ->
+          match vs', fst e' with
+          | _, TupleT ets' ->
+            let vts' = List.map ~f:fst vs' in
+            Expr.eqs c.subtype p vts' ets' num_decl_vars typ_decl_vars >>= fun () ->
+            Ok ((One, DeclAsgn (vs', e')), {c with locals = Context.bind_all_vars c.locals vs'})
+          | [v'], _ ->
+            Expr.eqs c.subtype p [fst v'] [fst e'] num_decl_vars typ_decl_vars >>= fun () ->
+            Ok ((One, DeclAsgn ([v'], e')), {c with locals = Context.bind_all_vars c.locals vs'})
+          | _, _ -> err "Invalid declassign"
       end
-    | Break -> failwith "TODO"
-    | MethodCallStmt (_, _, _) -> failwith "TODO"
+    | MethodCallStmt (receiver, (_, mname), args) -> begin
+        expr_typecheck c receiver >>= fun receiver' ->
+        get_klass_info c receiver' p >>= fun klass_info ->
+        find_callable klass_info.methods mname |> function
+        | None ->
+            Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
+        | Some callable -> begin
+            let argtype, rettype = typeof_callable callable in
+            stmt_call_helper c p argtype rettype args >>= fun args' ->
+            Ok ((One, MethodCallStmt (receiver', ((), mname), args')), c)
+        end
+    end
+    | Break ->
+        if c.inloop then Ok ((Zero, Break), c)
+        else err "break not within loop"
   in
 
   (c, rho) |- s >>| fst
@@ -691,14 +731,6 @@ let func_typecheck (c: contexts) ((p, call): Pos.callable) =
   func_decl_typecheck c (p, call')
 
 let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
   let interface_map_fold (_, Interface (_, _, l)) =
     let func_decl_fold acc e =
       acc >>= fun g -> func_decl_typecheck g e in
@@ -834,14 +866,6 @@ let callable_decl_typecheck ((_, c): Pos.callable_decl) : callable_decl Error.re
     | [hd] -> hd
     | _::_ -> TupleT l
     | [] -> UnitT in
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
   match c with
   | FuncDecl ((_, id), args, rets) ->
     Result.all (List.map ~f:(avar_typecheck empty_contexts) args) >>= fun args' ->
@@ -895,7 +919,70 @@ let global_graph globals =
     | _ -> failwith "impossible: global_graph"
   )
 
-let fst_global_pass contexts globals =
+let global_pass contexts globals =
+  let check b s g =
+    if b
+      then Ok g
+      else Error ((-1, -1), s)
+  in
+
+  (* (1) *)
+  let no_underscores = List.for_all globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs
+    | GdeclAsgn (vs, _) -> not (has_underscore vs)
+  ) in
+  check no_underscores global_und globals >>= fun globals ->
+
+  (* (2) *)
+  let ids = List.concat_map globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs
+    | GdeclAsgn (vs, _) -> varsofvars vs
+  ) in
+  let no_duplicates = not (List.contains_dup ids) in
+  let global_ids = String.Set.of_list ids in
+  check no_duplicates dup_global_decl globals >>= fun globals ->
+
+  (* (3) *)
+  let rec expr_ok (_, e) =
+    let cog = expr_ok in
+    match e with
+    | Null | Int _ | Bool _ | String _ | Char _ -> true
+    | FuncCall _ | New _ | FieldAccess _ | MethodCall _ -> false
+    | Array es -> List.for_all es ~f:cog
+    | Id (_, x) -> String.Set.mem global_ids x
+    | BinOp (lhs, _, rhs) -> cog lhs && cog rhs
+    | UnOp (_, e) -> cog e
+    | Index (a, i) -> cog a && cog i
+    | Length e -> cog e
+  in
+
+  let rec type_ok (_, t) =
+    match t with
+    | TInt
+    | TBool
+    | TKlass _ -> true
+    | TArray (t, None) -> type_ok t
+    | TArray (t, Some e) -> type_ok t && expr_ok e
+  in
+
+  let var_ok ((_, v): Pos.var) =
+    match v with
+    | AVar (_, AId (_, t)) -> type_ok t
+    | AVar (_, AUnderscore _) -> failwith "assertion: var_ok AUnderscore"
+    | Underscore  -> failwith "assertion: var_ok Underscore"
+  in
+
+  let globals_ok = List.for_all globals ~f:(fun (_, g) ->
+    match g with
+    | Gdecl vs -> List.for_all vs ~f:var_ok
+    | GdeclAsgn (vs, e) -> List.for_all vs ~f:var_ok && expr_ok e
+  ) in
+  check globals_ok non_const_global globals >>= fun globals ->
+
+  (* (4) *)
+
   let init = Ok ([], Context.empty) in
   List.fold_left globals ~init ~f:(fun acc (_, g) ->
     acc >>= fun (ids, c) ->
@@ -981,16 +1068,8 @@ let fst_klass_pass _contexts _klasses =
 (* prog                                                                       *)
 (******************************************************************************)
 let prog_typecheck (FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces): Pos.full_prog) =
-  let empty_contexts = {
-    locals        = Context.empty;
-    globals       = String.Set.empty;
-    delta_m       = String.Map.empty;
-    class_context = None;
-    delta_i       = String.Map.empty;
-    subtype       = (fun _ _ -> false);
-  } in
-  fst_global_pass empty_contexts globals >>= fun contexts1 ->
-  fst_klass_pass contexts1 klasses >>= fun _ ->
+  fst_klass_pass empty_contexts klasses >>= fun contexts ->
+  global_pass contexts globals >>= fun _ ->
   fst_func_pass funcs interfaces >>= fun gamma ->
   Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
   let use_typecheck use =

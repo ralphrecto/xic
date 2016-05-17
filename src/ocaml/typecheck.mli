@@ -165,9 +165,12 @@ type contexts = {
   delta_m       : KlassM.t String.Map.t;
   class_context : string option;
   delta_i       : KlassM.t String.Map.t;
-  (* subtyping relation, including class hierarchy *)
+  typed_globals : global list;
   subtype       : Expr.t -> Expr.t -> bool;
+  inloop        : bool;
 }
+
+val empty_contexts : contexts
 
 type typecheck_info = {
   prog  : full_prog;
@@ -281,6 +284,22 @@ val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
 
 val interface_typecheck : Pos.interface -> interface Error.result
-val fst_global_pass : contexts -> Pos.global list -> contexts Error.result
+
+(**
+ * The global pass checks that the following conditions hold:
+ *   (1) There are no underscores
+ *   (2) There are no duplicate global names
+ *   (3) If a global is uninit or initialized to constants or to other globals
+ *   (4) The global dependency graph is acyclic
+ *   (5) All the types mentioned by the globals are ok
+ * If all these conditions are met, a new contexts is returned in which
+ *   (a) gamma is populated with the globals
+ *   (b) globals is populated with the set of all global identifiers
+ *   (c) typed_globals is populated with a list of typechecked globals in the
+ *       order they should be initialized. Moreover, each decl and declassgn is
+ *       flattened into a singleton list.
+ *)
+val global_pass : contexts -> Pos.global list -> contexts Error.result
+
 val fst_klass_pass : contexts -> Pos.klass list -> contexts Error.result
 val prog_typecheck: Pos.full_prog -> typecheck_info Error.result

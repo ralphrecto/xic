@@ -813,8 +813,36 @@ let fst_global_pass contexts globals =
 (******************************************************************************)
 (* klasses                                                                    *)
 (******************************************************************************)
+module KlassVertex = struct
+  type t = Pos.klass
+  let compare = Pervasives.compare
+  let hash    = Hashtbl.hash
+  let equal   = (=)
+end
+
+module KlassGraph = Graph.Persistent.Digraph.Concrete(KlassVertex)
+
+let class_graph klasses =
+  let klass_alist = List.map klasses ~f:(fun k ->
+    match k with
+    | (_, Klass ((_, name), _, _, _)) -> (name, k)
+  ) in
+  let klass_index = String.Map.of_alist_exn klass_alist in
+
+  List.fold_left klasses ~init:KlassGraph.empty ~f:(fun g k ->
+    let g = KlassGraph.add_vertex g k in
+
+    let super =
+      match k with
+      | (_, Klass (_, super, _, _)) -> super
+    in
+    match super with
+    | Some (_, s) -> KlassGraph.add_edge g (String.Map.find_exn klass_index s) k
+    | None -> g
+  )
+
 let fst_klass_pass _contexts _klasses =
-  failwith "TODO: update with new class types"
+  failwith "TODO"
   (*
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->

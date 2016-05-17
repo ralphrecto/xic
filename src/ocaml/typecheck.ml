@@ -912,6 +912,29 @@ end
 module GlobalGraph = Graph.Persistent.Digraph.Concrete(GlobalVertex)
 
 let global_graph globals =
+
+  let rec vars_of_expr (_, expr) vars =
+    match expr with
+    | Null | Int _ | Bool _ | String _ | Char _
+    | FuncCall _ | New _ | FieldAccess _ | MethodCall _ -> vars
+    | Array es -> List.fold_left ~init:vars es
+        ~f:(fun acc e -> String.Set.union (vars_of_expr e String.Set.empty) acc)
+    | Id (_, x) -> String.Set.add vars x
+    | BinOp (lhs, _, rhs) -> String.Set.union (vars_of_expr lhs vars) (vars_of_expr rhs vars)
+    | UnOp (_, e) -> vars_of_expr e vars
+    | Index (a, i) -> String.Set.union (vars_of_expr a vars) (vars_of_expr i vars)
+    | Length e -> vars_of_expr e vars
+  in
+
+  let rec vars_of_type (_, t) vars =
+    match t with
+    | TInt
+    | TBool
+    | TKlass _ 
+    | TArray (_, None) -> vars
+    | TArray (t', Some e) -> vars_of_type t' (vars_of_expr e vars)
+  in
+
   let global_alist = List.map globals ~f:(fun g ->
     match g with
     | (_, Gdecl [(_, AVar (_, AId ((_, id), _)))])
@@ -924,10 +947,18 @@ let global_graph globals =
     let g = GlobalGraph.add_vertex g global in
 
     match global with
-    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, _), _)))], (_, Id (_, x)))) ->
-        GlobalGraph.add_edge g (String.Map.find_exn global_index x) global
-    | (_, Gdecl [(_, AVar (_, AId ((_, _), _)))])
-    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, _), _)))], _)) -> g
+    | (_, GdeclAsgn ([(_, AVar (_, AId ((_, _), t)))], e)) ->
+        let e_vars = vars_of_expr e String.Set.empty in
+        let t_vars = vars_of_type t String.Set.empty in
+        let g' = String.Set.fold e_vars ~init:g ~f:(fun g' var ->
+          GlobalGraph.add_edge g' (String.Map.find_exn global_index var) global)
+        in
+        String.Set.fold t_vars ~init:g' ~f:(fun g'' var ->
+          GlobalGraph.add_edge g'' (String.Map.find_exn global_index var) global)
+    | (_, Gdecl [(_, AVar (_, AId ((_, _), t)))]) ->
+        let t_vars = vars_of_type t String.Set.empty in
+        String.Set.fold t_vars ~init:g ~f:(fun g' var ->
+          GlobalGraph.add_edge g' (String.Map.find_exn global_index var) global)
     | _ -> failwith "impossible: global_graph"
   )
 

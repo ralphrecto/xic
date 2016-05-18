@@ -1088,7 +1088,7 @@ let interface_typecheck (c : contexts) (interface : Pos.interface) : interface E
   let uses' = List.map ~f:(fun (_, Use (_, id)) -> ((), Use ((), id))) uses in
   Ok ((), Interface (name, uses', kdecls', fdecls'))
 
-let interfaces_typecheck (interfaces: Pos.interface list) : (interface list) Error.result =
+let interfaces_typecheck (interfaces: Pos.interface list) =
   (* set up of contexts *)
   List.map ~f:ctx_of_interface interfaces |> Result.all >>= fun inter_ctxs ->
   let name_ctx_pairs = List.map ~f:(fun ctx -> (ctx.name, ctx)) inter_ctxs in
@@ -1098,25 +1098,33 @@ let interfaces_typecheck (interfaces: Pos.interface list) : (interface list) Err
     | `Duplicate_key k ->
         Error ((-1, -1), sprintf "duplicate interface %s" k) in
   raw_ctx_map >>= fun ctx_map ->
+
   (* first phase: all types used by an interface exist in neighbors *)
   let f interface =
     let c = contexts_of_interface ctx_map interface in
     interface_typecheck c interface in
   List.map ~f interfaces |> Result.all >>= fun interfaces' ->
-  (* second phase: all decl of a class, in any interface, must be the same *)
+
+  (* second phase: all decl of a class, in any interface, must be the same
+   * also build the class_decl_index map on the way *)
   let class_dup_f acc (_, Interface (intname, _, kdecls, _)) =
     acc >>= fun classmap ->
     let f mapacc kdecl =
       mapacc >>= fun mapacc' ->
       let (_, KlassDecl ((_, id), _, _)) = kdecl in
       match String.Map.find mapacc' id with
-      | None -> Ok (String.Map.add mapacc' ~key:id ~data:kdecl)
-      | Some kdecl2 ->
-          if klass_decl_eq kdecl kdecl2 then Ok mapacc'
+      | None -> Ok (String.Map.add mapacc' ~key:id ~data:(kdecl, [intname]))
+      | Some (kdecl2, uses) ->
+          if klass_decl_eq kdecl kdecl2 then
+            Ok (String.Map.add mapacc' ~key:id ~data:(kdecl2, intname :: uses))
           else Error ((-1, -1), klass_conflict id intname) in
     List.fold_left ~f ~init:(Ok classmap) kdecls in
-  List.fold_left ~f:class_dup_f ~init:(Ok String.Map.empty) interfaces' >>= fun _ ->
-  Ok interfaces'
+  List.fold_left ~f:class_dup_f ~init:(Ok String.Map.empty) interfaces' >>= fun cmap ->
+  Ok (interfaces', {
+    empty_contexts with
+    class_decl_index = String.Map.map ~f:snd cmap;
+  })
+
 
 (******************************************************************************)
 (* globals                                                                    *)
@@ -1553,9 +1561,10 @@ let prog_typecheck p =
     | Use (_, id) -> ((), Use ((), id))
   in
   let use_list = List.map ~f: use_typecheck uses in
-  interfaces_typecheck interfaces >>= fun interfaces' ->
   (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
-           ALSO CHANGE EMPTY CONTEXTS *)
+           ALSO CHANGE EMPTY CONTEXTS
+     TODO: why is interfaces_typecheck this far down? *)
+  interfaces_typecheck interfaces >>= fun (interfaces', _) ->
   Ok ({
     prog  = FullProg (name, ((), Prog (use_list, gamma.typed_globals, [], func_list)), interfaces');
     ctxts = gamma;

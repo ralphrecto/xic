@@ -356,7 +356,7 @@ val interface_typecheck : contexts -> Pos.interface -> interface Error.result
 val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.result
 val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 
-val interfaces_typecheck : Pos.interface list -> (interface list) Error.result
+val interfaces_typecheck : Pos.interface list -> (interface list * contexts) Error.result
 
 (* TODO: document the order in which passes are done and what each pass does. *)
 (**

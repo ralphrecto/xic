@@ -1240,8 +1240,45 @@ let class_graph klasses =
     | None -> g
   )
 
+let is_alist_ok as1 as2 =
+  let f acc (_, e1) (_, e2) =
+    match e1, e2 with
+    | AUnderscore t1, AUnderscore t2
+    | AId (_, t1), AId (_, t2)
+    | AUnderscore t1, AId (_, t2)
+    | AId (_, t1), AUnderscore t2 -> acc && t1 = t2
+  in
+  List.fold2_exn ~f ~init:true as1 as2
+
+let is_typlist_ok ts1 ts2 =
+  let f acc t1 t2 = acc && t1 = t2 in
+  List.fold2_exn ~f ~init:true ts1 ts2
+
+let is_proc_type_ok p1 p2 =
+  match p1, p2 with
+  | Proc ((_, alist1, _), Proc ((_, alist2, _) ->
+  | Proc ((_, alist1, _), ProcDecl ((_, alist2) ->
+  | ProcDecl ((_, alist1), Proc ((_, alist2, _) ->
+  | ProdDecl ((_, alist1), ProdDecl ((_, alist2) ->
+    try
+      is_alist_ok alist1 alist2
+    with _ -> false
+  | _ -> false
+
+let is_func_type_ok f1 f2 =
+  match f1, f2 with
+  | Func ((_, alist1, typlist1, _), Func ((_, alist2, typlist2, _)
+  | Func ((_, alist1, typlist1, _), FuncDecl ((_, alist2, typlist2)
+  | FuncDecl ((_, alist1, typlist1), Func ((_, alist2, typlist2, _)
+  | FuncDecl ((_, alist1, typlist1), FuncDecl ((_, alist2, typlist2) ->
+    try
+      (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
+    with _ -> false
+  | _ -> false
+
 let fst_klass_pass contexts _klasses =
   Ok contexts
+
   (*
   let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
     acc >>= fun contexts' ->

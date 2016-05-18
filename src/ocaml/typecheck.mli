@@ -286,13 +286,13 @@ val super_methods:
  * checked for cycles or it can be topologically sorted.
  *)
 module KlassVertex : sig
-  type t = Pos.klass
+  type t = Pos.klass_decl
   val compare : t -> t -> int
   val hash    : t -> int
   val equal   : t -> t -> bool
 end
 module KlassGraph : module type of Graph.Persistent.Digraph.Concrete(KlassVertex)
-val class_graph : Pos.klass list -> KlassGraph.t
+val class_graph : Pos.klass_decl list -> KlassGraph.t
 
 (**
  * `global_graph gs` constructs a global dependency graph. More precisely, it

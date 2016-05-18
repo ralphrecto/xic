@@ -12,35 +12,36 @@ module Error = struct
   type 'a result = ('a, t) Result.t
 end
 
-let num_f_args       = "Incorrect number of function arguments"
-let typ_f_args       = "Ill typed function arguments"
-let num_p_args       = "Incorrect number of procedure arguments"
-let typ_p_args       = "Ill typed procedure arguments"
-let num_ret_args     = "Incorrect number of return expressions"
-let typ_ret_args     = "Ill typed return expressions"
-let unbound_var x    = sprintf "Unbound variable %s" x
-let unbound_call x   = sprintf "Unbound callable %s" x
-let dup_global_decl  = "Duplicate global variable declaration"
-let dup_var_decl     = "Duplicate variable declaration"
-let inconsist_class  = "Class declaration is inconsistent with interface files"
-let class_cycle      = "Cyclic class hierarchy"
-let dup_field_decl   = "Duplicate field declaration"
-let dup_method_decl  = "Duplicate method declaration"
-let invalid_method   = "Invalid method declaration"
-let _field_shadow     = "Field declaration shadows global variable"
-let field_this       = "Invalid field name \"this\""
-let field_underscore = "Field name must be declared"
-let bound_var_decl   = "Cannot rebind variable"
-let num_decl_vars    = "Incorrect number of variables in declassign"
-let typ_decl_vars    = "Ill typed variable declassign"
-let dup_func_decl x  = sprintf "Function %s has already been declared" x
-let no_return        = "Function is missing return"
-let global_und       = "Global variable is underscore"
-let non_const_global = "Global expression is not a constant"
-let cyclic_globals   = "Global dependency graph has cycles"
+let num_f_args         = "Incorrect number of function arguments"
+let typ_f_args         = "Ill typed function arguments"
+let num_p_args         = "Incorrect number of procedure arguments"
+let typ_p_args         = "Ill typed procedure arguments"
+let num_ret_args       = "Incorrect number of return expressions"
+let typ_ret_args       = "Ill typed return expressions"
+let unbound_var x      = sprintf "Unbound variable %s" x
+let unbound_call x     = sprintf "Unbound callable %s" x
+let dup_global_decl    = "Duplicate global variable declaration"
+let dup_var_decl       = "Duplicate variable declaration"
+let dup_class_decl     = "Duplicate class declaration"
+let inconsist_class c  = sprintf "Class %s declaration is inconsistent with interface files" c
+let class_cycle        = "Cyclic class hierarchy"
+let dup_field_decl     = "Duplicate field declaration"
+let dup_method_decl    = "Duplicate method declaration"
+let _field_shadow       = "Field declaration shadows global variable"
+let field_underscore   = "Field name must be declared"
+let bound_var_decl     = "Cannot rebind variable"
+let num_decl_vars      = "Incorrect number of variables in declassign"
+let typ_decl_vars      = "Ill typed variable declassign"
+let dup_func_decl x    = sprintf "Function %s has already been declared" x
+let no_return          = "Function is missing return"
+let global_und         = "Global variable is underscore"
+let non_const_global   = "Global expression is not a constant"
+let cyclic_globals     = "Global dependency graph has cycles"
 let undeclared_class c = sprintf "class %s not declared" c
-let this_var         = "Invalid use of variable 'this'"
+let this_var           = "Invalid use of variable \"this\""
 let klass_conflict i iname = sprintf "Conflicting declaration for class %s in %s" i iname
+let inconsist_method_inter m = sprintf "Method %s declaration is inconsistent with interface files" m
+let inconsist_method_super m = sprintf "Method %s declaration is inconsistent with super class" m
 
 (******************************************************************************)
 (* Ast                                                                        *)
@@ -219,31 +220,6 @@ let typesofvars vs =
     | _ -> acc in
   List.fold_left ~f ~init:[] vs
 
-let id_of_callable (_, c) =
-  match c with
-  | Func ((_, i), _, _, _)
-  | Proc ((_, i), _, _) -> i
-
-let id_of_callable_decl ((_, c): Pos.callable_decl) =
-  match c with
-  | FuncDecl ((_, i),_,_)
-  | ProcDecl ((_, i),_) -> i
-
-let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
-  let tuplefy (tl : Expr.t list) =
-    match tl with
-    | [] -> UnitT
-    | [t] -> t
-    | _ :: _ :: _ -> TupleT tl in
-  match c with
-  | FuncDecl (_, avars, raw_rettypes) ->
-    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
-    let ret_types = List.map ~f:of_typ raw_rettypes in
-    tuplefy avars_t, tuplefy ret_types
-  | ProcDecl (_, avars) ->
-    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
-    tuplefy avars_t, UnitT
-
 (******************************************************************************)
 (* Contexts                                                                   *)
 (******************************************************************************)
@@ -345,6 +321,16 @@ type typecheck_info = {
 let (>>=) = Result.(>>=)
 let (>>|) = Result.(>>|)
 
+let id_of_callable (_, c) =
+  match c with
+  | Func ((_, i), _, _, _)
+  | Proc ((_, i), _, _) -> i
+
+let id_of_callable_decl ((_, c): Pos.callable_decl) =
+  match c with
+  | FuncDecl ((_, i),_,_)
+  | ProcDecl ((_, i),_) -> i
+
 let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   match typ with
   | KlassT classname -> begin
@@ -370,8 +356,8 @@ let methods ~delta_m ~delta_i c =
       let {super; methods; _} = String.Map.find_exn delta c in
       let methods = List.map methods ~f:id_of_callable_decl in
       match super with
-      | Some s -> (help s) @ (""::methods)
-      | None -> ""::methods
+      | Some s -> (help s) @ methods
+      | None -> methods
     in
     help c
 
@@ -380,6 +366,43 @@ let super_methods ~delta_m ~delta_i c =
   let info = String.Map.find_exn delta c in
   let all_methods = methods ~delta_m ~delta_i c in
   List.take all_methods (List.length all_methods - 1 - (List.length info.methods))
+
+let id_of_klass (_, Klass ((_,i), _, _, _)) = i
+
+let _id_of_klassdecl (_, KlassDecl ((_,i),  _, _)) = i
+
+let klassdecl_of_klassm k =
+  let dummy = (-1,-1) in
+  match k.super with
+  | Some s -> (dummy, KlassDecl ((dummy, k.name), Some (dummy, s), (k.methods@k.overrides)))
+  | None -> (dummy, KlassDecl ((dummy, k.name), None, (k.methods@k.overrides)))
+
+let calldecl_of_call c =
+  match c with
+  | (p, Func (id, args, rets, _)) -> (p, FuncDecl (id, args, rets))
+  | (p, Proc (id, args, _)) -> (p, ProcDecl (id, args))
+
+let klassdecl_of_klass (p, Klass (id, super, _, methods)) =
+  (p, KlassDecl (id, super, (List.map ~f:calldecl_of_call methods)))
+
+let super_of_klass (_, Klass (_, s, _, _)) = s
+
+let _super_of_klassdecl (_, KlassDecl (_, s, _)) = s
+
+let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
+  let tuplefy (tl : Expr.t list) =
+    match tl with
+    | [] -> UnitT
+    | [t] -> t
+    | _ :: _ :: _ -> TupleT tl in
+  match c with
+  | FuncDecl (_, avars, raw_rettypes) ->
+    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
+    let ret_types = List.map ~f:of_typ raw_rettypes in
+    tuplefy avars_t, tuplefy ret_types
+  | ProcDecl (_, avars) ->
+    let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
+    tuplefy avars_t, UnitT
 
 (******************************************************************************)
 (* expr                                                                       *)
@@ -960,11 +983,12 @@ type inter_ctx = {
   func_decls  : Pos.callable_decl String.Map.t;
 }
 
-let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) =
+let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) : KlassM.t =
   let super' =
     match super with
     | None -> None
-    | Some (_, id) -> Some id in
+    | Some (_, id) -> Some id
+  in
   { name;
     super = super';
     fields = [];
@@ -1104,7 +1128,6 @@ let interfaces_typecheck (prog_uses : Pos.use list) (interfaces: Pos.interface l
     empty_contexts with
     delta_i = String.Map.of_alist_exn kname_km_pairs;
   })
-
 
 (******************************************************************************)
 (* globals                                                                    *)
@@ -1269,7 +1292,7 @@ let global_pass contexts globals =
 (* klasses                                                                    *)
 (******************************************************************************)
 module KlassVertex = struct
-  type t = Pos.klass
+  type t = Pos.klass_decl
   let compare = Pervasives.compare
   let hash    = Hashtbl.hash
   let equal   = (=)
@@ -1280,7 +1303,7 @@ module KlassGraph = Graph.Persistent.Digraph.Concrete(KlassVertex)
 let class_graph klasses =
   let klass_alist = List.map klasses ~f:(fun k ->
     match k with
-    | (_, Klass ((_, name), _, _, _)) -> (name, k)
+    | (_, KlassDecl ((_, name), _, _)) -> (name, k)
   ) in
   let klass_index = String.Map.of_alist_exn klass_alist in
 
@@ -1289,7 +1312,7 @@ let class_graph klasses =
 
     let super =
       match k with
-      | (_, Klass (_, super, _, _)) -> super
+      | (_, KlassDecl (_, super, _)) -> super
     in
     match super with
     | Some (_, s) -> KlassGraph.add_edge g (String.Map.find_exn klass_index s) k
@@ -1310,7 +1333,7 @@ let is_typlist_ok ts1 ts2 =
   let f acc t1 t2 = acc && t1 = t2 in
   List.fold2_exn ~f ~init:true ts1 ts2
 
-let _is_procdecls_type_ok p1 p2 =
+let call_decls_type_ok p1 p2 =
   match p1, p2 with
   | ProcDecl (_, alist1), ProcDecl (_, alist2) ->
     begin
@@ -1318,10 +1341,6 @@ let _is_procdecls_type_ok p1 p2 =
         is_alist_ok alist1 alist2
       with _ -> false
     end
-  | _ -> false
-
-let _is_funcdecls_type_ok f1 f2 =
-  match f1, f2 with
   | FuncDecl (_, alist1, typlist1), FuncDecl (_, alist2, typlist2) ->
     begin
       try
@@ -1330,27 +1349,7 @@ let _is_funcdecls_type_ok f1 f2 =
     end
   | _ -> false
 
-let does_proc_match_def p1 p2 =
-  match p1, p2 with
-  | Proc (_, alist1, _), ProcDecl (_, alist2) ->
-    begin
-      try
-        is_alist_ok alist1 alist2
-      with _ -> false
-    end
-  | _ -> false
-
-let does_func_match_def f1 f2 =
-  match f1, f2 with
-  | Func (_, alist1, typlist1, _), FuncDecl (_, alist2, typlist2) ->
-    begin
-      try
-        (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
-      with _ -> false
-    end
-  | _ -> false
-
-let _is_procs_type_ok p1 p2 =
+let _calls_type_ok p1 p2 =
   match p1, p2 with
   | Proc (_, alist1, _), Proc (_, alist2, _) ->
     begin
@@ -1358,10 +1357,6 @@ let _is_procs_type_ok p1 p2 =
         is_alist_ok alist1 alist2
       with _ -> false
     end
-  | _ -> false
-
-let _is_funcs_type_ok f1 f2 =
-  match f1, f2 with
   | Func (_, alist1, typlist1, _), Func (_, alist2, typlist2, _) ->
     begin
       try
@@ -1370,161 +1365,148 @@ let _is_funcs_type_ok f1 f2 =
     end
   | _ -> false
 
+let method_def_ok ((_, c1) as c1') ((_, c2) as c2') =
+  let id1 = id_of_callable_decl c1' in
+  let id2 = id_of_callable_decl c2' in
+  (id1 = id2) && call_decls_type_ok c1 c2
+
 (* need to check if fields shadow globals in second pass *)
+(* typ_typecheck needs to be run on second pass *)
 (* need to check if methods shadow functions in second pass *)
 (* need to check names are unique *)
 let fst_klass_pass contexts klasses =
-  let klass_graph = class_graph klasses in
   let module SortedGraph = Topological.Make(KlassGraph) in
   let module DfsGraph = Traverse.Dfs(KlassGraph) in
-  if DfsGraph.has_cycle klass_graph then Error ((-1, -1), class_cycle)
+  let open Core_kernel in
+
+  let klass_names = List.map ~f:id_of_klass klasses in
+  let klass_to_field = List.map ~f:(fun (_, Klass ((_,i), _, f,_)) -> (i,f)) klasses in
+  let f e acc =
+    match e with
+    | Some (_, x) -> x::acc
+    | None -> acc
+  in
+  let klass_supers = List.fold_right ~f ~init:[] (List.map ~f:super_of_klass klasses) in
+  let kdecls_of_klasses = List.map ~f:klassdecl_of_klass klasses in
+
+  let klassm_of_inters = String.Map.data contexts.delta_i in
+  let kdecls_of_inters = List.map ~f:klassdecl_of_klassm klassm_of_inters in
+  let f acc (k_decl: KlassM.t) =
+    (k_decl.name, k_decl.super)::acc
+  in
+  let (k_decl_names, k_decl_supers) = L.split (List.fold_left ~f ~init:[] klassm_of_inters) in
+  let f e acc =
+    match e with
+    | Some x -> x::acc
+    | None -> acc
+  in
+  let k_decl_supers = List.fold_right ~f ~init:[] k_decl_supers in
+
+  let names = klass_names @ k_decl_names in
+  let supers = klass_supers @ k_decl_supers in
+
+  let invalid_super = List.findi ~f:(fun _ e -> not (L.exists (fun e' -> e' = e) names)) supers in
+
+  if is_some invalid_super then Error ((-1, -1), undeclared_class (snd (Option.value_exn invalid_super)))
+  else if List.contains_dup klass_names then Error ((-1, -1), dup_class_decl)
   else
-    let klass_fold (p, Klass ((_,k), super, fields, methods)) acc =
-      acc >>= fun contexts' ->
-      let get_field (p', f) acc =
-        acc >>= fun field_acc ->
-        match f with
-          | AUnderscore _ -> Error (p', field_underscore)
-          | AId ((_, id), t) ->
-              if id = "this" then Error (p', field_this)
-              else if List.exists ~f:(fun (x, _) -> x = id) field_acc then Error (p', dup_field_decl)
-              else
-                Ok ((id, t)::field_acc)
-      in
-      List.fold_right ~f:get_field ~init:(Ok []) fields >>= fun fields' ->
-      let interface_ctxs = List.map ~f:(fun i -> String.Map.find_exn contexts.delta_i i)
-                                    (String.Map.find_exn contexts.class_decl_index k)
-      in
-      let get_klass_def k (inter_ctxs: KlassM.t list) =
-        let f acc (e: KlassM.t) =
-          if e.name = k then Some e
-          else acc
-        in
-        List.fold_left ~f ~init:None inter_ctxs
-      in
-      let find_method_def m_name methods =
-        let f _ e =
-          match e with
-          | (_, FuncDecl ((_, i'), _, _))
-          | (_, ProcDecl ((_, i'), _)) -> m_name = i'
-        in
-        List.findi ~f methods
-      in
-      let rec check_supers call_type m_name m1 super =
-        match super with
-        | None -> true
-        | Some s ->
-          begin
-            let super_ctx = String.Map.find_exn contexts'.delta_m s in
-            match find_method_def m_name super_ctx.methods, call_type with
-            | Some (_, (_, m2)), `Proc -> does_proc_match_def m1 m2
-            | Some (_, (_, m2)), `Func -> does_func_match_def m1 m2
-            | None, _ -> check_supers call_type m_name m1 super_ctx.super
-          end
-      in
-      let is_method_def_ok call_type m_name m1 =
-        let get_method_def =
-          match get_klass_def k interface_ctxs with
-          | Some def -> (true, find_method_def m_name def.methods)
-          | None -> (false, None)
-        in
-        match call_type with
-        | `Proc ->
-          begin
-            match get_method_def with
-            | true, Some (_, (_, m2)) -> does_proc_match_def m1 m2
-            | true, None -> false
-            | false, _ ->
-              begin
-                match super with
-                | Some (_, s) -> check_supers `Proc m_name m1 (Some s)
-                | None -> true
-              end
-          end
-        | `Func ->
-          begin
-            match get_method_def with
-            | true, Some (_, (_, m2)) -> does_func_match_def m1 m2
-            | true, None -> false
-            | false, _ ->
-              begin
-                match super with
-                | Some (_, s) -> check_supers `Func m_name m1 (Some s)
-                | None -> true
-              end
-          end
-      in
-      let fold_method e acc =
-        acc >>= fun methods'->
-          let helper id e =
-            match e with
-            | _, FuncDecl ((_, id'), _, _)
-            | _, ProcDecl ((_, id'), _) -> id' = id
-          in
-          match e with
-          | (p1, (Func ((p2, f), vars, rets, _) as c)) ->
-            if List.exists ~f:(helper f) methods' then Error (p2, dup_method_decl)
-            else
-              if is_method_def_ok `Func f c then
-                Ok ((p1, FuncDecl ((p2, f), vars, rets))::methods')
-              else
-                Error (p2, invalid_method)
-          | (p1, (Proc ((p2, f), vars, _) as c)) ->
-            if List.exists ~f:(helper f) methods' then Error (p2, dup_method_decl)
-            else
-              if is_method_def_ok `Proc f c then
-                Ok ((p1, ProcDecl ((p2, f), vars))::methods')
-              else
-                Error (p2, invalid_method)
-      in
-      List.fold_right ~f:fold_method ~init:(Ok []) methods >>= fun m ->
-      let rec is_override super m =
-        match super with
-        | None -> false
-        | Some s ->
-          begin
-            let super_ctx = String.Map.find_exn contexts'.delta_m s in
-            let m_name = id_of_callable_decl m in
-            match find_method_def m_name super_ctx.methods with
-            | Some (_, m2) ->
-                if m_name = (id_of_callable_decl m2) then
-                  true
+    let entire_klass_graph = class_graph (kdecls_of_klasses @ kdecls_of_inters) in
+    if DfsGraph.has_cycle entire_klass_graph then Error ((-1, -1), class_cycle)
+    else
+      let klass_graph = class_graph kdecls_of_klasses in
+      let klass_fold (p, KlassDecl ((_,k), super, methods)) acc =
+        acc >>= fun contexts' ->
+        let get_field (p', f) acc =
+          acc >>= fun field_acc ->
+          match f with
+            | AUnderscore _ -> Error (p', field_underscore)
+            | AId ((_, id), t) ->
+                if id = "this" then Error (p', this_var)
+                else if List.exists ~f:(fun (x, _) -> x = id) field_acc then Error (p', dup_field_decl)
                 else
-                  is_override super_ctx.super m
-            | None -> is_override super_ctx.super m
-          end
-      in
-      let (o, m') =
-        match super with
-        | Some (_, s) -> L.partition (is_override (Some s)) m
-        | None -> ([], m)
-      in
-      let klass () =
-        match get_klass_def k interface_ctxs with
-        | None ->
-          begin
+                  Ok ((id, t)::field_acc)
+        in
+        let fields = L.assoc k klass_to_field in
+        List.fold_right ~f:get_field ~init:(Ok []) fields >>= fun fields' ->
+        let method_names = List.map ~f:id_of_callable_decl methods in
+        if List.contains_dup method_names then Error (p, dup_method_decl)
+        else
+          let check_inter () =
+            match String.Map.find contexts.delta_i k with
+            | Some def ->
+              begin
+                let f ((p, _) as e1) e2 acc =
+                  acc >>= fun acc' ->
+                  if method_def_ok e1 e2 then
+                    Ok (e1::acc')
+                  else
+                    Error (p, inconsist_method_inter (id_of_callable_decl e1))
+                in
+                match super, def.super with
+                | None, None ->
+                  begin
+                    try
+                      L.fold_right2 f methods def.methods (Ok [])
+                    with _ -> Error (p, inconsist_class k)
+                  end
+                | Some (_, s), Some s' when s = s' ->
+                  begin
+                    try
+                      L.fold_right2 f methods def.methods (Ok [])
+                    with _ -> Error (p, inconsist_class k)
+                  end
+                | _ ->  Error (p, inconsist_class k)
+              end
+            | None -> Ok methods
+          in
+          check_inter () >>= fun methods1 ->
+          let check_super () =
             match super with
+            | None -> Ok ({name = k;
+                           super = None;
+                           fields = fields';
+                           methods=methods1;
+                           overrides = []})
             | Some (_, s) ->
-                Ok ({name = k; super = Some s; fields = fields'; methods = m'; overrides = o})
-            | None ->
-                Ok ({name = k; super = None; fields = fields'; methods = m'; overrides = o})
-          end
-        | Some def ->
-          begin
-            match super, def.super with
-            | Some (_, s), Some s' when s = s'->
-                Ok ({name = k; super = Some s; fields = fields'; methods = m'; overrides = o})
-            | None, None ->
-                Ok ({name = k; super = None; fields = fields'; methods = m'; overrides = o})
-            | _ ->
-                Error (p, inconsist_class)
-          end
+              let find_method_def m_name methods =
+                let f _ e =
+                  match e with
+                  | (_, FuncDecl ((_, i'), _, _))
+                  | (_, ProcDecl ((_, i'), _)) -> m_name = i'
+                in
+                List.findi ~f methods
+              in
+              let rec check_override super ((p, _) as m1) acc =
+                acc >>= fun (m, o) ->
+                match super with
+                | None -> Ok (m1::m, o)
+                | Some s ->
+                  begin
+                    let super_ctx = String.Map.find_exn contexts'.delta_m s in
+                    let m_name = id_of_callable_decl m1 in
+                    match find_method_def m_name super_ctx.methods with
+                    | Some (_, m2) ->
+                      if method_def_ok m1 m2 then Ok (m, m1::o)
+                      else
+                        Error (p, inconsist_method_super m_name)
+                    | None -> check_override super_ctx.super m1 acc
+                  end
+              in
+              List.fold_right ~f:(check_override (Some s))
+                              ~init:(Ok ([],[]))
+                              methods1
+              >>= fun (m, o) ->
+                Ok ({name = k;
+                     super = Some s;
+                     fields = fields';
+                     methods = m;
+                     overrides = o})
+          in
+          check_super () >>= fun klass' ->
+          let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass' in
+          Ok ({contexts' with delta_m = delta_m'})
       in
-      klass () >>= fun klass ->
-      let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass in
-      Ok ({contexts' with delta_m = delta_m'})
-    in
-    SortedGraph.fold klass_fold klass_graph (Ok contexts)
+      SortedGraph.fold klass_fold klass_graph (Ok contexts)
 
 (******************************************************************************)
 (* prog                                                                       *)

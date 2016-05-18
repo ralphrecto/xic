@@ -77,3 +77,6 @@ let disjoint_merge a b =
     | `Right v -> Some v
     | `Both _ -> failwith "disjoint_merge: merge not disjoint"
   )
+
+let index ?(eq=(=)) xs x =
+  Option.(List.findi xs ~f:(fun _ y -> eq x y) >>| fst)

@@ -49,3 +49,6 @@ val string_of_map  : ?short:bool -> ('k, 'v, _) Map.t ->
 val disjoint_merge : ('k, 'v, 'cmp) Map.t ->
                      ('k, 'v, 'cmp) Map.t ->
                      ('k, 'v, 'cmp) Map.t
+
+(* index ~eq xs x returns the 0-based index of x in xs using eq. *)
+val index : ?eq:('a -> 'a -> bool) -> 'a list -> 'a -> int option

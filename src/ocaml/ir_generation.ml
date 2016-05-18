@@ -320,8 +320,8 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
       let objloc = Temp (fresh_temp ()) in
       ESeq (
         Seq [
-          move objloc (malloc_ir (mem (name (class_size cname))));
-          move (mem objloc) (mem (name (class_dv cname)));
+          move objloc (malloc_ir (Temp (class_size cname)));
+          move (mem objloc) (Temp (class_dv cname));
         ],
         objloc
       )

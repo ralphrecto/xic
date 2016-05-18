@@ -1,5 +1,8 @@
+module L = List
 open Core.Std
 open Ast.S
+module U = Util
+open Graph
 
 (******************************************************************************)
 (* Error                                                                      *)
@@ -19,11 +22,14 @@ let unbound_var x    = sprintf "Unbound variable %s" x
 let unbound_call x   = sprintf "Unbound callable %s" x
 let dup_global_decl  = "Duplicate global variable declaration"
 let dup_var_decl     = "Duplicate variable declaration"
-let _dup_field_decl   = "Duplicate field declaration"
-let _dup_method_decl  = "Duplicate method declaration"
+let inconsist_class  = "Class declaration is inconsistent with interface files"
+let class_cycle      = "Cyclic class hierarchy"
+let dup_field_decl   = "Duplicate field declaration"
+let dup_method_decl  = "Duplicate method declaration"
+let invalid_method   = "Invalid method declaration"
 let _field_shadow     = "Field declaration shadows global variable"
-let _field_this       = "Invalid field name \"this\""
-let _field_underscore = "Field name must be declared"
+let field_this       = "Invalid field name \"this\""
+let field_underscore = "Field name must be declared"
 let bound_var_decl   = "Cannot rebind variable"
 let num_decl_vars    = "Incorrect number of variables in declassign"
 let typ_decl_vars    = "Ill typed variable declassign"
@@ -302,25 +308,27 @@ module Context = struct
 end
 
 type contexts = {
-  locals        : context;
-  delta_m       : KlassM.t String.Map.t;
-  delta_i       : KlassM.t String.Map.t;
-  class_context : string option;
-  inloop        : bool;
-  globals       : String.Set.t;
-  typed_globals : global list;
-  subtype       : Expr.t -> Expr.t -> bool;
+  locals           : context;
+  delta_m          : KlassM.t String.Map.t;
+  delta_i          : KlassM.t String.Map.t;
+  class_decl_index : string list String.Map.t;
+  class_context    : string option;
+  inloop           : bool;
+  globals          : String.Set.t;
+  typed_globals    : global list;
+  subtype          : Expr.t -> Expr.t -> bool;
 }
 
 let empty_contexts = {
-  locals        = Context.empty;
-  delta_m       = String.Map.empty;
-  delta_i       = String.Map.empty;
-  class_context = None;
-  inloop        = false;
-  globals       = String.Set.empty;
-  typed_globals = [];
-  subtype       = Expr.subtype;
+  locals           = Context.empty;
+  delta_m          = String.Map.empty;
+  delta_i          = String.Map.empty;
+  class_decl_index = String.Map.empty;
+  class_context    = None;
+  inloop           = false;
+  globals          = String.Set.empty;
+  typed_globals    = [];
+  subtype          = Expr.subtype;
 }
 
 type typecheck_info = {
@@ -354,7 +362,7 @@ let find_callable (clist : Pos.callable_decl list) (name : string) =
   List.find ~f clist
 
 let methods ~delta_m ~delta_i c =
-  let delta = Util.disjoint_merge delta_m delta_i in
+  let delta = U.disjoint_merge delta_m delta_i in
   if not (String.Map.mem delta c) then
     failwith (sprintf "methods: class %s not in delta" c)
   else
@@ -586,7 +594,7 @@ let stmt_typecheck (c : contexts) rho s =
         let ss = List.rev ss in
 
         (* make sure that all but the last stmt is of type One *)
-        if List.for_all (Util.init ss) ~f:(fun (t, _) -> t = One)
+        if List.for_all (U.init ss) ~f:(fun (t, _) -> t = One)
         then begin
           match List.last ss with
           | Some (r, _) -> Ok ((r, (Block ss)), c)
@@ -1309,66 +1317,222 @@ let is_typlist_ok ts1 ts2 =
   let f acc t1 t2 = acc && t1 = t2 in
   List.fold2_exn ~f ~init:true ts1 ts2
 
-let is_proc_type_ok p1 p2 =
+let _is_procdecls_type_ok p1 p2 =
   match p1, p2 with
-  | Proc ((_, alist1, _), Proc ((_, alist2, _) ->
-  | Proc ((_, alist1, _), ProcDecl ((_, alist2) ->
-  | ProcDecl ((_, alist1), Proc ((_, alist2, _) ->
-  | ProdDecl ((_, alist1), ProdDecl ((_, alist2) ->
-    try
-      is_alist_ok alist1 alist2
-    with _ -> false
+  | ProcDecl (_, alist1), ProcDecl (_, alist2) ->
+    begin
+      try
+        is_alist_ok alist1 alist2
+      with _ -> false
+    end
   | _ -> false
 
-let is_func_type_ok f1 f2 =
+let _is_funcdecls_type_ok f1 f2 =
   match f1, f2 with
-  | Func ((_, alist1, typlist1, _), Func ((_, alist2, typlist2, _)
-  | Func ((_, alist1, typlist1, _), FuncDecl ((_, alist2, typlist2)
-  | FuncDecl ((_, alist1, typlist1), Func ((_, alist2, typlist2, _)
-  | FuncDecl ((_, alist1, typlist1), FuncDecl ((_, alist2, typlist2) ->
-    try
-      (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
-    with _ -> false
+  | FuncDecl (_, alist1, typlist1), FuncDecl (_, alist2, typlist2) ->
+    begin
+      try
+        (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
+      with _ -> false
+    end
   | _ -> false
 *)
 
-let fst_klass_pass contexts _klasses =
-  Ok contexts
+let does_proc_match_def p1 p2 =
+  match p1, p2 with
+  | Proc (_, alist1, _), ProcDecl (_, alist2) ->
+    begin
+      try
+        is_alist_ok alist1 alist2
+      with _ -> false
+    end
+  | _ -> false
 
-  (*
-  let update_klass acc (p, Klass ((_,k), super, fields, methods)) =
-    acc >>= fun contexts' ->
-    let get_field acc (_, f) =
-      acc >>= fun (ids, field_acc) ->
-      match f with
-        | AUnderscore _ -> Error (p, field_underscore)
-        | AId ((_, id), t) -> Ok (id::ids, String.Map.add field_acc ~key:id ~data:t)
-    in
-    List.fold_left ~f:get_field ~init:(Ok ([], String.Map.empty)) fields >>= fun (ids, fields') ->
-    let has_this = not ((List.filter ~f:(fun x -> x = "this") ids) = []) in
-    let shadow_global =
-      let globals = String.Map.keys contexts'.locals in
-      not ((List.filter ~f:(fun x -> List.exists globals ~f:(fun y -> y = x)) ids) = [])
-    in
-    let has_dup = List.contains_dup ids in
-    match has_this, shadow_global, has_dup with
-    | true, _, _ -> Error (p, field_this)
-    | _, true, _ -> Error (p, field_shadow)
-    | _, _, true -> Error (p, dup_field_decl)
-    | _ ->
-      let method_names = List.map ~f:ids_of_callables methods in
-      if List.contains_dup method_names then Error (p, dup_method_decl)
-      else
-        let klass =
-          match super with
-          | Some (_, s) -> {name = k; super = Some s; fields = fields'; methods}
-          | None  -> {name = k; super = None; fields = fields'; methods}
+let does_func_match_def f1 f2 =
+  match f1, f2 with
+  | Func (_, alist1, typlist1, _), FuncDecl (_, alist2, typlist2) ->
+    begin
+      try
+        (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
+      with _ -> false
+    end
+  | _ -> false
+
+let _is_procs_type_ok p1 p2 =
+  match p1, p2 with
+  | Proc (_, alist1, _), Proc (_, alist2, _) ->
+    begin
+      try
+        is_alist_ok alist1 alist2
+      with _ -> false
+    end
+  | _ -> false
+
+let _is_funcs_type_ok f1 f2 =
+  match f1, f2 with
+  | Func (_, alist1, typlist1, _), Func (_, alist2, typlist2, _) ->
+    begin
+      try
+        (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
+      with _ -> false
+    end
+  | _ -> false
+
+(* need to check if fields shadow globals in second pass *)
+(* need to check if methods shadow functions in second pass *)
+(* need to check names are unique *)
+let fst_klass_pass contexts klasses =
+  let klass_graph = class_graph klasses in
+  let module SortedGraph = Topological.Make(KlassGraph) in
+  let module DfsGraph = Traverse.Dfs(KlassGraph) in
+  if DfsGraph.has_cycle klass_graph then Error ((-1, -1), class_cycle)
+  else
+    let klass_fold (p, Klass ((_,k), super, fields, methods)) acc =
+      acc >>= fun contexts' ->
+      let get_field (p', f) acc =
+        acc >>= fun field_acc ->
+        match f with
+          | AUnderscore _ -> Error (p', field_underscore)
+          | AId ((_, id), t) ->
+              if id = "this" then Error (p', field_this)
+              else if List.exists ~f:(fun (x, _) -> x = id) field_acc then Error (p', dup_field_decl)
+              else
+                Ok ((id, t)::field_acc)
+      in
+      List.fold_right ~f:get_field ~init:(Ok []) fields >>= fun fields' ->
+      let interface_ctxs = List.map ~f:(fun i -> String.Map.find_exn contexts.delta_i i)
+                                    (String.Map.find_exn contexts.class_decl_index k)
+      in
+      let get_klass_def k (inter_ctxs: KlassM.t list) =
+        let f acc (e: KlassM.t) =
+          if e.name = k then Some e
+          else acc
         in
-        let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass in
-        Ok ({contexts' with delta_m = delta_m'})
-  in
-  List.fold_left ~f:update_klass ~init:(Ok contexts) klasses
-  *)
+        List.fold_left ~f ~init:None inter_ctxs
+      in
+      let find_method_def m_name methods =
+        let f _ e =
+          match e with
+          | (_, FuncDecl ((_, i'), _, _))
+          | (_, ProcDecl ((_, i'), _)) -> m_name = i'
+        in
+        List.findi ~f methods
+      in
+      let rec check_supers call_type m_name m1 super =
+        match super with
+        | None -> true
+        | Some s ->
+          begin
+            let super_ctx = String.Map.find_exn contexts'.delta_m s in
+            match find_method_def m_name super_ctx.methods, call_type with
+            | Some (_, (_, m2)), `Proc -> does_proc_match_def m1 m2
+            | Some (_, (_, m2)), `Func -> does_func_match_def m1 m2
+            | None, _ -> check_supers call_type m_name m1 super_ctx.super
+          end
+      in
+      let is_method_def_ok call_type m_name m1 =
+        let get_method_def =
+          match get_klass_def k interface_ctxs with
+          | Some def -> (true, find_method_def m_name def.methods)
+          | None -> (false, None)
+        in
+        match call_type with
+        | `Proc ->
+          begin
+            match get_method_def with
+            | true, Some (_, (_, m2)) -> does_proc_match_def m1 m2
+            | true, None -> false
+            | false, _ ->
+              begin
+                match super with
+                | Some (_, s) -> check_supers `Proc m_name m1 (Some s)
+                | None -> true
+              end
+          end
+        | `Func ->
+          begin
+            match get_method_def with
+            | true, Some (_, (_, m2)) -> does_func_match_def m1 m2
+            | true, None -> false
+            | false, _ ->
+              begin
+                match super with
+                | Some (_, s) -> check_supers `Func m_name m1 (Some s)
+                | None -> true
+              end
+          end
+      in
+      let fold_method e acc =
+        acc >>= fun methods'->
+          let helper id e =
+            match e with
+            | _, FuncDecl ((_, id'), _, _)
+            | _, ProcDecl ((_, id'), _) -> id' = id
+          in
+          match e with
+          | (p1, (Func ((p2, f), vars, rets, _) as c)) ->
+            if List.exists ~f:(helper f) methods' then Error (p2, dup_method_decl)
+            else
+              if is_method_def_ok `Func f c then
+                Ok ((p1, FuncDecl ((p2, f), vars, rets))::methods')
+              else
+                Error (p2, invalid_method)
+          | (p1, (Proc ((p2, f), vars, _) as c)) ->
+            if List.exists ~f:(helper f) methods' then Error (p2, dup_method_decl)
+            else
+              if is_method_def_ok `Proc f c then
+                Ok ((p1, ProcDecl ((p2, f), vars))::methods')
+              else
+                Error (p2, invalid_method)
+      in
+      List.fold_right ~f:fold_method ~init:(Ok []) methods >>= fun m ->
+      let rec is_override super m =
+        match super with
+        | None -> false
+        | Some s ->
+          begin
+            let super_ctx = String.Map.find_exn contexts'.delta_m s in
+            let m_name = id_of_callable_decl m in
+            match find_method_def m_name super_ctx.methods with
+            | Some (_, m2) ->
+                if m_name = (id_of_callable_decl m2) then
+                  true
+                else
+                  is_override super_ctx.super m
+            | None -> is_override super_ctx.super m
+          end
+      in
+      let (o, m') =
+        match super with
+        | Some (_, s) -> L.partition (is_override (Some s)) m
+        | None -> ([], m)
+      in
+      let klass () =
+        match get_klass_def k interface_ctxs with
+        | None ->
+          begin
+            match super with
+            | Some (_, s) ->
+                Ok ({name = k; super = Some s; fields = fields'; methods = m'; overrides = o})
+            | None ->
+                Ok ({name = k; super = None; fields = fields'; methods = m'; overrides = o})
+          end
+        | Some def ->
+          begin
+            match super, def.super with
+            | Some (_, s), Some s' when s = s'->
+                Ok ({name = k; super = Some s; fields = fields'; methods = m'; overrides = o})
+            | None, None ->
+                Ok ({name = k; super = None; fields = fields'; methods = m'; overrides = o})
+            | _ ->
+                Error (p, inconsist_class)
+          end
+      in
+      klass () >>= fun klass ->
+      let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass in
+      Ok ({contexts' with delta_m = delta_m'})
+    in
+    SortedGraph.fold klass_fold klass_graph (Ok contexts)
 
 (******************************************************************************)
 (* prog                                                                       *)

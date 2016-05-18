@@ -476,66 +476,66 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr 
   | _ -> failwith "TODO"
 
 and gen_stmt callnames s ctxt =
+  let open Expr in
+
   let rec help callnames ((_, s): Typecheck.stmt) (break_label: string option) =
     let make_id id t =
       if String.Set.mem ctxt.globals id
         then global_temp id t
         else id
     in
-
     match s with
-    | Decl varlist ->
-
+    | S.Decl varlist ->
       begin
         let gen_var_decls ((_, x): Typecheck.var) seq =
           match x with
-          | AVar (t', AId ((_, idstr), (at, TArray (t, i)))) ->
-            Move (Temp (make_id idstr t'), gen_decl_help callnames (at, TArray (t, i)) ctxt) :: seq
-          | AVar (t, AId ((_, idstr), (_, (TInt | TBool | TKlass _)))) ->
+          | S.AVar (t', S.AId ((_, idstr), (at, S.TArray (t, i)))) ->
+            Move (Temp (make_id idstr t'), gen_decl_help callnames (at, S.TArray (t, i)) ctxt) :: seq
+          | S.AVar (t, S.AId ((_, idstr), (_, (S.TInt | S.TBool | S.TKlass _)))) ->
             (Move (Temp (make_id idstr t), Const 0L))::seq
-          | AVar (_, AUnderscore _)
-          | Underscore -> seq
+          | S.AVar (_, S.AUnderscore _)
+          | S.Underscore -> seq
         in
         Seq (List.fold_right ~f:gen_var_decls ~init:[] varlist)
       end
-    | DeclAsgn ([(t, v)], exp) ->
+    | S.DeclAsgn ([(t, v)], exp) ->
       begin
         match v with
-        | AVar (_, AId (var_id, _)) ->
+        | S.AVar (_, S.AId (var_id, _)) ->
           let (_, var_id') = var_id in
           Move (Temp (make_id var_id' t), gen_expr callnames exp ctxt)
-        | AVar _ | Underscore ->
+        | S.AVar _ | S.Underscore ->
           Exp (gen_expr callnames exp ctxt)
       end
-    | DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
+    | S.DeclAsgn (_::_ as vlist, (TupleT tlist, rawexp)) ->
       (* TODO: assumptions:
        * - rawexp is necessarily a FuncCall
        * - tuple return values are placed in registers _RET1, etc;
        * see design.txt *)
       let gen_var_decls (i, seq) ((_, x): Typecheck.var) =
         match x with
-        | AVar (_, AId ((_, idstr), _)) ->
+        | S.AVar (_, S.AId ((_, idstr), _)) ->
           let retval =
             if i = 0 then gen_expr callnames (TupleT tlist, rawexp) ctxt
             else Temp (retreg i) in
           (i + 1, Move (Temp idstr, retval) :: seq)
-        | AVar _ | Underscore ->
+        | S.AVar _ | S.Underscore ->
             if i = 0 then
               (i + 1, Exp (gen_expr callnames (TupleT tlist, rawexp) ctxt) :: seq)
             else (i + 1 , seq) in
       let (_, ret_seq_) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
       let ret_seq = List.rev ret_seq_ in
       Seq (ret_seq)
-    | DeclAsgn (_::_, _) -> failwith "impossible"
-    | DeclAsgn ([], _) -> failwith "impossible"
-    | Asgn ((t, lhs), fullrhs) ->
+    | S.DeclAsgn (_::_, _) -> failwith "impossible"
+    | S.DeclAsgn ([], _) -> failwith "impossible"
+    | S.Asgn ((t, lhs), fullrhs) ->
       begin
         match lhs with
-        | Id (_, idstr) ->
+        | S.Id (_, idstr) ->
           if String.Set.mem ctxt.globals idstr
             then Move (Temp (global_temp idstr t), gen_expr callnames fullrhs ctxt)
             else Move (Temp idstr, gen_expr callnames fullrhs ctxt)
-        | Index (arr, i) ->
+        | S.Index (arr, i) ->
           let index = gen_expr callnames i ctxt in
           let addr = gen_expr callnames arr ctxt in
           let index_tmp = Temp (fresh_temp ()) in
@@ -555,14 +555,14 @@ and gen_stmt callnames s ctxt =
           ]
         | _ -> failwith "impossible"
       end
-    | Block stmts -> Seq (List.map ~f:(fun s -> help callnames s break_label) stmts)
-    | Return exprlist ->
+    | S.Block stmts -> Seq (List.map ~f:(fun s -> help callnames s break_label) stmts)
+    | S.Return exprlist ->
       let mov_ret (i, seq) expr  =
         let mov = Move (Temp (retreg i), gen_expr callnames expr ctxt) in
         (i + 1, mov :: seq) in
       let (_, moves) = List.fold_left ~f:mov_ret ~init:(0, []) exprlist in
       Seq (moves @ [Ir.Return])
-    | If (pred, t) ->
+    | S.If (pred, t) ->
       let t_label = fresh_label () in
       let f_label = fresh_label () in
       Seq ([
@@ -571,7 +571,7 @@ and gen_stmt callnames s ctxt =
           help callnames t break_label;
           Label f_label;
         ])
-    | IfElse (pred, t, f) ->
+    | S.IfElse (pred, t, f) ->
       let t_label = fresh_label () in
       let f_label = fresh_label () in
       let rest_label = fresh_label () in
@@ -584,7 +584,7 @@ and gen_stmt callnames s ctxt =
           help callnames f break_label;
           Label rest_label;
         ])
-    | While (pred, s) ->
+    | S.While (pred, s) ->
       let while_label = fresh_label () in
       let t_label = fresh_label () in
       let f_label = fresh_label () in
@@ -596,18 +596,18 @@ and gen_stmt callnames s ctxt =
           Jump (Name while_label);
           Label f_label;
         ])
-    | ProcCall ((_, id), args) ->
+    | S.ProcCall ((_, id), args) ->
       let name = match String.Map.find callnames id with
         | Some s -> s
         | None -> failwith "impossible: calling unknown function" in
       let f = fun arg -> gen_expr callnames arg ctxt in
       Exp (Call (Name name, List.map ~f args))
-    | Break -> begin
+    | S.Break -> begin
       match break_label with
       | None -> failwith "impossible: break has nowhere to jump"
       | Some s -> Jump (Name s)
     end
-    | _ -> failwith "TODO"
+    | S.MethodCallStmt _ -> failwith "TODO"
   in
   help callnames s None
 

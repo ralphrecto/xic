@@ -192,6 +192,18 @@ public class Main {
                    );
         }
 
+        static XiSource createWithExn(String baseDir, String filename) throws FileNotFoundException {
+            String ext = Files.getFileExtension(filename);
+            if (!(ext.equals("xi") || ext.equals("ixi"))) {
+                System.out.println("Valid Xi files must have .xi or .ixi extension");
+                System.exit(1);
+            }
+            File f = Paths.get(filename).isAbsolute() ?
+                Paths.get(filename).toFile() :
+                Paths.get(baseDir, filename).toFile();
+            return new XiSource(filename, f, new FileReader(f));
+        }
+
         static XiSource create(String baseDir, String filename) {
             String ext = Files.getFileExtension(filename);
             if (!(ext.equals("xi") || ext.equals("ixi"))) {
@@ -369,6 +381,15 @@ public class Main {
             } else {
                 Program<Position> prog = parsed.prog.get();
                 try {
+                    /* always use <module>.ixi, if it exists in libpath */
+                    List<Use<Position>> progUses = prog.uses;
+                    Position dummyPos = new Position(-1, -1);
+                    try {
+                      String moduleName = Files.getNameWithoutExtension(source.filename);
+                      XiSource.createWithExn(libPath, String.format("%s.ixi", moduleName));
+                      progUses.add(Use.of(dummyPos, Ast.Id.of(dummyPos, moduleName)));
+                    } catch (FileNotFoundException e) { }
+
                     List<Interface<Position>> interfaces = useTraverse(prog.uses);
                     return Tuple.of(
                         source,
@@ -619,7 +640,6 @@ public class Main {
                 writeParseError(result.exception.get(), p.snd.filename, outputFilename);
             }
         }
-
         System.exit(0);
     }
 

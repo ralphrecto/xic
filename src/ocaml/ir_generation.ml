@@ -823,7 +823,8 @@ and gen_comp_unit fp contexts =
   let bss = globals_bss @ sizes_bss @ dvs_bss in
 
   (* ctors *)
-  let ctors = [global_name] @ (List.map classes ~f:class_init_name) in
+  let ctors = if (List.length globals <> 0) then [global_name] else [] in
+  let ctors = ctors @ (List.map classes ~f:class_init_name) in
 
   let open Filename in
   let program_name = name |> chop_extension |> basename in

@@ -381,7 +381,23 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         ],
         objloc
       )
-  | S.FieldAccess (_c, _f) -> failwith "TODO"
+  | S.FieldAccess ((t, c), ((), f)) -> begin
+      match t with
+      | KlassT cname ->
+        let class_info = String.Map.find_exn ctxt.delta_m cname in
+        let field_names = List.map ~f:fst class_info.KlassM.fields in
+        let field_index = uw (Util.index field_names f) in
+        let offset = const (8 * (field_index - (List.length field_names))) in
+
+        let e = gen_expr callnames (t, c) ctxt in
+        let fresh_tmp = fresh_temp () in
+
+        let open Ir.Abbreviations in
+        let open Ir.Infix in
+        let size = temp (class_size cname) in
+        eseq (move (temp fresh_tmp) (mem (e + size + offset))) (temp fresh_tmp)
+      | _ -> failwith "gen_stmt: accessing field of non class type"
+  end
   | S.MethodCall (_c, _f, _args) -> failwith "TODO"
 
 (******************************************************************************)

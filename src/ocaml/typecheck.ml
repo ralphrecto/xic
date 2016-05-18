@@ -376,7 +376,7 @@ let methods ~delta_m ~delta_i c =
     help c
 
 let super_methods ~delta_m ~delta_i c =
-  let delta = Util.disjoint_merge delta_m delta_i in
+  let delta = U.disjoint_merge delta_m delta_i in
   let info = String.Map.find_exn delta c in
   let all_methods = methods ~delta_m ~delta_i c in
   List.take all_methods (List.length all_methods - 1 - (List.length info.methods))
@@ -1308,7 +1308,6 @@ let class_graph klasses =
     | None -> g
   )
 
-(*
 let is_alist_ok as1 as2 =
   let f acc (_, e1) (_, e2) =
     match e1, e2 with
@@ -1342,7 +1341,6 @@ let _is_funcdecls_type_ok f1 f2 =
       with _ -> false
     end
   | _ -> false
-*)
 
 let does_proc_match_def p1 p2 =
   match p1, p2 with

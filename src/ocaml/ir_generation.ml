@@ -669,6 +669,13 @@ and gen_comp_unit fp contexts =
   let callable_map = String.Map.add callable_map
     ~key:global_name ~data:(global_func_decl globals contexts) in
 
+  (* class initialization *)
+  let classes = String.Map.keys contexts.delta_m in
+  let callable_map = List.fold_left classes ~init:callable_map ~f:(fun cm c ->
+    String.Map.add cm ~key:(class_init_name c)
+                      ~data:(class_init_func_decl c contexts)
+  ) in
+
   (* bss *)
   let globals = String.Set.to_list contexts.globals in
   let globals_bss = List.map globals ~f:(fun x ->
@@ -677,16 +684,13 @@ and gen_comp_unit fp contexts =
     | Typecheck.Sigma.Function _ -> failwith "impossible: global not in gamma"
   ) in
 
-  let classes = String.Map.keys contexts.delta_m in
   let sizes_bss = List.map classes ~f:class_size in
   let dvs_bss = List.map classes ~f:class_dv in
 
   let bss = globals_bss @ sizes_bss @ dvs_bss in
 
   (* ctors *)
-  (* TODO:
-   *   - class initialization *)
-  let ctors = [global_name] in
+  let ctors = [global_name] @ (List.map classes ~f:class_init_name) in
 
   let open Filename in
   let program_name = name |> chop_extension |> basename in

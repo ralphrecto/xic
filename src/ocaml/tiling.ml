@@ -369,7 +369,7 @@ let rec munch_expr
         (e_reg, e_asm @ [movq (Mem (Base (None, (Fake e_reg)))) (Reg (Fake e_reg))])
     | Ir.Temp str -> begin
         let new_tmp = FreshReg.fresh () in
-        match FreshRetReg.get str, FreshArgReg.get str, is_global s with
+        match FreshRetReg.get str, FreshArgReg.get str, is_global str with
         | Some i, None, false ->
             (* moving rets from callee return *)
             (FreshAsmRet.gen i, [])

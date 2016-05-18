@@ -219,10 +219,10 @@ let typesofvars vs =
     | _ -> acc in
   List.fold_left ~f ~init:[] vs
 
-let _ids_of_callables (_, c) =
+let id_of_callable (_, c) =
   match c with
-  | Func (i, _, _, _)
-  | Proc (i, _, _) -> i
+  | Func ((_, i), _, _, _)
+  | Proc ((_, i), _, _) -> i
 
 let id_of_callable_decl ((_, c): Pos.callable_decl) =
   match c with
@@ -374,6 +374,12 @@ let methods ~delta_m ~delta_i c =
       | None -> ""::methods
     in
     help c
+
+let super_methods ~delta_m ~delta_i c =
+  let delta = Util.disjoint_merge delta_m delta_i in
+  let info = String.Map.find_exn delta c in
+  let all_methods = methods ~delta_m ~delta_i c in
+  List.take all_methods (List.length all_methods - 1 - (List.length info.methods))
 
 (******************************************************************************)
 (* expr                                                                       *)

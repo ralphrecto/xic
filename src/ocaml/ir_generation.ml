@@ -213,26 +213,63 @@ let concat_func_decl =
 (******************************************************************************)
 (* Class Initialization                                                       *)
 (******************************************************************************)
+let magic_number =
+  Int64.of_int 0xdeadbeef
+
 let class_init_name c =
   "_I_init_" ^ Ir_util.double_underscore c
 
-let class_init_ir c {delta_m; _} =
+let class_init_ir c {delta_m; delta_i; _} =
   let open Typecheck.KlassM in
-  let {super; fields; methods; _} = String.Map.find_exn delta_m c in
+  let {super; fields; methods; overrides; _} = String.Map.find_exn delta_m c in
+  let size = Temp (class_size c) in
+  let dv = Temp (class_dv c) in
+  let k i = const (8 * i) in
 
   match super with
-  | Some _s  -> failwith "TODO"
+  | Some s ->
+    let obj_size = const (8 * (List.length fields)) in
+    let dv_size = List.length (Typecheck.methods ~delta_m ~delta_i c) in
+    let overrides = List.map overrides ~f:Typecheck.id_of_callable_decl in
+    let super_size = List.length (Typecheck.super_methods ~delta_m ~delta_i c) in
+
+    let open Ir.Abbreviations in
+    let open Ir.Infix in
+    let sdv = temp (class_dv s) in
+    let done_recurse_label = fresh_label () in
+    seq @@ [
+      cjumpone (temp (class_size s) != zero) done_recurse_label;
+        exp (call (name (class_init_name s)) []);
+      label done_recurse_label;
+
+      move size (temp (class_size s) + obj_size);
+      move dv (malloc_word dv_size);
+    ] @ List.mapi (Typecheck.super_methods ~delta_m ~delta_i c) ~f:(fun i s ->
+      let index = Pervasives.(const (Int64.of_int (i * 8))) in
+      if Pervasives.(s = "" || not (List.mem overrides s))
+        then move (mem (dv + index)) (mem (sdv + index))
+        else move (mem (dv + index)) (name (class_method ~class_:c ~method_:s))
+    ) @ [
+      move (dv + (k super_size)) (const magic_number)
+    ] @ List.mapi methods ~f:(fun i call ->
+      let method_ = Typecheck.id_of_callable_decl call in
+      move (mem (dv + Pervasives.(k (i + 1 + super_size))))
+           (name (class_method ~class_:c ~method_))
+    )
   | None ->
     let obj_size = const (8 * (1 + (List.length fields))) in
     let dv_size = 1 + (List.length methods) in
 
     let open Ir.Abbreviations in
     let open Ir.Infix in
-    seq [
-      move (temp (class_size c)) obj_size;
-      move (temp (class_dv c)) (malloc_word dv_size);
-      failwith "TODO"
-    ]
+    seq @@ [
+      move size obj_size;
+      move dv (malloc_word dv_size);
+      move (mem dv) (const magic_number);
+    ] @ List.mapi methods ~f:(fun i call ->
+      let method_ = Typecheck.id_of_callable_decl call in
+      move (mem (dv + (k (succ i)))) (name (class_method ~class_:c ~method_))
+    )
 
 let class_init_func_decl c contexts =
   (

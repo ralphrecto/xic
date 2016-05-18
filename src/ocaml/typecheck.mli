@@ -205,14 +205,15 @@ type typecheck_info = {
 }
 
 (* `methods m i c` returns a list of the methods in c's class heirarchy in the
- * order in which they are declared. For example, consider this heirarchy:
+ * order in which they are declared. It also includes empty strings where
+ * compiler-specific words go. For example, consider this heirarchy:
  *
  *     class A { a() b() }
  *     class B { c() a() d() }
  *     class C { }
  *     class D { a() e() }
  *
- * methods m i "D" is [a, b, c, d, e] *)
+ * methods m i "D" is ["", "a", "b", "", "c", "d", "", "e"] *)
 val methods: delta_m:KlassM.t String.Map.t ->
              delta_i:KlassM.t String.Map.t ->
              string ->

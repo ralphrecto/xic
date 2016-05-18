@@ -362,8 +362,8 @@ let methods ~delta_m ~delta_i c =
       let {super; methods; _} = String.Map.find_exn delta c in
       let methods = List.map methods ~f:id_of_callable_decl in
       match super with
-      | Some s -> (help s) @ methods
-      | None -> methods
+      | Some s -> (help s) @ (""::methods)
+      | None -> ""::methods
     in
     help c
 

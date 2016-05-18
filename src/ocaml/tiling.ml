@@ -336,6 +336,13 @@ let create_binop_instr (opcode: Ir.binop_code) (reg1, asm1) (reg2, asm2) dest =
         (reg2, asm1 @ asm2 @ div_asm)
     end
 
+let is_global s =
+  match FreshGlobal.get_str s, FreshSize.get_str s, FreshDV.get_str s with
+  | Some _, _, _
+  | _, Some _, _
+  | _, _, Some _ -> true
+  | _, _, _ -> false
+
 let rec munch_expr
   ?(debug=false)
   (curr_ctx: func_context)
@@ -362,21 +369,21 @@ let rec munch_expr
         (e_reg, e_asm @ [movq (Mem (Base (None, (Fake e_reg)))) (Reg (Fake e_reg))])
     | Ir.Temp str -> begin
         let new_tmp = FreshReg.fresh () in
-        match FreshRetReg.get str, FreshArgReg.get str, FreshGlobal.get_str str with
-        | Some i, None, None ->
+        match FreshRetReg.get str, FreshArgReg.get str, is_global s with
+        | Some i, None, false ->
             (* moving rets from callee return *)
             (FreshAsmRet.gen i, [])
-        | None, Some i, None ->
+        | None, Some i, false ->
             (* moving passed arguments as callee into vars *)
             let i' = if curr_ctx.num_rets > 2 then i + 1 else i in
             (new_tmp, [movq (Asm.callee_arg_op i') (Reg (Fake new_tmp))])
-        | None, None, Some _ ->
+        | None, None, true ->
             (new_tmp, [movq (Mem (Global str)) (Reg (Fake new_tmp))])
-        | None, None, None -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
-        | None,   Some _, Some _
-        | Some _, None,   Some _
-        | Some _, Some _, None
-        | Some _, Some _, Some _ ->
+        | None, None, false -> (new_tmp, [movq (Reg (Fake str)) (Reg (Fake new_tmp))])
+        | None,   Some _, true
+        | Some _, None,   true
+        | Some _, Some _, false
+        | Some _, Some _, true ->
             failwith "impossible: reg can only be on of ret, arg, or global"
     end
     | Ir.Call (Ir.Name (fname), arglist) -> begin
@@ -469,11 +476,11 @@ and munch_stmt
     | Ir.Move (Ir.Temp n, e) -> begin
       let dest =
         (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n, FreshGlobal.get_str n with
-        | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
-        | None, Some _ -> Mem (Global n)
-        | None, None -> Reg (Fake n)
-        | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
+        match FreshRetReg.get n, is_global n with
+        | Some i, false -> Asm.callee_ret_op ret_ptr_reg i
+        | None, true -> Mem (Global n)
+        | None, false -> Reg (Fake n)
+        | Some _, true -> failwith "munch_stmt: reg can't be ret and global"
       in
       let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
       e_lst @ [movq (Reg (Fake e_reg)) dest]
@@ -993,11 +1000,11 @@ and chomp_stmt
     begin
       let dest =
         (* moving return values to _RETi before returning *)
-        match FreshRetReg.get n, FreshGlobal.get_str n with
-        | Some i, None -> Asm.callee_ret_op ret_ptr_reg i
-        | None, Some _ -> Mem (Global n)
-        | None, None -> Reg (Fake n)
-        | Some _, Some _ -> failwith "munch_stmt: reg can't be ret and global"
+        match FreshRetReg.get n, is_global n with
+        | Some i, false -> Asm.callee_ret_op ret_ptr_reg i
+        | None, true -> Mem (Global n)
+        | None, false -> Reg (Fake n)
+        | Some _, true -> failwith "munch_stmt: reg can't be ret and global"
       in
       let new_tmp = Reg (Fake (FreshReg.fresh ())) in
       let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in

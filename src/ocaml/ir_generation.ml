@@ -315,7 +315,16 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
       List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm ctxt)::acc) ~init:[] in
     Call (Name name, args_ir)
   | Null -> Const 0L
-  | New (_, cname) -> malloc_ir (Mem (Name (class_size cname), NORMAL))
+  | New (_, cname) ->
+      let open Ir.Abbreviations in
+      let objloc = Temp (fresh_temp ()) in
+      ESeq (
+        Seq [
+          move objloc (malloc_ir (mem (name (class_size cname))));
+          move (mem objloc) (mem (name (class_dv cname)));
+        ],
+        objloc
+      )
   | _ -> failwith "TODO"
 
 (******************************************************************************)

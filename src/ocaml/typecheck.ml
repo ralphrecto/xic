@@ -400,7 +400,11 @@ and expr_call_helper (c : contexts) p argtype rettype args : expr list Error.res
   match argtype, rettype with
   | _, UnitT -> Error (p, "Using proc call as an expr")
   | TupleT tl, _ -> exprs_typecheck p c tl args num_f_args typ_f_args
-  | _ -> exprs_typecheck p c [argtype] args num_f_args typ_f_args
+  | (IntT|BoolT|ArrayT _|KlassT _), _ ->
+    exprs_typecheck p c [argtype] args num_f_args typ_f_args
+  | UnitT, _ -> exprs_typecheck p c [] args num_f_args typ_f_args
+  | EmptyArray, _ -> failwith "expr_call_helper: EmptyArray as argument type"
+  | NullT, _ -> failwith "expr_call_helper: NullT as argument type"
 
 and expr_typecheck (c : contexts) (p, expr) =
   match expr with

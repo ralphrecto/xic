@@ -432,7 +432,7 @@ and expr_typecheck (c : contexts) (p, expr) =
       | _, _, (EQEQ|NEQ) when comparable array_subtyping lt rt -> Ok (BoolT, e)
       (* array concat *)
       | _, _, PLUS when array_subtyping EmptyArray lt && array_subtyping EmptyArray rt ->
-        type_max array_subtyping p lt rt >>= fun max_t -> Ok (ArrayT max_t, e)
+        type_max array_subtyping p lt rt >>= fun max_t -> Ok (max_t, e)
       | _ ->
         (* TODO: handle equality over objects *)
         let binop_str = Ast.string_of_binop_code opcode in
@@ -668,7 +668,7 @@ let stmt_typecheck (c : contexts) rho s =
           else
             let ls = Expr.to_string (fst l') in
             let rs = Expr.to_string (fst r') in
-            err (sprintf "Cannot assign type %s to type %s" ls rs)
+            err (sprintf "Cannot assign type %s to type %s" rs ls)
         | _ -> err "Invalid left-hand side of assignment"
       end
     | Decl vs -> begin

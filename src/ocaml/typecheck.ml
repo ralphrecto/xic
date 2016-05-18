@@ -956,44 +956,7 @@ type inter_ctx = {
   func_decls  : Pos.callable_decl String.Map.t;
 }
 
-let typ_eq (_, t1) (_, t2) : bool = t1 = t2
-
-let avars_eq (_, av1) (_, av2) : bool =
-  match av1, av2 with
-  | AId ((_, i1), t1), AId ((_, i2), t2) ->
-      i1 = i2 && typ_eq t1 t2
-  | AUnderscore t1, AUnderscore t2 ->
-      typ_eq t1 t2
-  | _ -> false
-
-let list_eq pred list1 list2 : bool =
-  match List.zip list1 list2 with
-  | None -> false
-  | Some l -> List.for_all ~f:(fun (v1, v2) -> pred v1 v2) l
-
-let call_decl_eq (_, f1) (_, f2) : bool =
-  match f1, f2 with
-  | FuncDecl ((_, id1), av1, t1), FuncDecl ((_, id2), av2, t2) ->
-      id1 = id2 && list_eq avars_eq av1 av2 && list_eq typ_eq t1 t2
-  | ProcDecl ((_, id1), av1), ProcDecl ((_, id2), av2) ->
-      id1 = id2 && list_eq avars_eq av1 av2
-  | _ -> false
-
-let klass_decl_eq (_, k1) (_, k2) : bool =
-  let KlassDecl ((_, id1), super1, fdecls1) = k1 in
-  let KlassDecl ((_, id2), super2, fdecls2) = k2 in
-  let super_eq =
-    match super1, super2 with
-    | Some c1, Some c2 when c1 = c2 -> true
-    | _ -> false in
-  let fdecl_eq =
-    match List.zip fdecls1 fdecls2 with
-    | None -> false
-    | Some l ->
-        List.for_all ~f:(fun (f1, f2) -> call_decl_eq f1 f2) l in
-  id1 = id2 && super_eq && fdecl_eq
-
-let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) : KlassM.t =
+let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) =
   let super' =
     match super with
     | None -> None
@@ -1088,7 +1051,7 @@ let interface_typecheck (c : contexts) (interface : Pos.interface) : interface E
   let uses' = List.map ~f:(fun (_, Use (_, id)) -> ((), Use ((), id))) uses in
   Ok ((), Interface (name, uses', kdecls', fdecls'))
 
-let interfaces_typecheck (interfaces: Pos.interface list) =
+let interfaces_typecheck (prog_uses : Pos.use list) (interfaces: Pos.interface list) =
   (* set up of contexts *)
   List.map ~f:ctx_of_interface interfaces |> Result.all >>= fun inter_ctxs ->
   let name_ctx_pairs = List.map ~f:(fun ctx -> (ctx.name, ctx)) inter_ctxs in
@@ -1113,16 +1076,29 @@ let interfaces_typecheck (interfaces: Pos.interface list) =
       mapacc >>= fun mapacc' ->
       let (_, KlassDecl ((_, id), _, _)) = kdecl in
       match String.Map.find mapacc' id with
-      | None -> Ok (String.Map.add mapacc' ~key:id ~data:(kdecl, [intname]))
-      | Some (kdecl2, uses) ->
-          if klass_decl_eq kdecl kdecl2 then
-            Ok (String.Map.add mapacc' ~key:id ~data:(kdecl2, intname :: uses))
+      | None -> Ok (String.Map.add mapacc' ~key:id ~data:kdecl)
+      | Some kdecl2 ->
+          if kdecl = kdecl2 then
+            Ok (String.Map.add mapacc' ~key:id ~data:kdecl2)
           else Error ((-1, -1), klass_conflict id intname) in
     List.fold_left ~f ~init:(Ok classmap) kdecls in
-  List.fold_left ~f:class_dup_f ~init:(Ok String.Map.empty) interfaces' >>= fun cmap ->
+  List.fold_left ~f:class_dup_f ~init:(Ok String.Map.empty) interfaces' >>= fun _ ->
+
+  (* final pass: build delta_i from given ctx map, prog uses *)
+  let kname_km_pairs =
+    let f kdecl =
+      let (_, KlassDecl ((_, name), _, _)) = kdecl in
+      (name, kdecl_to_klassm kdecl) in
+    let use_strs = List.map ~f:(fun (_, Use (_, id)) -> id) prog_uses in
+    String.Map.filter_keys ~f:(List.mem use_strs) ctx_map |>
+    String.Map.map ~f:(fun c -> String.Map.data c.class_decls) |>
+    String.Map.data |>
+    List.concat |>
+    List.map ~f in
+
   Ok (interfaces', {
     empty_contexts with
-    class_decl_index = String.Map.map ~f:snd cmap;
+    delta_i = String.Map.of_alist_exn kname_km_pairs;
   })
 
 
@@ -1564,7 +1540,7 @@ let prog_typecheck p =
   (* TODO: MUST CHANGE RIGHT NOW RETURNING EMPTY LIST FOR GLOBALS AND DECLS
            ALSO CHANGE EMPTY CONTEXTS
      TODO: why is interfaces_typecheck this far down? *)
-  interfaces_typecheck interfaces >>= fun (interfaces', _) ->
+  interfaces_typecheck uses interfaces >>= fun (interfaces', _) ->
   Ok ({
     prog  = FullProg (name, ((), Prog (use_list, gamma.typed_globals, [], func_list)), interfaces');
     ctxts = gamma;

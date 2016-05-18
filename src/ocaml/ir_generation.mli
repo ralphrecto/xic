@@ -34,12 +34,22 @@ module FreshRetReg : Fresh.S (* _RET     *)
 module FreshGlobal : Fresh.S (* _I_g_    *)
 module FreshSize   : Fresh.S (* _I_size_ *)
 module FreshDV     : Fresh.S (* _I_vt_   *)
+module FreshMethod : Fresh.S (* _I_m_   *)
 
 val temp  : int -> string
 val label : int -> string
 val reset_fresh_temp : unit -> unit
 val reset_fresh_label : unit -> unit
 val global_temp : string -> Typecheck.Expr.t -> string
+
+(* class_size c = _I_size_c *)
+val class_size : string -> string
+
+(* class_dv c = _I_vt_c *)
+val class_dv   : string -> string
+
+(* class_method c f = _I_m_c_f *)
+val class_method : class_:string -> method_:string -> string
 
 (******************************************************************************)
 (* Helpers                                                                    *)

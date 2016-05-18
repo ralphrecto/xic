@@ -42,6 +42,7 @@ module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
 module FreshGlobal = Fresh.Make(struct let name = "_I_g_" end)
 module FreshSize   = Fresh.Make(struct let name = "_I_size_" end)
 module FreshDV     = Fresh.Make(struct let name = "_I_vt_"   end)
+module FreshMethod = Fresh.Make(struct let name = "_I_m_" end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -68,6 +69,10 @@ let class_size c =
 
 let class_dv c =
   FreshDV.gen_str (Ir_util.double_underscore c)
+
+let class_method ~class_ ~method_ =
+  let u = Ir_util.double_underscore in
+  FreshMethod.gen_str (sprintf "_I_m_%s_%s" (u class_) (u method_))
 
 (******************************************************************************)
 (* Helpers                                                                    *)

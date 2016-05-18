@@ -478,7 +478,7 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr 
 and gen_stmt callnames s ctxt =
   let open Expr in
 
-  let rec help callnames ((_, s): Typecheck.stmt) (break_label: string option) =
+  let rec help callnames ((t, s): Typecheck.stmt) (break_label: string option) =
     let make_id id t =
       if String.Set.mem ctxt.globals id
         then global_temp id t
@@ -596,12 +596,20 @@ and gen_stmt callnames s ctxt =
           Jump (Name while_label);
           Label f_label;
         ])
-    | S.ProcCall ((_, id), args) ->
-      let name = match String.Map.find callnames id with
-        | Some s -> s
-        | None -> failwith "impossible: calling unknown function" in
-      let f = fun arg -> gen_expr callnames arg ctxt in
-      Exp (Call (Name name, List.map ~f args))
+    | S.ProcCall ((_, id), args) -> begin
+      match String.Map.find callnames id with
+      | Some name ->
+        let f = fun arg -> gen_expr callnames arg ctxt in
+        Exp (Call (Name name, List.map ~f args))
+      | None -> begin
+        match ctxt.class_context with
+        | Some c ->
+            let this = (KlassT c, S.Id ((), "this")) in
+            let m = (t, S.MethodCallStmt (this, ((), id), args)) in
+            gen_stmt callnames m ctxt
+        | None -> failwith (sprintf "gen_stmt: calling %s doesn't exist" id)
+      end
+    end
     | S.Break -> begin
       match break_label with
       | None -> failwith "impossible: break has nowhere to jump"

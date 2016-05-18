@@ -55,9 +55,6 @@ type irgen_info = {
   comp_unit  : Ir.comp_unit;
   contexts   : Typecheck.contexts;
 
-  (* predicate specifying which function names should not be made .global *)
-  non_global : string -> bool;
-
   (* symbols to put in .bss section *)
   bss        : string list;
 

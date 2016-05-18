@@ -513,7 +513,7 @@ let eat_func_decl
   let num_temps = List.length (fakes_of_asms body_asm) in
 
   let directives =
-    if fname = Ir_generation.global_name
+    if fname = Ir_generation.concat_name || fname = Ir_generation.global_name
       then [align 4]
       else [globl fname; align 4]
   in

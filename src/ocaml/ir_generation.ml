@@ -126,7 +126,6 @@ type callnames = string String.Map.t
 type irgen_info = {
   comp_unit  : Ir.comp_unit;
   contexts   : Typecheck.contexts;
-  non_global : string -> bool;
   bss        : string list;
   ctors      : string list;
 }
@@ -579,14 +578,6 @@ and gen_comp_unit fp contexts =
   let callable_map = String.Map.add callable_map
     ~key:global_name ~data:(global_func_decl globals contexts) in
 
-  (* non globals *)
-  (* TODO:
-   *   - classinit
-   *   - methods *)
-  let non_global s =
-    s = concat_name || s = global_name
-  in
-
   (* bss *)
   (* TODO:
    *   - class sizes
@@ -608,7 +599,6 @@ and gen_comp_unit fp contexts =
   {
     comp_unit=(program_name, callable_map);
     contexts;
-    non_global;
     bss;
     ctors;
   }

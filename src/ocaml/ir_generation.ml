@@ -640,6 +640,54 @@ and global_func_decl globals ctxt =
     (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
   )
 
+and gen_method callnames (((a, b), callable): Typecheck.callable) contexts =
+  (*
+   * Consider this code:
+   *
+   *     class C {
+   *         foo(_: int) {}
+   *         bar() : int {}
+   *         baz(_: bool, _: bool) : int, bool {}
+   *     }
+   *
+   * Each method takes in an implicit zeroth "this" argument, so the types of C
+   * should be consed onto the argument types.
+   *
+   *     IntT                 -> TupleT [KlassT "C"; IntT]
+   *     UnitT                -> KlassT "C"
+   *     TupleT [BoolT; IntT] -> TupleT [KlassT "C"; BoolT; IntT]
+   *)
+  let typecons ~(t: Expr.t) ~(ts: Expr.t) =
+    let open Expr in
+    match ts with
+    | UnitT -> t
+    | IntT | BoolT | ArrayT _ | KlassT _ -> TupleT [t; ts]
+    | TupleT ts -> TupleT (t::ts)
+    | EmptyArray | NullT -> failwith "typecons: invalid method type"
+  in
+
+  (* prepend type *)
+  let c, ctype =
+    match contexts.class_context with
+    | Some c -> c, Expr.KlassT c
+    | None -> failwith "gen_method: no class context"
+  in
+  let t = (typecons ~t:ctype ~ts:a, b) in
+
+  (* prepend this *)
+  let this = (ctype, S.AId (((), "this"), (ctype, S.TKlass ((), c)))) in
+
+  let gen_func_decl c = gen_func_decl callnames c contexts in
+  match callable with
+  | S.Func (f, args, ret, body) ->
+      gen_func_decl (t, S.Func (f, this::args, ret, body))
+  | S.Proc (f, args, body) ->
+      gen_func_decl (t, S.Proc (f, this::args, body))
+
+and gen_class callnames (_, S.Klass ((_, c), _, _, methods)) contexts =
+  let contexts = {contexts with class_context=Some c} in
+  List.map methods ~f:(fun callable -> gen_method callnames callable contexts)
+
 (******************************************************************************)
 (* gen_comp_unit                                                              *)
 (******************************************************************************)

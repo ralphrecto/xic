@@ -91,13 +91,14 @@ val class_init_name      : string -> string
 val class_init_ir        : string -> Typecheck.contexts -> Ir.stmt
 val class_init_func_decl : string -> Typecheck.contexts -> Ir.func_decl
 
-val gen_expr      : callnames -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
-(* the control translation for booleans from lecture notes
- * boolean -> true label -> false label -> resulting jumps *)
+(* gen_control _ _ _ e t f _ = C[[e, t, f]] *)
 val gen_control   : callnames -> Typecheck.expr -> string -> string -> Typecheck.contexts -> Ir.stmt
-val gen_stmt      : callnames -> Typecheck.stmt -> Typecheck.contexts -> Ir.stmt
-val gen_func_decl : callnames -> Typecheck.callable -> Typecheck.contexts -> Ir.func_decl
-val gen_comp_unit : Typecheck.full_prog -> Typecheck.contexts -> irgen_info
+val gen_expr      : callnames -> Typecheck.expr      -> Typecheck.contexts -> Ir.expr
+val gen_stmt      : callnames -> Typecheck.stmt      -> Typecheck.contexts -> Ir.stmt
+val gen_func_decl : callnames -> Typecheck.callable  -> Typecheck.contexts -> Ir.func_decl
+val gen_method    : callnames -> Typecheck.callable  -> Typecheck.contexts -> Ir.func_decl
+val gen_class     : callnames -> Typecheck.klass     -> Typecheck.contexts -> Ir.func_decl list
+val gen_comp_unit :              Typecheck.full_prog -> Typecheck.contexts -> irgen_info
 
 (******************************************************************************)
 (* Lowering                                                                   *)

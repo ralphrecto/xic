@@ -76,6 +76,11 @@ val global_name      : string
 val global_ir        : Typecheck.global list -> Typecheck.contexts -> Ir.stmt
 val global_func_decl : Typecheck.global list -> Typecheck.contexts -> Ir.func_decl
 
+(* Class initialization code. *)
+val class_init_name      : string -> string
+val class_init_ir        : string -> Typecheck.contexts -> Ir.stmt
+val class_init_func_decl : string -> Typecheck.contexts -> Ir.func_decl
+
 val gen_expr      : callnames -> Typecheck.expr -> Typecheck.contexts -> Ir.expr
 (* the control translation for booleans from lecture notes
  * boolean -> true label -> false label -> resulting jumps *)

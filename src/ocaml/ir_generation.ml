@@ -63,6 +63,12 @@ let argreg = FreshArgReg.gen
 let global_temp (x: string) (t: Typecheck.Expr.t) =
   FreshGlobal.gen_str (x ^ "_" ^ (Ir_util.abi_type_name false t))
 
+let class_size c =
+  FreshSize.gen_str (Ir_util.double_underscore c)
+
+let class_dv c =
+  FreshDV.gen_str (Ir_util.double_underscore c)
+
 (******************************************************************************)
 (* Helpers                                                                    *)
 (******************************************************************************)
@@ -198,6 +204,37 @@ let concat_ir =
 
 let concat_func_decl =
   (concat_name, concat_ir, (Typecheck.Expr.EmptyArray, Typecheck.Expr.EmptyArray))
+
+(******************************************************************************)
+(* Class Initialization                                                       *)
+(******************************************************************************)
+let class_init_name c =
+  "_I_init_" ^ Ir_util.double_underscore c
+
+let class_init_ir c {delta_m; _} =
+  let open Typecheck.KlassM in
+  let {super; fields; methods; _} = String.Map.find_exn delta_m c in
+
+  match super with
+  | Some _s  -> failwith "TODO"
+  | None ->
+    let obj_size = const (8 * (1 + (List.length fields))) in
+    let dv_size = 1 + (List.length methods) in
+
+    let open Ir.Abbreviations in
+    let open Ir.Infix in
+    seq [
+      move (temp (class_size c)) obj_size;
+      move (temp (class_dv c)) (malloc_word dv_size);
+      failwith "TODO"
+    ]
+
+let class_init_func_decl c contexts =
+  (
+    class_init_name c,
+    class_init_ir c contexts,
+    (Typecheck.Expr.UnitT, Typecheck.Expr.UnitT)
+  )
 
 (******************************************************************************)
 (* gen_expr                                                                   *)
@@ -589,14 +626,8 @@ and gen_comp_unit fp contexts =
   ) in
 
   let classes = String.Map.keys contexts.delta_m in
-
-  let sizes_bss = List.map classes ~f:(fun c ->
-    FreshSize.gen_str (Ir_util.double_underscore c)
-  ) in
-
-  let dvs_bss = List.map classes ~f:(fun c ->
-    FreshDV.gen_str (Ir_util.double_underscore c)
-  ) in
+  let sizes_bss = List.map classes ~f:class_size in
+  let dvs_bss = List.map classes ~f:class_dv in
 
   let bss = globals_bss @ sizes_bss @ dvs_bss in
 

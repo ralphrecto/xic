@@ -35,14 +35,15 @@ let string_of_blocks bs =
 (******************************************************************************)
 (* Naming                                                                     *)
 (******************************************************************************)
-module FreshTemp   = Fresh.Make(struct let name = "__temp" end)
-module FreshLabel  = Fresh.Make(struct let name = "__label" end)
-module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
-module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
-module FreshGlobal = Fresh.Make(struct let name = "_I_g_" end)
-module FreshSize   = Fresh.Make(struct let name = "_I_size_" end)
-module FreshDV     = Fresh.Make(struct let name = "_I_vt_"   end)
-module FreshMethod = Fresh.Make(struct let name = "_I_m_" end)
+module FreshTemp      = Fresh.Make(struct let name = "__temp" end)
+module FreshLabel     = Fresh.Make(struct let name = "__label" end)
+module FreshArgReg    = Fresh.Make(struct let name = "_ARG" end)
+module FreshRetReg    = Fresh.Make(struct let name = "_RET" end)
+module FreshGlobal    = Fresh.Make(struct let name = "_I_g_" end)
+module FreshSize      = Fresh.Make(struct let name = "_I_size_" end)
+module FreshDV        = Fresh.Make(struct let name = "_I_vt_"   end)
+module FreshMethod    = Fresh.Make(struct let name = "_I_m_" end)
+module FreshClassInit = Fresh.Make(struct let name = "_I_init_" end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -217,7 +218,7 @@ let magic_number =
   Int64.of_int 0xdeadbeef
 
 let class_init_name c =
-  "_I_init_" ^ Ir_util.double_underscore c
+  FreshClassInit.gen_str (Ir_util.double_underscore c)
 
 let class_init_ir c {delta_m; delta_i; _} =
   let open Typecheck.KlassM in
@@ -381,8 +382,43 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         ],
         objloc
       )
-  | S.FieldAccess (_c, _f) -> failwith "TODO"
-  | S.MethodCall (_c, _f, _args) -> failwith "TODO"
+  | S.FieldAccess ((t, c), ((), f)) -> begin
+    match t with
+    | KlassT cname ->
+      let class_info = String.Map.find_exn ctxt.delta_m cname in
+      let field_names = List.map ~f:fst class_info.KlassM.fields in
+      let field_index = uw (Util.index field_names f) in
+      let offset = const (8 * (field_index - (List.length field_names))) in
+
+      let e = gen_expr callnames (t, c) ctxt in
+      let fresh_tmp = fresh_temp () in
+
+      let open Ir.Abbreviations in
+      let open Ir.Infix in
+      let size = temp (class_size cname) in
+      eseq (move (temp fresh_tmp) (mem (e + size + offset))) (temp fresh_tmp)
+    | _ -> failwith "gen_stmt: accessing field of non class type"
+  end
+  | S.MethodCall (c, ((), f), args) -> begin
+    match t with
+    | KlassT cname ->
+      let {delta_m; delta_i; _} = ctxt in
+      let methods = Typecheck.methods ~delta_m ~delta_i cname in
+      let index = const (8 * uw (Util.index methods f)) in
+
+      let open Ir.Abbreviations in
+      let open Ir.Infix in
+      let o = gen_expr callnames c ctxt in
+      let args_ir = List.map (c::args) ~f:(fun a -> gen_expr callnames a ctxt) in
+      let t1 = fresh_temp () in
+      let f = fresh_temp () in
+      let ss = seq [
+        move (temp t1) (mem o);
+        move (temp f) (mem (temp t1 + index));
+      ] in
+      eseq ss (Call (temp f, args_ir))
+    | _ -> failwith "gen_stmt: accessing method of non class type"
+  end
 
 (******************************************************************************)
 (* gen_control                                                                *)
@@ -615,7 +651,8 @@ and gen_stmt callnames s ctxt =
       | None -> failwith "impossible: break has nowhere to jump"
       | Some s -> Jump (Name s)
     end
-    | S.MethodCallStmt _ -> failwith "TODO"
+    | S.MethodCallStmt (o, f, args) ->
+        Exp (gen_expr callnames (Expr.UnitT, S.MethodCall (o, f, args)) ctxt)
   in
   help callnames s None
 
@@ -725,8 +762,9 @@ and gen_class callnames (_, S.Klass ((_, c), _, _, methods)) contexts =
 (* gen_comp_unit                                                              *)
 (******************************************************************************)
 and gen_comp_unit fp contexts =
+  let contexts = {contexts with class_context=None} in
   let S.FullProg (name, (_, program), interfaces) = fp in
-  let S.Prog (_, globals, _, callables) = program in
+  let S.Prog (_, globals, classes, callables) = program in
 
   (* callable name -> mangled callable name *)
   let f (_, S.Interface (_, _, _, cs)) = cs in
@@ -741,6 +779,15 @@ and gen_comp_unit fp contexts =
     (name, gen)
   ) in
   let callable_map = String.Map.of_alist_exn gen_callables in
+
+  (* classes *)
+  let callable_map = List.fold_left classes ~init:callable_map ~f:(fun cm c ->
+    let method_decls = gen_class callnames c contexts in
+    List.fold_left method_decls ~init:cm ~f:(fun cm d ->
+      let (name, _, _) = d in
+      String.Map.add cm ~key:name ~data:d
+    )
+  ) in
 
   (* concat *)
   let callable_map = String.Map.add callable_map

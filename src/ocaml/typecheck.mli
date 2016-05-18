@@ -356,8 +356,6 @@ val interface_typecheck : contexts -> Pos.interface -> interface Error.result
 val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.result
 val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 
-val interfaces_typecheck : Pos.interface list -> (interface list * contexts) Error.result
-
 (* TODO: document the order in which passes are done and what each pass does. *)
 (**
  * The global pass checks that the following conditions hold:
@@ -374,6 +372,7 @@ val interfaces_typecheck : Pos.interface list -> (interface list * contexts) Err
  *       order they should be initialized. Moreover, each decl and declassgn is
  *       flattened into a singleton list.
  *)
+val interfaces_typecheck : Pos.use list -> Pos.interface list -> (interface list * contexts) Error.result
 val global_pass : contexts -> Pos.global list -> contexts Error.result
 val fst_klass_pass : contexts -> Pos.klass list -> contexts Error.result
 val prog_typecheck: Pos.full_prog -> typecheck_info Error.result

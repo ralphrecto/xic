@@ -256,7 +256,9 @@ let class_init_ir c {delta_m; delta_i; _} =
       let method_ = Typecheck.id_of_callable_decl call in
       move (mem (dv + Pervasives.(k (i + 1 + super_size))))
            (name (class_method ~class_:c ~method_))
-    )
+    ) @ [
+      return
+    ]
   | None ->
     let obj_size = const (8 * (1 + (List.length fields))) in
     let dv_size = 1 + (List.length methods) in
@@ -270,7 +272,9 @@ let class_init_ir c {delta_m; delta_i; _} =
     ] @ List.mapi methods ~f:(fun i call ->
       let method_ = Typecheck.id_of_callable_decl call in
       move (mem (dv + (k (succ i)))) (name (class_method ~class_:c ~method_))
-    )
+    ) @ [
+      return
+    ]
 
 let class_init_func_decl c contexts =
   (
@@ -701,7 +705,8 @@ and global_ir (globals: Typecheck.global list) ctxt =
     | S.Gdecl vs -> Some (Stmt.One, S.Decl vs)
     | S.GdeclAsgn (vs, e) -> Some (Stmt.One, S.DeclAsgn (vs, e))
   ) in
-  gen_stmt String.Map.empty (Stmt.One, S.Block initializers) ctxt
+  let return = [(Stmt.Zero, S.Return [])] in
+  gen_stmt String.Map.empty (Stmt.One, S.Block (initializers @ return)) ctxt
 
 and global_func_decl globals ctxt =
   (

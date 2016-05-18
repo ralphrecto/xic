@@ -763,7 +763,8 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AUnderscore typ -> Expr.of_typ typ
 
 let func_decl_typecheck (c: contexts) ((p, call): Pos.callable_decl) =
-  match call with | FuncDecl ((_, id), args, rets) ->
+  match call with
+  | FuncDecl ((_, id), args, rets) ->
     begin
       if Context.mem c.locals id then
         Error (p, dup_func_decl id)
@@ -1373,7 +1374,6 @@ let method_def_ok ((_, c1) as c1') ((_, c2) as c2') =
 (* need to check if fields shadow globals in second pass *)
 (* typ_typecheck needs to be run on second pass *)
 (* need to check if methods shadow functions in second pass *)
-(* need to check names are unique *)
 let fst_klass_pass contexts klasses =
   let module SortedGraph = Topological.Make(KlassGraph) in
   let module DfsGraph = Traverse.Dfs(KlassGraph) in
@@ -1432,35 +1432,31 @@ let fst_klass_pass contexts klasses =
         if List.contains_dup method_names then Error (p, dup_method_decl)
         else
           let check_inter () =
+            let method_decls_match methods1 methods2 =
+              let f ((p, _) as e1) e2 acc =
+                acc >>= fun acc' ->
+                if method_def_ok e1 e2 then
+                  Ok (e1::acc')
+                else
+                  Error (p, inconsist_method_inter (id_of_callable_decl e1))
+              in
+              begin
+                try
+                  L.fold_right2 f methods1 methods2 (Ok [])
+                with _ -> Error (p, inconsist_class k)
+              end
+            in
             match String.Map.find contexts.delta_i k with
             | Some def ->
               begin
-                let f ((p, _) as e1) e2 acc =
-                  acc >>= fun acc' ->
-                  if method_def_ok e1 e2 then
-                    Ok (e1::acc')
-                  else
-                    Error (p, inconsist_method_inter (id_of_callable_decl e1))
-                in
                 match super, def.super with
-                | None, None ->
-                  begin
-                    try
-                      L.fold_right2 f methods def.methods (Ok [])
-                    with _ -> Error (p, inconsist_class k)
-                  end
-                | Some (_, s), Some s' when s = s' ->
-                  begin
-                    try
-                      L.fold_right2 f methods def.methods (Ok [])
-                    with _ -> Error (p, inconsist_class k)
-                  end
+                | None, None -> method_decls_match methods def.methods
+                | Some (_, s), Some s' when s = s' -> method_decls_match methods def.methods
                 | _ ->  Error (p, inconsist_class k)
               end
             | None -> Ok methods
           in
-          check_inter () >>= fun methods1 ->
-          let check_super () =
+          let check_super methods1 =
             match super with
             | None -> Ok ({name = k;
                            super = None;
@@ -1502,7 +1498,8 @@ let fst_klass_pass contexts klasses =
                      methods = m;
                      overrides = o})
           in
-          check_super () >>= fun klass' ->
+          check_inter () >>= fun methods1 ->
+          check_super methods1 >>= fun klass' ->
           let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass' in
           Ok ({contexts' with delta_m = delta_m'})
       in

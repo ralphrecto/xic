@@ -365,12 +365,46 @@ val snd_func_pass: contexts -> Pos.callable -> callable Error.result
  *   (4) If a global is uninit or initialized to constants or to other globals
  *   (5) The global dependency graph is acyclic
  *   (6) All the types mentioned by the globals are ok
+ *
  * If all these conditions are met, a new contexts is returned in which
  *   (a) gamma is populated with the globals
  *   (b) globals is populated with the set of all global identifiers
  *   (c) typed_globals is populated with a list of typechecked globals in the
  *       order they should be initialized. Moreover, each decl and declassgn is
  *       flattened into a singleton list.
+ *
+ * -----------------------------------------------------------------------------
+ *
+ * The first klass pass checks that the following conditions hold for all classes:
+ *   (1) All super classes are defined in either an interface file or a xi file
+ *   (2) There are no duplicate class names
+ *   (3) There are no cycles in the class hierarchy
+ *
+ * After all these conditions are met,
+ * it checks the following for each class in topological order:
+ *   - fields
+ *   (a) Fields do not have underscores
+ *   (b) Fields are not named "this"
+ *   (c) There are no duplicate field names
+ *
+ *   - methods
+ *     -> If the class definition exists in a interface file
+ *        (a) Check the class in module and class decl in interface extends the
+ *            same super class, if any.
+ *        (b) All methods have the same type, defined in the same order
+ *        (c) No extra functions are declared (even overriding) in the module
+ *            that arent' declared in the interface
+ *     -> If the class has a super class
+ *        (a) If it a overriding method, check that types match with super class
+ *
+ * After all these conditions are met we create a new KlassM where
+ *   (A) The name, super class and fields are identical as the Klass ast
+ *   (B) Methods are divided in to overriding methods and non-overriding methods
+ * and add it to the delta_m
+ *
+ * Then after we checked all the classes we return a new contexts with delta_m
+ * populated for each class
+ *
  *)
 val interfaces_typecheck : Pos.use list -> Pos.interface list -> (interface list * contexts) Error.result
 val global_pass : contexts -> Pos.global list -> contexts Error.result

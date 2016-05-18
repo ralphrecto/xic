@@ -377,6 +377,8 @@ val interface_typecheck : contexts -> Pos.interface -> interface Error.result
 val func_decl_typecheck: contexts -> Pos.callable_decl -> Sigma.t Error.result
 val func_typecheck: contexts -> Pos.callable -> Sigma.t Error.result
 val fst_func_pass: contexts -> Pos.callable list -> Pos.interface list -> contexts Error.result
+
+(* TODO: document *)
 val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 
 (* TODO: document the order in which passes are done and what each pass does. *)

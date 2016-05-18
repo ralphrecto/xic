@@ -26,7 +26,7 @@ link_and_run() {
     base="$(basename $filename)"
     ext="${base##*.}"
     binname="$(dirname $filename)/$(basename $filename $ext)-$ext"
-    runtime/runtime/linkxi.sh "$filename" -o "$binname"
+    runtime/runtime/linkxi.sh -x assembler "$filename" -o "$binname"
     "$binname"
 }
 

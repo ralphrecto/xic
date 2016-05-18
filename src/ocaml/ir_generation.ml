@@ -40,6 +40,8 @@ module FreshLabel  = Fresh.Make(struct let name = "__label" end)
 module FreshArgReg = Fresh.Make(struct let name = "_ARG" end)
 module FreshRetReg = Fresh.Make(struct let name = "_RET" end)
 module FreshGlobal = Fresh.Make(struct let name = "_I_g_" end)
+module FreshSize   = Fresh.Make(struct let name = "_I_size_" end)
+module FreshDV     = Fresh.Make(struct let name = "_I_vt_"   end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -579,15 +581,24 @@ and gen_comp_unit fp contexts =
     ~key:global_name ~data:(global_func_decl globals contexts) in
 
   (* bss *)
-  (* TODO:
-   *   - class sizes
-   *   - class dispatch vectors *)
   let globals = String.Set.to_list contexts.globals in
-  let bss = List.map globals ~f:(fun x ->
+  let globals_bss = List.map globals ~f:(fun x ->
     match Typecheck.Context.find_exn contexts.locals x with
     | Typecheck.Sigma.Var t -> global_temp x t
     | Typecheck.Sigma.Function _ -> failwith "impossible: global not in gamma"
   ) in
+
+  let classes = String.Map.keys contexts.delta_m in
+
+  let sizes_bss = List.map classes ~f:(fun c ->
+    FreshSize.gen_str (Ir_util.double_underscore c)
+  ) in
+
+  let dvs_bss = List.map classes ~f:(fun c ->
+    FreshDV.gen_str (Ir_util.double_underscore c)
+  ) in
+
+  let bss = globals_bss @ sizes_bss @ dvs_bss in
 
   (* ctors *)
   (* TODO:

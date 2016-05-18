@@ -304,7 +304,9 @@ public class Main {
       Parsed parsed = Actions.parseInterface(interfaceFile.reader);
 
       if (parsed.inter.isPresent()) {
-        return parsed.inter.get();
+        Interface<Position> inter = parsed.inter.get();
+        inter = Interface.of(inter.a, use.x.x, inter.uses, inter.classes, inter.fs);
+        return inter;
       } else {
         throw new XicException.XiUseException(
           interName, -1, -1,

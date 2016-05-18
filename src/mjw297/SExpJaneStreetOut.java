@@ -701,7 +701,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         startList();
         printAtom("Interface");
 
-        printAtom("TODO:RalphFixThisToBeAnActualString");
+        printAtom(i.name);
 
         startList();
         i.uses.forEach(u -> u.accept(this));

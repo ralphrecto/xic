@@ -254,6 +254,6 @@ public class PositionKiller {
         List<KlassDecl<Position>> klassDecls = Lists.transform(p.classes, PositionKiller::kill);
         List<CallableDecl<Position>> funcDecls = Lists.transform(p.fs, c -> c.accept(ck));
 
-        return Interface.of(dummyPosition, uses, klassDecls, funcDecls);
+        return Interface.of(dummyPosition, p.name, uses, klassDecls, funcDecls);
     }
 }

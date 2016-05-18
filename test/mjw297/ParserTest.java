@@ -465,7 +465,7 @@ public class ParserTest {
         List<KlassDecl<Position>> classes,
         List<CallableDecl<Position>> fs
     ) {
-        return Interface.of(PositionKiller.dummyPosition, uses, classes, fs);
+        return Interface.of(PositionKiller.dummyPosition, "", uses, classes, fs);
     }
 
     public static FuncDecl<Position> funcDecl(

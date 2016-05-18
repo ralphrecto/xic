@@ -650,7 +650,8 @@ and gen_stmt callnames s ctxt =
       | None -> failwith "impossible: break has nowhere to jump"
       | Some s -> Jump (Name s)
     end
-    | S.MethodCallStmt _ -> failwith "TODO"
+    | S.MethodCallStmt (o, f, args) ->
+        Exp (gen_expr callnames (Expr.UnitT, S.MethodCall (o, f, args)) ctxt)
   in
   help callnames s None
 

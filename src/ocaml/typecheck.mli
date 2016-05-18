@@ -349,11 +349,34 @@ val avar_typecheck: contexts -> Pos.avar -> avar Error.result
 val var_typecheck: contexts -> Pos.var -> var Error.result
 val stmt_typecheck: contexts -> Expr.t -> Pos.stmt -> stmt Error.result
 val global_typecheck: contexts -> Pos.global -> global Error.result
-val func_decl_typecheck: contexts -> Pos.callable_decl -> contexts Error.result
-val func_typecheck: contexts -> Pos.callable -> contexts Error.result
+
+
 val callable_decl_typecheck : Pos.callable_decl -> callable_decl Error.result
 val interface_typecheck : contexts -> Pos.interface -> interface Error.result
-val fst_func_pass: Pos.callable list -> Pos.interface list -> contexts Error.result
+
+(**
+ * The first function pass checks that the following conditions hold:
+ *   (1)  Every type mentioned in every callable_decl is ok
+ *   (2)  callable_decls do not have duplicate argument names
+ *   (3)  callable_decls arguments are not named "this"
+ *   (4)  func_decls have a return type
+ *   (5)  callable_decls with the same name have the same type
+ *   (6)  Every type mentioned in every callable is ok
+ *   (7)  callables do not have duplicate argument names
+ *   (8)  callables arguments are not named "this"
+ *   (9)  funcs have a return type
+ *   (10) callable names are unique
+ *   (11) callables respect their callable_decl
+ * If all these conditions are met, a new contexts is returned in which
+ *   - locals is updated with the types of every callable_decl and callable
+ * Also note:
+ *   - func_decl_typecheck checks for items (1), (2), (3), and (4)
+ *   - func_typecheck      checks for items (6), (7), (8), and (9)
+ *   - items (5), (10), and (11) are checked by fst_func_pass
+ *)
+val func_decl_typecheck: contexts -> Pos.callable_decl -> Sigma.t Error.result
+val func_typecheck: contexts -> Pos.callable -> Sigma.t Error.result
+val fst_func_pass: contexts -> Pos.callable list -> Pos.interface list -> contexts Error.result
 val snd_func_pass: contexts -> Pos.callable -> callable Error.result
 
 (* TODO: document the order in which passes are done and what each pass does. *)

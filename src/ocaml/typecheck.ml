@@ -762,92 +762,100 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AId (_, typ) -> Expr.of_typ typ
   | AUnderscore typ -> Expr.of_typ typ
 
+let shrink_types (ts: Expr.t list) : Expr.t =
+  match ts with
+  | [] -> UnitT
+  | [IntT as t]
+  | [BoolT as t]
+  | [ArrayT _ as t]
+  | [KlassT _ as t] -> t
+  | [TupleT _]
+  | [UnitT]
+  | [EmptyArray]
+  | [NullT] -> failwith "shrink_types: invalid function argument"
+  | _::_ -> TupleT ts
+
+(* makes*)
 let func_decl_typecheck (c: contexts) ((p, call): Pos.callable_decl) =
-  match call with
-  | FuncDecl ((_, id), args, rets) ->
-    begin
-      if Context.mem c.locals id then
-        Error (p, dup_func_decl id)
-      else
-        match args, rets with
-        | [], [ret_typ] ->
-          let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, ret_t))} in
-          Ok c'
-        | [arg_avar], [ret_typ] ->
-          let arg_t = avar_to_expr_t arg_avar in
-          let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, ret_t))} in
-          Ok c'
-        | _::_, [ret_typ] ->
-          let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-          let ret_t = Expr.of_typ ret_typ in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, ret_t))} in
-          Ok c'
-        | [], _::_ ->
-          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, rets_t))} in
-          Ok c'
-        | [arg_avar], _::_ ->
-          let arg_t = avar_to_expr_t arg_avar in
-          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, rets_t))} in
-          Ok c'
-        | _::_, _::_ ->
-          let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-          let rets_t = TupleT (List.map ~f:Expr.of_typ rets) in
-          let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, rets_t))} in
-          Ok c'
-        | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
+  let id = id_of_callable_decl (p, call) in
+  if Context.mem c.locals id then
+    Error (p, dup_func_decl id)
+  else
+    match call with
+    | FuncDecl (_, args, rets) -> begin
+      match args, rets with
+      | _, [] -> Error (p, "Function declaration must have return type")
+      | _, (_::_) ->
+        (* args *)
+        avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avars ->
+        let raw_avars = List.map ~f:snd avars in
+        let arg_type = shrink_types (List.map ~f:typeofavar raw_avars) in
+
+        (* rets *)
+        Result.all (List.map ~f:(typ_typecheck c) rets) >>= fun rets ->
+        let ret_type = shrink_types (List.map ~f:fst rets) in
+
+        Ok (Function (arg_type, ret_type))
     end
-    | ProcDecl ((_, id), args) ->
-      begin
-        if Context.mem c.locals id then
-          Error (p, dup_func_decl id)
-        else
-          match args with
-          |[] ->
-            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (UnitT, UnitT))} in
-            Ok c'
-          |[arg_avar] ->
-            let arg_t = avar_to_expr_t arg_avar in
-            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (arg_t, UnitT))} in
-            Ok c'
-          |_::_ ->
-            let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-            let c' = {c with locals = Context.add c.locals ~key:id ~data:(Function (args_t, UnitT))} in
-            Ok c'
-      end
+    | ProcDecl (_, args) ->
+        (* args *)
+        avars_typecheck p c args dup_var_decl bound_var_decl >>= fun avars ->
+        let raw_avars = List.map ~f:snd avars in
+        let arg_type = shrink_types (List.map ~f:typeofavar raw_avars) in
 
-let func_typecheck (c: contexts) ((p, call): Pos.callable) =
-  let call' = match call with
-    | Func (i, args, rets, _) -> FuncDecl (i, args, rets)
-    | Proc (i, args, _) -> ProcDecl (i, args) in
-  func_decl_typecheck c (p, call')
+        Ok (Function (arg_type, UnitT))
 
-let fst_func_pass (prog_funcs : Pos.callable list) (interfaces : Pos.interface list) =
-  let interface_map_fold (_, Interface (_, _, _, l)) =
-    let func_decl_fold acc e =
-      acc >>= fun g -> func_decl_typecheck g e in
-    List.fold_left ~init:(Ok empty_contexts) ~f:func_decl_fold l in
-  let inter_contexts =
-    List.map ~f:interface_map_fold interfaces in
-  let func_fold acc e =
-    acc >>= fun g -> func_typecheck g e in
-  let prog_context =
-    List.fold_left ~init:(Ok empty_contexts) ~f:func_fold prog_funcs in
-  prog_context::inter_contexts |> Result.all >>= fun contexts ->
-  let context_fold big_context next_context =
-    let context_union ~key ~data unified_res =
-      unified_res >>= fun unified ->
-      match String.Map.find unified.locals key with
-      | Some data' ->
-        if data' = data then Ok unified
-        else
-          Error ((-1, -1), sprintf "function %s has inconsistent type declarations" key)
-      | None -> Ok {unified with locals = (Context.bind unified.locals key data)} in
-    String.Map.fold ~init:big_context ~f:context_union next_context.locals in
-  List.fold_left ~init:(Ok empty_contexts) ~f:context_fold contexts
+let func_typecheck c (p, call) =
+  match call with
+  | Func (i, args, rets, _) -> func_decl_typecheck c (p, FuncDecl (i, args, rets))
+  | Proc (i, args, _)       -> func_decl_typecheck c (p, ProcDecl (i, args))
+
+let fst_func_pass contexts prog_funcs interfaces =
+  (* Put each decl into its own context. This allows two decls, either in the
+   * same interface or across interfaces, to have the same name. *)
+  let decls = List.concat_map interfaces ~f:(fun (_, Interface (_,_,_,l)) -> l) in
+  let decl_contexts = List.map decls ~f:(fun d ->
+    func_decl_typecheck contexts d >>= fun sigma ->
+    let id = id_of_callable_decl d in
+    Ok {contexts with locals=Context.bind contexts.locals id sigma}
+  ) in
+  Result.all decl_contexts >>= fun decl_contexts ->
+
+  (* Put funcs into a single context. This disallows functions from being
+   * defined twice within a module. *)
+  let prog_context = List.fold_left prog_funcs ~init:(Ok contexts) ~f:(fun c f ->
+    c >>= fun c ->
+    func_typecheck c f >>= fun sigma ->
+    let id = id_of_callable f in
+    Ok {c with locals=Context.bind c.locals id sigma}
+  ) in
+  prog_context >>= fun prog_context ->
+
+  (* Merge two gammas toghether, erroring out if two functions with the same
+   * name have different types. *)
+  let merge (a: context) (b: context) : context Error.result =
+    let merged = Context.merge a b ~f:(fun ~key x ->
+      ignore key;
+      match x with
+      | `Left v
+      | `Right v -> Some v
+      | `Both (v1, v2) -> if v1 = v2 then Some v1 else None
+    ) in
+    let all_ids = String.Set.of_list ((Context.keys a) @ (Context.keys b)) in
+    let merged_ids = String.Set.of_list (Context.keys merged) in
+    let dropped_ids = String.Set.diff all_ids merged_ids in
+    if String.Set.count ~f:(fun _ -> true) dropped_ids = 0 then
+      Ok merged
+    else
+      let dups = U.string_of_set ~short:true dropped_ids ~f:(fun x -> x) in
+      Error ((-1, -1), sprintf "these funcs declared multiple times: %s" dups)
+  in
+
+  List.fold_left (prog_context::decl_contexts) ~init:(Ok contexts) ~f:(fun a c ->
+    a >>= fun a ->
+    merge a.locals c.locals >>= fun locals ->
+    Ok {a with locals}
+  )
 
 (*
 TODO: should the position of the errors be more accurate? i.e. the actual
@@ -1511,10 +1519,10 @@ let fst_klass_pass contexts klasses =
 let prog_typecheck p =
   let FullProg (name, (_, Prog(uses, globals, klasses, funcs)), interfaces) = p in
 
-  fst_func_pass funcs interfaces >>= fun contexts ->
-  fst_klass_pass contexts klasses >>= fun contexts ->
-  global_pass contexts globals >>= fun gamma ->
-  Result.all(List.map ~f: (snd_func_pass gamma) funcs) >>= fun func_list ->
+  fst_klass_pass empty_contexts klasses >>= fun contexts ->
+  global_pass contexts globals >>= fun contexts ->
+  fst_func_pass contexts funcs interfaces >>= fun contexts ->
+  Result.all (List.map ~f: (snd_func_pass contexts) funcs) >>= fun func_list ->
   let use_typecheck use =
     match snd use with
     | Use (_, id) -> ((), Use ((), id))
@@ -1525,6 +1533,6 @@ let prog_typecheck p =
      TODO: why is interfaces_typecheck this far down? *)
   interfaces_typecheck uses interfaces >>= fun (interfaces', _) ->
   Ok ({
-    prog  = FullProg (name, ((), Prog (use_list, gamma.typed_globals, [], func_list)), interfaces');
-    ctxts = gamma;
+    prog  = FullProg (name, ((), Prog (use_list, contexts.typed_globals, [], func_list)), interfaces');
+    ctxts = contexts;
   })

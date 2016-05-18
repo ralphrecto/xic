@@ -282,14 +282,15 @@ let class_init_func_decl c contexts =
 (* gen_expr                                                                   *)
 (******************************************************************************)
 let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt =
+  let open Expr in
   match e with
-  | Int i -> Const i
-  | Bool b -> if b then Const (1L) else Const (0L)
-  | String s ->
+  | S.Int i -> Const i
+  | S.Bool b -> if b then Const (1L) else Const (0L)
+  | S.String s ->
     let elms = String.fold s ~init:[] ~f:(fun acc c -> (t, Ast.S.Char c)::acc) in
-    gen_expr callnames (ArrayT IntT, Array (List.rev elms)) ctxt
-  | Char c -> Const (Int64.of_int (Char.to_int c))
-  | Array elts ->
+    gen_expr callnames (ArrayT IntT, S.Array (List.rev elms)) ctxt
+  | S.Char c -> Const (Int64.of_int (Char.to_int c))
+  | S.Array elts ->
     let arr_len = List.length elts in
     let mem_loc = malloc_word (arr_len + 1) in
     let loc_tmp = Temp (fresh_temp ()) in
@@ -304,7 +305,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
       ),
       loc_tmp$(1)
     )
-  | Id (_, id) -> begin
+  | S.Id (_, id) -> begin
     if String.Set.mem ctxt.globals id then
       let global_tmp = Temp (global_temp id t) in
       let fresh_tmp = Temp (fresh_temp ()) in
@@ -312,20 +313,31 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         Move (fresh_tmp, global_tmp),
         fresh_tmp
       )
-    else
-      Temp id
+    else begin
+      match ctxt.class_context with
+      | Some c ->
+          let class_info = String.Map.find_exn ctxt.delta_m c in
+          let field_names = List.map class_info.KlassM.fields ~f:fst in
+          if List.mem field_names id then
+            let this = (KlassT c, S.Id ((), "this")) in
+            let fa = (t, S.FieldAccess (this, ((), id))) in
+            gen_expr callnames fa ctxt
+          else
+            Temp id
+      | None -> Temp id
+    end
   end
-  | BinOp ((t1, e1), op, (t2, e2)) -> begin
+  | S.BinOp ((t1, e1), op, (t2, e2)) -> begin
       match t1, op, t2 with
       (* Array concatenation *)
-      | (ArrayT _ | EmptyArray), PLUS, (ArrayT _ | EmptyArray) ->
+      | (ArrayT _ | EmptyArray), S.PLUS, (ArrayT _ | EmptyArray) ->
           Call (Name concat_name, [gen_expr callnames (t1, e1) ctxt;
                                    gen_expr callnames (t2, e2) ctxt])
       | _ -> BinOp (gen_expr callnames (t1, e1) ctxt, ir_of_ast_binop op, gen_expr callnames (t2, e2) ctxt)
     end
-  | UnOp (UMINUS, e1) -> BinOp (Const (0L), SUB, gen_expr callnames e1 ctxt)
-  | UnOp (BANG, e1) -> not_expr (gen_expr callnames e1 ctxt)
-  | Index (a, i) ->
+  | S.UnOp (S.UMINUS, e1) -> BinOp (Const (0L), SUB, gen_expr callnames e1 ctxt)
+  | S.UnOp (S.BANG, e1) -> not_expr (gen_expr callnames e1 ctxt)
+  | S.Index (a, i) ->
     let index = gen_expr callnames i ctxt in
     let addr = gen_expr callnames a ctxt in
     let index_tmp = Temp (fresh_temp ()) in
@@ -343,16 +355,23 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         Label t_label;
       ]),
       Mem (BinOp (addr_tmp, ADD, BinOp (word, MUL, index_tmp)), NORMAL))
-  | Length a -> Mem (BinOp(gen_expr callnames a ctxt, SUB, word), NORMAL)
-  | FuncCall ((_, id), args) ->
-    let name = match String.Map.find callnames id with
-      | Some s -> s
-      | None -> failwith "impossible: calling an unknown function" in
-    let args_ir =
-      List.fold_right args ~f:(fun elm acc -> (gen_expr callnames elm ctxt)::acc) ~init:[] in
-    Call (Name name, args_ir)
-  | Null -> Const 0L
-  | New (_, cname) ->
+  | S.Length a -> Mem (BinOp(gen_expr callnames a ctxt, SUB, word), NORMAL)
+  | S.FuncCall (((), id), args) -> begin
+    match String.Map.find callnames id with
+    | Some name ->
+      let args_ir = List.map args ~f:(fun arg -> gen_expr callnames arg ctxt) in
+      Call (Name name, args_ir)
+    | None -> begin
+      match ctxt.class_context with
+      | Some c ->
+          let this = (KlassT c, S.Id ((), "this")) in
+          let m = (t, S.MethodCall (this, ((), id), args)) in
+          gen_expr callnames m ctxt
+      | None -> failwith (sprintf "gen_expr: calling %s doesn't exist" id)
+    end
+  end
+  | S.Null -> Const 0L
+  | S.New (_, cname) ->
       let open Ir.Abbreviations in
       let objloc = Temp (fresh_temp ()) in
       ESeq (
@@ -362,7 +381,8 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         ],
         objloc
       )
-  | _ -> failwith "TODO"
+  | S.FieldAccess (_c, _f) -> failwith "TODO"
+  | S.MethodCall (_c, _f, _args) -> failwith "TODO"
 
 (******************************************************************************)
 (* gen_control                                                                *)

@@ -1240,6 +1240,7 @@ let class_graph klasses =
     | None -> g
   )
 
+(*
 let is_alist_ok as1 as2 =
   let f acc (_, e1) (_, e2) =
     match e1, e2 with
@@ -1275,6 +1276,7 @@ let is_func_type_ok f1 f2 =
       (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
     with _ -> false
   | _ -> false
+*)
 
 let fst_klass_pass contexts _klasses =
   Ok contexts

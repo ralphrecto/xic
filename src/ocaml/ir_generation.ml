@@ -623,7 +623,7 @@ and gen_stmt callnames s ctxt =
 (* gen_func_decl                                                              *)
 (******************************************************************************)
 and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) ctxt =
-  let (_, args, body) =
+  let (f, args, body) =
     match c with
     | (_, Func ((_, name), args, _, body)) ->
       (name, args, body)
@@ -644,7 +644,12 @@ and gen_func_decl (callnames: string String.Map.t) (c: Typecheck.callable) ctxt 
   in
   let (_, moves) = List.fold_left ~f:arg_mov ~init:(0, []) args in
   let (typ, _) = c in
-  (abi_callable_name c, Seq(moves @ [gen_stmt callnames body ctxt]), typ)
+  let name =
+    match ctxt.class_context with
+    | Some class_ -> class_method ~class_ ~method_:f
+    | None -> abi_callable_name c
+  in
+  (name, Seq(moves @ [gen_stmt callnames body ctxt]), typ)
 
 (******************************************************************************)
 (* global                                                                     *)

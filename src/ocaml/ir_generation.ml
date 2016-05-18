@@ -761,8 +761,9 @@ and gen_class callnames (_, S.Klass ((_, c), _, _, methods)) contexts =
 (* gen_comp_unit                                                              *)
 (******************************************************************************)
 and gen_comp_unit fp contexts =
+  let contexts = {contexts with class_context=None} in
   let S.FullProg (name, (_, program), interfaces) = fp in
-  let S.Prog (_, globals, _, callables) = program in
+  let S.Prog (_, globals, classes, callables) = program in
 
   (* callable name -> mangled callable name *)
   let f (_, S.Interface (_, _, _, cs)) = cs in
@@ -777,6 +778,15 @@ and gen_comp_unit fp contexts =
     (name, gen)
   ) in
   let callable_map = String.Map.of_alist_exn gen_callables in
+
+  (* classes *)
+  let callable_map = List.fold_left classes ~init:callable_map ~f:(fun cm c ->
+    let method_decls = gen_class callnames c contexts in
+    List.fold_left method_decls ~init:cm ~f:(fun cm d ->
+      let (name, _, _) = d in
+      String.Map.add cm ~key:name ~data:d
+    )
+  ) in
 
   (* concat *)
   let callable_map = String.Map.add callable_map

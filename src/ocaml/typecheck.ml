@@ -34,6 +34,7 @@ let non_const_global = "Global expression is not a constant"
 let cyclic_globals   = "Global dependency graph has cycles"
 let undeclared_class c = sprintf "class %s not declared" c
 let this_var         = "Invalid use of variable 'this'"
+let klass_conflict i iname = sprintf "Conflicting declaration for class %s in %s" i iname
 
 (******************************************************************************)
 (* Ast                                                                        *)
@@ -941,6 +942,43 @@ type inter_ctx = {
   func_decls  : Pos.callable_decl String.Map.t;
 }
 
+let typ_eq (_, t1) (_, t2) : bool = t1 = t2
+
+let avars_eq (_, av1) (_, av2) : bool =
+  match av1, av2 with
+  | AId ((_, i1), t1), AId ((_, i2), t2) ->
+      i1 = i2 && typ_eq t1 t2
+  | AUnderscore t1, AUnderscore t2 ->
+      typ_eq t1 t2
+  | _ -> false
+
+let list_eq pred list1 list2 : bool =
+  match List.zip list1 list2 with
+  | None -> false
+  | Some l -> List.for_all ~f:(fun (v1, v2) -> pred v1 v2) l
+
+let call_decl_eq (_, f1) (_, f2) : bool =
+  match f1, f2 with
+  | FuncDecl ((_, id1), av1, t1), FuncDecl ((_, id2), av2, t2) ->
+      id1 = id2 && list_eq avars_eq av1 av2 && list_eq typ_eq t1 t2
+  | ProcDecl ((_, id1), av1), ProcDecl ((_, id2), av2) ->
+      id1 = id2 && list_eq avars_eq av1 av2
+  | _ -> false
+
+let klass_decl_eq (_, k1) (_, k2) : bool =
+  let KlassDecl ((_, id1), super1, fdecls1) = k1 in
+  let KlassDecl ((_, id2), super2, fdecls2) = k2 in
+  let super_eq =
+    match super1, super2 with
+    | Some c1, Some c2 when c1 = c2 -> true
+    | _ -> false in
+  let fdecl_eq =
+    match List.zip fdecls1 fdecls2 with
+    | None -> false
+    | Some l ->
+        List.for_all ~f:(fun (f1, f2) -> call_decl_eq f1 f2) l in
+  id1 = id2 && super_eq && fdecl_eq
+
 let kdecl_to_klassm (_, KlassDecl ((_, name), super, fdecls)) : KlassM.t =
   let super' =
     match super with
@@ -1037,6 +1075,7 @@ let interface_typecheck (c : contexts) (interface : Pos.interface) : interface E
   Ok ((), Interface (name, uses', kdecls', fdecls'))
 
 let interfaces_typecheck (interfaces: Pos.interface list) : (interface list) Error.result =
+  (* set up of contexts *)
   List.map ~f:ctx_of_interface interfaces |> Result.all >>= fun inter_ctxs ->
   let name_ctx_pairs = List.map ~f:(fun ctx -> (ctx.name, ctx)) inter_ctxs in
   let raw_ctx_map =
@@ -1045,10 +1084,25 @@ let interfaces_typecheck (interfaces: Pos.interface list) : (interface list) Err
     | `Duplicate_key k ->
         Error ((-1, -1), sprintf "duplicate interface %s" k) in
   raw_ctx_map >>= fun ctx_map ->
+  (* first phase: all types used by an interface exist in neighbors *)
   let f interface =
     let c = contexts_of_interface ctx_map interface in
     interface_typecheck c interface in
-  List.map ~f interfaces |> Result.all
+  List.map ~f interfaces |> Result.all >>= fun interfaces' ->
+  (* second phase: all decl of a class, in any interface, must be the same *)
+  let class_dup_f acc (_, Interface (intname, _, kdecls, _)) =
+    acc >>= fun classmap ->
+    let f mapacc kdecl =
+      mapacc >>= fun mapacc' ->
+      let (_, KlassDecl ((_, id), _, _)) = kdecl in
+      match String.Map.find mapacc' id with
+      | None -> Ok (String.Map.add mapacc' ~key:id ~data:kdecl)
+      | Some kdecl2 ->
+          if klass_decl_eq kdecl kdecl2 then Ok mapacc'
+          else Error ((-1, -1), klass_conflict id intname) in
+    List.fold_left ~f ~init:(Ok classmap) kdecls in
+  List.fold_left ~f:class_dup_f ~init:(Ok String.Map.empty) interfaces' >>= fun _ ->
+  Ok interfaces'
 
 (******************************************************************************)
 (* globals                                                                    *)

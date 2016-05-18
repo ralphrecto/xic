@@ -34,8 +34,8 @@ module FreshRetReg    : Fresh.S (* _RET     *)
 module FreshGlobal    : Fresh.S (* _I_g_    *)
 module FreshSize      : Fresh.S (* _I_size_ *)
 module FreshDV        : Fresh.S (* _I_vt_   *)
-module FreshMethod    : Fresh.S (* _I_m_   *)
-module FreshClassInit : Fresh.S (* _I_init_   *)
+module FreshMethod    : Fresh.S (* _I_m_    *)
+module FreshClassInit : Fresh.S (* _I_init_ *)
 
 val temp  : int -> string
 val label : int -> string

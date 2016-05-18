@@ -159,8 +159,11 @@ public class IRSimulator {
     }
 
     protected boolean isGlobalRegister(String name) {
-        return name.startsWith(Configuration.ABSTRACT_ARG_PREFIX)
-                || name.startsWith(Configuration.ABSTRACT_RET_PREFIX);
+        return name.startsWith(Configuration.ABSTRACT_ARG_PREFIX) ||
+               name.startsWith(Configuration.ABSTRACT_RET_PREFIX) ||
+               name.startsWith(Configuration.GLOBAL_PREFIX) ||
+               name.startsWith(Configuration.DISPATCH_VECTOR_PREFIX) ||
+               name.startsWith(Configuration.SIZE_PREFIX);
     }
 
     /**

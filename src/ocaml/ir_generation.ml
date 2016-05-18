@@ -382,23 +382,42 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
         objloc
       )
   | S.FieldAccess ((t, c), ((), f)) -> begin
-      match t with
-      | KlassT cname ->
-        let class_info = String.Map.find_exn ctxt.delta_m cname in
-        let field_names = List.map ~f:fst class_info.KlassM.fields in
-        let field_index = uw (Util.index field_names f) in
-        let offset = const (8 * (field_index - (List.length field_names))) in
+    match t with
+    | KlassT cname ->
+      let class_info = String.Map.find_exn ctxt.delta_m cname in
+      let field_names = List.map ~f:fst class_info.KlassM.fields in
+      let field_index = uw (Util.index field_names f) in
+      let offset = const (8 * (field_index - (List.length field_names))) in
 
-        let e = gen_expr callnames (t, c) ctxt in
-        let fresh_tmp = fresh_temp () in
+      let e = gen_expr callnames (t, c) ctxt in
+      let fresh_tmp = fresh_temp () in
 
-        let open Ir.Abbreviations in
-        let open Ir.Infix in
-        let size = temp (class_size cname) in
-        eseq (move (temp fresh_tmp) (mem (e + size + offset))) (temp fresh_tmp)
-      | _ -> failwith "gen_stmt: accessing field of non class type"
+      let open Ir.Abbreviations in
+      let open Ir.Infix in
+      let size = temp (class_size cname) in
+      eseq (move (temp fresh_tmp) (mem (e + size + offset))) (temp fresh_tmp)
+    | _ -> failwith "gen_stmt: accessing field of non class type"
   end
-  | S.MethodCall (_c, _f, _args) -> failwith "TODO"
+  | S.MethodCall (c, ((), f), args) -> begin
+    match t with
+    | KlassT cname ->
+      let {delta_m; delta_i; _} = ctxt in
+      let methods = Typecheck.methods ~delta_m ~delta_i cname in
+      let index = const (8 * uw (Util.index methods f)) in
+
+      let open Ir.Abbreviations in
+      let open Ir.Infix in
+      let o = gen_expr callnames c ctxt in
+      let args_ir = List.map (c::args) ~f:(fun a -> gen_expr callnames a ctxt) in
+      let t1 = fresh_temp () in
+      let f = fresh_temp () in
+      let ss = seq [
+        move (temp t1) (mem o);
+        move (temp f) (mem (temp t1 + index));
+      ] in
+      eseq ss (Call (temp f, args_ir))
+    | _ -> failwith "gen_stmt: accessing method of non class type"
+  end
 
 (******************************************************************************)
 (* gen_control                                                                *)

@@ -165,7 +165,7 @@ and string_of_stmt s =
   | Exp e -> sprintf "%s" (soe e)
   | Label l -> sprintf "%s:" l
   | Move (lhs, rhs) -> sprintf "%s:=%s" (soe lhs) (soe rhs)
-  | Seq ss -> sprintf "(%s)" (String.concat ~sep:";" (List.map ~f:sos ss))
+  | Seq ss -> sprintf "{%s}" (String.concat ~sep:";" (List.map ~f:sos ss))
   | Return -> "return"
 
 let string_of_stmts ss =

@@ -794,8 +794,13 @@ and gen_comp_unit fp contexts =
     ~key:concat_name ~data:concat_func_decl in
 
   (* global initialization *)
-  let callable_map = String.Map.add callable_map
-    ~key:global_name ~data:(global_func_decl globals contexts) in
+  let callable_map =
+    if List.length globals <> 0 then
+      String.Map.add callable_map ~key:global_name
+                                  ~data:(global_func_decl globals contexts)
+    else
+      callable_map
+  in
 
   (* class initialization *)
   let classes = String.Map.keys contexts.delta_m in

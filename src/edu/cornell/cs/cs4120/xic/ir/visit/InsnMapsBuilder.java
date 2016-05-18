@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
+import edu.cornell.cs.cs4120.xic.ir.IRFuncDecl;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 
 public class InsnMapsBuilder extends IRVisitor {
@@ -52,6 +53,13 @@ public class InsnMapsBuilder extends IRVisitor {
     }
 
     public void addInsn(IRNode n) {
+        if (n instanceof IRFuncDecl) {
+            IRFuncDecl fd = (IRFuncDecl) n;
+            String name = fd.name();
+            if (name.startsWith("_I_globalinit") || name.startsWith("_I_init")) {
+                ctors.add(name);
+            }
+        }
         indexToInsn.put(index, n);
         if (insnToIndex.containsKey(n))
             throw new InternalCompilerError("Error - encountered "

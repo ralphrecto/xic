@@ -27,7 +27,8 @@ let inconsist_class c  = sprintf "Class %s declaration is inconsistent with inte
 let class_cycle        = "Cyclic class hierarchy"
 let dup_field_decl     = "Duplicate field declaration"
 let dup_method_decl    = "Duplicate method declaration"
-let field_shadow       = "Field declaration shadows global variable"
+let _field_shadow       = "Field declaration shadows global variable"
+let _method_shadow      = "Method declaration shadows functions"
 let field_underscore   = "Field name must be declared"
 let bound_var_decl     = "Cannot rebind variable"
 let num_decl_vars      = "Incorrect number of variables in declassign"
@@ -287,7 +288,6 @@ type contexts = {
   locals           : context;
   delta_m          : KlassM.t String.Map.t;
   delta_i          : KlassM.t String.Map.t;
-  class_decl_index : string list String.Map.t;
   class_context    : string option;
   inloop           : bool;
   globals          : String.Set.t;
@@ -299,7 +299,6 @@ let empty_contexts = {
   locals           = Context.empty;
   delta_m          = String.Map.empty;
   delta_i          = String.Map.empty;
-  class_decl_index = String.Map.empty;
   class_context    = None;
   inloop           = false;
   globals          = String.Set.empty;
@@ -404,7 +403,7 @@ let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
     tuplefy avars_t, UnitT
 
-let flatten_opt_list (l : ('a option) list) : 'a list =
+let _flatten_opt_list (l : ('a option) list) : 'a list =
   let f e acc =
     match e with
     | Some x -> x::acc
@@ -1515,34 +1514,54 @@ let fst_klass_pass contexts klasses =
       in
       SortedGraph.fold klass_fold klass_graph (Ok contexts)
 
-let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error.result =
-  let klass_fold acc (p, Klass ((_, name), super, fields, methods)) =
-    let name' = ((), name) in
-    let super' =
-      match super with
-      | Some (_, id) -> Some ((), id)
-      | None -> None
-    in
-    (* typecheck fields, ensure not shadowed by globals *)
-    let fields_ok =
-      let field_names =
-        List.map ~f:(Fn.compose varsofavar snd) fields |>
-        flatten_opt_list
-      in
-      let field_shadowed =
-        List.for_all ~f:(fun x -> String.Set.mem c.globals x) field_names
-      in
-      if field_shadowed then
-        Error (p, field_shadow)
-      else
-        avars_typecheck p c fields dup_var_decl bound_var_decl in
-    fields_ok >>= fun fields' ->
-    (* typecheck method, ensure not shadowed by globals *)
-    let method_types_ok = failwith "do me" in
+let _snd_klass_pass (_c: contexts) (_klasses : Pos.klass list) : (klass list) Error.result =
+  failwith "hello"
+  (*let klass_fold acc (p, Klass ((_, name), super, fields, methods)) =*)
+    (*let name' = ((), name) in*)
+    (*let super' =*)
+      (*match super with*)
+      (*| Some (_, id) -> Some ((), id)*)
+      (*| None -> None*)
+    (*in*)
+    (*[> typecheck fields, ensure not shadowed by globals <]*)
+    (*let fields_ok =*)
+      (*let field_names =*)
+        (*List.map ~f:(Fn.compose varsofavar snd) fields |>*)
+        (*flatten_opt_list*)
+      (*in*)
+      (*let field_shadowed =*)
+        (*List.for_all ~f:(fun x -> String.Set.mem c.globals x) field_names*)
+      (*in*)
+      (*if field_shadowed then*)
+        (*Error (p, field_shadow)*)
+      (*else*)
+        (*avars_typecheck p c fields dup_var_decl bound_var_decl*)
+    (*in*)
+    (*[> typecheck method, ensure not shadowed by globals <]*)
+    (*let methods_types_ok = List.map ~f:(fun x -> func_typecheck contexts) methods in*)
 
-    (* third phase: need to check if methods shadow functions in second pass *)
-    let methods_ok = failwith "do me" in
+    (*[> third phase: need to check if methods shadow functions in second pass <]*)
+    (*let methods_ok =*)
+      (*let f k d acc =*)
+        (*match d with*)
+        (*| Var _ -> acc*)
+        (*| Function _ -> k::acc*)
+      (*in*)
+      (*let functions = String.Map.fold ~init:[] ~f contexts.locals in*)
+      (*let method_shadowed =*)
+        (*List.for_all ~f:(fun x -> not List.mem x functions) methods'*)
+      (*in*)
+      (*if method_shadowed then Error (p, method_shadow)*)
+      (*else*)
+        (*Result.all (List.map ~f:(snd_funcpass contexts) methods' >>= func_list*)
+        (*->*)
+    (*in*)
+      (*failwith "ralph is poop"*)
 
+    (*fields_ok >>= fun fields' ->*)
+    (*method_types_ok >>= fun _ ->*)
+  (*in*)
+  (*failwith "ralph is stoopid"*)
 
 (******************************************************************************)
 (* prog                                                                       *)

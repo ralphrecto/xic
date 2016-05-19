@@ -187,7 +187,6 @@ type contexts = {
   locals        : context;               (* Γ *)
   delta_m       : KlassM.t String.Map.t; (* Δ_m *)
   delta_i       : KlassM.t String.Map.t; (* Δ_i *)
-  class_decl_index : string list String.Map.t; (* map from class to uses *)
   class_context : string option;         (* γ *)
   inloop        : bool;                  (* λ *)
 

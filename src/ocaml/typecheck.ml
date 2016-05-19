@@ -318,6 +318,13 @@ module Context = struct
       let id = id_of_callable call in
       bind c' id (Function (args, rets))
     )
+
+  let bind_all_call_decls c calls =
+    List.fold_left calls ~init:c ~f:(fun c' call ->
+      let (args, rets) = typeof_callable call in
+      let id = id_of_callable_decl call in
+      bind c' id (Function (args, rets))
+    )
 end
 
 type contexts = {
@@ -1617,7 +1624,9 @@ let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error
         let locals1 = Context.bind_all_avars c.locals fields' in
         let locals2 = Context.bind_all_calls locals1 methods in
         let locals3 = Context.bind locals2 "this" (Var (KlassT name)) in
-        let c' = {c with locals = locals3} in
+        let inherited = methods_callable_decl ~delta_m:c.delta_m ~delta_i:c.delta_i name in
+        let locals4 = Context.bind_all_call_decls locals3 inherited in
+        let c' = {c with locals = locals4} in
         Result.all (List.map ~f:(snd_func_pass c') methods)
     in
     fields_ok >>= fun fields' ->

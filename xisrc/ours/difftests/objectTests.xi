@@ -29,6 +29,33 @@ createPoint(x:int, y:int) : Point {
   return new Point.initPoint(x, y)
 }
 
+class Color {
+  r, g, b: int
+
+  toString():int[] {
+    return "Color (" + (string_of_int(r)) + ", " +
+      (string_of_int(g)) + ", " +
+      (string_of_int(b)) + ")";
+  }
+}
+ 
+class ColoredPoint extends Point {
+  col:Color
+  color(): Color { return col }
+
+  initColoredPoint(x0:int, y0:int, c:Color):ColoredPoint {
+    col = c
+    _ = initPoint(x0, y0)
+    return this
+  }
+
+
+  toString():int[] {
+    return "ColoredPoint(" + this.x + ", " +
+      this.y + ", " + this.col.toString() + ")";
+  }
+}
+
 main(_:int[][]) {
   x:Point = createPoint(0, 0);
   y:Point = createPoint(1, 1);
@@ -45,4 +72,11 @@ main(_:int[][]) {
   x.x = x2.x
   println(string_of_bool(x.x == y.y));
   println(string_of_bool(x.y == y.x));
+
+  color1:Color;
+  color1.r = 255
+  color1.g = 255
+  color1.b = 0
+  cp:ColoredPoint = initColoredPoint(5, 5, color1);
+  println(cp.toString());
 }

@@ -27,7 +27,7 @@ let inconsist_class c  = sprintf "Class %s declaration is inconsistent with inte
 let class_cycle        = "Cyclic class hierarchy"
 let dup_field_decl     = "Duplicate field declaration"
 let dup_method_decl    = "Duplicate method declaration"
-let _field_shadow       = "Field declaration shadows global variable"
+let field_shadow       = "Field declaration shadows global variable"
 let field_underscore   = "Field name must be declared"
 let bound_var_decl     = "Cannot rebind variable"
 let num_decl_vars      = "Incorrect number of variables in declassign"
@@ -403,6 +403,13 @@ let typeof_callable ((_, c) : Pos.callable_decl) : Expr.t * Expr.t =
   | ProcDecl (_, avars) ->
     let avars_t = List.map ~f:(fun (_, av) -> typeofavar av) avars in
     tuplefy avars_t, UnitT
+
+let flatten_opt_list (l : ('a option) list) : 'a list =
+  let f e acc =
+    match e with
+    | Some x -> x::acc
+    | None -> acc in
+  List.fold_right ~f ~init:[] l
 
 (******************************************************************************)
 (* expr                                                                       *)
@@ -857,11 +864,6 @@ let fst_func_pass contexts prog_funcs interfaces =
     Ok {a with locals}
   )
 
-(*
-TODO: should the position of the errors be more accurate? i.e. the actual
- position of the arg that was already defined
-Ensures parameters do not shadow and body is well-typed
-*)
 let snd_func_pass c (p, call) =
   match call with
   | Ast.S.Func ((_,id), args, rets, s) ->
@@ -1512,6 +1514,35 @@ let fst_klass_pass contexts klasses =
           Ok ({contexts' with delta_m = delta_m'})
       in
       SortedGraph.fold klass_fold klass_graph (Ok contexts)
+
+let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error.result =
+  let klass_fold acc (p, Klass ((_, name), super, fields, methods)) =
+    let name' = ((), name) in
+    let super' =
+      match super with
+      | Some (_, id) -> Some ((), id)
+      | None -> None
+    in
+    (* typecheck fields, ensure not shadowed by globals *)
+    let fields_ok =
+      let field_names =
+        List.map ~f:(Fn.compose varsofavar snd) fields |>
+        flatten_opt_list
+      in
+      let field_shadowed =
+        List.for_all ~f:(fun x -> String.Set.mem c.globals x) field_names
+      in
+      if field_shadowed then
+        Error (p, field_shadow)
+      else
+        avars_typecheck p c fields dup_var_decl bound_var_decl in
+    fields_ok >>= fun fields' ->
+    (* typecheck method, ensure not shadowed by globals *)
+    let method_types_ok = failwith "do me" in
+
+    (* third phase: need to check if methods shadow functions in second pass *)
+    let methods_ok = failwith "do me" in
+
 
 (******************************************************************************)
 (* prog                                                                       *)

@@ -20,7 +20,7 @@ main(arg: int[][]) {
             val: int = factorial(num)
             print(unparseInt(num))
             print("! is ")
-            print(unparseInt(val))
+            println(unparseInt(val))
         }
     }
 }

@@ -25,8 +25,8 @@ char* stringCombine(char* s1, char* s2) {
         int l1 = strlen(s1);
         int l2 = strlen(s2);
         char* out = malloc(l1 + l2 + 1);
-        memcpy(out, s1, l1);
-        memcpy(out + l1, s2, l2);
+        memmove(out, s1, l1);
+        memmove(out + l1, s2, l2);
         out[l1 + l2] = '\0';
         free(s1);
         free(s2);

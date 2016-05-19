@@ -15,13 +15,13 @@ xiint XI(factorial)(xiint i) {
 }
 
 xiint prompt[] = { 7, 'N', 'u', 'm', 'b', 'e', 'r', '?' };
-xiint fact[]   = { 5, '!', ' ', 'i', 's', ' '};
+xiint is[]   = { 5, '!', ' ', 'i', 's', ' '};
 
 void XI(main_paai)(xistring arg[]) {
     xistring input, output;
 
     while (!XI(eof_b)()) {
-        XI(println_pai)(prompt + 1);
+        XI(print_pai)(prompt + 1);
         input = XI(readln_ai)();
 
         // Convert to integer
@@ -33,8 +33,7 @@ void XI(main_paai)(xistring arg[]) {
             xiint val = XI(factorial)(num);
 
             output  = XI(unparseInt_aii)(num);
-            XI(print_pai)(output);
-            XI(print_pai)(fact + 1);
+            XI(print_pai)(is + 1);
             output  = XI(unparseInt_aii)(val);
             XI(println_pai)(output);
         }

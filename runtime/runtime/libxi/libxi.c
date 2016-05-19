@@ -11,17 +11,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include <inttypes.h>
 
 #include "../gc-7.2/include/gc.h"
+#define WORDSIZE 8
 
 /**
  Core runtime
 */
 
-void * XI(_alloc_i)(xiint size) {
-    return GC_malloc(size);
+int GC_ready = 0;
+void *XI(_alloc_i)(xiint size) {
+    if (!GC_ready) {
+        /* This check unfortunately needs to be here, since
+           GC_malloc() could be called from static initialization
+           code written in Xi (in other words, we can't rely
+           on main() to do the initialization)
+        */
+        GC_INIT();
+        GC_set_all_interior_pointers(1);
+        GC_ready = 1;
+    }
+
+	return (int64_t *) GC_malloc(size);
 }
 
 void registerFinalizer(void* object, Finalizer* fin) {
@@ -54,11 +68,6 @@ static xistring mkString(const char* in) {
 extern void XI(main_paai)(xistring[]);
 
 int main(int argc, char *argv[]) {
-
-    GC_INIT();
-
-    // GC setup. We do point in the "middle" of arrays.
-    GC_set_all_interior_pointers(1);
 
     // Create arguments array.
     xistring *args = mkArray(sizeof(xiint *) * argc, argc);

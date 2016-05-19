@@ -139,7 +139,7 @@ public class IRSimulator {
             if (!regs.containsKey(tempName)) {
                 /* Referencing a temp before having written to it - initialize
                    with garbage */
-                regs.put(tempName, r.nextLong());
+                regs.put(tempName, 0L);
             }
             return regs.get(tempName);
         }

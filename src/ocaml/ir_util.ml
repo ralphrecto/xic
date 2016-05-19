@@ -13,8 +13,8 @@ let rec abi_type_name (is_arg: bool) (e: Typecheck.Expr.t) =
   | TupleT tlist ->
     let open List in
     let tnames = fold_right ~f:( ^ ) ~init:"" (map ~f:(abi_type_name is_arg) tlist) in
-    let pre = if is_arg then "" else "t" in
-    pre ^ (string_of_int (length tlist)) ^ tnames
+    let pre = if is_arg then "" else "t" ^ (string_of_int (length tlist)) in
+    pre ^ tnames
   | KlassT c ->
       let escaped = double_underscore c in
       sprintf "o%d%s" (String.length escaped) (escaped)

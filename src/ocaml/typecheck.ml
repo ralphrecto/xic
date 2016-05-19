@@ -318,6 +318,13 @@ module Context = struct
       let id = id_of_callable call in
       bind c' id (Function (args, rets))
     )
+
+  let bind_all_call_decls c calls =
+    List.fold_left calls ~init:c ~f:(fun c' call ->
+      let (args, rets) = typeof_callable call in
+      let id = id_of_callable_decl call in
+      bind c' id (Function (args, rets))
+    )
 end
 
 type contexts = {
@@ -360,7 +367,8 @@ let (>>|) = Result.(>>|)
 let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   match typ with
   | KlassT classname -> begin
-      match String.Map.find c.delta_m classname with
+      let merged = U.disjoint_merge c.delta_m c.delta_i in
+      match String.Map.find merged classname with
       | None -> Error (pos, undeclared_class classname)
       | Some kl_info -> Ok kl_info
   end
@@ -395,6 +403,19 @@ let methods ~delta_m ~delta_i c =
       match super with
       | Some s -> (help s) @ (""::methods)
       | None -> (""::methods)
+    in
+    help c
+
+let methods_callable_decl ~delta_m ~delta_i c =
+  let delta = U.disjoint_merge delta_m delta_i in
+  if not (String.Map.mem delta c) then
+    failwith (sprintf "methods: class %s not in delta" c)
+  else
+    let rec help c =
+      let {super; methods; _} = String.Map.find_exn delta c in
+      match super with
+      | Some s -> (help s) @ methods
+      | None -> methods
     in
     help c
 
@@ -1361,33 +1382,42 @@ let class_graph klasses =
     | None -> g
   )
 
+let rec typ_equal t1 t2 =
+  match t1, t2 with
+  | TInt, TInt
+  | TBool, TBool -> true
+  | TKlass (_, i1), TKlass (_, i2) when i1 = i2 -> true
+  | TArray ((_, t1'), _), TArray ((_, t2'), _) -> typ_equal t1' t2'
+  | _ -> false
+
 let is_alist_ok as1 as2 =
   let f acc (_, e1) (_, e2) =
     match e1, e2 with
     | AUnderscore (_, t1), AUnderscore (_, t2)
     | AId (_, (_, t1)), AId (_, (_, t2))
     | AUnderscore (_, t1), AId (_, (_, t2))
-    | AId (_, (_, t1)), AUnderscore (_, t2) -> acc && t1 = t2
+    | AId (_, (_, t1)), AUnderscore (_, t2) -> acc && (typ_equal t1 t2)
   in
-  List.fold2_exn ~f ~init:true as1 as2
+    List.fold2_exn ~f ~init:true as1 as2
 
 let is_typlist_ok ts1 ts2 =
-  let f acc (_, t1) (_, t2) = acc && t1 = t2 in
+  let f acc (_, t1) (_, t2) = acc && (typ_equal t1 t2) in
   List.fold2_exn ~f ~init:true ts1 ts2
 
 let call_decls_type_ok p1 p2 =
   match p1, p2 with
   | ProcDecl (_, alist1), ProcDecl (_, alist2) ->
     begin
-      try
+      if (List.length alist1) <> (List.length alist2) then false
+      else
         is_alist_ok alist1 alist2
-      with _ -> false
     end
   | FuncDecl (_, alist1, typlist1), FuncDecl (_, alist2, typlist2) ->
     begin
-      try
+      if (List.length alist1) <> (List.length alist2) ||
+         (List.length typlist1) <> (List.length typlist2) then false
+      else
         (is_alist_ok alist1 alist2) && (is_typlist_ok typlist1 typlist2)
-      with _ -> false
     end
   | _ -> false
 
@@ -1514,14 +1544,23 @@ let fst_klass_pass contexts klasses =
                 | None -> Ok (m1::m, o)
                 | Some s ->
                   begin
-                    let super_ctx = String.Map.find_exn contexts'.delta_m s in
-                    let m_name = id_of_callable_decl m1 in
-                    match find_method_def m_name super_ctx.methods with
-                    | Some (_, m2) ->
-                      if method_def_ok m1 m2 then Ok (m, m1::o)
-                      else
-                        Error (p, inconsist_method_super m_name)
-                    | None -> check_override super_ctx.super m1 acc
+                    let merged = U.disjoint_merge contexts'.delta_m contexts'.delta_i in
+                    match String.Map.find merged s with
+                    | Some super_ctx ->
+                      begin
+                        let m_name = id_of_callable_decl m1 in
+                        match find_method_def m_name super_ctx.methods with
+                        | Some (_, m2) ->
+                          if method_def_ok m1 m2 then Ok (m, m1::o)
+                          else
+                            let (t1, t2) = (typeof_callable m1) in
+                            let (t1', t2') = (typeof_callable m2) in
+                            printf "m1: %s, %s" (Expr.to_string t1) (Expr.to_string t2);
+                            printf "m2: %s, %s" (Expr.to_string t1') (Expr.to_string t2');
+                            Error (p, inconsist_method_super m_name)
+                        | None -> check_override super_ctx.super m1 acc
+                      end
+                    | None -> failwith "shouldn't happen"
                   end
               in
               List.fold_right ~f:(check_override (Some s))
@@ -1585,7 +1624,9 @@ let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error
         let locals1 = Context.bind_all_avars c.locals fields' in
         let locals2 = Context.bind_all_calls locals1 methods in
         let locals3 = Context.bind locals2 "this" (Var (KlassT name)) in
-        let c' = {c with locals = locals3} in
+        let inherited = methods_callable_decl ~delta_m:c.delta_m ~delta_i:c.delta_i name in
+        let locals4 = Context.bind_all_call_decls locals3 inherited in
+        let c' = {c with locals = locals4} in
         Result.all (List.map ~f:(snd_func_pass c') methods)
     in
     fields_ok >>= fun fields' ->

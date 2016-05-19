@@ -218,7 +218,7 @@ let rec string_of_typ (_, t) : string =
   | S.TBool -> "bool"
   | S.TArray (t, None) -> sprintf "%s[]" (sot t)
   | S.TArray (t, Some e) -> sprintf "%s[%s]" (sot t) (string_of_expr e)
-  | _ -> failwith "TODO"
+  | S.TKlass (_, s) -> sprintf "class %s" s
 
 let string_of_avar (_, a) : string =
   match a with

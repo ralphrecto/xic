@@ -11,9 +11,11 @@ type func_context = {
   max_rets : int;
 }
 
+val to_string : func_context -> string
+
 (* abi compliant names -> func_context *)
 type func_contexts = func_context String.Map.t
 
 val get_context : func_contexts -> string -> func_context
 
-val get_context_map : Typecheck.full_prog -> Ir.comp_unit -> func_contexts
+val get_context_map : Typecheck.contexts -> Typecheck.full_prog -> Ir.comp_unit -> func_contexts

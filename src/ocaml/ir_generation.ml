@@ -455,13 +455,12 @@ and gen_control (callnames: string String.Map.t) ((t, e): Typecheck.expr) t_labe
 and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr =
   let incr_ir e = (BinOp (e, ADD, const 1)) in
   match t with
-  | TBool | TInt -> Temp (fresh_temp ())
+  | TBool | TInt | TKlass _ -> Temp (fresh_temp ())
   | TArray ((at', t'), index) -> begin
     let fill () =
       match t' with
-      | TInt | TBool -> const 0
+      | TInt | TBool | TKlass _ -> const 0
       | TArray _ -> gen_decl_help callnames (at', t') ctxt
-      | _ -> failwith "TODO"
     in
     match index with
     | None -> const 0
@@ -514,7 +513,6 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr 
       )
     end
   end
-  | _ -> failwith "TODO"
 
 and gen_stmt callnames s ctxt =
   let open Expr in

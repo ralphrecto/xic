@@ -408,6 +408,11 @@ let rec munch_expr
         (* prepare implicit 0th argument *)
         let (ret_ptr, ret_asm) =
           let callee_ctx = get_context fcontexts fname in
+          printf "num_args: %d\n" callee_ctx.num_args;
+          printf "num_rets: %d\n" callee_ctx.num_rets;
+          printf "max_args: %d\n" callee_ctx.max_args;
+          printf "max_rets: %d\n" callee_ctx.max_rets;
+          printf "fname: %s\n" fname;
           if callee_ctx.num_rets > 2 then
             let new_tmp = Fake (FreshReg.fresh ()) in
             let asm = leaq (Mem ((8*(max (curr_ctx.max_args-6) 0))$(Real Rsp))) (Reg new_tmp) in
@@ -1164,7 +1169,7 @@ let asm_eat
   ?(debug=false)
   (fullprog : Typecheck.full_prog)
   (irgen_info : IrG.irgen_info) : Asm.asm list =
-  let func_contexts = get_context_map fullprog irgen_info.comp_unit in
+  let func_contexts = get_context_map irgen_info.contexts fullprog irgen_info.comp_unit in
   let directives, munched_funcs = eat_irgen_info ~debug func_contexts irgen_info in
   directives @ (List.concat_map ~f:(a ~debug) munched_funcs)
 

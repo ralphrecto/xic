@@ -14,20 +14,42 @@ class A {}
 class B extends A {}
 class C extends A {}
 class D extends B {}
+class E {}
 
 equalsTest3() {
-    a: A = new A
-    b: B = new B
-    c: C = new C
-    d: D = new D
-    check(a == a)
-    check(b == b)
-    check(c == c)
-    check(d == d)
-    check(a != b)
-    check(a != c)
-    check(a != d)
-    check(a != e)
+    {
+        a: A = new A
+        b: B = new B
+        c: C = new C
+        d: D = new D
+
+        check(a == a)
+        check(b == b)
+        check(c == c)
+        check(d == d)
+
+        check(a != b)
+        check(a != c)
+        check(a != d)
+        check(b != d)
+    }
+
+    {
+        a: A = new D
+        b: B = new D
+        c: C = new C
+        d: D = new D
+
+        check(a == a)
+        check(b == b)
+        check(c == c)
+        check(d == d)
+
+        check(a != b)
+        check(a != c)
+        check(a != d)
+        check(b != d)
+    }
 }
 
 main(_: int[][]) {

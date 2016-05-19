@@ -497,13 +497,31 @@ and munch_stmt
         | None, false -> Reg (Fake n)
         | Some _, true -> failwith "munch_stmt: reg can't be ret and global"
       in
-      let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
-      e_lst @ [movq (Reg (Fake e_reg)) dest]
+      begin
+        match e with
+        | Ir.Name name ->
+          [leaq (Label name) dest]
+        | _ ->
+          let (e_reg, e_lst) = munch_expr curr_ctx fcontexts e in
+          e_lst @ [movq (Reg (Fake e_reg)) dest]
+      end
     end
     | Ir.Move (Ir.Mem (e1, _), e2) ->
       let (e1_reg, e1_lst) = munch_expr curr_ctx fcontexts e1 in
-      let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
-      e1_lst @ e2_lst @ [movq (Reg (Fake e2_reg)) (Mem (Base (None, (Fake e1_reg))))]
+      begin
+        match e2 with
+        | Ir.Name name ->
+          let r = FreshReg.fresh () in
+          e1_lst @ [
+            leaq (Label name) (Reg (Fake r));
+            movq (Reg (Fake r)) (Mem (Base (None, (Fake e1_reg))))
+          ]
+        | _ ->
+          let (e2_reg, e2_lst) = munch_expr curr_ctx fcontexts e2 in
+          e1_lst @ e2_lst @ [
+            movq (Reg (Fake e2_reg)) (Mem (Base (None, (Fake e1_reg))))
+          ]
+      end
     | Ir.Seq s_list -> List.concat_map ~f:(munch_stmt curr_ctx fcontexts) s_list
     | Ir.Return ->
         (* restore callee-saved registers *)
@@ -1025,13 +1043,29 @@ and chomp_stmt
         | Some _, true -> failwith "munch_stmt: reg can't be ret and global"
       in
       let new_tmp = Reg (Fake (FreshReg.fresh ())) in
-      let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in
-      e_lst @ [movq (Reg e_reg) new_tmp; movq new_tmp dest]
+      begin
+        match e with
+        | Ir.Name name ->
+          [leaq (Label name) dest]
+        | _ ->
+          let (e_reg, e_lst) = chomp_expr curr_ctx fcontexts e in
+          e_lst @ [movq (Reg e_reg) new_tmp; movq new_tmp dest]
+      end
     end
   | Move (Mem (e1, _), e2) ->
     let (reg1, asm1) = chomp_expr curr_ctx fcontexts e1 in
-    let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
-    asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
+    begin
+      match e2 with
+      | Ir.Name name ->
+        let r = FreshReg.fresh () in
+        asm1 @ [
+          leaq (Label name) (Reg (Fake r));
+          movq (Reg (Fake r)) (Mem (Base (None, reg1)))
+        ]
+      | _ ->
+        let (reg2, asm2) = chomp_expr curr_ctx fcontexts e2 in
+        asm1 @ asm2 @ [movq (Reg reg2) (Mem (Base (None, reg1)))]
+    end
   | Seq s_list -> List.map ~f:(chomp_stmt curr_ctx fcontexts) s_list |> List.concat
   | (Label _ | Return| Move _| Jump _| CJump _) -> munch_stmt curr_ctx fcontexts s
   |> fun asms ->

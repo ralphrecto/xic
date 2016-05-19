@@ -497,7 +497,7 @@ let setnc dest = set_real "setnc" dest
 (* laod effective address *)
 let leaq src dest =
   match src, dest with
-  | Mem _, Reg _ -> Op ("leaq", [src; dest])
+  | (Label _|Mem _), Reg _ -> Op ("leaq", [src; dest])
   | _ -> die ()
 
 (* comparisons *)

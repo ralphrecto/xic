@@ -1358,15 +1358,15 @@ let class_graph klasses =
 let is_alist_ok as1 as2 =
   let f acc (_, e1) (_, e2) =
     match e1, e2 with
-    | AUnderscore t1, AUnderscore t2
-    | AId (_, t1), AId (_, t2)
-    | AUnderscore t1, AId (_, t2)
-    | AId (_, t1), AUnderscore t2 -> acc && t1 = t2
+    | AUnderscore (_, t1), AUnderscore (_, t2)
+    | AId (_, (_, t1)), AId (_, (_, t2))
+    | AUnderscore (_, t1), AId (_, (_, t2))
+    | AId (_, (_, t1)), AUnderscore (_, t2) -> acc && t1 = t2
   in
   List.fold2_exn ~f ~init:true as1 as2
 
 let is_typlist_ok ts1 ts2 =
-  let f acc t1 t2 = acc && t1 = t2 in
+  let f acc (_, t1) (_, t2) = acc && t1 = t2 in
   List.fold2_exn ~f ~init:true ts1 ts2
 
 let call_decls_type_ok p1 p2 =

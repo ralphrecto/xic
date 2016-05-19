@@ -246,6 +246,13 @@ let rec string_of_stmt (_, s) : string =
     sprintf "%s(%s)" p (Util.commas (List.map ~f:string_of_expr args))
   | _ -> failwith "TODO"
 
+let string_of_callable_decl (_, c) : string =
+  let soas avars = Util.commas (List.map avars ~f:string_of_avar) in
+  let sots typs  = Util.commas (List.map typs  ~f:string_of_typ)  in
+  match c with
+  | S.FuncDecl ((_, f), args, rets) -> sprintf "%s(%s) -> %s" f (soas args) (sots rets)
+  | S.ProcDecl ((_, f), args) -> sprintf "%s(%s)" f (soas args)
+
 module type TAGS = sig
   type p [@@deriving sexp]
   type u [@@deriving sexp]

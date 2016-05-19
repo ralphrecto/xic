@@ -2,6 +2,7 @@ open Async.Std
 open Core.Std
 open Typecheck
 open Ir
+open Ir_generation
 open Ir_util
 
 type func_context = {
@@ -33,25 +34,53 @@ let get_context (map: func_contexts) (name: string) =
       max_args = 0;
       max_rets = 0;
     }
-      (* failwith ("func_contexts: binding " ^ name ^ " not found") *) 
+      (* failwith ("func_contexts: binding " ^ name ^ " not found") *)
   | Some x -> x
 
 let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
-    (int_call_decls: Typecheck.callable_decl list)
+    (fullprog : Typecheck.full_prog)
     ((_, func_decl_map): Ir.comp_unit) =
 
-  let ir_func_decls = String.Map.data func_decl_map in
+  (* pulling out info *)
+  let Ast.S.FullProg (_, prog, interfaces) = fullprog in
+  let (_, Ast.S.Prog (_, _, prog_classes, prog_funcs)) = prog in
+  let int_class_decls, int_func_decls =
+    let f (cl_acc, f_acc) (_, Ast.S.Interface (_, _, classes, calldecls)) =
+      (classes @ cl_acc, calldecls @ f_acc) in
+    List.fold_left ~f ~init:([], []) interfaces in
+
   let init_context_map =
     begin
-    let ir_proj (name, _, (arg_t, ret_t)) =
-      (name, (arg_t, ret_t)) in
-    let int_decl_proj ((typ, c): Typecheck.callable_decl) =
+    let open Ast.S in
+    let prog_class_proj ((_, Klass ((_, class_), _, _, methods)) : Typecheck.klass) =
+      let f (t, m) =
+        let method_ =
+          match m with
+          | Func ((_, fname), _, _, _)
+          | Proc ((_, fname), _, _) -> fname in
+        (class_method ~class_ ~method_, t) in
+      List.map ~f methods in
+    let int_class_decl_proj (kd : Typecheck.klass_decl) =
+      let (_, KlassDecl ((_, class_), _, methods)) = kd in
+      let f (t, m) =
+        let method_ =
+          match m with
+          | FuncDecl ((_, fname), _, _)
+          | ProcDecl ((_, fname), _) -> fname in
+        (class_method ~class_ ~method_, t) in
+      List.map ~f methods in
+    let prog_func_proj ((t, func) : Typecheck.callable) =
+      (abi_callable_name (t, func), t) in
+    let int_func_decl_proj ((typ, c): Typecheck.callable_decl) =
       (abi_callable_decl_name (typ, c), typ) in
+
     let all_funcs =
-      (List.map ~f:ir_proj ir_func_decls) @
-      (List.map ~f:int_decl_proj int_call_decls) @
+      (List.concat_map ~f:prog_class_proj prog_classes) @
+      (List.concat_map ~f:int_class_decl_proj int_class_decls) @
+      (List.map ~f:prog_func_proj prog_funcs) @
+      (List.map ~f:int_func_decl_proj int_func_decls) @
       special_abi_functions in
     let f ctxmap (name, (arg_t, ret_t)) =
       let newctx = {
@@ -101,4 +130,4 @@ let get_context_map
       | None -> None in
     String.Map.change ctxmap fname ~f in
 
-  List.fold_left ~f:map_update ~init:init_context_map ir_func_decls
+  List.fold_left ~f:map_update ~init:init_context_map (String.Map.data func_decl_map)

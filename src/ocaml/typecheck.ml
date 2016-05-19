@@ -1,7 +1,7 @@
 module L = List
+module U = Util
 open Core.Std
 open Ast.S
-module U = Util
 open Graph
 
 (******************************************************************************)
@@ -703,20 +703,15 @@ let stmt_typecheck (c : contexts) rho s =
           Ok ((Zero, Return es'), c)
         | _, _ -> err num_ret_args
       end
-    | Asgn (l, r) -> begin
-        match snd l with
-        | Id (_, _)
-        | Index (_, _) ->
-          lvalue c l >>= fun l' ->
-          expr_typecheck c r >>= fun r' ->
-          if fst r' <= fst l'
-          then Ok ((One, Asgn (l', r')), c)
-          else
-            let ls = Expr.to_string (fst l') in
-            let rs = Expr.to_string (fst r') in
-            err (sprintf "Cannot assign type %s to type %s" rs ls)
-        | _ -> err "Invalid left-hand side of assignment"
-      end
+    | Asgn (l, r) ->
+        lvalue c l >>= fun l' ->
+        expr_typecheck c r >>= fun r' ->
+        if fst r' <= fst l'
+        then Ok ((One, Asgn (l', r')), c)
+        else
+          let ls = Expr.to_string (fst l') in
+          let rs = Expr.to_string (fst r') in
+          err (sprintf "Cannot assign type %s to type %s" rs ls)
     | Decl vs -> begin
         if List.mem (varsofvars vs) "this" then
           err "cannot declare variable with name 'this'"

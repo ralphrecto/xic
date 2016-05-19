@@ -1,0 +1,116 @@
+\documentclass{hw} \title{Programming Assignment 7:\\ Object-Oriented Features}
+
+\usepackage{fancyvrb} \usepackage{mathpartir} \usepackage{pervasives}
+\usepackage{tikz} \usetikzlibrary{positioning}
+
+\newcommand{\ir}{intermediate representation}
+
+\begin{document} \maketitle
+
+\section{Metadata}\label{sec:metadata}
+% The fully qualified class name of your main program and any other
+% instructions needed to run the program.
+We implemented programming assignment $1$ and $2$ in Java, but we implemented
+programming assignment $3,4,5,6$, and $7$ in OCaml. Our main OCaml executable is
+implemented in \texttt{main.ml} inside the \texttt{src} directory. To run our
+code, you will need to install a couple of packages and OCaml libraries by
+running the following:
+
+\begin{center} \begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip opam
+install core async oUnit ocamlgraph bisect
+\end{BVerbatim}
+\end{center}
+
+To build our executable, simply run \texttt{make src}. This will use
+\texttt{jflex}, \texttt{cup}, and \texttt{javac} and build all of our Java
+code. It will use \texttt{corebuild} to build our OCaml code. Invoking our code
+manually is hard; instead, we we recommend you use the \texttt{xic} script
+which invokes our code with everything configured properly.  In summary,
+perform the following:
+
+\begin{center}
+\begin{BVerbatim}
+sudo apt-get install aspcud m4 unzip opam
+install core async oUnit ocamlgraph bisect make src ./xic [flags]
+<xi_file.xi>...  \end{BVerbatim}
+\end{center}
+
+See the \texttt{opam} file for more information regarding our OCaml
+dependencies.
+
+
+\section{Summary}\label{sec:summary} In this programming assignment, we
+implemented object-oriented features for our compiler.  Many of the assignment components were equally difficult, but most of the difficulty of this assignment stemmed from balancing this with each group member's final schedule. Major design decisions
+for this project include using ctors for initializing variables, supporting more than strictly constants for global variables, and supporting for-each loops as our extension.  There are a few known bugs in our implementation (see \secref{problems}).
+
+\section{Specification}\label{sec:specification} For this project, we slightly deviated from the project specification. The specification only supports constants for global variables, but we extend that by supporting assignments to globals for most expressions that seem like constants, such as expressions with only binary operators, concatenating arrays, etc. The main exclusions are assigning globals to function/method calls and to fields.
+
+In addition to this global variable extension, we deviated from the specification by supporting for-each loops as our extension. for-each loops are very commonly used in programs and can be nicely supported by converting it into a while loop. This language extension is useful for the user and easily supported by our compiler by slightly modifying just our lexer and parser.
+
+\section{Design and Implementation}\label{sec:design} \subsection{Architecture}
+We touched nearly all of our files from the previous programming assignments to support object-oriented features. These are the main modules that were modified.  \begin{itemize}
+  \item \texttt{Lexer.jflex} This module implements our lexing specification.
+
+  \item \texttt{Parser.cup} This module implements our parsing specification.
+
+  \item \texttt{typecheck.ml} This module implements typechecking.
+
+  \item \texttt{ir\_generation.ml} This module implements IR generation.
+  
+  \item \texttt{tiling.ml} This module implements tiling and generates abstract assembly.
+
+\end{itemize}
+
+\subsection{Code Design}
+% algorithms, data structures, tradeoffs
+When type checking global variables, we created a dependency graph to ensure that there were no cycles and topologically sorted the nodes in the dependency graph to determine order of initialization. In addition, we traverse our class contexts in a tree-like manner to determine which methods a subclass should inherit and which methods should be typechecked with overriden classes in the subclass.
+
+\subsection{Programming} We followed a top-down implementation strategy,
+updating modules before gluing together each
+component. This top-down approach made it easy to divide work between team
+members and maximized modularity. Each team member was able to work on
+different modules and implement different components in parallel. For example,
+two team members worked on typechecking while the other two team members worked on IR generation.
+
+Implementing each component was for the most part equally challenging, but the most challenging parts of the assignment were managing our time during finals week and debugging. Implementing different stages in parallel without implementing unit tests for every stage guaranteed that we would be spending time on bug hunting.
+
+Our work allocation is described in \secref{workplan}.
+
+\section{Testing}\label{sec:testing} As usual, we have implemented a very
+comprehensive set of tests that range in scale and scope. Most of our tests were end-to-end, but we implemented unit tests for parsing. The new unit tests ensured that our parsing functions behaved as
+expected for the new language, and running our old test suite  ensured that we did not break any of our old features as we were implementing the new ones.
+
+We also wrote and ran many functional end-to-end tests. In order to execute our end-to-end tests for this assignment, we updated the IR interpreter to support ctors and globals.  This was done within an automated
+framework that required us only to write high-level Xi programs. This framework
+performed testing in a novel manner: for each stage of our compiler from
+typechecking, AST constant folding, IR generation, IR lowering, IR block
+reordering, all the way to assembly generation, both with naive and non-naive
+tiling, we generate output and use the Xi interpreter written by Seung Hee for
+pa4, the provided IR interpreter, and gcc to link assembly programs and execute
+them on our machines. We then diff the outputs from all of these executions.
+This allowed us to validate that the stages of our compiler were still working
+from the previous programming assignments with the newly supported features.
+
+All of our own tests, except for the ones related to the issues illustrated in \secref{problems}, pass.
+
+\section{Work Plan}\label{sec:workplan}
+\begin{itemize} \item \textbf{Ralph.} Ralph updated the lexer to support the new tokens and typechecking for expressions and statements. He also worked on the for-each extension.
+
+  \item \textbf{Alice.} Alice helped with typechecking, IR generation, and testing.
+
+  \item \textbf{Seung Hee.} Seung Hee worked parsking, typechecking the first and second passes for globals and classes, and testing.
+
+  \item \textbf{Michael.} Michael worked on supporting ctors, IR generation, and testing.
+\end{itemize}
+
+The work was divided in this way because it parallelized our work in the most effective manner. Being able to parallelize typechecking and IR generation helped a lot.
+
+\section{Known Problems}\label{sec:problems} Currently we do not support UTF-8
+as OCaml does not have good support for unicode escapes. We also sometimes
+report incorrect file positions in our error messages. Overriding methods does not work for every case objectTests.xi illustrates a nontrivial overriden toString() method that does not pass.
+
+\section{Comments}\label{sec:comments} We spent about 100 hours total on the
+assignment. We spent roughly the same amount of time designing and coding, but the majority of our time was spent debugging and testing. This assignment was difficult because of the time constraints and having to balance with everyone's final schedules.
+
+\end{document}

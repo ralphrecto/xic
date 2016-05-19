@@ -221,6 +221,12 @@ val methods: delta_m:KlassM.t String.Map.t ->
              string ->
              string list
 
+val methods_callable_decl:
+  delta_m:KlassM.t String.Map.t ->
+  delta_i:KlassM.t String.Map.t ->
+  string ->
+  Pos.callable_decl list
+
 (* `super_methods m i c` returns a list of the methods in c's class heirarchy
  * in the order in which they are declared, excluding the methods of c. It also
  * includes empty strings where compiler-specific words go. For example,

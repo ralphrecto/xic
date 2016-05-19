@@ -398,6 +398,19 @@ let methods ~delta_m ~delta_i c =
     in
     help c
 
+let methods_callable_decl ~delta_m ~delta_i c =
+  let delta = U.disjoint_merge delta_m delta_i in
+  if not (String.Map.mem delta c) then
+    failwith (sprintf "methods: class %s not in delta" c)
+  else
+    let rec help c =
+      let {super; methods; _} = String.Map.find_exn delta c in
+      match super with
+      | Some s -> (help s) @ methods
+      | None -> methods
+    in
+    help c
+
 let super_methods ~delta_m ~delta_i c =
   let delta = U.disjoint_merge delta_m delta_i in
   let info = String.Map.find_exn delta c in

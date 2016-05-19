@@ -592,7 +592,7 @@ for_stmt ::= FOR LPAREN ID:eltid COLON type:t IN expr:e2 RPAREN full_stmt:s
        Id<Position> counterId = freshId(pos);
        Id<Position> arrayId = freshId(pos);
        Id<Position> lengthId = freshId(pos);
-       Id<Position> eltId = freshId(pos);
+       Id<Position> eltId = Id.of(pos, eltid);
 
        AnnotatedId<Position> counter =
          AnnotatedId.of(pos, counterId, Int.of(pos));

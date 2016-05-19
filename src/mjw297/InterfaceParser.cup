@@ -170,6 +170,8 @@ terminal WHILE,     // while
          LENGTH,    // length
          TRUE,      // true
          FALSE,     // false
+         IN,        // in
+         FOR,       // for
          // OOP keywords
          CLASS,     // class
          EXTENDS,   // extends

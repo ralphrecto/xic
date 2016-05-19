@@ -1164,7 +1164,7 @@ let asm_eat
   ?(debug=false)
   (fullprog : Typecheck.full_prog)
   (irgen_info : IrG.irgen_info) : Asm.asm list =
-  let func_contexts = get_context_map fullprog irgen_info.comp_unit in
+  let func_contexts = get_context_map irgen_info.contexts fullprog irgen_info.comp_unit in
   let directives, munched_funcs = eat_irgen_info ~debug func_contexts irgen_info in
   directives @ (List.concat_map ~f:(a ~debug) munched_funcs)
 

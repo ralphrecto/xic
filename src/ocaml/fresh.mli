@@ -52,6 +52,7 @@ module type S = sig
   val get_str       : string -> string option
   val gen_fresh_str : string -> string
   val get_fresh_str : string -> string option
+  val mem           : string -> bool
 end
 
 module Make(N: Name): S

@@ -16,4 +16,4 @@ type func_contexts = func_context String.Map.t
 
 val get_context : func_contexts -> string -> func_context
 
-val get_context_map : Typecheck.full_prog -> Ir.comp_unit -> func_contexts
+val get_context_map : Typecheck.contexts -> Typecheck.full_prog -> Ir.comp_unit -> func_contexts

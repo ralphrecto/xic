@@ -13,6 +13,7 @@ module type S = sig
   val get_str       : string -> string option
   val gen_fresh_str : string -> string
   val get_fresh_str : string -> string option
+  val mem           : string -> bool
 end
 
 module Make(N: Name) = struct
@@ -47,11 +48,14 @@ module Make(N: Name) = struct
     else
       None
 
+  let mem s = String.is_prefix ~prefix:N.name s
+
   let fresh () =
     gen (Util.get_and_incr n)
 
   let reset () =
     n := 0
+
 end
 
 (* Tiling fresh modules *)

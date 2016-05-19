@@ -17,29 +17,40 @@ type func_contexts = func_context String.Map.t
 let type_size (e: Expr.t) : int =
   match e with
   | TupleT tlist -> List.length tlist
+  | UnitT -> 0
   | _ -> 1
 
 (* special functions defined by the abi and not defined in an interface *)
 let special_abi_functions = [
-  ("_I_alloc_i", (Expr.IntT, Expr.IntT), false)
+  ("_I_alloc_i", (Expr.IntT, Expr.IntT), false);
+  ("_I_outOfBounds_p", (Expr.UnitT, Expr.UnitT), false);
+  ("__concat", (Expr.TupleT ([Expr.ArrayT IntT; Expr.ArrayT IntT]), Expr.ArrayT IntT), false)
 ]
 
 let get_context (map: func_contexts) (name: string) =
   match String.Map.find map name with
   (* TODO: values are coming from _I_alloc_i. fix this to include
    * _I_alloc_i in the map properly. *)
-  | None -> {
-      num_args = 1;
-      num_rets = 1;
-      max_args = 0;
-      max_rets = 0;
-    }
-      (* failwith ("func_contexts: binding " ^ name ^ " not found") *)
+  | None ->
+      if String.is_prefix ~prefix:"_I_init" name ||
+         FreshGlobal.mem name || FreshSize.mem name ||
+         FreshDV.mem name then
+           { num_args = 0;
+             num_rets = 0;
+             max_args = 0;
+             max_rets = 0; }
+      else
+        begin
+        let ms = String.concat ~sep:", " (String.Map.keys map) in
+        failwith (sprintf "get_context: cannot find %s; %s" name ms)
+        (* failwith ("func_contexts: binding " ^ name ^ " not found") *)
+        end
   | Some x -> x
 
 let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
+    (_ : contexts)
     (fullprog : Typecheck.full_prog)
     ((_, func_decl_map): Ir.comp_unit) =
 

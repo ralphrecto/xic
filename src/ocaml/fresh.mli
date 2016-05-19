@@ -44,12 +44,14 @@ module type Name = sig
 end
 
 module type S = sig
-  val fresh   : unit   -> string
-  val reset   : unit   -> unit
-  val gen     : int    -> string
-  val get     : string -> int option
-  val gen_str : string -> string
-  val get_str : string -> string option
+  val fresh         : unit   -> string
+  val reset         : unit   -> unit
+  val gen           : int    -> string
+  val get           : string -> int option
+  val gen_str       : string -> string
+  val get_str       : string -> string option
+  val gen_fresh_str : string -> string
+  val get_fresh_str : string -> string option
 end
 
 module Make(N: Name): S

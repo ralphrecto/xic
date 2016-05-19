@@ -5,12 +5,14 @@ module type Name = sig
 end
 
 module type S = sig
-  val fresh   : unit   -> string
-  val reset   : unit   -> unit
-  val gen     : int    -> string
-  val get     : string -> int option
-  val gen_str : string -> string
-  val get_str : string -> string option
+  val fresh         : unit   -> string
+  val reset         : unit   -> unit
+  val gen           : int    -> string
+  val get           : string -> int option
+  val gen_str       : string -> string
+  val get_str       : string -> string option
+  val gen_fresh_str : string -> string
+  val get_fresh_str : string -> string option
 end
 
 module Make(N: Name) = struct
@@ -33,8 +35,23 @@ module Make(N: Name) = struct
     else
       None
 
-  let fresh () = gen (Util.get_and_incr n)
-  let reset () = n := 0
+  let gen_fresh_str s =
+    N.name ^ s ^ "#" ^ (Int.to_string (Util.get_and_incr n))
+
+  let get_fresh_str s =
+    if String.is_prefix s ~prefix:N.name then
+      let p = String.drop_prefix s (String.length N.name) in
+      match String.split p ~on:'#' with
+      | [a; _] -> Some a
+      | _ -> None
+    else
+      None
+
+  let fresh () =
+    gen (Util.get_and_incr n)
+
+  let reset () =
+    n := 0
 end
 
 (* Tiling fresh modules *)

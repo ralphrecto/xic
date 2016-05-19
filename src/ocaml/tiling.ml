@@ -386,7 +386,16 @@ let rec munch_expr
         | Some _, Some _, true ->
             failwith "impossible: reg can only be on of ret, arg, or global"
     end
-    | Ir.Call (Ir.Name (fname), arglist) -> begin
+    | Ir.Call (func, arglist) -> begin
+        let fname =
+          match func with
+          | Ir.Name fname -> fname
+          | Ir.Temp s -> uw (IrG.FreshMethodCall.get_fresh_str s)
+          | _ ->
+              let s = Ir.string_of_expr func in
+              failwith (sprintf "munch_expr: Ir.Call(%s, _)" s)
+        in
+        let () = printf "fname is %s\n" fname in
         (* save caller-saved registers *)
         let saving_caller_asm = List.map caller_saved_no_sp ~f:(fun r ->
           movq (Reg (Real r)) (Mem (mem_of_saved_reg r))
@@ -418,7 +427,12 @@ let rec munch_expr
         let mov_asms = List.mapi ~f (ret_ptr @ arg_regs) in
 
         (* call function *)
-        let call_asm = [call (Label fname)] in
+        let call_asm =
+          match func with
+          | Ir.Name fname -> [call (Label fname)]
+          | Ir.Temp s -> [call (Reg (Fake s))]
+          | _ -> failwith "munch_expr: impossible"
+        in
 
         (* shuttle returns into fake registers *)
         let num_rets = (get_context fcontexts fname).num_rets in
@@ -447,7 +461,6 @@ let rec munch_expr
     | Ir.Name l ->
         let new_tmp = FreshReg.fresh () in
         (new_tmp, [movq (Label l) (Reg (Fake new_tmp))])
-    | Ir.Call _ -> failwith "Call should always have a Name first"
     | Ir.ESeq _ -> failwith "ESeq shouldn't exist"
   end
   |> fun (r, asms) ->

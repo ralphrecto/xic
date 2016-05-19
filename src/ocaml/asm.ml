@@ -314,6 +314,7 @@ let string_of_asm_template f asm =
   let comma_spaces ss = String.concat ~sep:", " ss in
   let soo = string_of_operand f in
   match asm with
+  | Op ("call", [o]) -> sprintf "    call *%s" (soo o)
   | Op (s, operands) -> sprintf "    %s %s" s (comma_spaces (List.map ~f:soo operands))
   | Lab s -> s ^ ":"
   | Directive (d, args) -> sprintf "    .%s %s" d (comma_spaces args)
@@ -553,7 +554,13 @@ let js   l = unop_label "js"   l
 let jns  l = unop_label "jns"  l
 let jc   l = unop_label "jc"   l
 let jnc  l = unop_label "jnc"  l
-let call l = unop_label "call" l
+
+(* call *)
+let call (o: 'reg operand)  =
+  match o with
+  | Label _
+  | Reg _ -> Op ("call", [o])
+  | _ -> die ()
 
 (* zeroops *)
 let label_op l = Lab l

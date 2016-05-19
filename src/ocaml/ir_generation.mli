@@ -27,15 +27,16 @@ val string_of_blocks : block list -> string
  * 0, temp 1, temp 2, etc. The same goes for fresh labels. Moreover, we expose
  * a way to reset the fresh temp and fresh label counts to make testing easier.
  *)
-module FreshTemp      : Fresh.S (* __temp   *)
-module FreshLabel     : Fresh.S (* __label  *)
-module FreshArgReg    : Fresh.S (* _ARG     *)
-module FreshRetReg    : Fresh.S (* _RET     *)
-module FreshGlobal    : Fresh.S (* _I_g_    *)
-module FreshSize      : Fresh.S (* _I_size_ *)
-module FreshDV        : Fresh.S (* _I_vt_   *)
-module FreshMethod    : Fresh.S (* _I_m_    *)
-module FreshClassInit : Fresh.S (* _I_init_ *)
+module FreshTemp       : Fresh.S (* __temp   *)
+module FreshLabel      : Fresh.S (* __label  *)
+module FreshArgReg     : Fresh.S (* _ARG     *)
+module FreshRetReg     : Fresh.S (* _RET     *)
+module FreshGlobal     : Fresh.S (* _I_g_    *)
+module FreshSize       : Fresh.S (* _I_size_ *)
+module FreshDV         : Fresh.S (* _I_vt_   *)
+module FreshMethod     : Fresh.S (* _I_m_    *)
+module FreshClassInit  : Fresh.S (* _I_init_ *)
+module FreshMethodCall : Fresh.S (* _I_mc_ *)
 
 val temp  : int -> string
 val label : int -> string

@@ -35,15 +35,16 @@ let string_of_blocks bs =
 (******************************************************************************)
 (* Naming                                                                     *)
 (******************************************************************************)
-module FreshTemp      = Fresh.Make(struct let name = "__temp" end)
-module FreshLabel     = Fresh.Make(struct let name = "__label" end)
-module FreshArgReg    = Fresh.Make(struct let name = "_ARG" end)
-module FreshRetReg    = Fresh.Make(struct let name = "_RET" end)
-module FreshGlobal    = Fresh.Make(struct let name = "_I_g_" end)
-module FreshSize      = Fresh.Make(struct let name = "_I_size_" end)
-module FreshDV        = Fresh.Make(struct let name = "_I_vt_"   end)
-module FreshMethod    = Fresh.Make(struct let name = "_I_m_" end)
-module FreshClassInit = Fresh.Make(struct let name = "_I_init_" end)
+module FreshTemp       = Fresh.Make(struct let name = "__temp" end)
+module FreshLabel      = Fresh.Make(struct let name = "__label" end)
+module FreshArgReg     = Fresh.Make(struct let name = "_ARG" end)
+module FreshRetReg     = Fresh.Make(struct let name = "_RET" end)
+module FreshGlobal     = Fresh.Make(struct let name = "_I_g_" end)
+module FreshSize       = Fresh.Make(struct let name = "_I_size_" end)
+module FreshDV         = Fresh.Make(struct let name = "_I_vt_"   end)
+module FreshMethod     = Fresh.Make(struct let name = "_I_m_" end)
+module FreshClassInit  = Fresh.Make(struct let name = "_I_init_" end)
+module FreshMethodCall = Fresh.Make(struct let name = "_I_mc_" end)
 
 let temp             = FreshTemp.gen
 let fresh_temp       = FreshTemp.fresh
@@ -415,7 +416,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
       let o = gen_expr callnames c ctxt in
       let args_ir = List.map (c::args) ~f:(fun a -> gen_expr callnames a ctxt) in
       let t1 = fresh_temp () in
-      let f = fresh_temp () in
+      let f = FreshMethodCall.gen_fresh_str (class_method ~class_:cname ~method_:f) in
       let ss = seq [
         move (temp t1) (mem o);
         move (temp f) (mem (temp t1 + index));

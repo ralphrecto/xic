@@ -12,6 +12,13 @@ type func_context = {
   max_rets : int;
 }
 
+let to_string fc =
+  sprintf "{\n  num_args=%d\n  num_rets=%d\n  max_args=%d\n  max_rets=%d\n}"
+    fc.num_args
+    fc.num_rets
+    fc.max_args
+    fc.max_rets
+
 type func_contexts = func_context String.Map.t
 
 let type_size (e: Expr.t) : int =
@@ -91,6 +98,11 @@ let get_context_map
       (List.map ~f:int_func_decl_proj int_func_decls) @
       special_abi_functions in
     let f ctxmap (name, (arg_t, ret_t), is_method) =
+      printf "name            = %s\n" name;
+      printf "arg_t           = %s\n" (Typecheck.Expr.to_string arg_t);
+      printf "ret_t           = %s\n" (Typecheck.Expr.to_string ret_t);
+      printf "type_size ret_t = %d\n" (type_size ret_t);
+      printf "is_method       = %b\n" is_method;
       let newctx = {
         num_args = type_size arg_t + (if is_method then 1 else 0);
         num_rets = type_size ret_t;

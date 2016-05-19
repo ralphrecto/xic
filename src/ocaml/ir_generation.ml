@@ -73,7 +73,7 @@ let class_dv c =
 
 let class_method ~class_ ~method_ =
   let u = Ir_util.double_underscore in
-  FreshMethod.gen_str (sprintf "_I_m_%s_%s" (u class_) (u method_))
+  FreshMethod.gen_str (sprintf "%s_%s" (u class_) (u method_))
 
 (******************************************************************************)
 (* Helpers                                                                    *)

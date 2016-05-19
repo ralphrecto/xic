@@ -361,18 +361,29 @@ let (>>|) = Result.(>>|)
 let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   match typ with
   | KlassT classname -> begin
-      String.Map.find c.delta_m classname |> function
+      match String.Map.find c.delta_m classname with
       | None -> Error (pos, undeclared_class classname)
       | Some kl_info -> Ok kl_info
   end
   | _ -> Error (pos, "Not an object expression")
 
-let find_callable (clist : Pos.callable_decl list) (name : string) =
+let rec find_callable (ctxs: contexts) (klass_info : KlassM.t) (name : string) =
   let f (_, c) =
     match c with
     | FuncDecl ((_, fname), _, _)
-    | ProcDecl ((_, fname), _) -> fname = name in
-  List.find ~f clist
+    | ProcDecl ((_, fname), _) -> fname = name
+  in
+  match List.find ~f klass_info.methods with
+  | Some callable -> Some callable
+  | None ->
+    begin
+      match klass_info.super with
+      | Some s ->
+          let merged_deltas = U.disjoint_merge ctxs.delta_m ctxs.delta_i in
+          let super_info = String.Map.find_exn merged_deltas s in
+          find_callable ctxs super_info name
+      | None -> None
+    end
 
 let methods ~delta_m ~delta_i c =
   let delta = U.disjoint_merge delta_m delta_i in
@@ -520,7 +531,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | FieldAccess (receiver, (_, fname)) -> begin
       expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
-      List.Assoc.find klass_info.fields fname |> function
+      match List.Assoc.find klass_info.fields fname with
       | None ->
           Error (p, sprintf "Class %s does not have field %s" klass_info.name fname)
       | Some typ ->
@@ -529,7 +540,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | MethodCall (receiver, (_, mname), args) -> begin
       expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
-      find_callable klass_info.methods mname |> function
+      match find_callable c klass_info mname with
       | None ->
           Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
       | Some callable ->
@@ -739,7 +750,7 @@ let stmt_typecheck (c : contexts) rho s =
     | MethodCallStmt (receiver, (_, mname), args) -> begin
         expr_typecheck c receiver >>= fun receiver' ->
         get_klass_info c receiver' p >>= fun klass_info ->
-        find_callable klass_info.methods mname |> function
+        match find_callable c klass_info mname with
         | None ->
             Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
         | Some callable -> begin
@@ -1517,7 +1528,7 @@ let fst_klass_pass contexts klasses =
           in
           check_inter () >>= fun methods1 ->
           check_super methods1 >>= fun klass' ->
-          let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass' in
+          let delta_m' = String.Map.add contexts'.delta_m ~key:k ~data:klass' in
           Ok ({contexts' with delta_m = delta_m'})
       in
       SortedGraph.fold klass_fold klass_graph (Ok contexts)

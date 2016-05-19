@@ -1,15 +1,3 @@
-use io
-use conv
-
-range(low: int, high: int) : int[] {
-    xs: int[] = {};
-    while (low < high) {
-        xs = xs + {low};
-        low = low + 1;
-    }
-    return xs;
-}
-
 class IntFold {
   call(acc:int, el:int) : int {
     return acc;

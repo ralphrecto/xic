@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # This is a very simple script that uses gcc to link in a given .s
-# file to the xi runtime library, and uses xifilt to help
+# file to the xi runtime library, and uses xifilt to help 
 # decode error messages
 #
 # Use this like ./linkxi.sh -o binary foo.s

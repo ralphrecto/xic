@@ -51,7 +51,7 @@ LBB1_2:
 	leaq	_prompt(%rip), %rax
 	addq	$8, %rax
 	movq	%rax, ARG1()
-	callq	FUNC(Iprintln_pai)
+	callq	FUNC(Iprint_pai)
 	callq	FUNC(Ireadln_ai)
 	movq	%rax, -16(%rbp)
 	movq	-16(%rbp), ARG1()

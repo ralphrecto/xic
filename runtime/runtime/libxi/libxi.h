@@ -5,9 +5,10 @@
 #define LIBXI_H
 
 #include "multret.h"
+#include <stdint.h>
 
-typedef long long int xiint;
-typedef long long int xibool;
+typedef int64_t xiint;
+typedef int64_t xibool;
 typedef xiint *xistring;
 
 #define xilength(a) *(xiint *)((a)-1)
@@ -18,7 +19,7 @@ typedef xiint *xistring;
 #define XI_EXPORT
 #endif
 
-#if !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__MINGW32__)
+#if !defined(__CYGWIN__) && !defined(__APPLE__)
 #define XI(x) _I ## x
 #else
 #define XI(x) I ## x

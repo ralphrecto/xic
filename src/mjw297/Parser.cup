@@ -6,6 +6,7 @@ import java.util.List;
 import mjw297.Ast.*;
 import mjw297.XicException.*;
 import java.util.Optional;
+import java.util.Arrays;
 
 parser code {:
     public void report_error(String message, Object info) {
@@ -80,6 +81,12 @@ parser code {:
         }
         return Program.of(p, uses, globals, classes, calls);
     }
+
+    int freshCount = 0;
+    public Id<Position> freshId(Position p) {
+      freshCount += 1;
+      return Id.of(p, "__forfresh" + freshCount);
+    }
 :}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +132,8 @@ terminal WHILE,     // while
          LENGTH,    // length
          TRUE,      // true
          FALSE,     // false
+         IN,        // in
+         FOR,       // for
          // OOP keywords
          CLASS,     // class
          EXTENDS,   // extends
@@ -208,7 +217,8 @@ nonterminal Stmt<Position>
     asgn,
     underscore_asgn,
     if_stmt,
-    while_stmt;
+    while_stmt,
+    for_stmt;
 
 nonterminal FuncCall<Position>
     func_call;
@@ -412,6 +422,8 @@ stmt ::= full_decl_asgn:f
     {: RESULT = i; :}
     | while_stmt:w
     {: RESULT = w; :}
+    | for_stmt:f
+    {: RESULT = f; :}
     | proc_call:c
     {: RESULT = c; :}
     | block:b
@@ -562,7 +574,62 @@ method_call_stmt ::= expr_lhs_stmt:receiver DOT ID:fn args_call:args
     :}
     ;
 
-// Functions and procedures
+for_stmt ::= FOR LPAREN ID:eltid COLON type:t IN expr:e2 RPAREN full_stmt:s
+    {:
+       /* for (x:t in e2) stmt ==
+         {
+            i:int = 0;
+            arr:t[] = e2;
+            len:int = length(arr);
+            while (i < len) {
+              x:t = arr[i];
+              stmt;
+              i = i + 1;
+            }
+         }                        */
+       Position pos = new Position(eltidleft, eltidright);
+
+       Id<Position> counterId = freshId(pos);
+       Id<Position> arrayId = freshId(pos);
+       Id<Position> lengthId = freshId(pos);
+       Id<Position> eltId = freshId(pos);
+
+       AnnotatedId<Position> counter =
+         AnnotatedId.of(pos, counterId, Int.of(pos));
+       AnnotatedId<Position> array =
+         AnnotatedId.of(pos, arrayId, Array.of(pos, t, Optional.empty()));
+       AnnotatedId<Position> length =
+         AnnotatedId.of(pos, lengthId, Int.of(pos));
+       AnnotatedId<Position> elt =
+         AnnotatedId.of(pos, eltId, t);
+
+       DeclAsgn<Position> counterDecl =
+         DeclAsgn.of(pos, Arrays.asList(counter), NumLiteral.of(pos, 0L));
+       DeclAsgn<Position> arrayDecl =
+         DeclAsgn.of(pos, Arrays.asList(array), e2);
+       DeclAsgn<Position> lenDecl =
+         DeclAsgn.of(pos, Arrays.asList(length), Length.of(pos, arrayId));
+
+       DeclAsgn<Position> eltDecl =
+         DeclAsgn.of(pos, Arrays.asList(elt), Index.of(pos, arrayId, counterId));
+       Asgn<Position> incrAsgn=
+         Asgn.of(pos, counterId,
+           BinOp.of(pos, BinOpCode.PLUS, counterId, NumLiteral.of(pos, 1L)));
+       Block<Position> whileBody =
+         Block.of(pos, Arrays.asList(eltDecl, s,  incrAsgn), Optional.empty(), pos);
+
+       BinOp<Position> whilePred = BinOp.of(pos, BinOpCode.LT, counterId, lengthId);
+
+       While<Position> whileStmt = While.of(pos, whilePred, whileBody);
+
+       Block<Position> finBlock = Block.of(pos,
+         Arrays.asList(counterDecl, arrayDecl, lenDecl, whileStmt),
+         Optional.empty(), pos);
+
+       RESULT = finBlock;
+    :}
+    ;
+
 
 args_decl ::= LPAREN RPAREN
     {: RESULT = new ArrayList<AnnotatedVar<Position>>(); :}

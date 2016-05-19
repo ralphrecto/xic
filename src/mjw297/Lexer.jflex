@@ -106,21 +106,23 @@ Identifier = [a-zA-Z][a-zA-Z_0-9\']*
 <YYINITIAL> {
 
     /* Keywords */
-    "while"     { return symbol(Sym.WHILE);     }
-    "if"        { return symbol(Sym.IF);        }
-    "else"      { return symbol(Sym.ELSE);      }
-    "return"    { return symbol(Sym.RETURN);    }
-    "int"       { return symbol(Sym.INT);       }
-    "bool"      { return symbol(Sym.BOOL);      }
-    "use"       { return symbol(Sym.USE);       }
-    "length"    { return symbol(Sym.LENGTH);    }
-    "true"      { return symbol(Sym.TRUE);      }
-    "false"     { return symbol(Sym.FALSE);     }
-    "class"     { return symbol(Sym.CLASS);     }
-    "extends"   { return symbol(Sym.EXTENDS);   }
-    "null"      { return symbol(Sym.NULL);      }
-    "break"     { return symbol(Sym.BREAK);     }
-    "new"       { return symbol(Sym.NEW);       }
+    "while"     { return symbol(Sym.WHILE);      }
+    "if"        { return symbol(Sym.IF);         }
+    "else"      { return symbol(Sym.ELSE);       }
+    "return"    { return symbol(Sym.RETURN);     }
+    "int"       { return symbol(Sym.INT);        }
+    "bool"      { return symbol(Sym.BOOL);       }
+    "use"       { return symbol(Sym.USE);        }
+    "length"    { return symbol(Sym.LENGTH);     }
+    "true"      { return symbol(Sym.TRUE);       }
+    "false"     { return symbol(Sym.FALSE);      }
+    "class"     { return symbol(Sym.CLASS);      }
+    "extends"   { return symbol(Sym.EXTENDS);    }
+    "null"      { return symbol(Sym.NULL);       }
+    "break"     { return symbol(Sym.BREAK);      }
+    "new"       { return symbol(Sym.NEW);        }
+    "in"        { return symbol(Sym.IN);         }
+    "for"       { return symbol(Sym.FOR);        }
 
     /* Symbols */
     "-"         { return symbol(Sym.MINUS);      }

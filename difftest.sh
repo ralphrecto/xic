@@ -60,17 +60,17 @@ run_and_diff() {
     fi
 
     should_run=()
-    should_run+=(true) # typed
-    should_run+=(true) # typed-acf
-    should_run+=(true) # nolower
-    should_run+=(true) # lower
-    should_run+=(true) # ir
-    should_run+=(true) # ir-cp
-    should_run+=(true) # ir-pre
-    should_run+=(true) # ir-opt
-    should_run+=(true) # munch
-    should_run+=(true) # chomp
-    should_run+=(true) # s
+    should_run+=(false) # typed
+    should_run+=(false) # typed-acf
+    should_run+=(true)  # nolower
+    should_run+=(true)  # lower
+    should_run+=(true)  # ir
+    should_run+=(true)  # ir-cp
+    should_run+=(true)  # ir-pre
+    should_run+=(true)  # ir-opt
+    should_run+=(true)  # munch
+    should_run+=(true)  # chomp
+    should_run+=(true)  # s
 
     names=()
     names+=("typed")

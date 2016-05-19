@@ -1598,8 +1598,8 @@ let prog_typecheck p =
     | Use (_, id) -> ((), Use ((), id))
   in
   let use_list = List.map ~f: use_typecheck uses in
-  interfaces_typecheck uses interfaces >>= fun (interfaces', _) ->
-  fst_klass_pass empty_contexts klasses >>= fun contexts1 ->
+  interfaces_typecheck uses interfaces >>= fun (interfaces', contexts0) ->
+  fst_klass_pass contexts0 klasses >>= fun contexts1 ->
   global_pass contexts1 globals >>= fun contexts2 ->
   fst_func_pass contexts2 funcs interfaces >>= fun contexts3 ->
   Result.all (List.map ~f: (snd_func_pass contexts3) funcs) >>= fun func_list ->

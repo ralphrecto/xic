@@ -217,7 +217,10 @@ let main opts flags () : unit Deferred.t =
   | _ when flags.optcfg_initial || flags.optcfg_final ->
       let cfg_phase names (phase: string) (filename: string) ((_, funcs): Ir.comp_unit) =
           let f (fname, (_, body, _)) =
-            if fname <> "__concat" then
+            if fname <> "__concat" &&
+               not (String.is_prefix fname ~prefix:"_I_globalinit") &&
+               not (String.is_prefix fname ~prefix:"_I_init") &&
+               not (String.is_prefix fname ~prefix:"_I_m") then
               match body with
               | Seq irs -> begin
                   let cfg = Cfg.IrCfg.create_cfg irs in

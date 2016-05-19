@@ -724,8 +724,8 @@ let stmt_typecheck (c : contexts) rho s =
     | Asgn (l, r) ->
         lvalue c l >>= fun l' ->
         expr_typecheck c r >>= fun r' ->
-        if fst r' <= fst l'
-        then Ok ((One, Asgn (l', r')), c)
+        if c.subtype (fst r') (fst l') then
+          Ok ((One, Asgn (l', r')), c)
         else
           let ls = Expr.to_string (fst l') in
           let rs = Expr.to_string (fst r') in

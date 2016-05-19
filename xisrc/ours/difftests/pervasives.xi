@@ -94,3 +94,9 @@ arr_eq(x: int[], y: int[]) : bool {
     return true;
 }
 
+check(b: bool) {
+    if (!b) {
+        xs: int[]
+        println(string_of_int(xs[42]))
+    }
+}

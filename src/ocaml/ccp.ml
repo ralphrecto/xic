@@ -36,7 +36,7 @@ module CcpLattice = struct
     in
     let new_defined = String.Map.fold ~f ~init:String.Map.empty defined1 in
     let new_reach = reachable_meet reach1 reach2 in
-    (new_reach, new_defined )
+    (new_reach, new_defined)
 
   let ( === ) (reach1, defined1) (reach2, defined2) =
     let def_equal def1 def2 =
@@ -74,12 +74,7 @@ let rec get_temp_expr (e: expr) : String.Set.t =
     let f acc e = union acc (get_temp_expr e) in
     List.fold_left ~f ~init: empty elst
   | Mem (e1, _) -> get_temp_expr e1
-  | Temp s ->
-    begin
-      match FreshGlobal.get s with
-      | Some _ -> empty
-      | None -> add empty s
-    end
+  | Temp s -> add empty s
   | Const _ | Name _ -> empty
   | ESeq _ -> failwith "shouldn't exist!"
 
@@ -108,7 +103,11 @@ let get_all_temps g =
 
 let map_temp_undef temps =
   let module L = CcpLattice in
-  let f acc e = String.Map.add acc ~key:e ~data:L.Undef in
+  let f acc e =
+    match FreshGlobal.get e with
+    | Some _ -> String.Map.add acc ~key:e ~data:L.Overdef
+    | None -> String.Map.add acc ~key:e ~data:L.Undef
+  in
   String.Set.fold ~f ~init:String.Map.empty temps
 
 let eval_binop (i1: Int64.t) (op: Ir.binop_code) (i2: Int64.t) =

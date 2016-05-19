@@ -50,7 +50,7 @@ let get_context (map: func_contexts) (name: string) =
 let cmp_max (a1, b1) (a2, b2) = (max a1 a2, max b1 b2)
 
 let get_context_map
-    (_ : contexts)
+    (c : contexts)
     (fullprog : Typecheck.full_prog)
     ((_, func_decl_map): Ir.comp_unit) =
 
@@ -65,23 +65,20 @@ let get_context_map
   let init_context_map =
     begin
     let open Ast.S in
-    let prog_class_proj ((_, Klass ((_, class_), _, _, methods)) : Typecheck.klass) =
-      let f (t, m) =
-        let method_ =
-          match m with
-          | Func ((_, fname), _, _, _)
-          | Proc ((_, fname), _, _) -> fname in
-        (class_method ~class_ ~method_, t, true) in
-      List.map ~f methods in
+    let cdecl_help class_ cdecl =
+      let method_ =
+        match cdecl with
+        | (_, FuncDecl ((_, fname), _, _))
+        | (_, ProcDecl ((_, fname), _)) -> fname in
+      let t = typeof_callable cdecl in
+      (class_method ~class_ ~method_, t, true) in
+    let prog_class_proj ((_, Klass ((_, class_), _, _, _)) : Typecheck.klass) =
+      let cdecls = (methods_callable_decl ~delta_m:c.delta_m ~delta_i:c.delta_i class_) in
+      List.map ~f:(cdecl_help class_) cdecls in
     let int_class_decl_proj (kd : Typecheck.klass_decl) =
-      let (_, KlassDecl ((_, class_), _, methods)) = kd in
-      let f (t, m) =
-        let method_ =
-          match m with
-          | FuncDecl ((_, fname), _, _)
-          | ProcDecl ((_, fname), _) -> fname in
-        (class_method ~class_ ~method_, t, true) in
-      List.map ~f methods in
+      let (_, KlassDecl ((_, class_), _, _)) = kd in
+      let cdecls = (methods_callable_decl ~delta_m:c.delta_m ~delta_i:c.delta_i class_) in
+      List.map ~f:(cdecl_help class_) cdecls in
     let prog_func_proj ((t, func) : Typecheck.callable) =
       (abi_callable_name (t, func), t, false) in
     let int_func_decl_proj ((typ, c): Typecheck.callable_decl) =

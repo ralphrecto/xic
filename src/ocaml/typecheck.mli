@@ -344,6 +344,8 @@ end
 module GlobalGraph : module type of Graph.Persistent.Digraph.Concrete(GlobalVertex)
 val global_graph : Pos.global list -> GlobalGraph.t
 
+val typeof_callable : Pos.callable_decl -> Expr.t * Expr.t
+
 (******************************************************************************)
 (* typechecking                                                               *)
 (******************************************************************************)

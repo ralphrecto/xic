@@ -562,24 +562,50 @@ let eat_func_decl
   let label = [Lab fname] in
 
   (* Building function prologue
-   *  - use enter to save rbp, update rbp/rsp,
-   *      allocate num_temps + num_caller_save + num_callee_save + num tuple
-   *      returns + num stack arguments
-   *  - Align stack if not aligned to 16 bytes. To maintain this,
-   *      we maintain the invariant that all stackframes have
-   *      16k bytes for some k\in N. This should work if the
-   *      bottom of the stack is a multiple of 16.
-   *  - move passed mult. ret pointers into fresh temps
-   *  - save callee saved registers
+   * ==========================
+   * 1. Use enter to save rbp and update both rbp and rsp. We'll stack allocate
+   *    17 words for caller-saved registers, callee-saved registers, and
+   *    shuttle registers. We'll then allocate one word for every spilled temp,
+   *    return, and argument. See tiling.mli for detailed information on stack
+   *    format.
+   * 2. 16-byte align the stack. Before a function is called, the stack looks
+   *    like this:
+   *
+   *                |         | 0x0008
+   *        rsp --> |         | 0x0010
+   *                | garbage | 0x0018
+   *
+   *    After a function is called, it looks like this:
+   *
+   *                |         | 0x0008
+   *                |         | 0x0010
+   *        rsp --> | old pc  | 0x0018
+   *
+   *    After we issue the enter instruction, it looks like this:
+   *
+   *                |         | 0x0008
+   *                |         | 0x0010
+   *                | old pc  | 0x0018
+   *                | old bp  | 0x0020
+   *                | rax     | 0x0028
+   *                    ...
+   *        rsp --> |         | 0x????
+   *
+   *    We must maintain the invariant that rsp is 16-byte aligned
+   *    (equivalently, it's last hex digit is a 0). Notice that if an even
+   *    number of words were pushed to the stack after the call, rsp will be
+   *    16-byte aligned. If an odd number of words were pushed, it's not
+   *    16-byte aligned.
+   * 3. Move the return pointer (if one exists) into a fresh temp.
+   * 4. Save callee-saved registers.
    *)
   let num_callee = List.length callee_saved_no_bp in
   let num_caller = List.length caller_saved_no_sp in
-  let tot_temps = num_temps + num_callee + num_caller in
-  let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
-  (* number of shuttle registers *)
   let num_shuttles = 3 in
+  let tot_temps = num_temps + num_callee + num_caller + num_shuttles in
+  let tot_rets_n_args = curr_ctx.max_rets + curr_ctx.max_args in
   (* saved rip + saved rbp + temps + rets n args  *)
-  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args + num_shuttles in
+  let tot_stack_size = 1 + 1 + tot_temps + tot_rets_n_args in
 
   let section_wrap = section_wrap debug in
 

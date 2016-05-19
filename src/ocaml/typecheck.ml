@@ -1352,7 +1352,12 @@ let class_graph klasses =
       | (_, KlassDecl (_, super, _)) -> super
     in
     match super with
-    | Some (_, s) -> KlassGraph.add_edge g (String.Map.find_exn klass_index s) k
+    | Some (_, s) ->
+      begin
+        match String.Map.find klass_index s with
+        | Some s' -> KlassGraph.add_edge g s' k
+        | None -> g
+      end
     | None -> g
   )
 

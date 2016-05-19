@@ -21,7 +21,7 @@ let type_size (e: Expr.t) : int =
 
 (* special functions defined by the abi and not defined in an interface *)
 let special_abi_functions = [
-  ("_I_alloc_i", (Expr.IntT, Expr.IntT))
+  ("_I_alloc_i", (Expr.IntT, Expr.IntT), false)
 ]
 
 let get_context (map: func_contexts) (name: string) =
@@ -60,7 +60,7 @@ let get_context_map
           match m with
           | Func ((_, fname), _, _, _)
           | Proc ((_, fname), _, _) -> fname in
-        (class_method ~class_ ~method_, t) in
+        (class_method ~class_ ~method_, t, true) in
       List.map ~f methods in
     let int_class_decl_proj (kd : Typecheck.klass_decl) =
       let (_, KlassDecl ((_, class_), _, methods)) = kd in
@@ -69,12 +69,12 @@ let get_context_map
           match m with
           | FuncDecl ((_, fname), _, _)
           | ProcDecl ((_, fname), _) -> fname in
-        (class_method ~class_ ~method_, t) in
+        (class_method ~class_ ~method_, t, true) in
       List.map ~f methods in
     let prog_func_proj ((t, func) : Typecheck.callable) =
-      (abi_callable_name (t, func), t) in
+      (abi_callable_name (t, func), t, false) in
     let int_func_decl_proj ((typ, c): Typecheck.callable_decl) =
-      (abi_callable_decl_name (typ, c), typ) in
+      (abi_callable_decl_name (typ, c), typ, false) in
 
     let all_funcs =
       (List.concat_map ~f:prog_class_proj prog_classes) @
@@ -82,9 +82,9 @@ let get_context_map
       (List.map ~f:prog_func_proj prog_funcs) @
       (List.map ~f:int_func_decl_proj int_func_decls) @
       special_abi_functions in
-    let f ctxmap (name, (arg_t, ret_t)) =
+    let f ctxmap (name, (arg_t, ret_t), is_method) =
       let newctx = {
-        num_args = type_size arg_t;
+        num_args = type_size arg_t + (if is_method then 1 else 0);
         num_rets = type_size ret_t;
         max_args = 0;
         max_rets = 0;

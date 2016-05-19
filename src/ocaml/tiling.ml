@@ -395,7 +395,6 @@ let rec munch_expr
               let s = Ir.string_of_expr func in
               failwith (sprintf "munch_expr: Ir.Call(%s, _)" s)
         in
-        let () = printf "fname is %s\n" fname in
         (* save caller-saved registers *)
         let saving_caller_asm = List.map caller_saved_no_sp ~f:(fun r ->
           movq (Reg (Real r)) (Mem (mem_of_saved_reg r))

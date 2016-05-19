@@ -2,7 +2,7 @@
 
 main() {
     readonly dir="$(dirname $0)"
-    java -cp "$dir/bin:$dir/lib/$(ls $dir/lib/*.jar | tr '\n' ':'):$CLASSPATH" mjw297.IrInterpreter "$@"
+    java -cp "$dir/bin:$dir/lib/$(ls $dir/lib/*.jar | tr '\n' ':'):$CLASSPATH" mjw297.IrInterpreter <(sed 's/#/_/g' "$@")
 }
 
 main "$@"

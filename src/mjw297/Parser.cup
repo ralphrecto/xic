@@ -503,7 +503,7 @@ asgn ::= ID:i EQ expr:e
     | expr_lhs_stmt:a DOT ID:fn  EQ expr:e
     {: Position p = new Position(aleft, aright);
        Id<Position> field = Id.of(new Position(fnleft, fnright), fn);
-       FieldAccess<Position> fa = FieldAccess.of(new Position(eleft, fnright), e, field);
+       FieldAccess<Position> fa = FieldAccess.of(new Position(eleft, fnright), a, field);
        RESULT = Asgn.of(p, fa, e); :}
     | expr_lhs_stmt:a num_array_index_plus:idx EQ expr:e
     {: Position p = new Position(aleft, aright);

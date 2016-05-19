@@ -567,8 +567,8 @@ and gen_stmt callnames s ctxt =
       let (_, ret_seq_) = List.fold_left ~f:gen_var_decls ~init:(0,[]) vlist in
       let ret_seq = List.rev ret_seq_ in
       Seq (ret_seq)
-    | S.DeclAsgn (_::_, _) -> failwith "impossible"
-    | S.DeclAsgn ([], _) -> failwith "impossible"
+    | S.DeclAsgn (_::_, _) -> failwith "decl_asgn impossible1"
+    | S.DeclAsgn ([], _) -> failwith "decl_asgn impossible2"
     | S.Asgn ((t, lhs), fullrhs) ->
       begin
         match lhs with
@@ -594,7 +594,24 @@ and gen_stmt callnames s ctxt =
             Label t_label;
             Move (Mem (addr_tmp$$index_tmp, NORMAL), gen_expr callnames fullrhs ctxt)
           ]
-        | _ -> failwith "impossible"
+        | S.FieldAccess ((t, receiver), ((), f)) ->
+          begin
+            match t with
+            | KlassT cname ->
+              let class_info = String.Map.find_exn ctxt.delta_m cname in
+              let field_names = List.map ~f:fst class_info.KlassM.fields in
+              let field_index = uw (Util.index field_names f) in
+              let offset = const (8 * (field_index - (List.length field_names))) in
+
+              let e = gen_expr callnames (t, receiver) ctxt in
+
+              let open Ir.Abbreviations in
+              let open Ir.Infix in
+              let size = temp (class_size cname) in
+              (move (mem (e + size + offset)) (gen_expr callnames fullrhs ctxt))
+            | _ -> failwith "gen_stmt: assigning field of non class type"
+          end
+        | _ -> failwith "asgn impossible"
       end
     | S.Block stmts -> Seq (List.map ~f:(fun s -> help callnames s break_label) stmts)
     | S.Return exprlist ->

@@ -362,7 +362,7 @@ let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   match typ with
   | KlassT classname -> begin
       String.Map.find c.delta_m classname |> function
-      | None -> Error (pos, sprintf "Class %s not declared in module" classname)
+      | None -> Error (pos, undeclared_class classname)
       | Some kl_info -> Ok kl_info
   end
   | _ -> Error (pos, "Not an object expression")
@@ -1562,7 +1562,8 @@ let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error
       else
         let locals1 = Context.bind_all_avars c.locals fields' in
         let locals2 = Context.bind_all_calls locals1 methods in
-        let c' = {c with locals = locals2} in
+        let locals3 = Context.bind locals2 "this" (Var (KlassT name)) in
+        let c' = {c with locals = locals3} in
         Result.all (List.map ~f:(snd_func_pass c') methods)
     in
     fields_ok >>= fun fields' ->

@@ -469,11 +469,11 @@ and expr_typecheck (c : contexts) (p, expr) =
       | IntT, IntT, (LT|LTE|GTE|GT|EQEQ|NEQ) -> Ok (BoolT, e)
       | BoolT, BoolT, (AMP|BAR|EQEQ|NEQ) -> Ok (BoolT, e)
       | IntT, IntT, PLUS -> Ok (IntT, e)
-      (* array equality *)
-      | _, _, (EQEQ|NEQ) when comparable array_subtyping lt rt -> Ok (BoolT, e)
       (* array concat *)
       | _, _, PLUS when array_subtyping EmptyArray lt && array_subtyping EmptyArray rt ->
         type_max array_subtyping p lt rt >>= fun max_t -> Ok (max_t, e)
+      (* object/array equality *)
+      | _, _, (EQEQ|NEQ) when comparable c.subtype lt rt -> Ok (BoolT, e)
       | _ ->
         (* TODO: handle equality over objects *)
         let binop_str = Ast.string_of_binop_code opcode in

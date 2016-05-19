@@ -11,6 +11,8 @@ type func_context = {
   max_rets : int;
 }
 
+val to_string : func_context -> string
+
 (* abi compliant names -> func_context *)
 type func_contexts = func_context String.Map.t
 

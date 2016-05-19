@@ -371,9 +371,6 @@ type color =
   | Reg9
   | Reg10
   | Reg11
-  | Reg12
-  | Reg13
-  | Reg14
 [@@deriving sexp, compare]
 
 let reg_of_color = function
@@ -388,9 +385,6 @@ let reg_of_color = function
   | Reg9  -> R10
   | Reg10 -> R11
   | Reg11 -> R12
-  | Reg12 -> R13
-  | Reg13 -> R14
-  | Reg14 -> R15
 
 let color_of_reg = function
   | Rax -> Reg1
@@ -405,25 +399,19 @@ let color_of_reg = function
   | R10 -> Reg9
   | R11 -> Reg10
   | R12 -> Reg11
-  | R13 -> Reg12
-  | R14 -> Reg13
-  | R15 -> Reg14
   | _   -> failwith "color_of_reg: no color for rbp/rsp"
 
 module ColorSet = Set.Make(struct
   type t = color [@@deriving sexp, compare]
 end)
 
-let all_color_set = ColorSet.of_list [
-  Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8;
-  Reg9; Reg10; Reg11; Reg12; Reg13; Reg14;
-]
-
 let string_of_color c = Asm.string_of_reg (reg_of_color c)
 let string_of_color_set s = U.string_of_set ~short:false s ~f:string_of_color
 
 let get_next_color (colors : color list) : color option =
-  let colorlist = ColorSet.to_list all_color_set in
+  let colorlist = [
+    Reg1; Reg2; Reg3; Reg4; Reg5; Reg6; Reg7; Reg8; Reg9; Reg10; Reg11;
+  ] in
   let f acc x =
     match acc with
     | Some _ -> acc
@@ -834,20 +822,12 @@ let cfgnode_sort (nodes : AsmCfg.V.t list) =
     | Node n1, Node n2 -> compare n1.num n2.num in
   List.sort ~cmp nodes
 
-type build_ret =
-  alloc_context *
-  (* live out *)
-  (AsmCfg.vertex -> AReg.Set.t) *
-  (* live in *)
-  (AsmCfg.vertex -> AReg.Set.t) *
-  AsmCfg.t
-
 (* build initializes data structures used by regalloc
  * this corresponds to Build() and MakeWorklist() in Appel *)
 let build
   (initctx : alloc_context)
   (asms : abstract_asm list)
-  : build_ret =
+  : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) * AsmCfg.t =
 
   let cfg = AsmCfg.create_cfg asms in
 
@@ -861,18 +841,6 @@ let build
     | Start | Exit -> AReg.Set.empty
     | Node _ ->
         AsmCfg.fold_succ_e (fun e a -> L.(livevars_edge e ** a)) cfg v (AReg.Set.empty)
-  in
-
-  let livevars_in (v : AsmCfg.vertex) : LiveVariableAnalysis.CFGL.data =
-    let module L = LiveVariableLattice in
-    match v with
-    | Start | Exit -> AReg.Set.empty
-    | Node _ ->
-        begin
-        match AsmCfg.pred_e cfg v with
-        | [] -> AReg.Set.empty
-        | edge_in :: _ -> livevars_edge edge_in
-        end
   in
 
   (* populate precolored, initial work lists *)
@@ -969,8 +937,11 @@ let build
   (* set of all precolored nodes. we use this to create a precolored
    * clique in the interference graph. *)
   let precolored_set =
-    let f c = Real (reg_of_color c) in
-    all_color_set |> ColorSet.to_list |> List.map ~f |> AReg.Set.of_list in
+    let f r = Real r in
+    List.map ~f [
+      Rax; Rbx; Rcx; Rdx; Rsi; Rdi; R8;
+      R9; R10; R11; R12;
+    ] |> AReg.Set.of_list in
 
   let all_vars_set = AReg.Set.union fakes_set precolored_set in
 
@@ -1007,7 +978,7 @@ let build
       finctx.worklist_moves;
       finctx.active_moves;
     ] in
-  ({ finctx with all_moves = all_moves_set }, livevars, livevars_in, cfg)
+  ({ finctx with all_moves = all_moves_set }, livevars, cfg)
 
 (* Returns a list of nodes adjacent to n that are not selected or coalesced.
  * Does not update the context. *)
@@ -1361,20 +1332,16 @@ let translate_asm (regctx : alloc_context) (asm : abstract_asm) : abstract_asm =
   | Directive (s, l) -> Directive (s, l)
   | Comment s -> Comment s
 
-
 (* allocate spilled nodes to the stack *)
-let spill_allocate ?(debug=false)
-  (regctx : alloc_context)
-  (asms_with_livevarsin : (abstract_asm * AReg.Set.t) list) =
-
+let spill_allocate ?(debug=false) asms =
   (* spill_env maps each fake name to an index, starting at 18, into the stack.
    * We start at 18 since the first 14 is reserved for callee save registers
    * plus 3 for spill space for shuttle registers.
    * For example, if the fake name "foo" is mapped to n in spill_env, then Reg
    * (Fake "foo") will be spilled to -8n(%rbp). *)
   let spill_env =
-    fakes_of_asms (List.map ~f:fst asms_with_livevarsin)
-    |> List.mapi ~f:(fun i fake -> (fake, i + 18))
+    fakes_of_asms asms
+    |> List.mapi ~f:(fun i asm -> (asm, i + 18))
     |> String.Map.of_alist_exn
   in
 
@@ -1405,39 +1372,20 @@ let spill_allocate ?(debug=false)
     | Comment s -> Comment s
   in
 
-  let colors_of_aregs (aregs : abstract_reg list) : ColorSet.t =
-    let f acc areg =
-      match AReg.Map.find regctx.color_map areg with
-      | Some c -> c :: acc
-      | None -> acc in
-    List.fold_left ~f ~init:[] aregs |> ColorSet.of_list in
+  (* Certain real registers are output into abstract assembly. For example,
+   * multiplication and division use rax and rdx. These registers shouldn't be
+   * present in abstract assembly. *)
+  let unused_regs = [R13; R14; R15] in
 
-  (* real registers not in use (i.e. live) coming into the instruction
-   * the returned boolean indicates whether or not the returned registers
-   * do not need to be saved to the stack first before shuttling, i.e.
-   * is it safe to freely shuttle with them without prepre or postpost *)
-  let unused_regs (num : int) (asm : abstract_asm) (livein : AReg.Set.t)
-    : (reg list * bool) =
-
-    (* if there are variables not live on entry to the instruction,
-     * we can use them to shuttle registers for spills *)
-    if AReg.Set.length livein + num <= regctx.num_colors then
-      let live_colors = colors_of_aregs (AReg.Set.to_list livein) in
-      let ret_colors =
-        let ok_colors = ColorSet.diff all_color_set live_colors in
-        List.take (ColorSet.to_list ok_colors) num |>
-        List.map ~f:reg_of_color in
-      (ret_colors, true)
-
-    (* if we cannot find enough variables not live into the instruction,
-     * we use some not used in the instruction and shuttle accordingly. *)
-    else
-      let op_colors = regs_of_asm asm |> colors_of_aregs in
-      let ret_colors =
-        let ok_colors = ColorSet.diff all_color_set op_colors in
-        List.take (ColorSet.to_list ok_colors) num |>
-        List.map ~f:reg_of_color in
-      (ret_colors, false) in
+  let shuttle_address (r : reg) =
+    let offset_index =
+      match r with
+      | R13 -> 15
+      | R14 -> 16
+      | R15 -> 17
+      | _ -> failwith "spill_allocate: impossible" in
+    let offset = Int64.of_int (-8 * offset_index) in
+    Mem (Base (Some offset, Rbp)) in
 
   (* Translate fake registers using the register environment and leave real
    * registers alone. *)
@@ -1447,25 +1395,14 @@ let spill_allocate ?(debug=false)
     | Real r -> r
   in
 
-  let allocate (env: int String.Map.t) ((asm, livein) : abstract_asm * AReg.Set.t) : asm list =
+  let allocate (env: int String.Map.t) (asm: abstract_asm) : asm list =
     let spill = spill_address env in
     match asm with
     | Op (_, operands) ->
       begin
       let fakes = fakes_of_operands operands in
-      let shuttle_regs, safe_shuttle = unused_regs (List.length fakes) asm livein in
-      let fake_to_real = List.zip_exn fakes shuttle_regs in
-
-      let shuttle_address (r : reg) =
-        let f i acc shuttle_reg =
-          if shuttle_reg = r then
-            let offset = Int64.of_int (-8 * (i + 15)) in
-            Some (Mem (Base (Some offset, Rbp)))
-          else acc in
-        match List.foldi ~f ~init:None shuttle_regs with
-        | Some addr -> addr
-        | None -> failwith "spill_allocate: impossible" in
-
+      let unused_regs = List.take unused_regs (List.length fakes) in
+      let fake_to_real = List.zip_exn fakes unused_regs in
       let reg_env = String.Map.of_alist_exn fake_to_real in
       let fake_to_op f = Reg (String.Map.find_exn reg_env f) in
 
@@ -1473,20 +1410,15 @@ let spill_allocate ?(debug=false)
         let f fake =
           let real = String.Map.find_exn reg_env fake in
           movq (fake_to_op fake) (shuttle_address real) in
-        if safe_shuttle then []
-        else List.map ~f fakes in
-
+        List.map ~f fakes in
       let pre = List.map fakes ~f:(fun fake -> movq (spill fake) (fake_to_op fake)) in
       let translation = [abstract_reg_map (translate_reg reg_env) asm] in
       let post = List.map fakes ~f:(fun fake -> movq (fake_to_op fake) (spill fake)) in
-
       let postpost =
         let f fake =
           let real = String.Map.find_exn reg_env fake in
           movq (shuttle_address real) (fake_to_op fake) in
-        if safe_shuttle then []
-        else List.map ~f fakes in
-
+        List.map ~f fakes in
       prepre @ pre @ translation @ post @ postpost
       end
     | Lab l -> [Lab l]
@@ -1494,7 +1426,7 @@ let spill_allocate ?(debug=false)
     | Comment s -> [Comment s]
   in
 
-  let allocated = List.concat_map ~f:(allocate spill_env) asms_with_livevarsin in
+  let allocated = List.concat_map ~f:(allocate spill_env) asms in
   if debug then
     let mapping = [] in
     let mapping = mapping @ [Comment "----- begin register mapping"] in
@@ -1510,8 +1442,11 @@ let spill_allocate ?(debug=false)
 
 
 let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
+  let main
+    (regctx : alloc_context)
+    (asms : abstract_asm list)
+    : alloc_context * (AsmCfg.vertex -> LiveVariableAnalysis.CFGL.data) =
 
-  let main (regctx : alloc_context) (asms : abstract_asm list) : build_ret =
     let rec loop (innerctx : alloc_context) =
       if (AReg.Set.is_empty innerctx.simplify_wl &&
           TempMoveSet.is_empty innerctx.worklist_moves &&
@@ -1531,7 +1466,7 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         (loop innerctx')
     in
 
-    let buildctx, livevars_out, livevars_in, cfg = build regctx asms in
+    let (buildctx, livevars, cfg) = build regctx asms in
     let buildctx = rep_ok buildctx in
     let loopctx = rep_ok (loop buildctx) in
     let coloredctx = assign_colors loopctx in
@@ -1548,17 +1483,22 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
         printf
           "node: %s\n livevars: %s\n\n"
           (AsmCfg.string_of_vertex node)
-          (string_of_areg_set (livevars_out node)) in
+          (string_of_areg_set (livevars node)) in
       print_endline "[LIVEVARS]";
       List.iter ~f sorted_nodes;
       print_endline "[CFG]";
       print_endline (AsmCfg.to_dot cfg)
     end;
 
-    (coloredctx, livevars_out, livevars_in, cfg)
+    (coloredctx, livevars)
   in
 
-  let finctx, _, livevars_in, _ = main empty_ctx given_asms in
+  let finctx, livevars = main empty_ctx given_asms in
+  let finctx_comment =
+    if debug
+      then [Comment (string_of_alloc_context finctx)]
+      else []
+  in
 
   (* remove coalesced moves *)
   let numbered = List.mapi ~f:(fun num asm -> AsmData.{num; asm;}) given_asms in
@@ -1569,23 +1509,22 @@ let reg_alloc ?(debug=false) (given_asms : abstract_asm list) : asm list =
     not (Int.Set.mem coalesceds num)
   ) in
 
-  let finasms_with_livevarsin
-    : (abstract_asm * AReg.Set.t) list =
-    let f (asmnode : AsmData.t) = asmnode.asm, livevars_in (Node asmnode) in
-    List.map ~f finasms in
+  (* add live variable comments *)
+  let finasms = if debug then
+    List.concat_map finasms ~f:(fun node ->
+      let asm_str =
+        sprintf "asm = %s" (string_of_abstract_asm node.asm) in
+      let live_str =
+        sprintf "live vars = %s" (string_of_areg_set (livevars (Node node))) in
+      if debug
+        then [Comment asm_str; Comment live_str; node.asm]
+        else [node.asm]
+    )
+  else
+    List.map finasms ~f:(fun {asm; _} -> asm)
+  in
 
   (* translate abstract_asms with allocated nodes, leaving spills.
    * stack allocate spill nodes with Tiling.register_allocate *)
-  let translated : (abstract_asm * AReg.Set.t) list =
-    let f (asm, livevars_in) = (translate_asm finctx asm, livevars_in) in
-    List.map ~f finasms_with_livevarsin in
-
-  let spill_allocated : asm list = spill_allocate finctx translated in
-
-  let finctx_comment =
-    if debug
-      then [Comment (string_of_alloc_context finctx)]
-      else []
-  in
-
-  finctx_comment @ spill_allocated
+  List.map ~f:(translate_asm finctx) finasms |> fun finasms' ->
+    finctx_comment @ finasms' |> spill_allocate

@@ -376,11 +376,6 @@ let regs_of_operand o =
   | Label _
   | Const _ -> []
 
-let regs_of_asm a =
-  match a with
-  |  Op (_, operands) -> List.concat_map ~f:regs_of_operand operands
-  | _ -> []
-
 (******************************************************************************)
 (* instructions                                                               *)
 (******************************************************************************)

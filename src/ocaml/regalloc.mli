@@ -75,9 +75,6 @@ type color =
   | Reg9
   | Reg10
   | Reg11
-  | Reg12
-  | Reg13
-  | Reg14
 [@@deriving sexp, compare]
 
 module ColorSet : Set.S with type Elt.t = color

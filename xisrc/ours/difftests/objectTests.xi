@@ -42,17 +42,20 @@ class Color {
 class ColoredPoint extends Point {
   col:Color
   color(): Color { return col }
+  x, y:int
 
   initColoredPoint(x0:int, y0:int, c:Color):ColoredPoint {
     col = c
     _ = initPoint(x0, y0)
+    x = x0
+    y = y0
     return this
   }
 
 
   toString():int[] {
-    return "ColoredPoint(" + this.x + ", " +
-      this.y + ", " + this.col.toString() + ")";
+    return "ColoredPoint(" + (string_of_int (this.x)) + ", " +
+      (string_of_int (this.y)) + ", " + this.col.toString() + ")";
   }
 }
 
@@ -77,6 +80,6 @@ main(_:int[][]) {
   color1.r = 255
   color1.g = 255
   color1.b = 0
-  cp:ColoredPoint = initColoredPoint(5, 5, color1);
+  cp:ColoredPoint = new ColoredPoint.initColoredPoint(5, 5, color1);
   println(cp.toString());
 }

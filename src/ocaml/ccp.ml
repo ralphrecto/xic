@@ -102,11 +102,10 @@ let get_all_temps g =
   C.fold_vertex f g String.Set.empty
 
 let map_temp_undef temps =
-  let module L = CcpLattice in
   let f acc e =
-    match FreshGlobal.get e with
-    | Some _ -> String.Map.add acc ~key:e ~data:L.Overdef
-    | None -> String.Map.add acc ~key:e ~data:L.Undef
+    match FreshGlobal.get_str e with
+    | Some _ -> String.Map.add acc ~key:e ~data:CcpLattice.Overdef
+    | None -> String.Map.add acc ~key:e ~data:CcpLattice.Undef
   in
   String.Set.fold ~f ~init:String.Map.empty temps
 
@@ -180,7 +179,12 @@ let rec eval_expr (mapping: CcpLattice.defined String.Map.t) (e: expr) : CcpLatt
 let eval_stmt mapping s l =
   let open CcpLattice in
   match s with
-  | Move (Temp x, e1) -> (Reach, String.Map.add mapping ~key:x ~data:(eval_expr mapping e1))
+  | Move (Temp x, e1) -> 
+    begin
+      match FreshGlobal.get_str x with
+      | Some _ -> (Reach, String.Map.add mapping ~key:x ~data:Overdef)
+      | None -> (Reach, String.Map.add mapping ~key:x ~data:(eval_expr mapping e1))
+    end
   | Move _ -> (Reach, mapping)
   | CJumpOne (e1, _) ->
     begin

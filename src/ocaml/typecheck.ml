@@ -97,27 +97,26 @@ module Expr = struct
       | Some super ->
           if super = c2 then true else
           class_subtype super c2
-      | None -> false in
-    fun t1 t2 ->
-      match t1, t2 with
-      | KlassT c1, KlassT c2 -> class_subtype c1 c2
-      | _ -> array_subtyping t1 t2
+      | None -> false
+    in
+    let rec subtype t1 t2 =
+      if array_subtyping t1 t2 then
+        true
+      else
+        match t1, t2 with
+        | KlassT c1, KlassT c2 -> class_subtype c1 c2
+        | _, UnitT -> true
+        | TupleT t1s, TupleT t2s -> begin
+            match List.zip t1s t2s with
+            | Some ts -> List.for_all ts ~f:(fun (t1, t2) -> subtype t1 t2)
+            | None -> false
+        end
+        | _ -> false
+    in
+    subtype
 
   let comparable (( <= ) : subtyping) (t1 : t) (t2 : t) =
     t1 <= t2 || t2 <= t1
-
-  let rec subtype t1 t2 =
-    if array_subtyping t1 t2 then
-      true
-    else
-      match t1, t2 with
-      | _, UnitT -> true
-      | TupleT t1s, TupleT t2s -> begin
-          match List.zip t1s t2s with
-          | Some ts -> List.for_all ts ~f:(fun (t1, t2) -> subtype t1 t2)
-          | None -> false
-      end
-      | _ -> false
 
   let type_max (( <= ) : subtyping) (p : Pos.pos) (t1 : t) (t2 : t) =
     if t1 <= t2 then Ok t2
@@ -340,7 +339,7 @@ let empty_contexts = {
   inloop           = false;
   globals          = String.Set.empty;
   typed_globals    = [];
-  subtype          = Expr.subtype;
+  subtype          = (fun _ -> failwith "lol");
 }
 
 type typecheck_info = {

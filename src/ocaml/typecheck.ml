@@ -422,6 +422,14 @@ let super_of_klass (_, Klass (_, s, _, _)) = s
 
 let _super_of_klassdecl (_, KlassDecl (_, s, _)) = s
 
+let flatten_snd_opt_list l =
+  let f (e1, e2) acc =
+    match e2 with
+    | Some x -> (e1, x)::acc
+    | None -> acc
+  in
+  List.fold_right ~f ~init:[] l
+
 let flatten_opt_list (l : ('a option) list) : 'a list =
   let f e acc =
     match e with
@@ -1399,9 +1407,6 @@ let method_def_ok ((_, c1) as c1') ((_, c2) as c2') =
   let id2 = id_of_callable_decl c2' in
   (id1 = id2) && call_decls_type_ok c1 c2
 
-(* need to check if fields shadow globals in second pass *)
-(* typ_typecheck needs to be run on second pass *)
-(* need to check if methods shadow functions in second pass *)
 let fst_klass_pass contexts klasses =
   let module SortedGraph = Topological.Make(KlassGraph) in
   let module DfsGraph = Traverse.Dfs(KlassGraph) in
@@ -1409,12 +1414,11 @@ let fst_klass_pass contexts klasses =
 
   let klass_names = List.map ~f:id_of_klass klasses in
   let klass_to_field = List.map ~f:(fun (_, Klass ((_,i), _, f,_)) -> (i,f)) klasses in
-  let f e acc =
-    match e with
-    | Some (_, x) -> x::acc
-    | None -> acc
+  let klass_to_super = List.map ~f:(fun x -> (id_of_klass x, super_of_klass x)) klasses
+                       |> flatten_snd_opt_list
+                       |> List.map ~f: (fun (x1, (_, x2)) -> (x1, x2))
   in
-  let klass_supers = List.fold_right ~f ~init:[] (List.map ~f:super_of_klass klasses) in
+  let klass_supers = List.map ~f:snd klass_to_super in
   let kdecls_of_klasses = List.map ~f:klassdecl_of_klass klasses in
 
   let klassm_of_inters = String.Map.data contexts.delta_i in
@@ -1422,16 +1426,14 @@ let fst_klass_pass contexts klasses =
   let f acc (k_decl: KlassM.t) =
     (k_decl.name, k_decl.super)::acc
   in
-  let (k_decl_names, k_decl_supers) = L.split (List.fold_left ~f ~init:[] klassm_of_inters) in
-  let f e acc =
-    match e with
-    | Some x -> x::acc
-    | None -> acc
+  let k_decl_to_super = List.fold_left ~f ~init:[] klassm_of_inters
+                        |> flatten_snd_opt_list
   in
-  let k_decl_supers = List.fold_right ~f ~init:[] k_decl_supers in
+  let (k_decl_names, k_decl_supers) = L.split k_decl_to_super in
 
   let names = klass_names @ k_decl_names in
   let supers = klass_supers @ k_decl_supers in
+  let names_to_supers = klass_to_super @ k_decl_to_super in
 
   let invalid_super = List.findi ~f:(fun _ e -> not (L.exists (fun e' -> e' = e) names)) supers in
 
@@ -1531,7 +1533,10 @@ let fst_klass_pass contexts klasses =
           let delta_m' = String.Map.add contexts'.delta_m ~key:k ~data:klass' in
           Ok ({contexts' with delta_m = delta_m'})
       in
-      SortedGraph.fold klass_fold klass_graph (Ok contexts)
+      SortedGraph.fold klass_fold klass_graph (Ok contexts) >>= fun contexts' ->
+      let class_super_map = String.Map.of_alist_exn names_to_supers in
+      let subtype_rel = make_subtype_rel class_super_map in
+      Ok ({contexts' with subtype = subtype_rel})
 
 let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error.result =
   let klass_map (p, Klass ((_, name), super, fields, methods)) =

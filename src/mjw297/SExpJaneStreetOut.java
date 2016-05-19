@@ -319,7 +319,11 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         return null;
     }
 
-    public Void visit(Ast.NullLiteral<Position> a) {
+    public Void visit(Ast.NullLiteral<Position> n) {
+        startList();
+        posPrinter(n.a);
+        printAtom("Null");
+        endList();
         return null;
     }
 

@@ -59,9 +59,10 @@ and sexp_of_stmt = function
   | Label s -> of_atoms ["LABEL"; s]
   | Move ((Temp _ | Mem _) as dest, e) ->
     of_atoms ["MOVE"; sexp_of_expr dest; sexp_of_expr e]
-  | Move (_, _) -> failwith "Malformed Move IR node"
+  | Move (_, _) as m ->
+      failwith (sprintf "Malformed Move IR node %s" (Ir.string_of_stmt m))
   | Seq ([]) -> ""
-  | Seq (st_list) -> 
+  | Seq (st_list) ->
     of_atoms [
       "SEQ";
       List.map ~f:sexp_of_stmt st_list |> of_atoms_np]

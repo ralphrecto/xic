@@ -252,7 +252,7 @@ let class_init_ir c {delta_m; delta_i; _} =
         then move (mem (dv + index)) (mem (sdv + index))
         else move (mem (dv + index)) (name (class_method ~class_:c ~method_:s))
     ) @ [
-      move (dv + (k super_size)) (const magic_number)
+      move (mem (dv + (k super_size))) (const magic_number)
     ] @ List.mapi methods ~f:(fun i call ->
       let method_ = Typecheck.id_of_callable_decl call in
       move (mem (dv + Pervasives.(k (i + 1 + super_size))))
@@ -913,9 +913,9 @@ and lower_stmt s =
     let (e_s, e'') = lower_expr e' in
     dest_s @ e_s @ [Move(dest', e'')]
   | Seq ss -> List.concat_map ~f:lower_stmt ss
+  | CJumpOne _
   | Label _
   | Return -> [s]
-  | CJumpOne _ -> failwith "this node shouldn't exist"
 
 let lower_func_decl (i, s, t) =
   (i, Seq (lower_stmt s), t)

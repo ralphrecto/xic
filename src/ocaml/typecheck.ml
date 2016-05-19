@@ -97,27 +97,26 @@ module Expr = struct
       | Some super ->
           if super = c2 then true else
           class_subtype super c2
-      | None -> false in
-    fun t1 t2 ->
-      match t1, t2 with
-      | KlassT c1, KlassT c2 -> class_subtype c1 c2
-      | _ -> array_subtyping t1 t2
+      | None -> false
+    in
+    let rec subtype t1 t2 =
+      if array_subtyping t1 t2 then
+        true
+      else
+        match t1, t2 with
+        | KlassT c1, KlassT c2 -> class_subtype c1 c2
+        | _, UnitT -> true
+        | TupleT t1s, TupleT t2s -> begin
+            match List.zip t1s t2s with
+            | Some ts -> List.for_all ts ~f:(fun (t1, t2) -> subtype t1 t2)
+            | None -> false
+        end
+        | _ -> false
+    in
+    subtype
 
   let comparable (( <= ) : subtyping) (t1 : t) (t2 : t) =
     t1 <= t2 || t2 <= t1
-
-  let rec subtype t1 t2 =
-    if array_subtyping t1 t2 then
-      true
-    else
-      match t1, t2 with
-      | _, UnitT -> true
-      | TupleT t1s, TupleT t2s -> begin
-          match List.zip t1s t2s with
-          | Some ts -> List.for_all ts ~f:(fun (t1, t2) -> subtype t1 t2)
-          | None -> false
-      end
-      | _ -> false
 
   let type_max (( <= ) : subtyping) (p : Pos.pos) (t1 : t) (t2 : t) =
     if t1 <= t2 then Ok t2
@@ -340,7 +339,7 @@ let empty_contexts = {
   inloop           = false;
   globals          = String.Set.empty;
   typed_globals    = [];
-  subtype          = Expr.subtype;
+  subtype          = (fun _ -> failwith "lol");
 }
 
 type typecheck_info = {
@@ -361,18 +360,29 @@ let (>>|) = Result.(>>|)
 let get_klass_info (c: contexts) (typ, _) pos : KlassM.t Error.result =
   match typ with
   | KlassT classname -> begin
-      String.Map.find c.delta_m classname |> function
+      match String.Map.find c.delta_m classname with
       | None -> Error (pos, undeclared_class classname)
       | Some kl_info -> Ok kl_info
   end
   | _ -> Error (pos, "Not an object expression")
 
-let find_callable (clist : Pos.callable_decl list) (name : string) =
+let rec find_callable (ctxs: contexts) (klass_info : KlassM.t) (name : string) =
   let f (_, c) =
     match c with
     | FuncDecl ((_, fname), _, _)
-    | ProcDecl ((_, fname), _) -> fname = name in
-  List.find ~f clist
+    | ProcDecl ((_, fname), _) -> fname = name
+  in
+  match List.find ~f klass_info.methods with
+  | Some callable -> Some callable
+  | None ->
+    begin
+      match klass_info.super with
+      | Some s ->
+          let merged_deltas = U.disjoint_merge ctxs.delta_m ctxs.delta_i in
+          let super_info = String.Map.find_exn merged_deltas s in
+          find_callable ctxs super_info name
+      | None -> None
+    end
 
 let methods ~delta_m ~delta_i c =
   let delta = U.disjoint_merge delta_m delta_i in
@@ -410,6 +420,14 @@ let klassdecl_of_klass (p, Klass (id, super, _, methods)) =
 let super_of_klass (_, Klass (_, s, _, _)) = s
 
 let _super_of_klassdecl (_, KlassDecl (_, s, _)) = s
+
+let flatten_snd_opt_list l =
+  let f (e1, e2) acc =
+    match e2 with
+    | Some x -> (e1, x)::acc
+    | None -> acc
+  in
+  List.fold_right ~f ~init:[] l
 
 let flatten_opt_list (l : ('a option) list) : 'a list =
   let f e acc =
@@ -454,7 +472,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | Array (e :: es) -> begin
       expr_typecheck c e >>= fun (t, e) ->
       Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-      let f acc (t1, _) = acc >>= type_max array_subtyping p t1 in
+      let f acc (t1, _) = acc >>= type_max c.subtype p t1 in
       match List.fold_left es ~f ~init:(Ok t) with
       | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
       | Error _ -> Error (p, "Array elements must have invariant types")
@@ -520,7 +538,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | FieldAccess (receiver, (_, fname)) -> begin
       expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
-      List.Assoc.find klass_info.fields fname |> function
+      match List.Assoc.find klass_info.fields fname with
       | None ->
           Error (p, sprintf "Class %s does not have field %s" klass_info.name fname)
       | Some typ ->
@@ -529,7 +547,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | MethodCall (receiver, (_, mname), args) -> begin
       expr_typecheck c receiver >>= fun receiver' ->
       get_klass_info c receiver' p >>= fun klass_info ->
-      find_callable klass_info.methods mname |> function
+      match find_callable c klass_info mname with
       | None ->
           Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
       | Some callable ->
@@ -739,7 +757,7 @@ let stmt_typecheck (c : contexts) rho s =
     | MethodCallStmt (receiver, (_, mname), args) -> begin
         expr_typecheck c receiver >>= fun receiver' ->
         get_klass_info c receiver' p >>= fun klass_info ->
-        find_callable klass_info.methods mname |> function
+        match find_callable c klass_info mname with
         | None ->
             Error (p, sprintf "Class %s does not have method %s" klass_info.name mname)
         | Some callable -> begin
@@ -1388,9 +1406,6 @@ let method_def_ok ((_, c1) as c1') ((_, c2) as c2') =
   let id2 = id_of_callable_decl c2' in
   (id1 = id2) && call_decls_type_ok c1 c2
 
-(* need to check if fields shadow globals in second pass *)
-(* typ_typecheck needs to be run on second pass *)
-(* need to check if methods shadow functions in second pass *)
 let fst_klass_pass contexts klasses =
   let module SortedGraph = Topological.Make(KlassGraph) in
   let module DfsGraph = Traverse.Dfs(KlassGraph) in
@@ -1398,12 +1413,11 @@ let fst_klass_pass contexts klasses =
 
   let klass_names = List.map ~f:id_of_klass klasses in
   let klass_to_field = List.map ~f:(fun (_, Klass ((_,i), _, f,_)) -> (i,f)) klasses in
-  let f e acc =
-    match e with
-    | Some (_, x) -> x::acc
-    | None -> acc
+  let klass_to_super = List.map ~f:(fun x -> (id_of_klass x, super_of_klass x)) klasses
+                       |> flatten_snd_opt_list
+                       |> List.map ~f: (fun (x1, (_, x2)) -> (x1, x2))
   in
-  let klass_supers = List.fold_right ~f ~init:[] (List.map ~f:super_of_klass klasses) in
+  let klass_supers = List.map ~f:snd klass_to_super in
   let kdecls_of_klasses = List.map ~f:klassdecl_of_klass klasses in
 
   let klassm_of_inters = String.Map.data contexts.delta_i in
@@ -1411,16 +1425,14 @@ let fst_klass_pass contexts klasses =
   let f acc (k_decl: KlassM.t) =
     (k_decl.name, k_decl.super)::acc
   in
-  let (k_decl_names, k_decl_supers) = L.split (List.fold_left ~f ~init:[] klassm_of_inters) in
-  let f e acc =
-    match e with
-    | Some x -> x::acc
-    | None -> acc
+  let k_decl_to_super = List.fold_left ~f ~init:[] klassm_of_inters
+                        |> flatten_snd_opt_list
   in
-  let k_decl_supers = List.fold_right ~f ~init:[] k_decl_supers in
+  let (k_decl_names, k_decl_supers) = L.split k_decl_to_super in
 
   let names = klass_names @ k_decl_names in
   let supers = klass_supers @ k_decl_supers in
+  let names_to_supers = klass_to_super @ k_decl_to_super in
 
   let invalid_super = List.findi ~f:(fun _ e -> not (L.exists (fun e' -> e' = e) names)) supers in
 
@@ -1517,10 +1529,13 @@ let fst_klass_pass contexts klasses =
           in
           check_inter () >>= fun methods1 ->
           check_super methods1 >>= fun klass' ->
-          let delta_m' = String.Map.add contexts.delta_m ~key:k ~data:klass' in
+          let delta_m' = String.Map.add contexts'.delta_m ~key:k ~data:klass' in
           Ok ({contexts' with delta_m = delta_m'})
       in
-      SortedGraph.fold klass_fold klass_graph (Ok contexts)
+      SortedGraph.fold klass_fold klass_graph (Ok contexts) >>= fun contexts' ->
+      let class_super_map = String.Map.of_alist_exn names_to_supers in
+      let subtype_rel = make_subtype_rel class_super_map in
+      Ok ({contexts' with subtype = subtype_rel})
 
 let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error.result =
   let klass_map (p, Klass ((_, name), super, fields, methods)) =

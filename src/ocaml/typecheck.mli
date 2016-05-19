@@ -30,7 +30,6 @@ module Expr: sig
   val of_typ: Pos.typ -> t
 
   val array_subtyping : subtyping
-  val subtype : subtyping
 
   (* takes a map from class name -> superclass name *)
   val make_subtype_rel : string String.Map.t -> subtyping

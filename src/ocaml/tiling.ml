@@ -408,6 +408,11 @@ let rec munch_expr
         (* prepare implicit 0th argument *)
         let (ret_ptr, ret_asm) =
           let callee_ctx = get_context fcontexts fname in
+          printf "num_args: %d\n" callee_ctx.num_args;
+          printf "num_rets: %d\n" callee_ctx.num_rets;
+          printf "max_args: %d\n" callee_ctx.max_args;
+          printf "max_rets: %d\n" callee_ctx.max_rets;
+          printf "fname: %s\n" fname;
           if callee_ctx.num_rets > 2 then
             let new_tmp = Fake (FreshReg.fresh ()) in
             let asm = leaq (Mem ((8*(max (curr_ctx.max_args-6) 0))$(Real Rsp))) (Reg new_tmp) in

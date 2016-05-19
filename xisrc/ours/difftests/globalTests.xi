@@ -21,6 +21,7 @@ g17:int[][] = {} + {}
 g18:int = g15[0][0]
 g19:int[] = g15[1]
 g20:int = {{1,2,3},{10,20},{100}}[2][0]
+g21:int[20]
 
 globalTest1() : int {
   return g1;
@@ -29,6 +30,32 @@ globalTest1() : int {
 globalTest2() : int {
   g1 = 16;
   return g1;
+}
+
+globalTest3() : int[] {
+  g12[4] = g6 + 10
+  return g12;
+}
+
+globalTest4() : int[] {
+  g21[0] = 1
+  g21[1] = 2
+  g21[2] = 3
+  g21[3] = 4
+  g21[4] = 5
+  g21[5] = 6
+  g21[6] = 7
+  g21[7] = 8
+  g21[8] = 9
+  g21[9] = 10
+  return g21;
+}
+
+globalTest5() : int[] {
+  g21 = g8;
+  g8 = g8 + {1}
+  g21 = g21 + {2}
+  return g21;
 }
 
 main (_: int[][]) {
@@ -54,4 +81,7 @@ main (_: int[][]) {
   println (string_of_int (g18));
   print_1array (g19);
   println (string_of_int (g20));
+  print_1array (globalTest3());
+  print_1array (globalTest4());
+  print_1array (globalTest5());
 }

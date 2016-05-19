@@ -179,6 +179,9 @@ public class IRSimulator {
 
         long retval = heapPtr;
         heapPtr += size;
+        for (long i = retval; i < heapPtr; ++i) {
+            mem[(int) i] = 0L;
+        }
         return retval;
     }
 

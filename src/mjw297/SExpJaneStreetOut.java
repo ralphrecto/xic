@@ -542,7 +542,7 @@ class SExpJaneStreetOut implements Ast.NodeVisitor<Position, Void> {
         posPrinter(kt.a);
 
         startList();
-        printAtom("KlassType");
+        printAtom("TKlass");
         rawIdPrinter(kt.name);
         endList();
 

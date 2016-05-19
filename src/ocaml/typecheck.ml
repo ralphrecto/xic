@@ -1537,7 +1537,7 @@ let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error
         flatten_opt_list
       in
       let field_shadowed =
-        List.for_all ~f:(fun x -> String.Set.mem c.globals x) field_names
+        List.exists ~f:(fun x -> String.Set.mem c.globals x) field_names
       in
       if field_shadowed then
         Error (p, field_shadow)
@@ -1556,7 +1556,7 @@ let snd_klass_pass (c: contexts) (klasses : Pos.klass list) : (klass list) Error
       in
       let functions = String.Map.fold ~init:[] ~f c.locals in
       let method_shadowed =
-        List.for_all ~f:(fun x -> not (List.mem functions (id_of_callable x))) methods
+        List.exists ~f:(fun x -> List.mem functions (id_of_callable x)) methods
       in
       if method_shadowed then Error (p, method_shadow)
       else

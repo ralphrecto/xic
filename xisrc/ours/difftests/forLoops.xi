@@ -16,13 +16,13 @@ class IntFold {
   }
 }
 
-class Add {
+class Add extends IntFold {
   call(acc:int, el:int) : int {
     return acc + el;
   }
 }
 
-class Mult {
+class Mult extends IntFold {
   call(acc:int, el:int) : int {
     return acc * el;
   }

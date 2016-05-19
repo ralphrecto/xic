@@ -455,64 +455,64 @@ and gen_decl_help (callnames: string String.Map.t) ((_, t): typ) ctxt : Ir.expr 
   let incr_ir e = (BinOp (e, ADD, const 1)) in
   match t with
   | TBool | TInt -> Temp (fresh_temp ())
-  | TArray ((at', t'), index) ->
+  | TArray ((at', t'), index) -> begin
     let fill () =
       match t' with
       | TInt | TBool -> const 0
       | TArray _ -> gen_decl_help callnames (at', t') ctxt
       | _ -> failwith "TODO"
     in
-    let array_size =
-      match index with
-      | Some index_expr -> gen_expr callnames index_expr ctxt
-      | None -> const 0
-    in
+    match index with
+    | None -> const 0
+    | Some index_expr -> begin
+        let array_size = gen_expr callnames index_expr ctxt in
+      (* helpful temps *)
+      let size_tmp = Temp (fresh_temp ()) in
+      let loc_tmp = Temp (fresh_temp ()) in
+      let i = Temp (fresh_temp ()) in
 
-    (* helpful temps *)
-    let size_tmp = Temp (fresh_temp ()) in
-    let loc_tmp = Temp (fresh_temp ()) in
-    let i = Temp (fresh_temp ()) in
+      (* helpful labels *)
+      let cont_lbl = fresh_label () in
+      let bad_size_lbl = fresh_label () in
+      let while_lbl = fresh_label () in
+      let t_lbl = fresh_label () in
+      let f_lbl = fresh_label () in
 
-    (* helpful labels *)
-    let cont_lbl = fresh_label () in
-    let bad_size_lbl = fresh_label () in
-    let while_lbl = fresh_label () in
-    let t_lbl = fresh_label () in
-    let f_lbl = fresh_label () in
+      (* helpful predicates *)
+      let pred = BinOp(i, LT, incr_ir array_size) in
 
-    (* helpful predicates *)
-    let pred = BinOp(i, LT, incr_ir array_size) in
+      ESeq (
+        Seq ([
+            (* size_tmp = array_size
+             * if size_tmp < 0: outOfBounds() *)
+            Move (size_tmp, array_size);
+            CJump (BinOp(size_tmp, GEQ, const 0), cont_lbl, bad_size_lbl);
+            Label (bad_size_lbl);
+            Exp (Call (Name out_of_bounds_proc, []));
 
-    ESeq (
-      Seq ([
-          (* size_tmp = array_size
-           * if size_tmp < 0: outOfBounds() *)
-          Move (size_tmp, array_size);
-          CJump (BinOp(size_tmp, GEQ, const 0), cont_lbl, bad_size_lbl);
-          Label (bad_size_lbl);
-          Exp (Call (Name out_of_bounds_proc, []));
-
-          (* loc_tmp = malloc(word_size * (array_size + 1))
-           * loc_tmp[0] = array_size
-           * i = 1
-           * while (i < array_size + 1):
-           *   loc_tmp[i] = fill()
-           *   i++
-           * return &loc_tmp[1] *)
-          Label (cont_lbl);
-          Move (loc_tmp, array_size |> incr_ir |> malloc_word_ir);
-          Move (Mem (loc_tmp, NORMAL), array_size);
-          Move (i, const 1);
-          Label while_lbl;
-          CJump (pred, t_lbl, f_lbl);
-          Label t_lbl;
-          Move (Mem (loc_tmp$$(i), NORMAL), fill ());
-          Move (i, incr_ir i);
-          Jump (Name while_lbl);
-          Label f_lbl;
-        ]),
-      loc_tmp$(1)
-    )
+            (* loc_tmp = malloc(word_size * (array_size + 1))
+             * loc_tmp[0] = array_size
+             * i = 1
+             * while (i < array_size + 1):
+             *   loc_tmp[i] = fill()
+             *   i++
+             * return &loc_tmp[1] *)
+            Label (cont_lbl);
+            Move (loc_tmp, array_size |> incr_ir |> malloc_word_ir);
+            Move (Mem (loc_tmp, NORMAL), array_size);
+            Move (i, const 1);
+            Label while_lbl;
+            CJump (pred, t_lbl, f_lbl);
+            Label t_lbl;
+            Move (Mem (loc_tmp$$(i), NORMAL), fill ());
+            Move (i, incr_ir i);
+            Jump (Name while_lbl);
+            Label f_lbl;
+          ]),
+        loc_tmp$(1)
+      )
+    end
+  end
   | _ -> failwith "TODO"
 
 and gen_stmt callnames s ctxt =

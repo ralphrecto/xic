@@ -5,6 +5,7 @@ open Dataflow
 open Ir
 open Tiling
 open Fresh
+open Ir_generation
 
 module CcpLattice = struct
   type reachable = Reach | Unreach
@@ -73,7 +74,12 @@ let rec get_temp_expr (e: expr) : String.Set.t =
     let f acc e = union acc (get_temp_expr e) in
     List.fold_left ~f ~init: empty elst
   | Mem (e1, _) -> get_temp_expr e1
-  | Temp s -> add empty s
+  | Temp s ->
+    begin
+      match FreshGlobal.get s with
+      | Some _ -> empty
+      | None -> add empty s
+    end
   | Const _ | Name _ -> empty
   | ESeq _ -> failwith "shouldn't exist!"
 

@@ -20,6 +20,11 @@ string_of_int(x: int) : int[] {
 }
 
 print_1array(x: int[]) {
+    if (x == null) {
+        println("null")
+        return
+    }
+
     i: int = 0
     println("{")
     while (i < length(x)) {
@@ -30,6 +35,11 @@ print_1array(x: int[]) {
 }
 
 print_2array(x: int[][]) {
+    if (x == null) {
+        println("null")
+        return
+    }
+
     i: int = 0
     println("{")
     while (i < length(x)) {
@@ -40,6 +50,11 @@ print_2array(x: int[][]) {
 }
 
 print_3array(x: int[][][]) {
+    if (x == null) {
+        println("null")
+        return
+    }
+
     i: int = 0
     println("{")
     while (i < length(x)) {
@@ -50,6 +65,11 @@ print_3array(x: int[][][]) {
 }
 
 print_4array(x: int[][][][]) {
+    if (x == null) {
+        println("null")
+        return
+    }
+
     i: int = 0
     println("{")
     while (i < length(x)) {
@@ -60,6 +80,11 @@ print_4array(x: int[][][][]) {
 }
 
 print_5array(x: int[][][][][]) {
+    if (x == null) {
+        println("null")
+        return
+    }
+
     i: int = 0
     println("{")
     while (i < length(x)) {

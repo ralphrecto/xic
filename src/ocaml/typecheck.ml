@@ -1088,7 +1088,8 @@ let klassdecl_typecheck (c : contexts) kdecl : klass_decl Error.result =
     | Some (_, id) ->
         if String.Map.mem c.delta_m id || String.Map.mem c.delta_i id then
           Ok (Some ((), id))
-        else Error (p, undeclared_class id) in
+        else
+          Error (p, undeclared_class id) in
   super_ok >>= fun super' ->
   List.map ~f:(call_decl_typecheck c) fdecls |> Result.all >>= fun fdecls' ->
   Ok ((), KlassDecl (((), id), super', fdecls'))
@@ -1425,18 +1426,19 @@ let fst_klass_pass contexts klasses =
   let f acc (k_decl: KlassM.t) =
     (k_decl.name, k_decl.super)::acc
   in
-  let k_decl_to_super = List.fold_left ~f ~init:[] klassm_of_inters
-                        |> flatten_snd_opt_list
-  in
-  let (k_decl_names, k_decl_supers) = L.split k_decl_to_super in
+  let k_decl_to_super1 = List.fold_left ~f ~init:[] klassm_of_inters in
+  let k_decl_to_super = k_decl_to_super1 |> flatten_snd_opt_list in
+  let (k_decl_names, k_decl_supers) = L.split k_decl_to_super1 in
+  let k_decl_supers = flatten_opt_list k_decl_supers in
 
   let names = klass_names @ k_decl_names in
   let supers = klass_supers @ k_decl_supers in
   let names_to_supers = klass_to_super @ k_decl_to_super in
 
-  let invalid_super = List.findi ~f:(fun _ e -> not (L.exists (fun e' -> e' = e) names)) supers in
+  let invalid_super = List.findi ~f:(fun _ e -> not (List.mem names e)) supers in
 
-  if is_some invalid_super then Error ((-1, -1), undeclared_class (snd (Option.value_exn invalid_super)))
+  if is_some invalid_super then
+    Error ((-1, -1), undeclared_class (snd (Option.value_exn invalid_super)))
   else if List.contains_dup klass_names then Error ((-1, -1), dup_class_decl)
   else
     let entire_klass_graph = class_graph (kdecls_of_klasses @ kdecls_of_inters) in

@@ -913,9 +913,9 @@ and lower_stmt s =
     let (e_s, e'') = lower_expr e' in
     dest_s @ e_s @ [Move(dest', e'')]
   | Seq ss -> List.concat_map ~f:lower_stmt ss
+  | CJumpOne _
   | Label _
   | Return -> [s]
-  | CJumpOne _ -> failwith "this node shouldn't exist"
 
 let lower_func_decl (i, s, t) =
   (i, Seq (lower_stmt s), t)

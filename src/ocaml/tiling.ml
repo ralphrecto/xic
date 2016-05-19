@@ -444,7 +444,9 @@ let rec munch_expr
                    restore_caller_asm in
         (FreshAsmRet.gen 0, section_wrap debug asms ("calling " ^ fname))
     end
-    | Ir.Name _ -> failwith "Name should never be munched by itself"
+    | Ir.Name l ->
+        let new_tmp = FreshReg.fresh () in
+        (new_tmp, [movq (Label l) (Reg (Fake new_tmp))])
     | Ir.Call _ -> failwith "Call should always have a Name first"
     | Ir.ESeq _ -> failwith "ESeq shouldn't exist"
   end

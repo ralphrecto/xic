@@ -623,8 +623,13 @@ let lvalue (c : contexts) ((p, e) : Pos.expr) : expr Error.result =
 let stmt_call_helper (c : contexts) p argtype rettype args : expr list Error.result =
   match argtype, rettype with
   | TupleT tl, UnitT -> exprs_typecheck p c tl args num_f_args typ_f_args
-  | _, UnitT -> exprs_typecheck p c [argtype] args num_f_args typ_f_args
-  | _ -> Error (p, "method call stmt returns a value")
+  | (IntT|BoolT|ArrayT _|KlassT _), UnitT ->
+      exprs_typecheck p c [argtype] args num_f_args typ_f_args
+  | UnitT, UnitT ->
+      exprs_typecheck p c [] args num_f_args typ_f_args
+  | EmptyArray, _ -> failwith "stmt_call_helper: EmptyArray as argument type"
+  | NullT, _ -> failwith "stmt_call_helper: NullT as argument type"
+  | _, _ -> Error (p, "method call stmt returns a value")
 
 let stmt_typecheck (c : contexts) rho s =
   let rec (|-) (c, rho) (p, s) : (stmt * contexts) Error.result =

@@ -403,7 +403,7 @@ let rec gen_expr (callnames: string String.Map.t) ((t, e): Typecheck.expr) ctxt 
       eseq (move (temp fresh_tmp) (mem (e + size + offset))) (temp fresh_tmp)
     | _ -> failwith "gen_stmt: accessing field of non class type"
   end
-  | S.MethodCall (c, ((), f), args) -> begin
+  | S.MethodCall ((t, _) as c, ((), f), args) -> begin
     match t with
     | KlassT cname ->
       let {delta_m; delta_i; _} = ctxt in

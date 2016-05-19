@@ -473,7 +473,7 @@ and expr_typecheck (c : contexts) (p, expr) =
   | Array (e :: es) -> begin
       expr_typecheck c e >>= fun (t, e) ->
       Result.all (List.map ~f:(expr_typecheck c) es) >>= fun es ->
-      let f acc (t1, _) = acc >>= type_max array_subtyping p t1 in
+      let f acc (t1, _) = acc >>= type_max c.subtype p t1 in
       match List.fold_left es ~f ~init:(Ok t) with
       | Ok max_t -> Ok (ArrayT max_t, Array ((t, e)::es))
       | Error _ -> Error (p, "Array elements must have invariant types")

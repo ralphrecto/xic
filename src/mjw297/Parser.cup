@@ -616,6 +616,26 @@ klass_contents ::=
     {: kc.add(pd);
        RESULT = kc;
     :}
+    | klass_contents:kc single_avar_plus:sap SEMICOLON
+    {: for (AnnotatedVar<Position> saObj : sap){
+           kc.add(saObj);
+       }
+       RESULT = kc;
+    :}
+    | klass_contents:kc multi_decl:md SEMICOLON
+    {: for (AnnotatedVar<Position> mdObj : md){
+           kc.add(mdObj);
+       }
+       RESULT = kc;
+    :}
+    | klass_contents:kc func_decl:fd SEMICOLON
+    {: kc.add(fd);
+       RESULT = kc;
+    :}
+    | klass_contents:kc proc_decl:pd SEMICOLON
+    {: kc.add(pd);
+       RESULT = kc;
+    :}
     ;
 
 klass_decl ::= CLASS ID:name LBRACE klass_contents:kc RBRACE

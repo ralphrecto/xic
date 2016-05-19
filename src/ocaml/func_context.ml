@@ -40,6 +40,7 @@ let get_context (map: func_contexts) (name: string) =
    * _I_alloc_i in the map properly. *)
   | None ->
       if String.is_prefix ~prefix:"_I_init" name ||
+         "_I_globalinit" = name ||
          FreshGlobal.mem name || FreshSize.mem name ||
          FreshDV.mem name then
            { num_args = 0;

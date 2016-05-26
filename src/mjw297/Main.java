@@ -660,7 +660,7 @@ public class Main {
     }
 
     void doOptIr(List<String> filenames, List<String> opts) {
-        doOpt("optir", "optir", optIr, filenames, opts);
+        doOpt("optir", "ir", optIr, filenames, opts);
     }
 
     void doOptCfg(List<String> filenames, List<String> opts) {

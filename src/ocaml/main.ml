@@ -95,6 +95,23 @@ let asts_to_strs
   in
   List.map ~f asts
 
+let asts_to_strs_pairs
+  (tcf: Pos.full_prog -> ('a * 'b) Error.result)
+  (strf1: 'a -> string)
+  (strf2: 'b -> string)
+  (asts: Pos.full_prog list)
+  : (string * string) list =
+  let f (Ast.S.FullProg (name, _, _) as p) =
+    match tcf p with
+    | Ok (el1, el2) -> strf1 el1, strf2 el2
+    | Error ((row, col), msg) -> (
+        Print.print_endline (format_err_print name row col msg);
+        let s = format_err_output row col msg in
+        (s, s)
+    )
+  in
+  List.map ~f asts
+
 let writes (outs: string list) (content_list: string list) =
   let zipped = List.zip_exn outs content_list in
   Deferred.List.iter ~f:(fun (out, contents) -> Writer.save out ~contents) zipped
@@ -124,17 +141,25 @@ let irgen : Ir.comp_unit modef = fun ({icf; _} as opts) ast ->
     )
   )
 
-let optir_initial : Ir.comp_unit modef = fun opts ast ->
+let optir_initial : (Asm.asm_prog * Ir.comp_unit) modef = fun ({is; reg; _} as opts) ast ->
+  let f =
+    block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit
+  in
   Result.(
-    typecheck opts ast >>| (block_reorder_comp_unit $ lower_comp_unit $ gen_comp_unit)
+    typecheck opts ast >>= fun typed_prog ->
+    Result.Ok (f typed_prog) >>= fun ir_prog ->
+    Result.Ok (is reg typed_prog ir_prog, ir_prog)
   )
 
-let optir_final : Ir.comp_unit modef = fun ({cp; pre; icf; _} as opts) ast ->
+let optir_final : (Asm.asm_prog * Ir.comp_unit) modef = fun ({cp; pre; icf; is; reg; _} as opts) ast ->
+  let f =
+    cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
+    gen_comp_unit
+  in
   Result.(
-    typecheck opts ast >>| (
-      cp $ pre $ icf $ block_reorder_comp_unit $ icf $ lower_comp_unit $ icf $
-      gen_comp_unit
-    )
+    typecheck opts ast >>= fun typed_prog ->
+    Result.Ok (f typed_prog) >>= fun ir_prog ->
+    Result.Ok (is reg typed_prog ir_prog, ir_prog)
   )
 
 let asmgen : bool -> Asm.asm_prog modef = fun debug ({is; reg; _} as opts) ast ->
@@ -177,16 +202,19 @@ let main opts flags () : unit Deferred.t =
   | _ when flags.optir_initial || flags.optir_final ->
       let initials = List.map flags.astfiles ~f:(change_ext ~ext:"_initial.ir") in
       let finals = List.map flags.astfiles ~f:(change_ext ~ext:"_final.ir") in
+      let asm_files = List.map flags.astfiles ~f:(change_ext ~ext:".s") in
 
       let initial =
-        if flags.optir_initial
-          then writes initials (asts_to_strs (optir_initial opts) ir_strf asts)
+        if flags.optir_initial then
+          let asm_strs, ir_strs = List.unzip (asts_to_strs_pairs (optir_initial opts) asm_strf ir_strf asts) in
+          writes (asm_files @ initials) (asm_strs @ ir_strs)
           else return ()
       in
 
       let final =
-        if flags.optir_final
-          then writes finals (asts_to_strs (optir_final opts) ir_strf asts)
+        if flags.optir_final then
+          let asm_strs, ir_strs = List.unzip (asts_to_strs_pairs (optir_final opts) asm_strf ir_strf asts) in
+          writes (asm_files @ finals) (asm_strs @ ir_strs)
           else return ()
       in
 
@@ -225,13 +253,13 @@ let main opts flags () : unit Deferred.t =
 
             let initial =
               if flags.optcfg_initial
-                then cfg_initial (ok (optir_initial opts ast))
+                then cfg_initial (snd (ok (optir_initial opts ast)))
                 else return ()
             in
 
             let final =
               if flags.optcfg_final
-                then cfg_final (ok (optir_final opts ast))
+                then cfg_final (snd (ok (optir_final opts ast)))
                 else return ()
             in
 

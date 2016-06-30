@@ -483,7 +483,8 @@ let avar_to_expr_t ((_, av): Pos.avar) : Expr.t =
   | AUnderscore typ -> Expr.of_typ typ
 
 let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
-  match call with | FuncDecl ((_, id), args, rets) ->
+  match call with
+  | FuncDecl ((_, id), args, rets) ->
     begin
       if Context.mem c id then
         Error (p, dup_func_decl id)
@@ -519,24 +520,24 @@ let func_decl_typecheck (c: context) ((p, call): Pos.callable_decl) =
           Ok c'
         | _ -> Error (p, "Invalid function type! -- shouldn't hit this case")
     end
-                  | ProcDecl ((_, id), args) ->
-                    begin
-                      if Context.mem c id then
-                        Error (p, dup_func_decl id)
-                      else
-                        match args with
-                        |[] ->
-                          let c' = Context.add c ~key:id ~data:(Function (UnitT, UnitT)) in
-                          Ok c'
-                        |[arg_avar] ->
-                          let arg_t = avar_to_expr_t arg_avar in
-                          let c' = Context.add c ~key:id ~data:(Function (arg_t, UnitT)) in
-                          Ok c'
-                        |_::_ ->
-                          let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
-                          let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
-                          Ok c'
-                    end
+  | ProcDecl ((_, id), args) ->
+    begin
+      if Context.mem c id then
+        Error (p, dup_func_decl id)
+      else
+        match args with
+        |[] ->
+          let c' = Context.add c ~key:id ~data:(Function (UnitT, UnitT)) in
+          Ok c'
+        |[arg_avar] ->
+          let arg_t = avar_to_expr_t arg_avar in
+          let c' = Context.add c ~key:id ~data:(Function (arg_t, UnitT)) in
+          Ok c'
+        |_::_ ->
+          let args_t = TupleT (List.map ~f:avar_to_expr_t args) in
+          let c' = Context.add c ~key:id ~data:(Function (args_t, UnitT)) in
+          Ok c'
+    end
 
 let func_typecheck (c: context) ((p, call): Pos.callable) =
   let call' = match call with
